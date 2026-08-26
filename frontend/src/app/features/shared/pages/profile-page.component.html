@@ -1,0 +1,27 @@
+<section>
+  <h1 class="text-2xl font-semibold">Mi perfil</h1>
+  <p class="mt-1 text-sm text-slate-500">Información obtenida desde `/users/me`.</p>
+
+  @if (user(); as currentUser) {
+    <div class="mt-6 grid gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-2">
+      <div>
+        <p class="text-xs uppercase tracking-wide text-slate-500">Nombre</p>
+        <p class="mt-1 font-medium text-slate-900">{{ currentUser.name }}</p>
+      </div>
+      <div>
+        <p class="text-xs uppercase tracking-wide text-slate-500">Correo</p>
+        <p class="mt-1 font-medium text-slate-900">{{ currentUser.email }}</p>
+      </div>
+      <div>
+        <p class="text-xs uppercase tracking-wide text-slate-500">Género</p>
+        <p class="mt-1 font-medium text-slate-900">{{ currentUser.gender === 'masculino' ? 'Masculino' : 'Femenino' }}</p>
+      </div>
+      <div>
+        <p class="text-xs uppercase tracking-wide text-slate-500">Rol</p>
+        <p class="mt-1 font-medium text-slate-900">
+          {{ currentUser.rol === 'administrador' ? 'Administrador' : currentUser.rol === 'delivery' ? 'Delivery' : 'Cliente' }}
+        </p>
+      </div>
+    </div>
+  }
+</section>

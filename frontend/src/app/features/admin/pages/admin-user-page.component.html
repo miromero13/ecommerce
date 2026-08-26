@@ -1,0 +1,65 @@
+<section class="space-y-5">
+  <header>
+    <h1 class="text-2xl font-semibold">Usuarios y roles</h1>
+    <p class="text-sm text-slate-500">Administra administradores, clientes y delivery.</p>
+  </header>
+
+  <div class="flex flex-wrap gap-2">
+    <button class="rounded-lg border px-3 py-1 text-sm" [class.bg-slate-900]="filtroRol() === ''" [class.text-white]="filtroRol() === ''" type="button" (click)="setFiltro('')">Todos</button>
+    <button class="rounded-lg border px-3 py-1 text-sm" [class.bg-slate-900]="filtroRol() === 'cliente'" [class.text-white]="filtroRol() === 'cliente'" type="button" (click)="setFiltro('cliente')">Cliente</button>
+    <button class="rounded-lg border px-3 py-1 text-sm" [class.bg-slate-900]="filtroRol() === 'delivery'" [class.text-white]="filtroRol() === 'delivery'" type="button" (click)="setFiltro('delivery')">Delivery</button>
+    <button class="rounded-lg border px-3 py-1 text-sm" [class.bg-slate-900]="filtroRol() === 'administrador'" [class.text-white]="filtroRol() === 'administrador'" type="button" (click)="setFiltro('administrador')">Administrador</button>
+  </div>
+
+  @if (errorMessage()) {
+    <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ errorMessage() }}</p>
+  }
+
+  @if (successMessage()) {
+    <p class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{{ successMessage() }}</p>
+  }
+
+  <article class="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+    <h2 class="font-medium">Usuarios filtrados ({{ usuariosFiltrados().length }})</h2>
+    <div class="overflow-hidden rounded-xl border border-slate-200">
+      <table hlmTable class="w-full">
+        <thead class="bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
+          <tr>
+            <th class="px-4 py-3">Usuario</th>
+            <th class="px-4 py-3">Género</th>
+            <th class="px-4 py-3">Rol</th>
+            <th class="px-4 py-3 text-right">Acción</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200">
+          @for (user of usuariosFiltrados(); track user.id) {
+            <tr class="hover:bg-slate-50">
+              <td class="px-4 py-3">
+                <p class="font-medium text-slate-900">{{ user.name }}</p>
+                <p class="text-sm text-slate-500">ID: {{ user.id.slice(0, 8) }}</p>
+              </td>
+              <td class="px-4 py-3 text-sm text-slate-600">
+                <p>{{ user.email }}</p>
+                <p>{{ labelGenero(user.gender) }}</p>
+              </td>
+              <td class="px-4 py-3 text-sm text-slate-600">{{ labelRol(user.rol) }}</td>
+              <td class="px-4 py-3 text-right">
+                <select class="rounded-lg border border-slate-300 px-3 py-2 text-sm" [value]="user.rol" [disabled]="currentUserId() === user.id" (change)="actualizarRol(user, $any($event.target).value)">
+                  <option value="cliente">Cliente</option>
+                  <option value="delivery">Delivery</option>
+                  <option value="administrador">Administrador</option>
+                </select>
+              </td>
+            </tr>
+          }
+
+          @if (!usuariosFiltrados().length) {
+            <tr>
+              <td class="px-4 py-8 text-center text-sm text-slate-500" colspan="4">No hay usuarios para el filtro seleccionado.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </article>
+</section>

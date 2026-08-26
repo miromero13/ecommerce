@@ -1,0 +1,47 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "target": "ES2022",
+    "module": "preserve",
+    "paths": {
+      "@spartan-ng/helm/button": ["./src/app/components/button/src/index.ts"],
+      "@spartan-ng/helm/utils": ["./src/app/components/utils/src/index.ts"],
+      "@spartan-ng/helm/card": ["./src/app/components/card/src/index.ts"],
+      "@spartan-ng/helm/badge": ["./src/app/components/badge/src/index.ts"],
+      "@spartan-ng/helm/field": ["./src/app/components/field/src/index.ts"],
+      "@spartan-ng/helm/label": ["./src/app/components/label/src/index.ts"],
+      "@spartan-ng/helm/sidebar": ["./src/app/components/sidebar/src/index.ts"],
+      "@spartan-ng/helm/icon": ["./src/app/components/icon/src/index.ts"],
+      "@spartan-ng/helm/input": ["./src/app/components/input/src/index.ts"],
+      "@spartan-ng/helm/select": ["./src/app/components/select/src/index.ts"],
+      "@spartan-ng/helm/textarea": ["./src/app/components/textarea/src/index.ts"],
+      "@spartan-ng/helm/table": ["./src/app/components/table/src/index.ts"],
+      "@spartan-ng/helm/separator": ["./src/app/components/separator/src/index.ts"],
+      "@spartan-ng/helm/sheet": ["./src/app/components/sheet/src/index.ts"],
+      "@spartan-ng/helm/skeleton": ["./src/app/components/skeleton/src/index.ts"],
+      "@spartan-ng/helm/tooltip": ["./src/app/components/tooltip/src/index.ts"],
+      "@spartan-ng/helm/avatar": ["./src/app/components/avatar/src/index.ts"]
+    }
+  },
+  "angularCompilerOptions": {
+    "enableI18nLegacyMessageIdFormat": false,
+    "strictInjectionParameters": true,
+    "strictInputAccessModifiers": true,
+    "strictTemplates": true
+  },
+  "files": [],
+  "references": [
+    {
+      "path": "./tsconfig.app.json"
+    }
+  ]
+}

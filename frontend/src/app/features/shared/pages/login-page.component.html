@@ -1,0 +1,71 @@
+<div class="grid min-h-screen lg:grid-cols-2">
+  <section class="flex items-center justify-center px-4 py-10 sm:px-8 lg:px-12">
+    <section class="mx-auto w-full max-w-md space-y-5 p-6 backdrop-blur sm:p-8">
+      <div hlmCardContent class="space-y-8 p-0">
+        <hlm-tabs [tab]="activeRole()" class="w-full" (tabActivated)="selectRole($event)">
+          <hlm-tabs-list aria-label="Seleccionar rol">
+            <button hlmTabsTrigger="cliente" type="button">
+              <span>Cliente</span>
+            </button>
+
+            <button hlmTabsTrigger="delivery" type="button">
+              <span>Delivery</span>
+            </button>
+
+            <button hlmTabsTrigger="administrador" type="button">
+              <span>Administrador</span>
+            </button>
+          </hlm-tabs-list>
+        </hlm-tabs>
+
+        <div class="space-y-2 text-center p-0">
+          <h1 class="text-3xl font-bold">Iniciar sesión</h1>
+          <p class="text-gray-500">Accede al panel de asistencia.</p>
+        </div>
+
+        <form class="space-y-6 text-left" [formGroup]="form" (ngSubmit)="submit()">
+          <div hlmFieldGroup>
+            <div hlmField class="space-y-1">
+              <label hlmFieldLabel for="email">Correo</label>
+              <input id="email" hlmInput type="email" formControlName="email" autocomplete="email" placeholder="tucorreo@gmail.com" />
+              <hlm-field-error validator="required">El correo es obligatorio.</hlm-field-error>
+              <hlm-field-error validator="email">Ingresa un correo válido.</hlm-field-error>
+            </div>
+
+            <div hlmField class="space-y-1">
+              <label hlmFieldLabel for="password">Contraseña</label>
+              <input id="password" hlmInput type="password" formControlName="password" autocomplete="current-password" placeholder="********" />
+              <hlm-field-error validator="required">La contraseña es obligatoria.</hlm-field-error>
+            </div>
+          </div>
+
+          <input type="hidden" formControlName="rol" />
+
+          @if (errorMessage()) {
+            <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ errorMessage() }}</p>
+          }
+
+          <button hlmBtn class="w-full cursor-pointer" type="submit" [disabled]="form.invalid || loading()">
+            {{ loading() ? 'Ingresando...' : 'Ingresar' }}
+          </button>
+        </form>
+
+        @if (activeRole() === 'cliente') {
+          <p class="text-center text-sm text-slate-600">
+            ¿No tienes cuenta?
+            <a routerLink="/auth/register" class="font-medium text-slate-900 underline">Regístrate</a>
+          </p>
+        }
+      </div>
+    </section>
+  </section>
+
+  <aside class="relative hidden overflow-hidden lg:block">
+    <div class="absolute inset-0 bg-primary/60"></div>
+    <img
+      src="/assets/login-fashion.png"
+      alt="Moda y estilo"
+      class="absolute inset-0 h-full w-full object-contain object-center opacity-95"
+    />
+  </aside>
+</div>
