@@ -1,0 +1,45 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# dotenv environment variables file
+.env
+
+# SQLite database files (si usas)
+*.sqlite3
+
+# Logs
+*.log
+
+# IDE/editor config files
+.vscode/
+.idea/
+
+# Coverage reports
+htmlcov/
+.coverage
+
+# pytest cache
+.pytest_cache/
+
+# mypy cache
+.mypy_cache/
+
+# Cache directories
+__pypackages__/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Misc
+*.bak
+*.swp
