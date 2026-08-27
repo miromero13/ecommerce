@@ -2,11 +2,12 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideLayoutDashboard, lucideUser, lucideUsers } from '@ng-icons/lucide';
+import { lucideLayoutDashboard, lucideLogOut, lucideUserRound, lucideUsers } from '@ng-icons/lucide';
 
 import {
   HlmSidebar,
   HlmSidebarContent,
+  HlmSidebarFooter,
   HlmSidebarHeader,
   HlmSidebarInset,
   HlmSidebarMenu,
@@ -40,6 +41,7 @@ type SidebarSection = {
     NgIcon,
     HlmSidebar,
     HlmSidebarContent,
+    HlmSidebarFooter,
     HlmSidebarHeader,
     HlmSidebarInset,
     HlmSidebarMenu,
@@ -51,7 +53,8 @@ type SidebarSection = {
   providers: [
     provideIcons({
       lucideLayoutDashboard,
-      lucideUser,
+      lucideLogOut,
+      lucideUserRound,
       lucideUsers,
     }),
   ],
@@ -80,15 +83,17 @@ export class AppShellComponent {
     }
   });
 
-  protected readonly sidebarSections = computed<SidebarSection[]>(() => {
-    const shared: SidebarSection = {
-      items: [{ label: 'Mi perfil', route: '/app/perfil', icon: 'lucideUser', exact: true }],
-    };
+  protected readonly profileItem = {
+    label: 'Mi perfil',
+    route: '/app/perfil',
+    icon: 'lucideUserRound',
+    exact: true,
+  };
 
+  protected readonly sidebarSections = computed<SidebarSection[]>(() => {
     switch (this.userRole()) {
       case 'administrador':
         return [
-          shared,
           {
             title: 'Administración',
             items: [
@@ -98,7 +103,7 @@ export class AppShellComponent {
           },
         ];
       default:
-        return [shared];
+        return [];
     }
   });
 

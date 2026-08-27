@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 
+import { ApiResponse } from '../../../core/models/api.model';
 import { ApiService } from '../../../core/services/api.service';
 import {
   AuthResponse,
@@ -12,11 +13,11 @@ export class AuthApiService {
   private readonly api = inject(ApiService);
 
   login(payload: LoginRequest) {
-    return this.api.post<AuthResponse>('/auth/login', payload);
+    return this.api.post<ApiResponse<AuthResponse>>('/auth/login', payload);
   }
 
   register(payload: RegisterRequest) {
-    return this.api.post<AuthResponse>('/auth/register', payload);
+    return this.api.post<ApiResponse<AuthResponse>>('/auth/register', payload);
   }
 
 }

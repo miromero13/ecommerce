@@ -10,6 +10,6 @@ import { classes } from '@spartan-ng/helm/utils';
 })
 export class HlmSidebarHeader {
   constructor() {
-    classes(() => 'flex flex-col gap-2 p-2');
+    classes(() => 'flex flex-col gap-2');
   }
 }

@@ -1,7 +1,7 @@
 <div hlmSidebarWrapper class="text-slate-900">
   <hlm-sidebar collapsible="icon" variant="inset" side="left">
-    <header hlmSidebarHeader class="border-b border-sidebar-border/70 px-3 py-4">
-      <div class="flex items-center gap-3">
+    <header hlmSidebarHeader class="flex h-16 items-start justify-center border-b border-slate-200 px-4">
+      <div class="flex items-center gap-3 text-primary">
         <button hlmSidebarTrigger type="button" aria-label="Abrir o cerrar navegación"></button>
         <div class="min-w-0">
           <p class="truncate text-sm font-semibold">ACI Web</p>
@@ -10,7 +10,7 @@
       </div>
     </header>
 
-    <div hlmSidebarContent class="px-2 py-3">
+    <div hlmSidebarContent class="px-4 py-3">
       @for (section of sidebarSections(); track section.title ?? section.items[0].route; let last = $last) {
         <!-- @if (section.title) {
           <div class="px-2 pb-2 pt-1 text-xs font-medium uppercase tracking-wide text-sidebar-foreground/60">
@@ -35,36 +35,48 @@
             </li>
           }
         </ul>
-<!-- 
-        @if (!last) {
-          <div hlmSidebarSeparator class="my-3"></div>
-        } -->
       }
     </div>
+
+    <footer hlmSidebarFooter class="border-t border-slate-200 p-4">
+      <ul hlmSidebarMenu class="space-y-1">
+        <li hlmSidebarMenuItem>
+          <a
+            hlmSidebarMenuButton
+            [routerLink]="profileItem.route"
+            routerLinkActive
+            #profileActive="routerLinkActive"
+            [isActive]="profileActive.isActive"
+            [routerLinkActiveOptions]="{ exact: profileItem.exact }"
+          >
+            <ng-icon [name]="profileItem.icon"></ng-icon>
+            <span>{{ profileItem.label }}</span>
+          </a>
+        </li>
+        <li hlmSidebarMenuItem>
+          <button hlmSidebarMenuButton type="button" (click)="logout()">
+            <ng-icon name="lucideLogOut"></ng-icon>
+            <span>Cerrar sesión</span>
+          </button>
+        </li>
+      </ul>
+    </footer>
   </hlm-sidebar>
 
-  <main hlmSidebarInset class="min-h-svh">
-    <header class="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur sm:px-6">
+  <main hlmSidebarInset class="min-h-svh bg-sidebar-primary-foreground text-background p-0 m-0">
+    <header class="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-slate-200 bg-background px-4 text-foreground backdrop-blur sm:px-6">
       <div class="flex items-center gap-3">
         <button hlmSidebarTrigger type="button" class="md:hidden" aria-label="Abrir navegación"></button>
-        <div>
-          <p class="text-lg font-semibold">ACI Web</p>
-          <p class="text-xs text-slate-500">Panel operativo</p>
-        </div>
       </div>
 
-      <div class="flex items-center gap-3 text-sm">
-        <div class="text-right">
+      <div class="flex items-center gap-3 text-sm text-left">
+        <div class="flex size-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-slate-600">
+          <ng-icon name="lucideUserRound" style="--ng-icon__size: 24px;"></ng-icon>
+        </div>
+        <div class="leading-tight text-left">
           <p class="font-medium">{{ fullName() }}</p>
           <p class="text-xs uppercase tracking-wide text-slate-500">{{ userRoleLabel() }}</p>
         </div>
-        <button
-          type="button"
-          class="rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50"
-          (click)="logout()"
-        >
-          Cerrar sesión
-        </button>
       </div>
     </header>
 

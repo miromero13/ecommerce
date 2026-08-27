@@ -11,7 +11,7 @@ Frontend del proyecto Roadside Assistance construido con Angular 21 y componente
 
 ```bash
 git clone <URL_DEL_REPOSITORIO>
-cd roadside-assistance/frontend
+cd ecommerce/frontend
 ```
 
 Si ya tienes el repositorio local, entra directamente a la carpeta `frontend`.

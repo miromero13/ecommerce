@@ -2,7 +2,8 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
-import { RegisterRequest, RolUsuario, UsuarioAuth } from '../models/auth.model';
+import { ApiResponse } from '../../../core/models/api.model';
+import { AuthResponse, RegisterRequest, RolUsuario, UsuarioAuth } from '../models/auth.model';
 import { AuthApiService } from './auth-api.service';
 import { UserApiService } from './user-api.service';
 
@@ -50,7 +51,7 @@ export class SessionService {
     this.loadingSignal.set(true);
     try {
       const response = await firstValueFrom(this.authApi.login({ email, password, rol }));
-      this.setSession(response.access_token, response.user);
+      this.applyAuthResponse(response);
     } finally {
       this.loadingSignal.set(false);
     }
@@ -60,7 +61,7 @@ export class SessionService {
     this.loadingSignal.set(true);
     try {
       const response = await firstValueFrom(this.authApi.register(payload));
-      this.setSession(response.access_token, response.user);
+      this.applyAuthResponse(response);
     } finally {
       this.loadingSignal.set(false);
     }
@@ -91,6 +92,15 @@ export class SessionService {
     localStorage.setItem(USER_KEY, JSON.stringify(user));
     this.tokenSignal.set(token);
     this.userSignal.set(user);
+  }
+
+  private applyAuthResponse(response: ApiResponse<AuthResponse>): void {
+    const auth = response.data;
+    if (!auth) {
+      throw new Error('La respuesta de autenticación no incluye datos');
+    }
+
+    this.setSession(auth.access_token, auth.user);
   }
 
   clearSession(): void {
