@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideLayoutDashboard, lucideLogOut, lucideUserRound, lucideUsers } from '@ng-icons/lucide';
 
@@ -16,6 +17,8 @@ import {
   HlmSidebarTrigger,
   HlmSidebarWrapper,
 } from '../../components/sidebar/src';
+import { CatalogBranch } from '../../features/shared/models/catalog.model';
+import { CatalogApiService } from '../../features/shared/services/catalog-api.service';
 import { SessionService } from '../../features/shared/services/session.service';
 
 type SidebarItem = {
@@ -62,6 +65,13 @@ type SidebarSection = {
 })
 export class AppShellComponent {
   private readonly session = inject(SessionService);
+  private readonly catalogApi = inject(CatalogApiService);
+
+  protected readonly branches = signal<CatalogBranch[]>([]);
+
+  constructor() {
+    void this.loadBranches();
+  }
 
   protected readonly fullName = computed(() => {
     const user = this.session.user();
@@ -91,7 +101,11 @@ export class AppShellComponent {
 
   protected readonly userBranchLabel = computed(() => {
     const branchId = this.session.user()?.branch_id;
-    return branchId ? `Sucursal ${branchId.slice(0, 8)}` : 'Sin sucursal';
+    if (!branchId) {
+      return '';
+    }
+
+    return this.branches().find((branch) => branch.id === branchId)?.name ?? '';
   });
 
   protected readonly homeItem = computed(() => {
@@ -156,5 +170,14 @@ export class AppShellComponent {
 
   protected async logout(): Promise<void> {
     await this.session.logout(true);
+  }
+
+  private async loadBranches(): Promise<void> {
+    try {
+      const response = await firstValueFrom(this.catalogApi.listPublicBranches());
+      this.branches.set(response.data ?? []);
+    } catch {
+      this.branches.set([]);
+    }
   }
 }
