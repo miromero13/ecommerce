@@ -1,11 +1,8 @@
-<section class="space-y-6">
-  <section hlmCard class="bg-white shadow-sm">
-    <div hlmCardHeader class="space-y-2">
-      <span class="text-xs uppercase tracking-wide text-slate-500">Cliente</span>
-      <h1 hlmCardTitle class="text-2xl">Catálogo</h1>
-      <p hlmCardDescription>Consulta productos y disponibilidad por sucursal.</p>
-    </div>
-  </section>
+<section class="space-y-5">
+  <header>
+    <h1 class="text-2xl font-semibold">Catálogo</h1>
+    <p class="text-sm text-slate-500">Consulta productos y disponibilidad por sucursal.</p>
+  </header>
 
   @if (errorMessage()) {
     <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ errorMessage() }}</p>

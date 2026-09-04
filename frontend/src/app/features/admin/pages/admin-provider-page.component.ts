@@ -29,6 +29,7 @@ export class AdminProviderPageComponent {
   protected readonly errorMessage = signal('');
   protected readonly successMessage = signal('');
   protected readonly loading = signal(false);
+  protected readonly modalOpen = signal(false);
 
   protected readonly form = this.fb.nonNullable.group({
     business_name: ['', [Validators.required]],
@@ -42,6 +43,16 @@ export class AdminProviderPageComponent {
 
   constructor() {
     void this.loadData();
+  }
+
+  protected openModal(): void {
+    this.errorMessage.set('');
+    this.successMessage.set('');
+    this.modalOpen.set(true);
+  }
+
+  protected closeModal(): void {
+    this.modalOpen.set(false);
   }
 
   protected async submit(): Promise<void> {
@@ -69,6 +80,7 @@ export class AdminProviderPageComponent {
       this.form.reset({ business_name: '', contact_name: '', email: '', password: '', gender: 'masculino', phone: '', branch_id: '' });
       await this.loadData();
       this.successMessage.set('Proveedor creado correctamente.');
+      this.closeModal();
     } catch (error) {
       this.errorMessage.set(getErrorMessage(error, 'No se pudo crear el proveedor.'));
     } finally {

@@ -25,6 +25,7 @@ export class AdminBranchPageComponent {
   protected readonly errorMessage = signal('');
   protected readonly successMessage = signal('');
   protected readonly loading = signal(false);
+  protected readonly modalOpen = signal(false);
 
   protected readonly form = this.fb.nonNullable.group({
     name: ['', [Validators.required]],
@@ -33,6 +34,16 @@ export class AdminBranchPageComponent {
 
   constructor() {
     void this.loadBranches();
+  }
+
+  protected openModal(): void {
+    this.errorMessage.set('');
+    this.successMessage.set('');
+    this.modalOpen.set(true);
+  }
+
+  protected closeModal(): void {
+    this.modalOpen.set(false);
   }
 
   protected async submit(): Promise<void> {
@@ -49,6 +60,7 @@ export class AdminBranchPageComponent {
       this.form.reset({ name: '', city: '' });
       await this.loadBranches();
       this.successMessage.set('Sucursal creada correctamente.');
+      this.closeModal();
     } catch (error) {
       this.errorMessage.set(getErrorMessage(error, 'No se pudo crear la sucursal.'));
     } finally {

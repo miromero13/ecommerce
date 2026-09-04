@@ -3,11 +3,13 @@ import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 
+import { HlmBadge } from '../../../components/badge/src';
 import { HlmButton } from '../../../components/button/src';
 import { HlmCardImports } from '../../../components/card/src';
 import { HlmFieldImports } from '../../../components/field/src';
 import { HlmInput } from '../../../components/input/src';
 import { HlmTable } from '../../../components/table/src';
+import { HlmTabsImports } from '../../../components/tabs/src';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
 import {
   CatalogCollectionItem,
@@ -17,10 +19,40 @@ import {
 } from '../../shared/models/catalog.model';
 import { CatalogApiService } from '../../shared/services/catalog-api.service';
 
+type CatalogTab = 'categories' | 'sizes' | 'colors' | 'seasons' | 'collections' | 'products';
+
+const CATALOG_TAB_LABELS: Record<CatalogTab, string> = {
+  categories: 'Categorías',
+  sizes: 'Tallas',
+  colors: 'Colores',
+  seasons: 'Temporadas',
+  collections: 'Colecciones',
+  products: 'Productos',
+};
+
+const CATALOG_CREATE_LABELS: Record<CatalogTab, string> = {
+  categories: 'Crear categoría',
+  sizes: 'Crear talla',
+  colors: 'Crear color',
+  seasons: 'Crear temporada',
+  collections: 'Crear colección',
+  products: 'Crear producto',
+};
+
 @Component({
   selector: 'app-admin-catalog-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, HlmButton, HlmInput, HlmTable, ...HlmCardImports, ...HlmFieldImports],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    HlmBadge,
+    HlmButton,
+    HlmInput,
+    HlmTable,
+    ...HlmCardImports,
+    ...HlmFieldImports,
+    ...HlmTabsImports,
+  ],
   templateUrl: './admin-catalog-page.component.html',
 })
 export class AdminCatalogPageComponent {
@@ -36,6 +68,8 @@ export class AdminCatalogPageComponent {
   protected readonly errorMessage = signal('');
   protected readonly successMessage = signal('');
   protected readonly loading = signal(false);
+  protected readonly activeTab = signal<CatalogTab>('products');
+  protected readonly modalOpen = signal(false);
 
   protected readonly categoryForm = this.fb.nonNullable.group({ name: ['', [Validators.required]] });
   protected readonly sizeForm = this.fb.nonNullable.group({ name: ['', [Validators.required]] });
@@ -56,6 +90,31 @@ export class AdminCatalogPageComponent {
 
   constructor() {
     void this.loadData();
+  }
+
+  protected readonly tabs: CatalogTab[] = ['products', 'categories', 'sizes', 'colors', 'seasons', 'collections'];
+
+  protected selectTab(tab: string): void {
+    this.activeTab.set(tab as CatalogTab);
+  }
+
+  protected openModal(tab: CatalogTab): void {
+    this.activeTab.set(tab);
+    this.errorMessage.set('');
+    this.successMessage.set('');
+    this.modalOpen.set(true);
+  }
+
+  protected closeModal(): void {
+    this.modalOpen.set(false);
+  }
+
+  protected tabLabel(tab: CatalogTab): string {
+    return CATALOG_TAB_LABELS[tab];
+  }
+
+  protected createLabel(tab: CatalogTab): string {
+    return CATALOG_CREATE_LABELS[tab];
   }
 
   protected async submitCategory(): Promise<void> {
@@ -106,6 +165,7 @@ export class AdminCatalogPageComponent {
       this.productForm.reset({ sku: '', name: '', description: '', price: '', category_id: '', size_id: '', color_id: '', season_id: '', collection_id: '' });
       await this.loadData();
       this.successMessage.set('Producto creado correctamente.');
+      this.closeModal();
     } catch (error) {
       this.errorMessage.set(getErrorMessage(error, 'No se pudo crear el producto.'));
     } finally {
@@ -129,7 +189,11 @@ export class AdminCatalogPageComponent {
     return this.seasons().find((season) => season.id === seasonId)?.name ?? seasonId;
   }
 
-  private async submitSimple(form: any, action: () => ReturnType<CatalogApiService['createCategory']>, successMessage: string): Promise<void> {
+  private async submitSimple(
+    form: any,
+    action: () => ReturnType<CatalogApiService['createCategory']>,
+    successMessage: string,
+  ): Promise<void> {
     if (form.invalid) {
       form.markAllAsTouched();
       return;
@@ -143,11 +207,36 @@ export class AdminCatalogPageComponent {
       form.reset();
       await this.loadData();
       this.successMessage.set(successMessage);
+      this.closeModal();
     } catch (error) {
       this.errorMessage.set(getErrorMessage(error, 'No se pudo guardar el registro.'));
     } finally {
       this.loading.set(false);
     }
+  }
+
+  protected categoryName(categoryId: string | null): string {
+    return this.lookupName(this.categories(), categoryId, 'Sin categoría');
+  }
+
+  protected sizeName(sizeId: string | null): string {
+    return this.lookupName(this.sizes(), sizeId, 'Sin talla');
+  }
+
+  protected colorName(colorId: string | null): string {
+    return this.lookupName(this.colors(), colorId, 'Sin color');
+  }
+
+  protected collectionName(collectionId: string | null): string {
+    return this.lookupName(this.collections(), collectionId, 'Sin colección');
+  }
+
+  private lookupName(items: Array<{ id: string; name: string }>, id: string | null, fallback: string): string {
+    if (!id) {
+      return fallback;
+    }
+
+    return items.find((item) => item.id === id)?.name ?? fallback;
   }
 
   private async loadData(): Promise<void> {

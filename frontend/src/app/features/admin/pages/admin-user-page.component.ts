@@ -9,11 +9,12 @@ import { getErrorMessage } from '../../../core/utils/http-error.util';
 import { HlmTable } from '@spartan-ng/helm/table';
 import { AdminBranch } from '../models/admin-branch.model';
 import { AdminBranchService } from '../services/admin-branch.service';
+import { HlmTabsImports } from '../../../components/tabs/src';
 
 @Component({
   selector: 'app-admin-user-page',
   standalone: true,
-  imports: [CommonModule, HlmTable],
+  imports: [CommonModule, HlmTable, ...HlmTabsImports],
   templateUrl: './admin-user-page.component.html',
 })
 export class AdminUserPageComponent {
@@ -36,6 +37,10 @@ export class AdminUserPageComponent {
   protected setFiltro(rol: '' | AdminUsuario['rol']): void {
     this.filtroRol.set(rol);
     this.applyFiltro();
+  }
+
+  protected selectFiltro(tab: string): void {
+    this.setFiltro(tab === 'todos' ? '' : (tab as AdminUsuario['rol']));
   }
 
   protected async actualizarRol(user: AdminUsuario, rol: AdminUsuario['rol']): Promise<void> {

@@ -1,11 +1,24 @@
-<section class="space-y-8">
-  <section hlmCard class="bg-white shadow-sm">
-    <div hlmCardHeader class="space-y-2">
-      <span class="text-xs uppercase tracking-wide text-slate-500">Administración</span>
-      <h1 hlmCardTitle class="text-2xl">Catálogo</h1>
-      <p hlmCardDescription>Administra atributos y productos del catálogo.</p>
+<section class="space-y-5">
+  <header>
+    <h1 class="text-2xl font-semibold">Catálogo</h1>
+    <p class="text-sm text-slate-500">Administra atributos y productos por entidad.</p>
+  </header>
+
+  <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+    <hlm-tabs [tab]="activeTab()" class="w-full" (tabActivated)="selectTab($event)">
+      <hlm-tabs-list aria-label="Catálogo" class="!flex !w-fit !flex-wrap !gap-2 !border-0 !bg-transparent !p-0 !rounded-md">
+        @for (tab of tabs; track tab) {
+          <button [hlmTabsTrigger]="tab" type="button" class="!w-fit !min-h-8 !rounded-md !px-2 !py-0.5 text-[11px]">
+            <span>{{ tabLabel(tab) }}</span>
+          </button>
+        }
+      </hlm-tabs-list>
+    </hlm-tabs>
+
+    <div class="flex justify-start lg:justify-end">
+      <button hlmBtn type="button" (click)="openModal(activeTab())">{{ createLabel(activeTab()) }}</button>
     </div>
-  </section>
+  </div>
 
   @if (errorMessage()) {
     <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ errorMessage() }}</p>
@@ -15,144 +28,317 @@
     <p class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{{ successMessage() }}</p>
   }
 
-  <div class="grid gap-4 lg:grid-cols-2">
-    <form hlmCard class="space-y-3 bg-white p-4 shadow-sm" [formGroup]="categoryForm" (ngSubmit)="submitCategory()">
-      <h2 class="font-medium">Categoría</h2>
-      <div hlmField>
-        <label hlmFieldLabel for="category-name">Nombre</label>
-        <input id="category-name" hlmInput class="w-full" placeholder="Nombre" formControlName="name" />
-      </div>
-      <button hlmBtn type="submit">Crear categoría</button>
-    </form>
-
-    <form hlmCard class="space-y-3 bg-white p-4 shadow-sm" [formGroup]="sizeForm" (ngSubmit)="submitSize()">
-      <h2 class="font-medium">Talla</h2>
-      <div hlmField>
-        <label hlmFieldLabel for="size-name">Nombre</label>
-        <input id="size-name" hlmInput class="w-full" placeholder="Nombre" formControlName="name" />
-      </div>
-      <button hlmBtn type="submit">Crear talla</button>
-    </form>
-
-    <form hlmCard class="space-y-3 bg-white p-4 shadow-sm" [formGroup]="colorForm" (ngSubmit)="submitColor()">
-      <h2 class="font-medium">Color</h2>
-      <div hlmField>
-        <label hlmFieldLabel for="color-name">Nombre</label>
-        <input id="color-name" hlmInput class="w-full" placeholder="Nombre" formControlName="name" />
-      </div>
-      <div hlmField>
-        <label hlmFieldLabel for="color-hex">Hex</label>
-        <input id="color-hex" hlmInput class="w-full" placeholder="Hex" formControlName="hex_code" />
-      </div>
-      <button hlmBtn type="submit">Crear color</button>
-    </form>
-
-    <form hlmCard class="space-y-3 bg-white p-4 shadow-sm" [formGroup]="seasonForm" (ngSubmit)="submitSeason()">
-      <h2 class="font-medium">Temporada</h2>
-      <div hlmField>
-        <label hlmFieldLabel for="season-name">Nombre</label>
-        <input id="season-name" hlmInput class="w-full" placeholder="Nombre" formControlName="name" />
-      </div>
-      <button hlmBtn type="submit">Crear temporada</button>
-    </form>
-
-    <form hlmCard class="space-y-3 bg-white p-4 shadow-sm lg:col-span-2" [formGroup]="collectionForm" (ngSubmit)="submitCollection()">
-      <h2 class="font-medium">Colección</h2>
-      <div class="grid gap-3 md:grid-cols-2">
-        <div hlmField>
-          <label hlmFieldLabel for="collection-name">Nombre</label>
-          <input id="collection-name" hlmInput class="w-full" placeholder="Nombre" formControlName="name" />
-        </div>
-        <select class="w-full rounded-lg border border-slate-300 px-3 py-2" formControlName="season_id">
-          <option value="">Sin temporada</option>
-          @for (season of seasons(); track season.id) {
-            <option [value]="season.id">{{ season.name }}</option>
-          }
-        </select>
-      </div>
-      <button hlmBtn type="submit">Crear colección</button>
-    </form>
-  </div>
-
-  <form hlmCard class="space-y-4 bg-white p-4 shadow-sm" [formGroup]="productForm" (ngSubmit)="submitProduct()">
-    <h2 class="font-medium">Producto</h2>
-    <div class="grid gap-3 md:grid-cols-3">
-      <div hlmField>
-        <label hlmFieldLabel for="product-sku">SKU</label>
-        <input id="product-sku" hlmInput placeholder="SKU" formControlName="sku" />
-      </div>
-      <div hlmField class="md:col-span-2">
-        <label hlmFieldLabel for="product-name">Nombre</label>
-        <input id="product-name" hlmInput placeholder="Nombre" formControlName="name" />
-      </div>
-      <div hlmField class="md:col-span-3">
-        <label hlmFieldLabel for="product-description">Descripción</label>
-        <input id="product-description" hlmInput placeholder="Descripción" formControlName="description" />
-      </div>
-      <div hlmField>
-        <label hlmFieldLabel for="product-price">Precio</label>
-        <input id="product-price" hlmInput placeholder="Precio" formControlName="price" />
-      </div>
-      <select class="rounded-lg border border-slate-300 px-3 py-2" formControlName="category_id">
-        <option value="">Categoría</option>
-        @for (category of categories(); track category.id) {
-          <option [value]="category.id">{{ category.name }}</option>
-        }
-      </select>
-      <select class="rounded-lg border border-slate-300 px-3 py-2" formControlName="size_id">
-        <option value="">Talla</option>
-        @for (size of sizes(); track size.id) {
-          <option [value]="size.id">{{ size.name }}</option>
-        }
-      </select>
-      <select class="rounded-lg border border-slate-300 px-3 py-2" formControlName="color_id">
-        <option value="">Color</option>
-        @for (color of colors(); track color.id) {
-          <option [value]="color.id">{{ color.name }}</option>
-        }
-      </select>
-      <select class="rounded-lg border border-slate-300 px-3 py-2" formControlName="season_id">
-        <option value="">Temporada</option>
-        @for (season of seasons(); track season.id) {
-          <option [value]="season.id">{{ season.name }}</option>
-        }
-      </select>
-      <select class="rounded-lg border border-slate-300 px-3 py-2 md:col-span-2" formControlName="collection_id">
-        <option value="">Colección</option>
-        @for (collection of collections(); track collection.id) {
-          <option [value]="collection.id">{{ collection.name }} - {{ seasonName(collection.season_id) }}</option>
-        }
-      </select>
-    </div>
-    <button hlmBtn type="submit" [disabled]="loading()">{{ loading() ? 'Guardando...' : 'Crear producto' }}</button>
-  </form>
-
-  <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
-    <table hlmTable class="w-full text-left text-sm">
-      <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-        <tr>
-          <th class="px-4 py-3">SKU</th>
-          <th class="px-4 py-3">Nombre</th>
-          <th class="px-4 py-3">Precio</th>
-          <th class="px-4 py-3">Estado</th>
-          <th class="px-4 py-3 text-right">Acción</th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-slate-200">
-        @for (product of products(); track product.id) {
+  @if (activeTab() === 'categories') {
+    <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+      <table hlmTable class="w-full text-left text-sm">
+        <thead class="bg-primary text-xs font-bold uppercase tracking-wide text-white">
           <tr>
-            <td class="px-4 py-3">{{ product.sku }}</td>
-            <td class="px-4 py-3">{{ product.name }}</td>
-            <td class="px-4 py-3">{{ product.price }}</td>
-            <td class="px-4 py-3">{{ product.status }}</td>
-            <td class="px-4 py-3 text-right">
-              <button class="rounded-lg border px-3 py-1 text-sm" type="button" (click)="toggleProductStatus(product)">
-                {{ product.status === 'active' ? 'Desactivar' : 'Activar' }}
-              </button>
-            </td>
+            <th class="px-4 py-3">Nombre</th>
+            <th class="px-4 py-3 text-right">ID</th>
           </tr>
-        }
-      </tbody>
-    </table>
-  </div>
+        </thead>
+        <tbody class="divide-y divide-slate-200 text-black">
+          @for (category of categories(); track category.id) {
+            <tr>
+              <td class="px-4 py-3 font-medium">{{ category.name }}</td>
+              <td class="px-4 py-3 text-right text-xs text-slate-500">{{ category.id }}</td>
+            </tr>
+          } @empty {
+            <tr>
+              <td class="px-4 py-8 text-center text-sm text-slate-500" colspan="2">No hay categorías registradas.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else if (activeTab() === 'sizes') {
+    <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+      <table hlmTable class="w-full text-left text-sm">
+        <thead class="bg-primary text-xs font-bold uppercase tracking-wide text-white">
+          <tr>
+            <th class="px-4 py-3">Nombre</th>
+            <th class="px-4 py-3 text-right">ID</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200 text-black">
+          @for (size of sizes(); track size.id) {
+            <tr>
+              <td class="px-4 py-3 font-medium">{{ size.name }}</td>
+              <td class="px-4 py-3 text-right text-xs text-slate-500">{{ size.id }}</td>
+            </tr>
+          } @empty {
+            <tr>
+              <td class="px-4 py-8 text-center text-sm text-slate-500" colspan="2">No hay tallas registradas.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else if (activeTab() === 'colors') {
+    <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+      <table hlmTable class="w-full text-left text-sm">
+        <thead class="bg-primary text-xs font-bold uppercase tracking-wide text-white">
+          <tr>
+            <th class="px-4 py-3">Nombre</th>
+            <th class="px-4 py-3">Hex</th>
+            <th class="px-4 py-3 text-right">ID</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200 text-black">
+          @for (color of colors(); track color.id) {
+            <tr>
+              <td class="px-4 py-3 font-medium">{{ color.name }}</td>
+              <td class="px-4 py-3">
+                @if (color.hex_code) {
+                  <span class="rounded-full border border-slate-200 px-2 py-1 text-xs font-medium">{{ color.hex_code }}</span>
+                } @else {
+                  <span class="text-xs text-slate-500">Sin hex</span>
+                }
+              </td>
+              <td class="px-4 py-3 text-right text-xs text-slate-500">{{ color.id }}</td>
+            </tr>
+          } @empty {
+            <tr>
+              <td class="px-4 py-8 text-center text-sm text-slate-500" colspan="3">No hay colores registrados.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else if (activeTab() === 'seasons') {
+    <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+      <table hlmTable class="w-full text-left text-sm">
+        <thead class="bg-primary text-xs font-bold uppercase tracking-wide text-white">
+          <tr>
+            <th class="px-4 py-3">Nombre</th>
+            <th class="px-4 py-3 text-right">ID</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200 text-black">
+          @for (season of seasons(); track season.id) {
+            <tr>
+              <td class="px-4 py-3 font-medium">{{ season.name }}</td>
+              <td class="px-4 py-3 text-right text-xs text-slate-500">{{ season.id }}</td>
+            </tr>
+          } @empty {
+            <tr>
+              <td class="px-4 py-8 text-center text-sm text-slate-500" colspan="2">No hay temporadas registradas.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else if (activeTab() === 'collections') {
+    <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+      <table hlmTable class="w-full text-left text-sm">
+        <thead class="bg-primary text-xs font-bold uppercase tracking-wide text-white">
+          <tr>
+            <th class="px-4 py-3">Nombre</th>
+            <th class="px-4 py-3">Temporada</th>
+            <th class="px-4 py-3 text-right">ID</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200 text-black">
+          @for (collection of collections(); track collection.id) {
+            <tr>
+              <td class="px-4 py-3 font-medium">{{ collection.name }}</td>
+              <td class="px-4 py-3 text-sm text-slate-700">{{ seasonName(collection.season_id) }}</td>
+              <td class="px-4 py-3 text-right text-xs text-slate-500">{{ collection.id }}</td>
+            </tr>
+          } @empty {
+            <tr>
+              <td class="px-4 py-8 text-center text-sm text-slate-500" colspan="3">No hay colecciones registradas.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else {
+    <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+      <table hlmTable class="w-full text-left text-sm">
+        <thead class="bg-primary text-xs font-bold uppercase tracking-wide text-white">
+          <tr>
+            <th class="px-4 py-3">SKU</th>
+            <th class="px-4 py-3">Nombre</th>
+            <th class="px-4 py-3">Precio</th>
+            <th class="px-4 py-3">Estado</th>
+            <th class="px-4 py-3">Categoría</th>
+            <th class="px-4 py-3">Talla</th>
+            <th class="px-4 py-3">Color</th>
+            <th class="px-4 py-3">Colección</th>
+            <th class="px-4 py-3 text-right">Acción</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200 text-black">
+          @for (product of products(); track product.id) {
+            <tr>
+              <td class="px-4 py-3 font-medium">{{ product.sku }}</td>
+              <td class="px-4 py-3">{{ product.name }}</td>
+              <td class="px-4 py-3">{{ product.price }}</td>
+              <td class="px-4 py-3">
+                <span hlmBadge class="bg-slate-900 text-white">{{ product.status }}</span>
+              </td>
+              <td class="px-4 py-3 text-sm">{{ categoryName(product.category_id) }}</td>
+              <td class="px-4 py-3 text-sm">{{ sizeName(product.size_id) }}</td>
+              <td class="px-4 py-3 text-sm">{{ colorName(product.color_id) }}</td>
+              <td class="px-4 py-3 text-sm">{{ collectionName(product.collection_id) }}</td>
+              <td class="px-4 py-3 text-right">
+                <button class="rounded-lg border px-3 py-1 text-sm" type="button" (click)="toggleProductStatus(product)">
+                  {{ product.status === 'active' ? 'Desactivar' : 'Activar' }}
+                </button>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td class="px-4 py-8 text-center text-sm text-slate-500" colspan="9">No hay productos registrados.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  @if (modalOpen()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6" (click)="closeModal()">
+      <section hlmCard class="relative w-full max-w-3xl bg-white shadow-xl" (click)="$event.stopPropagation()">
+        <div hlmCardHeader class="space-y-1 border-b border-slate-200 pb-4">
+          <span class="text-xs uppercase tracking-wide text-slate-500">Catálogo</span>
+          <h2 hlmCardTitle class="text-xl">{{ createLabel(activeTab()) }}</h2>
+          <p hlmCardDescription>Completa los datos para guardar el registro.</p>
+        </div>
+
+        <div hlmCardContent class="max-h-[75vh] space-y-4 overflow-y-auto p-6">
+          @if (activeTab() === 'categories') {
+            <form class="space-y-4" [formGroup]="categoryForm" (ngSubmit)="submitCategory()">
+              <div hlmField>
+                <label hlmFieldLabel for="category-name">Nombre</label>
+                <input id="category-name" hlmInput class="w-full" placeholder="Nombre" formControlName="name" />
+              </div>
+              <button hlmBtn type="submit" [disabled]="loading()">{{ loading() ? 'Guardando...' : 'Guardar categoría' }}</button>
+            </form>
+          } @else if (activeTab() === 'sizes') {
+            <form class="space-y-4" [formGroup]="sizeForm" (ngSubmit)="submitSize()">
+              <div hlmField>
+                <label hlmFieldLabel for="size-name">Nombre</label>
+                <input id="size-name" hlmInput class="w-full" placeholder="Nombre" formControlName="name" />
+              </div>
+              <button hlmBtn type="submit" [disabled]="loading()">{{ loading() ? 'Guardando...' : 'Guardar talla' }}</button>
+            </form>
+          } @else if (activeTab() === 'colors') {
+            <form class="space-y-4" [formGroup]="colorForm" (ngSubmit)="submitColor()">
+              <div class="grid gap-4 md:grid-cols-2">
+                <div hlmField>
+                  <label hlmFieldLabel for="color-name">Nombre</label>
+                  <input id="color-name" hlmInput class="w-full" placeholder="Nombre" formControlName="name" />
+                </div>
+                <div hlmField>
+                  <label hlmFieldLabel for="color-hex">Hex</label>
+                  <input id="color-hex" hlmInput class="w-full" placeholder="#000000" formControlName="hex_code" />
+                </div>
+              </div>
+              <button hlmBtn type="submit" [disabled]="loading()">{{ loading() ? 'Guardando...' : 'Guardar color' }}</button>
+            </form>
+          } @else if (activeTab() === 'seasons') {
+            <form class="space-y-4" [formGroup]="seasonForm" (ngSubmit)="submitSeason()">
+              <div hlmField>
+                <label hlmFieldLabel for="season-name">Nombre</label>
+                <input id="season-name" hlmInput class="w-full" placeholder="Nombre" formControlName="name" />
+              </div>
+              <button hlmBtn type="submit" [disabled]="loading()">{{ loading() ? 'Guardando...' : 'Guardar temporada' }}</button>
+            </form>
+          } @else if (activeTab() === 'collections') {
+            <form class="space-y-4" [formGroup]="collectionForm" (ngSubmit)="submitCollection()">
+              <div class="grid gap-4 md:grid-cols-2">
+                <div hlmField>
+                  <label hlmFieldLabel for="collection-name">Nombre</label>
+                  <input id="collection-name" hlmInput class="w-full" placeholder="Nombre" formControlName="name" />
+                </div>
+                <div hlmField>
+                  <label hlmFieldLabel for="collection-season">Temporada</label>
+                  <select id="collection-season" class="w-full rounded-lg border border-slate-300 px-3 py-2" formControlName="season_id">
+                    <option value="">Sin temporada</option>
+                    @for (season of seasons(); track season.id) {
+                      <option [value]="season.id">{{ season.name }}</option>
+                    }
+                  </select>
+                </div>
+              </div>
+              <button hlmBtn type="submit" [disabled]="loading()">{{ loading() ? 'Guardando...' : 'Guardar colección' }}</button>
+            </form>
+          } @else {
+            <form class="space-y-4" [formGroup]="productForm" (ngSubmit)="submitProduct()">
+              <div class="grid gap-4 md:grid-cols-3">
+                <div hlmField>
+                  <label hlmFieldLabel for="product-sku">SKU</label>
+                  <input id="product-sku" hlmInput class="w-full" placeholder="SKU" formControlName="sku" />
+                </div>
+                <div hlmField class="md:col-span-2">
+                  <label hlmFieldLabel for="product-name">Nombre</label>
+                  <input id="product-name" hlmInput class="w-full" placeholder="Nombre" formControlName="name" />
+                </div>
+                <div hlmField class="md:col-span-3">
+                  <label hlmFieldLabel for="product-description">Descripción</label>
+                  <input id="product-description" hlmInput class="w-full" placeholder="Descripción" formControlName="description" />
+                </div>
+                <div hlmField>
+                  <label hlmFieldLabel for="product-price">Precio</label>
+                  <input id="product-price" hlmInput class="w-full" placeholder="Precio" formControlName="price" />
+                </div>
+                <div hlmField>
+                  <label hlmFieldLabel for="product-category">Categoría</label>
+                  <select id="product-category" class="w-full rounded-lg border border-slate-300 px-3 py-2" formControlName="category_id">
+                    <option value="">Categoría</option>
+                    @for (category of categories(); track category.id) {
+                      <option [value]="category.id">{{ category.name }}</option>
+                    }
+                  </select>
+                </div>
+                <div hlmField>
+                  <label hlmFieldLabel for="product-size">Talla</label>
+                  <select id="product-size" class="w-full rounded-lg border border-slate-300 px-3 py-2" formControlName="size_id">
+                    <option value="">Talla</option>
+                    @for (size of sizes(); track size.id) {
+                      <option [value]="size.id">{{ size.name }}</option>
+                    }
+                  </select>
+                </div>
+                <div hlmField>
+                  <label hlmFieldLabel for="product-color">Color</label>
+                  <select id="product-color" class="w-full rounded-lg border border-slate-300 px-3 py-2" formControlName="color_id">
+                    <option value="">Color</option>
+                    @for (color of colors(); track color.id) {
+                      <option [value]="color.id">{{ color.name }}</option>
+                    }
+                  </select>
+                </div>
+                <div hlmField>
+                  <label hlmFieldLabel for="product-season">Temporada</label>
+                  <select id="product-season" class="w-full rounded-lg border border-slate-300 px-3 py-2" formControlName="season_id">
+                    <option value="">Temporada</option>
+                    @for (season of seasons(); track season.id) {
+                      <option [value]="season.id">{{ season.name }}</option>
+                    }
+                  </select>
+                </div>
+                <div hlmField class="md:col-span-2">
+                  <label hlmFieldLabel for="product-collection">Colección</label>
+                  <select id="product-collection" class="w-full rounded-lg border border-slate-300 px-3 py-2" formControlName="collection_id">
+                    <option value="">Colección</option>
+                    @for (collection of collections(); track collection.id) {
+                      <option [value]="collection.id">{{ collection.name }} - {{ seasonName(collection.season_id) }}</option>
+                    }
+                  </select>
+                </div>
+              </div>
+              <button hlmBtn type="submit" [disabled]="loading()">{{ loading() ? 'Guardando...' : 'Guardar producto' }}</button>
+            </form>
+          }
+        </div>
+
+        <div hlmCardFooter class="flex justify-end border-t border-slate-200 p-6 pt-4">
+          <button hlmBtn variant="outline" type="button" (click)="closeModal()">Cerrar</button>
+        </div>
+      </section>
+    </div>
+  }
 </section>

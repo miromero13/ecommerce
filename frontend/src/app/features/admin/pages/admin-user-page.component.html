@@ -4,15 +4,17 @@
     <p class="text-sm text-slate-500">Administra administradores, clientes y delivery.</p>
   </header>
 
-  <div class="flex flex-wrap gap-2">
-    <button class="rounded-lg border px-3 py-1 text-sm" [class.bg-slate-900]="filtroRol() === ''" [class.text-white]="filtroRol() === ''" type="button" (click)="setFiltro('')">Todos</button>
-    <button class="rounded-lg border px-3 py-1 text-sm" [class.bg-slate-900]="filtroRol() === 'cliente'" [class.text-white]="filtroRol() === 'cliente'" type="button" (click)="setFiltro('cliente')">Cliente</button>
-    <button class="rounded-lg border px-3 py-1 text-sm" [class.bg-slate-900]="filtroRol() === 'proveedor'" [class.text-white]="filtroRol() === 'proveedor'" type="button" (click)="setFiltro('proveedor')">Proveedor</button>
-    <button class="rounded-lg border px-3 py-1 text-sm" [class.bg-slate-900]="filtroRol() === 'encargado'" [class.text-white]="filtroRol() === 'encargado'" type="button" (click)="setFiltro('encargado')">Encargado</button>
-    <button class="rounded-lg border px-3 py-1 text-sm" [class.bg-slate-900]="filtroRol() === 'cajero'" [class.text-white]="filtroRol() === 'cajero'" type="button" (click)="setFiltro('cajero')">Cajero</button>
-    <button class="rounded-lg border px-3 py-1 text-sm" [class.bg-slate-900]="filtroRol() === 'delivery'" [class.text-white]="filtroRol() === 'delivery'" type="button" (click)="setFiltro('delivery')">Delivery</button>
-    <button class="rounded-lg border px-3 py-1 text-sm" [class.bg-slate-900]="filtroRol() === 'administrador'" [class.text-white]="filtroRol() === 'administrador'" type="button" (click)="setFiltro('administrador')">Administrador</button>
-  </div>
+  <hlm-tabs [tab]="filtroRol() || 'todos'" class="w-full" (tabActivated)="selectFiltro($event)">
+    <hlm-tabs-list aria-label="Filtrar por rol" class="!flex !w-fit !flex-wrap !gap-2 !border-0 !bg-transparent !p-0 !rounded-md">
+      <button hlmTabsTrigger="todos" type="button" class="!w-fit !min-h-8 !rounded-md !px-2 !py-0.5 text-[11px]"><span>Todos</span></button>
+      <button hlmTabsTrigger="cliente" type="button" class="!w-fit !min-h-8 !rounded-md !px-2 !py-0.5 text-[11px]"><span>Cliente</span></button>
+      <button hlmTabsTrigger="proveedor" type="button" class="!w-fit !min-h-8 !rounded-md !px-2 !py-0.5 text-[11px]"><span>Proveedor</span></button>
+      <button hlmTabsTrigger="encargado" type="button" class="!w-fit !min-h-8 !rounded-md !px-2 !py-0.5 text-[11px]"><span>Encargado</span></button>
+      <button hlmTabsTrigger="cajero" type="button" class="!w-fit !min-h-8 !rounded-md !px-2 !py-0.5 text-[11px]"><span>Cajero</span></button>
+      <button hlmTabsTrigger="delivery" type="button" class="!w-fit !min-h-8 !rounded-md !px-2 !py-0.5 text-[11px]"><span>Delivery</span></button>
+      <button hlmTabsTrigger="administrador" type="button" class="!w-fit !min-h-8 !rounded-md !px-2 !py-0.5 text-[11px]"><span>Administrador</span></button>
+    </hlm-tabs-list>
+  </hlm-tabs>
 
   @if (errorMessage()) {
     <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ errorMessage() }}</p>
@@ -22,32 +24,32 @@
     <p class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{{ successMessage() }}</p>
   }
 
-  <article class="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-    <h2 class="font-medium">Usuarios filtrados ({{ usuariosFiltrados().length }})</h2>
+  <!-- <article class="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"> -->
+    <!-- <h2 class="font-medium">Usuarios filtrados ({{ usuariosFiltrados().length }})</h2> -->
     <div class="overflow-hidden rounded-xl border border-slate-200">
       <table hlmTable class="w-full">
-        <thead class="bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
+        <thead class="bg-primary text-left text-xs font-bold uppercase tracking-wide text-white">
           <tr>
             <th class="px-4 py-3">Usuario</th>
-            <th class="px-4 py-3">Género</th>
+            <th class="px-4 py-3">Correo</th>
             <th class="px-4 py-3">Rol</th>
             <th class="px-4 py-3">Sucursal</th>
             <th class="px-4 py-3 text-right">Acción</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-slate-200">
+        <tbody class="divide-y divide-slate-200 text-black">
           @for (user of usuariosFiltrados(); track user.id) {
             <tr class="hover:bg-slate-50">
               <td class="px-4 py-3">
-                <p class="font-medium text-slate-900">{{ user.name }}</p>
-                <p class="text-sm text-slate-500">ID: {{ user.id.slice(0, 8) }}</p>
+                <p class="font-medium text-black">{{ user.name }}</p>
+                <!-- <p class="text-sm text-black">ID: {{ user.id.slice(0, 8) }}</p> -->
               </td>
-              <td class="px-4 py-3 text-sm text-slate-600">
+              <td class="px-4 py-3 text-sm text-black">
                 <p>{{ user.email }}</p>
-                <p>{{ labelGenero(user.gender) }}</p>
+                <!-- <p>{{ labelGenero(user.gender) }}</p> -->
               </td>
-              <td class="px-4 py-3 text-sm text-slate-600">{{ labelRol(user.rol) }}</td>
-              <td class="px-4 py-3 text-sm text-slate-600">{{ branchName(user.branch_id) }}</td>
+              <td class="px-4 py-3 text-sm text-black">{{ labelRol(user.rol) }}</td>
+              <td class="px-4 py-3 text-sm text-black">{{ branchName(user.branch_id) }}</td>
               <td class="px-4 py-3 text-right">
                 <div class="flex flex-col gap-2">
                   <select class="rounded-lg border border-slate-300 px-3 py-2 text-sm" [value]="user.rol" [disabled]="currentUserId() === user.id" (change)="actualizarRol(user, $any($event.target).value)">
@@ -71,11 +73,11 @@
 
           @if (!usuariosFiltrados().length) {
             <tr>
-              <td class="px-4 py-8 text-center text-sm text-slate-500" colspan="5">No hay usuarios para el filtro seleccionado.</td>
+              <td class="px-4 py-8 text-center text-sm text-black" colspan="5">No hay usuarios para el filtro seleccionado.</td>
             </tr>
           }
         </tbody>
       </table>
     </div>
-  </article>
+  <!-- </article> -->
 </section>

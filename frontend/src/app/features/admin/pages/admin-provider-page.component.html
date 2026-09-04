@@ -1,11 +1,8 @@
-<section class="space-y-6">
-  <section hlmCard class="bg-white shadow-sm">
-    <div hlmCardHeader class="space-y-2">
-      <span class="text-xs uppercase tracking-wide text-slate-500">Administración</span>
-      <h1 hlmCardTitle class="text-2xl">Proveedores</h1>
-      <p hlmCardDescription>Administra las cuentas de proveedor.</p>
-    </div>
-  </section>
+<section class="space-y-5">
+  <header>
+    <h1 class="text-2xl font-semibold">Proveedores</h1>
+    <p class="text-sm text-slate-500">Administra las cuentas de proveedor.</p>
+  </header>
 
   @if (errorMessage()) {
     <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ errorMessage() }}</p>
@@ -15,51 +12,13 @@
     <p class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{{ successMessage() }}</p>
   }
 
-  <form hlmCard class="grid gap-3 bg-white p-4 shadow-sm md:grid-cols-3" [formGroup]="form" (ngSubmit)="submit()">
-    <div hlmField>
-      <label hlmFieldLabel for="provider-business">Razón social</label>
-      <input id="provider-business" hlmInput placeholder="Razón social" formControlName="business_name" />
-    </div>
-    <div hlmField>
-      <label hlmFieldLabel for="provider-contact">Nombre contacto</label>
-      <input id="provider-contact" hlmInput placeholder="Nombre contacto" formControlName="contact_name" />
-    </div>
-    <div hlmField>
-      <label hlmFieldLabel for="provider-email">Email</label>
-      <input id="provider-email" hlmInput placeholder="Email" formControlName="email" />
-    </div>
-    <div hlmField>
-      <label hlmFieldLabel for="provider-password">Contraseña</label>
-      <input id="provider-password" hlmInput placeholder="Contraseña" type="password" formControlName="password" />
-    </div>
-    <div hlmField>
-      <label hlmFieldLabel for="provider-gender">Género</label>
-      <select id="provider-gender" class="rounded-lg border border-slate-300 px-3 py-2" formControlName="gender">
-      <option value="masculino">Masculino</option>
-      <option value="femenino">Femenino</option>
-      </select>
-    </div>
-    <div hlmField>
-      <label hlmFieldLabel for="provider-phone">Teléfono</label>
-      <input id="provider-phone" hlmInput placeholder="Teléfono" formControlName="phone" />
-    </div>
-    <div hlmField class="md:col-span-2">
-      <label hlmFieldLabel for="provider-branch">Sucursal</label>
-      <select id="provider-branch" class="rounded-lg border border-slate-300 px-3 py-2" formControlName="branch_id">
-      <option value="">Sin sucursal</option>
-      @for (branch of branches(); track branch.id) {
-        <option [value]="branch.id">{{ branch.name }} - {{ branch.city }}</option>
-      }
-      </select>
-    </div>
-    <button hlmBtn class="md:col-span-1" type="submit" [disabled]="form.invalid || loading()">
-      {{ loading() ? 'Guardando...' : 'Crear proveedor' }}
-    </button>
-  </form>
+  <div class="flex justify-start">
+    <button hlmBtn type="button" (click)="openModal()">Crear proveedor</button>
+  </div>
 
   <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
     <table hlmTable class="w-full text-left text-sm">
-      <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+      <thead class="bg-primary text-xs uppercase tracking-wide text-white font-bold">
         <tr>
           <th class="px-4 py-3">Empresa</th>
           <th class="px-4 py-3">Contacto</th>
@@ -69,11 +28,11 @@
           <th class="px-4 py-3 text-right">Acción</th>
         </tr>
       </thead>
-      <tbody class="divide-y divide-slate-200">
+      <tbody class="divide-y divide-slate-200 text-black">
         @for (provider of providers(); track provider.id) {
           <tr>
             <td class="px-4 py-3">{{ provider.business_name }}</td>
-            <td class="px-4 py-3">{{ provider.contact_name }}<br /><span class="text-xs text-slate-500">{{ provider.gender }}</span></td>
+            <td class="px-4 py-3">{{ provider.contact_name }}<br /><span class="text-xs text-black">{{ provider.gender }}</span></td>
             <td class="px-4 py-3">{{ provider.email }}</td>
             <td class="px-4 py-3">{{ branchName(provider.branch_id) }}</td>
             <td class="px-4 py-3">{{ statusLabel(provider.status) }}</td>
@@ -87,4 +46,61 @@
       </tbody>
     </table>
   </div>
+
+  @if (modalOpen()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6" (click)="closeModal()">
+      <section hlmCard class="w-full max-w-3xl bg-white shadow-xl" (click)="$event.stopPropagation()">
+        <div hlmCardHeader class="space-y-1 border-b border-slate-200 pb-4">
+          <span class="text-xs uppercase tracking-wide text-slate-500">Administración</span>
+          <h2 hlmCardTitle class="text-xl">Crear proveedor</h2>
+          <p hlmCardDescription>Completa el formulario para registrar un nuevo proveedor.</p>
+        </div>
+
+        <form class="grid gap-3 p-6 md:grid-cols-3" [formGroup]="form" (ngSubmit)="submit()">
+          <div hlmField>
+            <label hlmFieldLabel for="provider-business">Razón social</label>
+            <input id="provider-business" hlmInput placeholder="Razón social" formControlName="business_name" />
+          </div>
+          <div hlmField>
+            <label hlmFieldLabel for="provider-contact">Nombre contacto</label>
+            <input id="provider-contact" hlmInput placeholder="Nombre contacto" formControlName="contact_name" />
+          </div>
+          <div hlmField>
+            <label hlmFieldLabel for="provider-email">Email</label>
+            <input id="provider-email" hlmInput placeholder="Email" formControlName="email" />
+          </div>
+          <div hlmField>
+            <label hlmFieldLabel for="provider-password">Contraseña</label>
+            <input id="provider-password" hlmInput placeholder="Contraseña" type="password" formControlName="password" />
+          </div>
+          <div hlmField>
+            <label hlmFieldLabel for="provider-gender">Género</label>
+            <select id="provider-gender" class="rounded-lg border border-slate-300 px-3 py-2" formControlName="gender">
+              <option value="masculino">Masculino</option>
+              <option value="femenino">Femenino</option>
+            </select>
+          </div>
+          <div hlmField>
+            <label hlmFieldLabel for="provider-phone">Teléfono</label>
+            <input id="provider-phone" hlmInput placeholder="Teléfono" formControlName="phone" />
+          </div>
+          <div hlmField class="md:col-span-2">
+            <label hlmFieldLabel for="provider-branch">Sucursal</label>
+            <select id="provider-branch" class="rounded-lg border border-slate-300 px-3 py-2" formControlName="branch_id">
+              <option value="">Sin sucursal</option>
+              @for (branch of branches(); track branch.id) {
+                <option [value]="branch.id">{{ branch.name }} - {{ branch.city }}</option>
+              }
+            </select>
+          </div>
+          <div class="md:col-span-3 flex justify-end gap-2 pt-2">
+            <button hlmBtn variant="outline" type="button" (click)="closeModal()">Cancelar</button>
+            <button hlmBtn type="submit" [disabled]="form.invalid || loading()">
+              {{ loading() ? 'Guardando...' : 'Crear proveedor' }}
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+  }
 </section>
