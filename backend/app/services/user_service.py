@@ -2,7 +2,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func
 from app.models.user import User
-from app.schemas.user_schema import UserCreate, UserUpdateRol
+from app.schemas.user_schema import UserCreate, UserUpdateRol, UserUpdateBranch
 from app.schemas.enums import RolEnum
 from uuid import UUID  
 from passlib.context import CryptContext
@@ -20,7 +20,7 @@ def create_user(db: Session, user: UserCreate) -> User:
         gender=user.gender,
         rol=RolEnum.cliente,
         hashed_password=hashed_password,
-        branch_id=user.branch_id,
+        branch_id=None,
     )
     
     db.add(db_user)
@@ -49,6 +49,20 @@ def update_user_rol(db: Session, user_id: UUID, update_data: UserUpdateRol) -> U
         return None
 
     user.rol = update_data.rol
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def update_user_branch(db: Session, user_id: UUID, update_data: UserUpdateBranch) -> User | None:
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        return None
+
+    if user.rol not in {RolEnum.administrador, RolEnum.encargado, RolEnum.cajero}:
+        raise ValueError("Solo los usuarios internos pueden tener sucursal asignada")
+
+    user.branch_id = update_data.branch_id
     db.commit()
     db.refresh(user)
     return user

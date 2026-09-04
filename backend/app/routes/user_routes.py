@@ -2,9 +2,8 @@ from fastapi import APIRouter, Depends, status, Query, HTTPException
 from sqlalchemy.orm import Session
 from uuid import UUID
 
-from app.schemas.user_schema import UserCreate, UserRead, UsersPaginatedResponse
-from app.services.user_service import create_user, get_user, get_users, get_users_count, update_user_rol
-from app.schemas.user_schema import UserUpdateRol
+from app.schemas.user_schema import UserCreate, UserRead, UsersPaginatedResponse, UserUpdateRol, UserUpdateBranch
+from app.services.user_service import create_user, get_user, get_users, get_users_count, update_user_rol, update_user_branch
 from app.core.database import get_db
 from app.utils.response import response
 from app.auth.dependencies import get_current_user, require_roles
@@ -90,5 +89,27 @@ async def update_user_rol_route(
     return response(
         status_code=200,
         message="Rol de usuario actualizado exitosamente",
+        data=user_data
+    )
+
+
+@router.patch("/{user_id}/branch")
+async def update_user_branch_route(
+    user_id: UUID,
+    update_data: UserUpdateBranch,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(RolEnum.administrador))
+):
+    try:
+        db_user = update_user_branch(db, user_id, update_data)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    if not db_user:
+        raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
+
+    user_data = UserRead.model_validate(db_user).model_dump()
+    return response(
+        status_code=200,
+        message="Sucursal de usuario actualizada exitosamente",
         data=user_data
     )

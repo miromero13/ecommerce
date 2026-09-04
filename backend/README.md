@@ -46,10 +46,20 @@ No hay configuración personalizada para desactivarlo en `main.py`.
 ## Cómo funciona
 
 - `main.py` crea la app de FastAPI.
-- Se cargan los routers de `auth` y `users`.
+- Se cargan los routers de `auth`, `users` y `branches`.
 - Las tablas se gestionan con Alembic.
 - La autenticación usa JWT con Bearer token.
 - Las contraseñas se guardan hasheadas con bcrypt.
+
+## Rutas actuales
+
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `GET /api/users/`
+- `PATCH /api/users/{id}/rol`
+- `PATCH /api/users/{id}/branch`
+- `GET /api/branches/`
+- `POST /api/branches/`
 
 ## Migraciones y seeders
 
