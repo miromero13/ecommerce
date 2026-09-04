@@ -8,7 +8,7 @@ Create Date: 2026-09-04 01:00:00.000000
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy import inspect
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, ENUM as PG_ENUM
 import uuid
 
 
@@ -23,7 +23,7 @@ def upgrade() -> None:
     inspector = inspect(bind)
 
     if not inspector.has_table("product_variants"):
-        product_status_enum = sa.Enum(
+        product_status_enum = PG_ENUM(
             "pending",
             "active",
             "inactive",
