@@ -16,7 +16,10 @@ router = APIRouter(prefix="/users", tags=["Users"])
 # 🚀 Crea usuario (público)
 @router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_user_route(user: UserCreate, db: Session = Depends(get_db)):
-    db_user = create_user(db, user)
+    try:
+        db_user = create_user(db, user)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     
     user_data = UserRead.model_validate(db_user).model_dump()
     return response(

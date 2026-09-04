@@ -9,6 +9,7 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str
     gender: GenderEnum
+    branch_id: UUID | None = None
 
 #  Para login
 class UserLogin(BaseModel):
@@ -23,6 +24,7 @@ class UserOut(BaseModel):
     email: EmailStr
     gender: GenderEnum
     rol: RolEnum
+    branch_id: UUID | None = None
 
 
     class Config:
@@ -35,6 +37,7 @@ class UserRead(BaseModel):
     email: EmailStr
     gender: GenderEnum
     rol: RolEnum
+    branch_id: UUID | None = None
 
     model_config = {
         "from_attributes": True

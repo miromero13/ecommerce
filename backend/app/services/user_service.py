@@ -20,6 +20,7 @@ def create_user(db: Session, user: UserCreate) -> User:
         gender=user.gender,
         rol=RolEnum.cliente,
         hashed_password=hashed_password,
+        branch_id=user.branch_id,
     )
     
     db.add(db_user)

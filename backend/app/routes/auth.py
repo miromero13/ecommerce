@@ -13,9 +13,18 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 
 @router.post("/register", summary="Registro de customer/cliente")
 def register(user: UserCreate, db: Session = Depends(get_db)):
-    db_user = create_user(db, user)
+    try:
+        db_user = create_user(db, user)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
-    access_token = create_access_token(data={"sub": str(db_user.id)})
+    access_token = create_access_token(
+        data={
+            "sub": str(db_user.id),
+            "rol": db_user.rol.value,
+            "branch_id": str(db_user.branch_id) if db_user.branch_id else None,
+        }
+    )
 
     user_data = UserRead.model_validate(db_user).model_dump()
 
@@ -42,7 +51,13 @@ def login(user_data: UserLogin, db: Session = Depends(get_db)):
             status_code=status.HTTP_403_FORBIDDEN,
             detail="El usuario no pertenece al rol solicitado",
         )
-    access_token = create_access_token(data={"sub": str(user.id)})
+    access_token = create_access_token(
+        data={
+            "sub": str(user.id),
+            "rol": user.rol.value,
+            "branch_id": str(user.branch_id) if user.branch_id else None,
+        }
+    )
     user_out = UserRead.model_validate(user).model_dump()
     return response(
         status_code=status.HTTP_200_OK,
