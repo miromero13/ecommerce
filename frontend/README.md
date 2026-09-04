@@ -122,6 +122,12 @@ Si quieres crear uno nuevo, usa la misma estructura de `src/app/components/<comp
 - `src/app/app.ts` es el componente raíz.
 - `src/app/app.routes.ts` define las rutas.
 
+## Módulos actuales
+
+- `shared/`: auth, perfil, guardas e interceptores.
+- `admin/`: dashboard, usuarios y sucursales.
+- `cliente/`, `proveedor/`, `encargado/`, `cajero/`, `delivery/`: bases por rol.
+
 ## Notas
 
 - El proyecto usa el gestor `npm` definido en `package.json`.

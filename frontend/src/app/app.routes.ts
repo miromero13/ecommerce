@@ -90,6 +90,13 @@ export const routes: Routes = [
                 (m) => m.AdminUserPageComponent,
               ),
           },
+          {
+            path: 'branch',
+            loadComponent: () =>
+              import('./features/admin/pages/admin-branch-page.component').then(
+                (m) => m.AdminBranchPageComponent,
+              ),
+          },
         ],
       },
     ],

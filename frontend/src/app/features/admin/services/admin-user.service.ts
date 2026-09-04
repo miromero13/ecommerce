@@ -15,4 +15,8 @@ export class AdminUserService {
   updateUsuarioRol(userId: string, rol: AdminUsuario['rol']) {
     return this.api.patch<ApiResponse<AdminUsuario>>(`/users/${userId}/rol`, { rol });
   }
+
+  updateUsuarioBranch(userId: string, branchId: string | null) {
+    return this.api.patch<ApiResponse<AdminUsuario>>(`/users/${userId}/branch`, { branch_id: branchId });
+  }
 }
