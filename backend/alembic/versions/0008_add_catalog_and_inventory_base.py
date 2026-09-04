@@ -1,6 +1,6 @@
 """add catalog and inventory base
 
-Revision ID: 0008_add_catalog_and_inventory_base
+Revision ID: 0008_catalog_inventory
 Revises: 0007_add_providers
 Create Date: 2026-09-04 00:00:03.000000
 """
@@ -11,7 +11,7 @@ from sqlalchemy import inspect
 from sqlalchemy.dialects.postgresql import UUID
 
 
-revision = "0008_add_catalog_and_inventory_base"
+revision = "0008_catalog_inventory"
 down_revision = "0007_add_providers"
 branch_labels = None
 depends_on = None

@@ -1,7 +1,7 @@
 """add providers
 
 Revision ID: 0007_add_providers
-Revises: 0006_add_branches_and_user_branch
+Revises: 0006_branches_users
 Create Date: 2026-09-04 00:00:02.000000
 """
 
@@ -12,7 +12,7 @@ from sqlalchemy.dialects.postgresql import UUID
 
 
 revision = "0007_add_providers"
-down_revision = "0006_add_branches_and_user_branch"
+down_revision = "0006_branches_users"
 branch_labels = None
 depends_on = None
 

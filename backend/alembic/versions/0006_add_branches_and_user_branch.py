@@ -1,6 +1,6 @@
 """add branches and user branch
 
-Revision ID: 0006_add_branches_and_user_branch
+Revision ID: 0006_branches_users
 Revises: 0005_expand_roles_to_six
 Create Date: 2026-09-04 00:00:01.000000
 """
@@ -11,7 +11,7 @@ from sqlalchemy import inspect
 from sqlalchemy.dialects.postgresql import UUID
 
 
-revision = "0006_add_branches_and_user_branch"
+revision = "0006_branches_users"
 down_revision = "0005_expand_roles_to_six"
 branch_labels = None
 depends_on = None

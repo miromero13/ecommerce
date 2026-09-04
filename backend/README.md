@@ -76,20 +76,30 @@ No hay configuración personalizada para desactivarlo en `main.py`.
 - Hay carpeta `alembic/` con una migración inicial.
 - No encontré seeders ni fixtures.
 - El esquema no se crea automáticamente al arrancar la app.
+- Seeder demo:
+
+```bash
+./.venv/bin/python -m alembic upgrade head
+./.venv/bin/python seed.py
+```
+
+Contraseña de demo para todas las cuentas seed: `Fashion123!`
+
+Nota: si `which alembic` apunta a `/opt/homebrew/bin/alembic`, usa `python -m alembic` para evitar el binario global roto. `python` sí puede salir del `venv`, así que `seed.py` funciona con ese intérprete.
 
 ### Comandos de Alembic
 
 ```bash
-alembic upgrade head
-alembic revision -m "mensaje"
-alembic downgrade -1
+python -m alembic upgrade head
+python -m alembic revision -m "mensaje"
+python -m alembic downgrade -1
 ```
 
-`alembic revision -m "mensaje"` crea un nuevo archivo de migración en `alembic/versions/` con ese mensaje como nombre descriptivo. No aplica cambios en la base de datos; solo genera la plantilla para que escribas los cambios.
+`python -m alembic revision -m "mensaje"` crea un nuevo archivo de migración en `alembic/versions/` con ese mensaje como nombre descriptivo. No aplica cambios en la base de datos; solo genera la plantilla para que escribas los cambios.
 
-`alembic downgrade -1` revierte la última migración aplicada. El `-1` significa "retrocede un paso".
+`python -m alembic downgrade -1` revierte la última migración aplicada. El `-1` significa "retrocede un paso".
 
-Antes de levantar la API, ejecuta `alembic upgrade head` para crear o actualizar las tablas.
+Antes de levantar la API, ejecuta `python -m alembic upgrade head` para crear o actualizar las tablas.
 
 ## Estructura
 
