@@ -34,14 +34,22 @@
         <thead class="bg-primary text-xs font-bold uppercase tracking-wide text-white">
           <tr>
             <th class="px-4 py-3">Nombre</th>
-            <th class="px-4 py-3 text-right">ID</th>
+            <th class="px-4 py-3 text-right">Acciones</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-200 text-black">
           @for (category of categories(); track category.id) {
             <tr>
               <td class="px-4 py-3 font-medium">{{ category.name }}</td>
-              <td class="px-4 py-3 text-right text-xs text-slate-500">{{ category.id }}</td>
+              <td class="px-4 py-3 text-right">
+                <app-admin-action-menu
+                  [isOpen]="openMenuId() === category.id"
+                  [showActive]="false"
+                  (toggleMenu)="toggleMenu(category.id)"
+                  (edit)="openEditModal('categories', category)"
+                  (delete)="askDelete('categories', category.id, 'Categoría')"
+                />
+              </td>
             </tr>
           } @empty {
             <tr>
@@ -57,14 +65,22 @@
         <thead class="bg-primary text-xs font-bold uppercase tracking-wide text-white">
           <tr>
             <th class="px-4 py-3">Nombre</th>
-            <th class="px-4 py-3 text-right">ID</th>
+            <th class="px-4 py-3 text-right">Acciones</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-200 text-black">
           @for (size of sizes(); track size.id) {
             <tr>
               <td class="px-4 py-3 font-medium">{{ size.name }}</td>
-              <td class="px-4 py-3 text-right text-xs text-slate-500">{{ size.id }}</td>
+              <td class="px-4 py-3 text-right">
+                <app-admin-action-menu
+                  [isOpen]="openMenuId() === size.id"
+                  [showActive]="false"
+                  (toggleMenu)="toggleMenu(size.id)"
+                  (edit)="openEditModal('sizes', size)"
+                  (delete)="askDelete('sizes', size.id, 'Talla')"
+                />
+              </td>
             </tr>
           } @empty {
             <tr>
@@ -81,7 +97,7 @@
           <tr>
             <th class="px-4 py-3">Nombre</th>
             <th class="px-4 py-3">Hex</th>
-            <th class="px-4 py-3 text-right">ID</th>
+            <th class="px-4 py-3 text-right">Acciones</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-200 text-black">
@@ -95,7 +111,15 @@
                   <span class="text-xs text-slate-500">Sin hex</span>
                 }
               </td>
-              <td class="px-4 py-3 text-right text-xs text-slate-500">{{ color.id }}</td>
+              <td class="px-4 py-3 text-right">
+                <app-admin-action-menu
+                  [isOpen]="openMenuId() === color.id"
+                  [showActive]="false"
+                  (toggleMenu)="toggleMenu(color.id)"
+                  (edit)="openEditModal('colors', color)"
+                  (delete)="askDelete('colors', color.id, 'Color')"
+                />
+              </td>
             </tr>
           } @empty {
             <tr>
@@ -111,14 +135,22 @@
         <thead class="bg-primary text-xs font-bold uppercase tracking-wide text-white">
           <tr>
             <th class="px-4 py-3">Nombre</th>
-            <th class="px-4 py-3 text-right">ID</th>
+            <th class="px-4 py-3 text-right">Acciones</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-200 text-black">
           @for (season of seasons(); track season.id) {
             <tr>
               <td class="px-4 py-3 font-medium">{{ season.name }}</td>
-              <td class="px-4 py-3 text-right text-xs text-slate-500">{{ season.id }}</td>
+              <td class="px-4 py-3 text-right">
+                <app-admin-action-menu
+                  [isOpen]="openMenuId() === season.id"
+                  [showActive]="false"
+                  (toggleMenu)="toggleMenu(season.id)"
+                  (edit)="openEditModal('seasons', season)"
+                  (delete)="askDelete('seasons', season.id, 'Temporada')"
+                />
+              </td>
             </tr>
           } @empty {
             <tr>
@@ -135,7 +167,7 @@
           <tr>
             <th class="px-4 py-3">Nombre</th>
             <th class="px-4 py-3">Temporada</th>
-            <th class="px-4 py-3 text-right">ID</th>
+            <th class="px-4 py-3 text-right">Acciones</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-200 text-black">
@@ -143,7 +175,15 @@
             <tr>
               <td class="px-4 py-3 font-medium">{{ collection.name }}</td>
               <td class="px-4 py-3 text-sm text-slate-700">{{ seasonName(collection.season_id) }}</td>
-              <td class="px-4 py-3 text-right text-xs text-slate-500">{{ collection.id }}</td>
+              <td class="px-4 py-3 text-right">
+                <app-admin-action-menu
+                  [isOpen]="openMenuId() === collection.id"
+                  [showActive]="false"
+                  (toggleMenu)="toggleMenu(collection.id)"
+                  (edit)="openEditModal('collections', collection)"
+                  (delete)="askDelete('collections', collection.id, 'Colección')"
+                />
+              </td>
             </tr>
           } @empty {
             <tr>
@@ -191,7 +231,15 @@
                   }
                 </div>
               </td>
-              <td class="px-4 py-3 text-right text-xs text-slate-500">{{ productVariants(product).length }} variantes</td>
+              <td class="px-4 py-3 text-right">
+                <app-admin-action-menu
+                  [isOpen]="openMenuId() === product.id"
+                  [showActive]="false"
+                  (toggleMenu)="toggleMenu(product.id)"
+                  (edit)="openEditProduct(product)"
+                  (delete)="askDelete('products', product.id, 'Producto')"
+                />
+              </td>
             </tr>
           } @empty {
             <tr>
@@ -208,7 +256,7 @@
       <section hlmCard class="relative w-full max-w-3xl bg-white shadow-xl" (click)="$event.stopPropagation()">
         <div hlmCardHeader class="space-y-1 border-b border-slate-200 pb-4">
           <span class="text-xs uppercase tracking-wide text-slate-500">Catálogo</span>
-          <h2 hlmCardTitle class="text-xl">{{ createLabel(activeTab()) }}</h2>
+          <h2 hlmCardTitle class="text-xl">{{ modalTitle() }}</h2>
           <p hlmCardDescription>Completa los datos para guardar el registro.</p>
         </div>
 
@@ -219,7 +267,7 @@
                 <label hlmFieldLabel for="category-name">Nombre</label>
                 <input id="category-name" hlmInput class="w-full" placeholder="Nombre" formControlName="name" />
               </div>
-              <button hlmBtn type="submit" [disabled]="loading()">{{ loading() ? 'Guardando...' : 'Guardar categoría' }}</button>
+              <button hlmBtn type="submit" [disabled]="loading()">{{ loading() ? 'Guardando...' : (modalMode() === 'edit' ? 'Actualizar categoría' : 'Guardar categoría') }}</button>
             </form>
           } @else if (activeTab() === 'sizes') {
             <form class="space-y-4" [formGroup]="sizeForm" (ngSubmit)="submitSize()">
@@ -227,7 +275,7 @@
                 <label hlmFieldLabel for="size-name">Nombre</label>
                 <input id="size-name" hlmInput class="w-full" placeholder="Nombre" formControlName="name" />
               </div>
-              <button hlmBtn type="submit" [disabled]="loading()">{{ loading() ? 'Guardando...' : 'Guardar talla' }}</button>
+              <button hlmBtn type="submit" [disabled]="loading()">{{ loading() ? 'Guardando...' : (modalMode() === 'edit' ? 'Actualizar talla' : 'Guardar talla') }}</button>
             </form>
           } @else if (activeTab() === 'colors') {
             <form class="space-y-4" [formGroup]="colorForm" (ngSubmit)="submitColor()">
@@ -241,7 +289,7 @@
                   <input id="color-hex" hlmInput class="w-full" placeholder="#000000" formControlName="hex_code" />
                 </div>
               </div>
-              <button hlmBtn type="submit" [disabled]="loading()">{{ loading() ? 'Guardando...' : 'Guardar color' }}</button>
+              <button hlmBtn type="submit" [disabled]="loading()">{{ loading() ? 'Guardando...' : (modalMode() === 'edit' ? 'Actualizar color' : 'Guardar color') }}</button>
             </form>
           } @else if (activeTab() === 'seasons') {
             <form class="space-y-4" [formGroup]="seasonForm" (ngSubmit)="submitSeason()">
@@ -249,7 +297,7 @@
                 <label hlmFieldLabel for="season-name">Nombre</label>
                 <input id="season-name" hlmInput class="w-full" placeholder="Nombre" formControlName="name" />
               </div>
-              <button hlmBtn type="submit" [disabled]="loading()">{{ loading() ? 'Guardando...' : 'Guardar temporada' }}</button>
+              <button hlmBtn type="submit" [disabled]="loading()">{{ loading() ? 'Guardando...' : (modalMode() === 'edit' ? 'Actualizar temporada' : 'Guardar temporada') }}</button>
             </form>
           } @else if (activeTab() === 'collections') {
             <form class="space-y-4" [formGroup]="collectionForm" (ngSubmit)="submitCollection()">
@@ -268,7 +316,7 @@
                   </select>
                 </div>
               </div>
-              <button hlmBtn type="submit" [disabled]="loading()">{{ loading() ? 'Guardando...' : 'Guardar colección' }}</button>
+              <button hlmBtn type="submit" [disabled]="loading()">{{ loading() ? 'Guardando...' : (modalMode() === 'edit' ? 'Actualizar colección' : 'Guardar colección') }}</button>
             </form>
           } @else {
             <form class="space-y-4" [formGroup]="productForm" (ngSubmit)="submitProduct()">
@@ -372,13 +420,28 @@
                 </div>
               </section>
 
-              <button hlmBtn type="submit" [disabled]="loading()">{{ loading() ? 'Guardando...' : 'Guardar producto' }}</button>
+              <button hlmBtn type="submit" [disabled]="loading()">{{ loading() ? 'Guardando...' : (modalMode() === 'edit' ? 'Actualizar producto' : 'Guardar producto') }}</button>
             </form>
           }
         </div>
 
         <div hlmCardFooter class="flex justify-end border-t border-slate-200 p-6 pt-4">
           <button hlmBtn variant="outline" type="button" (click)="closeModal()">Cerrar</button>
+        </div>
+      </section>
+    </div>
+  }
+
+  @if (deleteConfirmOpen()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6" (click)="cancelDelete()">
+      <section hlmCard class="w-full max-w-lg bg-white shadow-xl" (click)="$event.stopPropagation()">
+        <div hlmCardHeader class="space-y-1 border-b border-slate-200 pb-4">
+          <span class="text-xs uppercase tracking-wide text-red-500">Eliminar</span>
+          <h2 hlmCardTitle class="text-xl">Estas seguro que quieres eliminar esto permanentemente?</h2>
+        </div>
+        <div class="flex justify-end gap-2 p-6">
+          <button hlmBtn variant="outline" type="button" (click)="cancelDelete()">Cancelar</button>
+          <button hlmBtn type="button" class="bg-red-600 text-white hover:bg-red-700" (click)="confirmDelete()">Eliminar</button>
         </div>
       </section>
     </div>

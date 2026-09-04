@@ -25,10 +25,12 @@ import { lucideMoreVertical, lucidePencil, lucidePower, lucideTrash2 } from '@ng
             <ng-icon name="lucidePencil" />
             <span>Editar</span>
           </button>
-          <button type="button" class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50" (click)="toggleActive.emit()">
-            <ng-icon name="lucidePower" />
-            <span>{{ activeLabel }}</span>
-          </button>
+          @if (showActive) {
+            <button type="button" class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50" (click)="toggleActive.emit()">
+              <ng-icon name="lucidePower" />
+              <span>{{ activeLabel }}</span>
+            </button>
+          }
           <button type="button" class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-700 hover:bg-red-50" (click)="delete.emit()">
             <ng-icon name="lucideTrash2" />
             <span>Eliminar</span>
@@ -41,6 +43,7 @@ import { lucideMoreVertical, lucidePencil, lucidePower, lucideTrash2 } from '@ng
 export class AdminActionMenuComponent {
   @Input() isOpen = false;
   @Input() activeLabel = 'Activar';
+  @Input() showActive = true;
 
   @Output() toggleMenu = new EventEmitter<void>();
   @Output() edit = new EventEmitter<void>();

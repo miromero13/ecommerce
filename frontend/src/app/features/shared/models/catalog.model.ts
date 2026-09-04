@@ -87,4 +87,31 @@ export interface CreateProductRequest {
   variants?: CreateProductVariantRequest[];
 }
 
+export interface UpdateNameItemRequest {
+  name: string;
+}
+
+export interface UpdateColorRequest {
+  name: string;
+  hex_code?: string | null;
+}
+
+export interface UpdateCollectionRequest {
+  name: string;
+  season_id?: string | null;
+}
+
+export interface UpdateProductRequest {
+  name: string;
+  description?: string | null;
+  price: string;
+  category_id: string;
+  provider_id?: string | null;
+  season_id?: string | null;
+  collection_id?: string | null;
+  status?: ProductStatus;
+  sku?: string;
+  variants?: CreateProductVariantRequest[];
+}
+
 export type ListResponse<T> = ApiResponse<T[]>;
