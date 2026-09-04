@@ -158,39 +158,44 @@
       <table hlmTable class="w-full text-left text-sm">
         <thead class="bg-primary text-xs font-bold uppercase tracking-wide text-white">
           <tr>
-            <th class="px-4 py-3">SKU</th>
             <th class="px-4 py-3">Nombre</th>
-            <th class="px-4 py-3">Precio</th>
-            <th class="px-4 py-3">Estado</th>
             <th class="px-4 py-3">Categoría</th>
-            <th class="px-4 py-3">Talla</th>
-            <th class="px-4 py-3">Color</th>
-            <th class="px-4 py-3">Colección</th>
-            <th class="px-4 py-3 text-right">Acción</th>
+            <th class="px-4 py-3">Variantes</th>
+            <th class="px-4 py-3 text-right">Acciones</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-200 text-black">
           @for (product of products(); track product.id) {
-            <tr>
-              <td class="px-4 py-3 font-medium">{{ product.sku }}</td>
-              <td class="px-4 py-3">{{ product.name }}</td>
-              <td class="px-4 py-3">{{ product.price }}</td>
-              <td class="px-4 py-3">
-                <span hlmBadge class="bg-slate-900 text-white">{{ product.status }}</span>
-              </td>
+            <tr class="align-top">
+              <td class="px-4 py-3 font-medium">{{ product.name }}</td>
               <td class="px-4 py-3 text-sm">{{ categoryName(product.category_id) }}</td>
-              <td class="px-4 py-3 text-sm">{{ sizeName(product.size_id) }}</td>
-              <td class="px-4 py-3 text-sm">{{ colorName(product.color_id) }}</td>
-              <td class="px-4 py-3 text-sm">{{ collectionName(product.collection_id) }}</td>
-              <td class="px-4 py-3 text-right">
-                <button class="rounded-lg border px-3 py-1 text-sm" type="button" (click)="toggleProductStatus(product)">
-                  {{ product.status === 'active' ? 'Desactivar' : 'Activar' }}
-                </button>
+              <td class="px-4 py-3 text-sm">
+                <div class="space-y-2">
+                  @for (variant of productVariants(product); track variant.id) {
+                    <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                      <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p class="font-medium">{{ variantLabel(variant) }}</p>
+                          <p class="text-xs text-slate-500">SKU: {{ variant.sku }} · Precio: {{ variant.price }}</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                          <span hlmBadge class="bg-slate-900 text-white">{{ variant.status }}</span>
+                          <button class="rounded-lg border px-3 py-1 text-xs" type="button" (click)="toggleVariantStatus(variant)">
+                            {{ variant.status === 'active' ? 'Desactivar' : 'Activar' }}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  } @empty {
+                    <p class="text-xs text-slate-500">Sin variantes.</p>
+                  }
+                </div>
               </td>
+              <td class="px-4 py-3 text-right text-xs text-slate-500">{{ productVariants(product).length }} variantes</td>
             </tr>
           } @empty {
             <tr>
-              <td class="px-4 py-8 text-center text-sm text-slate-500" colspan="9">No hay productos registrados.</td>
+              <td class="px-4 py-8 text-center text-sm text-slate-500" colspan="4">No hay productos registrados.</td>
             </tr>
           }
         </tbody>
@@ -268,10 +273,6 @@
           } @else {
             <form class="space-y-4" [formGroup]="productForm" (ngSubmit)="submitProduct()">
               <div class="grid gap-4 md:grid-cols-3">
-                <div hlmField>
-                  <label hlmFieldLabel for="product-sku">SKU</label>
-                  <input id="product-sku" hlmInput class="w-full" placeholder="SKU" formControlName="sku" />
-                </div>
                 <div hlmField class="md:col-span-2">
                   <label hlmFieldLabel for="product-name">Nombre</label>
                   <input id="product-name" hlmInput class="w-full" placeholder="Nombre" formControlName="name" />
@@ -294,24 +295,6 @@
                   </select>
                 </div>
                 <div hlmField>
-                  <label hlmFieldLabel for="product-size">Talla</label>
-                  <select id="product-size" class="w-full rounded-lg border border-slate-300 px-3 py-2" formControlName="size_id">
-                    <option value="">Talla</option>
-                    @for (size of sizes(); track size.id) {
-                      <option [value]="size.id">{{ size.name }}</option>
-                    }
-                  </select>
-                </div>
-                <div hlmField>
-                  <label hlmFieldLabel for="product-color">Color</label>
-                  <select id="product-color" class="w-full rounded-lg border border-slate-300 px-3 py-2" formControlName="color_id">
-                    <option value="">Color</option>
-                    @for (color of colors(); track color.id) {
-                      <option [value]="color.id">{{ color.name }}</option>
-                    }
-                  </select>
-                </div>
-                <div hlmField>
                   <label hlmFieldLabel for="product-season">Temporada</label>
                   <select id="product-season" class="w-full rounded-lg border border-slate-300 px-3 py-2" formControlName="season_id">
                     <option value="">Temporada</option>
@@ -330,6 +313,65 @@
                   </select>
                 </div>
               </div>
+
+              <section class="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div class="flex items-center justify-between gap-3">
+                  <div>
+                    <h3 class="text-sm font-semibold">Variantes</h3>
+                    <p class="text-xs text-slate-500">Cada combinación necesita SKU y precio propio.</p>
+                  </div>
+                  <button hlmBtn type="button" variant="outline" (click)="addVariant()">Agregar variante</button>
+                </div>
+
+                <div class="space-y-4" formArrayName="variants">
+                  @for (variant of variantControls(); track $index; let i = $index) {
+                    <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm" [formGroupName]="i">
+                      <div class="mb-3 flex items-center justify-between gap-3">
+                        <h4 class="text-sm font-semibold">Variante {{ i + 1 }}</h4>
+                        <button hlmBtn type="button" variant="ghost" [disabled]="variantControls().length === 1" (click)="removeVariant(i)">Quitar</button>
+                      </div>
+
+                      <div class="grid gap-4 md:grid-cols-5">
+                        <div hlmField>
+                          <label hlmFieldLabel [for]="'variant-sku-' + i">SKU</label>
+                          <input [id]="'variant-sku-' + i" hlmInput class="w-full" placeholder="SKU" formControlName="sku" />
+                        </div>
+                        <div hlmField>
+                          <label hlmFieldLabel [for]="'variant-price-' + i">Precio</label>
+                          <input [id]="'variant-price-' + i" hlmInput class="w-full" placeholder="Precio" formControlName="price" />
+                        </div>
+                        <div hlmField>
+                          <label hlmFieldLabel [for]="'variant-size-' + i">Talla</label>
+                          <select [id]="'variant-size-' + i" class="w-full rounded-lg border border-slate-300 px-3 py-2" formControlName="size_id">
+                            <option value="">Talla</option>
+                            @for (size of sizes(); track size.id) {
+                              <option [value]="size.id">{{ size.name }}</option>
+                            }
+                          </select>
+                        </div>
+                        <div hlmField>
+                          <label hlmFieldLabel [for]="'variant-color-' + i">Color</label>
+                          <select [id]="'variant-color-' + i" class="w-full rounded-lg border border-slate-300 px-3 py-2" formControlName="color_id">
+                            <option value="">Color</option>
+                            @for (color of colors(); track color.id) {
+                              <option [value]="color.id">{{ color.name }}</option>
+                            }
+                          </select>
+                        </div>
+                        <div hlmField>
+                          <label hlmFieldLabel [for]="'variant-status-' + i">Estado</label>
+                          <select [id]="'variant-status-' + i" class="w-full rounded-lg border border-slate-300 px-3 py-2" formControlName="status">
+                            <option value="active">active</option>
+                            <option value="pending">pending</option>
+                            <option value="inactive">inactive</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </section>
+
               <button hlmBtn type="submit" [disabled]="loading()">{{ loading() ? 'Guardando...' : 'Guardar producto' }}</button>
             </form>
           }

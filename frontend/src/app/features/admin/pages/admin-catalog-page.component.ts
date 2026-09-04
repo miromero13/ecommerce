@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 
 import { HlmBadge } from '../../../components/badge/src';
@@ -16,6 +16,7 @@ import {
   CatalogColorItem,
   CatalogNameItem,
   CatalogProduct,
+  CatalogProductVariant,
 } from '../../shared/models/catalog.model';
 import { CatalogApiService } from '../../shared/services/catalog-api.service';
 
@@ -77,15 +78,12 @@ export class AdminCatalogPageComponent {
   protected readonly seasonForm = this.fb.nonNullable.group({ name: ['', [Validators.required]] });
   protected readonly collectionForm = this.fb.nonNullable.group({ name: ['', [Validators.required]], season_id: [''] });
   protected readonly productForm = this.fb.nonNullable.group({
-    sku: ['', [Validators.required]],
     name: ['', [Validators.required]],
     description: [''],
-    price: ['', [Validators.required]],
     category_id: ['', [Validators.required]],
-    size_id: [''],
-    color_id: [''],
     season_id: [''],
     collection_id: [''],
+    variants: this.fb.array([this.createVariantGroup()]),
   });
 
   constructor() {
@@ -102,6 +100,11 @@ export class AdminCatalogPageComponent {
     this.activeTab.set(tab);
     this.errorMessage.set('');
     this.successMessage.set('');
+    if (tab === 'products') {
+      this.productForm.reset({ name: '', description: '', category_id: '', season_id: '', collection_id: '' });
+      this.variantsArray().clear();
+      this.variantsArray().push(this.createVariantGroup());
+    }
     this.modalOpen.set(true);
   }
 
@@ -146,23 +149,41 @@ export class AdminCatalogPageComponent {
       return;
     }
 
+    if (this.hasDuplicateVariants()) {
+      this.errorMessage.set('No puedes repetir la misma combinacion de talla y color dentro del producto.');
+      return;
+    }
+
+    const variants = this.variantForms().getRawValue();
+    const firstVariant = variants[0];
+    if (!firstVariant?.price) {
+      this.errorMessage.set('Debes definir al menos una variante con precio.');
+      return;
+    }
+
     this.loading.set(true);
     this.errorMessage.set('');
     this.successMessage.set('');
     try {
       const payload = this.productForm.getRawValue();
       await firstValueFrom(this.api.createProduct({
-        sku: payload.sku,
         name: payload.name,
         description: payload.description || null,
-        price: payload.price,
+        price: firstVariant.price,
         category_id: payload.category_id,
-        size_id: payload.size_id || null,
-        color_id: payload.color_id || null,
         season_id: payload.season_id || null,
         collection_id: payload.collection_id || null,
+        variants: variants.map((variant) => ({
+          sku: variant.sku,
+          price: variant.price,
+          size_id: variant.size_id || null,
+          color_id: variant.color_id || null,
+          status: variant.status || 'active',
+        })),
       }));
-      this.productForm.reset({ sku: '', name: '', description: '', price: '', category_id: '', size_id: '', color_id: '', season_id: '', collection_id: '' });
+      this.productForm.reset({ name: '', description: '', category_id: '', season_id: '', collection_id: '' });
+      this.variantsArray().clear();
+      this.variantsArray().push(this.createVariantGroup());
       await this.loadData();
       this.successMessage.set('Producto creado correctamente.');
       this.closeModal();
@@ -173,15 +194,56 @@ export class AdminCatalogPageComponent {
     }
   }
 
-  protected async toggleProductStatus(product: CatalogProduct): Promise<void> {
-    const nextStatus = product.status === 'active' ? 'inactive' : 'active';
+  protected async toggleVariantStatus(variant: CatalogProductVariant): Promise<void> {
+    const nextStatus = variant.status === 'active' ? 'inactive' : 'active';
     try {
-      await firstValueFrom(this.api.updateProductStatus(product.id, nextStatus));
+      await firstValueFrom(this.api.updateVariantStatus(variant.id, nextStatus));
       await this.loadData();
-      this.successMessage.set('Estado del producto actualizado.');
+      this.successMessage.set('Estado de la variante actualizado.');
     } catch (error) {
-      this.errorMessage.set(getErrorMessage(error, 'No se pudo actualizar el producto.'));
+      this.errorMessage.set(getErrorMessage(error, 'No se pudo actualizar la variante.'));
     }
+  }
+
+  protected variantsArray(): FormArray {
+    return this.productForm.controls.variants as FormArray;
+  }
+
+  protected variantForms() {
+    return this.variantsArray();
+  }
+
+  protected addVariant(): void {
+    this.variantsArray().push(this.createVariantGroup());
+  }
+
+  protected removeVariant(index: number): void {
+    if (this.variantsArray().length === 1) {
+      return;
+    }
+    this.variantsArray().removeAt(index);
+  }
+
+  protected variantControls(): Array<any> {
+    return this.variantsArray().controls;
+  }
+
+  protected productVariants(product: CatalogProduct): CatalogProductVariant[] {
+    return product.variants ?? [];
+  }
+
+  protected primaryVariant(product: CatalogProduct): CatalogProductVariant | null {
+    return this.productVariants(product)[0] ?? null;
+  }
+
+  protected variantLabel(variant: CatalogProductVariant): string {
+    const size = this.sizeName(variant.size_id);
+    const color = this.colorName(variant.color_id);
+    return `${size} / ${color}`;
+  }
+
+  protected variantStatusBadge(variant: CatalogProductVariant): string {
+    return variant.status;
   }
 
   protected seasonName(seasonId: string | null): string {
@@ -229,6 +291,29 @@ export class AdminCatalogPageComponent {
 
   protected collectionName(collectionId: string | null | undefined): string {
     return this.lookupName(this.collections(), collectionId, 'Sin colección');
+  }
+
+  private createVariantGroup() {
+    return this.fb.nonNullable.group({
+      sku: ['', [Validators.required]],
+      price: ['', [Validators.required]],
+      size_id: [''],
+      color_id: [''],
+      status: ['active', [Validators.required]],
+    });
+  }
+
+  private hasDuplicateVariants(): boolean {
+    const seen = new Set<string>();
+    for (const group of this.variantForms().controls) {
+      const value = group.getRawValue();
+      const key = `${value.size_id || 'none'}::${value.color_id || 'none'}`;
+      if (seen.has(key)) {
+        return true;
+      }
+      seen.add(key);
+    }
+    return false;
   }
 
   private lookupName(items: Array<{ id: string; name: string }>, id: string | null | undefined, fallback: string): string {
