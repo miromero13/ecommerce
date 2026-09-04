@@ -29,3 +29,15 @@ class ProviderRead(BaseModel):
     branch_id: UUID | None = None
     status: ProviderStatusEnum
     is_active: bool
+
+
+class ProviderUpdate(BaseModel):
+    business_name: str
+    contact_name: str
+    email: EmailStr
+    password: str | None = None
+    gender: GenderEnum
+    phone: str | None = None
+    branch_id: UUID | None = None
+    status: ProviderStatusEnum = ProviderStatusEnum.active
+    is_active: bool = True

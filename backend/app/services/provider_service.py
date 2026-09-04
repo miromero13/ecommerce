@@ -2,6 +2,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 
+from app.models.product import Product
 from app.models.provider import Provider
 from app.models.user import User
 from app.schemas.enums import RolEnum, ProviderStatusEnum
@@ -62,6 +63,58 @@ def update_provider_status(db: Session, provider_id, update_data: ProviderStatus
     db.commit()
     db.refresh(provider)
     return provider
+
+
+def update_provider_full(db: Session, provider_id, update_data) -> Provider | None:
+    provider = db.query(Provider).filter(Provider.id == provider_id).first()
+    if not provider:
+        return None
+
+    user = db.query(User).filter(User.id == provider.user_id).first()
+    if not user:
+        return None
+
+    provider.business_name = update_data.business_name
+    provider.contact_name = update_data.contact_name
+    provider.phone = update_data.phone
+    provider.branch_id = update_data.branch_id
+    provider.status = update_data.status
+    provider.is_active = update_data.is_active
+
+    user.name = update_data.contact_name
+    user.email = update_data.email
+    user.gender = update_data.gender
+    user.branch_id = update_data.branch_id
+    user.is_active = update_data.is_active
+    if update_data.password:
+        user.hashed_password = pwd_context.hash(update_data.password)
+
+    try:
+        db.commit()
+        db.refresh(provider)
+        return provider
+    except IntegrityError:
+        db.rollback()
+        raise ValueError("No se pudo actualizar el proveedor")
+
+
+def delete_provider(db: Session, provider_id) -> bool:
+    provider = db.query(Provider).filter(Provider.id == provider_id).first()
+    if not provider:
+        return False
+
+    user = db.query(User).filter(User.id == provider.user_id).first()
+
+    try:
+        db.query(Product).filter(Product.provider_id == provider.id).update({Product.provider_id: None}, synchronize_session=False)
+        db.delete(provider)
+        if user:
+            db.delete(user)
+        db.commit()
+        return True
+    except IntegrityError:
+        db.rollback()
+        raise ValueError("No se pudo eliminar el proveedor")
 
 
 def set_provider_active(db: Session, provider_id, is_active: bool) -> Provider | None:

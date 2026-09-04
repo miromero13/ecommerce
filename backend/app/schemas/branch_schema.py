@@ -18,3 +18,10 @@ class BranchRead(BaseModel):
     model_config = {
         "from_attributes": True,
     }
+
+
+class BranchUpdate(BaseModel):
+    name: str
+    city: str
+    is_default: bool = False
+    is_active: bool = True

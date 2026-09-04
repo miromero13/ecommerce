@@ -1,3 +1,4 @@
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from sqlalchemy.orm import selectinload
 
@@ -80,39 +81,44 @@ def create_product(
     provider_id=None,
     status: ProductStatusEnum = ProductStatusEnum.active,
 ):
-    product = Product(
-        name=payload.name,
-        description=payload.description,
-        price=payload.price,
-        provider_id=provider_id,
-        category_id=payload.category_id,
-        season_id=payload.season_id,
-        collection_id=payload.collection_id,
-    )
-    db.add(product)
-    db.flush()
-
-    variants = []
-    for variant_data in _normalized_variants(payload, status):
-        variant = ProductVariant(
-            product_id=product.id,
-            sku=variant_data["sku"],
-            price=variant_data["price"],
-            size_id=variant_data["size_id"],
-            color_id=variant_data["color_id"],
-            status=variant_data["status"],
+    try:
+        product = Product(
+            name=payload.name,
+            description=payload.description,
+            price=payload.price,
+            provider_id=provider_id,
+            category_id=payload.category_id,
+            season_id=payload.season_id,
+            collection_id=payload.collection_id,
         )
-        db.add(variant)
-        variants.append(variant)
+        db.add(product)
+        db.flush()
 
-    db.commit()
-    if variants:
-        product.price = variants[0].price
+        variants = []
+        for variant_data in _normalized_variants(payload, status):
+            variant = ProductVariant(
+                product_id=product.id,
+                sku=variant_data["sku"],
+                price=variant_data["price"],
+                size_id=variant_data["size_id"],
+                color_id=variant_data["color_id"],
+                status=variant_data["status"],
+            )
+            db.add(variant)
+            variants.append(variant)
+
+        if variants:
+            product.price = variants[0].price
+
         db.commit()
-    db.refresh(product)
-    for variant in variants:
-        db.refresh(variant)
-    return product
+
+        db.refresh(product)
+        for variant in variants:
+            db.refresh(variant)
+        return product
+    except IntegrityError:
+        db.rollback()
+        raise ValueError("No se pudo crear el producto")
 
 
 def update_product_status(db: Session, variant_id, update_data: ProductVariantStatusUpdate):
@@ -123,6 +129,151 @@ def update_product_status(db: Session, variant_id, update_data: ProductVariantSt
     db.commit()
     db.refresh(variant)
     return variant
+
+
+def update_name_item(db: Session, model, item_id, payload):
+    item = db.query(model).filter(model.id == item_id).first()
+    if not item:
+        return None
+
+    for field, value in payload.model_dump().items():
+        setattr(item, field, value)
+
+    try:
+        db.commit()
+        db.refresh(item)
+        return item
+    except IntegrityError:
+        db.rollback()
+        raise ValueError("No se pudo actualizar el registro")
+
+
+def delete_category(db: Session, category_id) -> bool:
+    category = db.query(Category).filter(Category.id == category_id).first()
+    if not category:
+        return False
+
+    if db.query(Product).filter(Product.category_id == category_id).first():
+        raise ValueError("No se puede eliminar una categoria con productos asociados")
+
+    db.delete(category)
+    db.commit()
+    return True
+
+
+def delete_size(db: Session, size_id) -> bool:
+    size = db.query(Size).filter(Size.id == size_id).first()
+    if not size:
+        return False
+
+    if db.query(ProductVariant).filter(ProductVariant.size_id == size_id).first():
+        raise ValueError("No se puede eliminar una talla con variantes asociadas")
+
+    db.delete(size)
+    db.commit()
+    return True
+
+
+def delete_color(db: Session, color_id) -> bool:
+    color = db.query(Color).filter(Color.id == color_id).first()
+    if not color:
+        return False
+
+    if db.query(ProductVariant).filter(ProductVariant.color_id == color_id).first():
+        raise ValueError("No se puede eliminar un color con variantes asociadas")
+
+    db.delete(color)
+    db.commit()
+    return True
+
+
+def delete_season(db: Session, season_id) -> bool:
+    season = db.query(Season).filter(Season.id == season_id).first()
+    if not season:
+        return False
+
+    if db.query(Product).filter(Product.season_id == season_id).first():
+        raise ValueError("No se puede eliminar una temporada con productos asociados")
+    if db.query(Collection).filter(Collection.season_id == season_id).first():
+        raise ValueError("No se puede eliminar una temporada con colecciones asociadas")
+
+    db.delete(season)
+    db.commit()
+    return True
+
+
+def delete_collection(db: Session, collection_id) -> bool:
+    collection = db.query(Collection).filter(Collection.id == collection_id).first()
+    if not collection:
+        return False
+
+    if db.query(Product).filter(Product.collection_id == collection_id).first():
+        raise ValueError("No se puede eliminar una coleccion con productos asociados")
+
+    db.delete(collection)
+    db.commit()
+    return True
+
+
+def update_product(db: Session, product_id, payload: ProductCreate) -> Product | None:
+    product = db.query(Product).options(selectinload(Product.variants)).filter(Product.id == product_id).first()
+    if not product:
+        return None
+
+    try:
+        variant_ids = [variant.id for variant in product.variants]
+        if variant_ids:
+            db.query(Inventory).filter(Inventory.variant_id.in_(variant_ids)).delete(synchronize_session=False)
+            db.query(ProductVariant).filter(ProductVariant.id.in_(variant_ids)).delete(synchronize_session=False)
+
+        product.name = payload.name
+        product.description = payload.description
+        product.price = payload.price
+        product.provider_id = payload.provider_id
+        product.category_id = payload.category_id
+        product.season_id = payload.season_id
+        product.collection_id = payload.collection_id
+
+        variants = []
+        for variant_data in _normalized_variants(payload, payload.status or ProductStatusEnum.active):
+            variant = ProductVariant(
+                product_id=product.id,
+                sku=variant_data["sku"],
+                price=variant_data["price"],
+                size_id=variant_data["size_id"],
+                color_id=variant_data["color_id"],
+                status=variant_data["status"],
+            )
+            db.add(variant)
+            variants.append(variant)
+
+        if variants:
+            product.price = variants[0].price
+
+        db.commit()
+
+        return db.query(Product).options(selectinload(Product.variants)).filter(Product.id == product_id).first()
+    except IntegrityError:
+        db.rollback()
+        raise ValueError("No se pudo actualizar el producto")
+
+
+def delete_product(db: Session, product_id) -> bool:
+    product = db.query(Product).options(selectinload(Product.variants)).filter(Product.id == product_id).first()
+    if not product:
+        return False
+
+    try:
+        variant_ids = [variant.id for variant in product.variants]
+        if variant_ids:
+            db.query(Inventory).filter(Inventory.variant_id.in_(variant_ids)).delete(synchronize_session=False)
+            db.query(ProductVariant).filter(ProductVariant.id.in_(variant_ids)).delete(synchronize_session=False)
+        db.delete(product)
+        db.commit()
+        return True
+    except IntegrityError:
+        db.rollback()
+        raise ValueError("No se pudo eliminar el producto")
 
 
 def _product_to_read(product: Product, variants: list[ProductVariant], branch_quantity_map: dict | None = None):

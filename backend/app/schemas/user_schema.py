@@ -55,3 +55,12 @@ class UserUpdateRol(BaseModel):
 
 class UserUpdateBranch(BaseModel):
     branch_id: UUID | None = None
+
+
+class UserUpdate(BaseModel):
+    name: str
+    email: EmailStr
+    password: str | None = None
+    gender: GenderEnum
+    branch_id: UUID | None = None
+    is_active: bool = True
