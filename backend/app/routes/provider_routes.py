@@ -3,7 +3,9 @@ from sqlalchemy.orm import Session
 from uuid import UUID
 
 from app.auth.dependencies import require_roles
+from app.auth.dependencies import get_current_branch_id
 from app.core.database import get_db
+from app.models.provider import Provider
 from app.models.user import User
 from app.schemas.enums import RolEnum
 from app.schemas.provider_schema import ProviderCreate, ProviderRead, ProviderStatusUpdate
@@ -17,9 +19,10 @@ router = APIRouter(prefix="/providers", tags=["Providers"])
 @router.get("/")
 async def list_providers_route(
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(RolEnum.administrador)),
+    current_user: dict = Depends(require_roles(RolEnum.administrador)),
+    current_branch_id: UUID | None = Depends(get_current_branch_id),
 ):
-    rows = get_providers(db)
+    rows = get_providers(db, current_branch_id)
     providers_data = [
         ProviderRead.model_validate(
             {
@@ -43,8 +46,15 @@ async def list_providers_route(
 async def create_provider_route(
     provider: ProviderCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(RolEnum.administrador)),
+    current_user: dict = Depends(require_roles(RolEnum.administrador)),
+    current_branch_id: UUID | None = Depends(get_current_branch_id),
 ):
+    if current_branch_id is not None and provider.branch_id not in {None, current_branch_id}:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No puedes crear proveedores en otra sucursal")
+
+    if current_branch_id is not None and provider.branch_id is None:
+        provider = provider.model_copy(update={"branch_id": current_branch_id})
+
     try:
         db_provider = create_provider(db, provider)
     except ValueError as exc:
@@ -72,8 +82,15 @@ async def update_provider_status_route(
     provider_id: UUID,
     update_data: ProviderStatusUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(RolEnum.administrador)),
+    current_user: dict = Depends(require_roles(RolEnum.administrador)),
+    current_branch_id: UUID | None = Depends(get_current_branch_id),
 ):
+    target_provider = db.query(Provider).filter(Provider.id == provider_id).first()
+    if not target_provider:
+        raise HTTPException(status_code=404, detail=f"Proveedor con id {provider_id} no encontrado")
+    if current_branch_id is not None and target_provider.branch_id != current_branch_id:
+        raise HTTPException(status_code=404, detail=f"Proveedor con id {provider_id} no encontrado")
+
     db_provider = update_provider_status(db, provider_id, update_data)
     if not db_provider:
         raise HTTPException(status_code=404, detail=f"Proveedor con id {provider_id} no encontrado")

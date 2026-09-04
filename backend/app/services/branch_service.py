@@ -13,6 +13,9 @@ def create_branch(db: Session, branch: BranchCreate) -> Branch:
     return db_branch
 
 
-def get_branches(db: Session):
-    result = db.execute(select(Branch).order_by(Branch.name.asc()))
+def get_branches(db: Session, branch_id=None):
+    query = select(Branch)
+    if branch_id is not None:
+        query = query.where(Branch.id == branch_id)
+    result = db.execute(query.order_by(Branch.name.asc()))
     return result.scalars().all()

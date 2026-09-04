@@ -36,12 +36,18 @@ def get_user(db: Session, user_id: UUID) -> User | None:  # 👈 Cambia int → 
     result = db.execute(select(User).where(User.id == user_id))
     return result.scalars().first()
 
-def get_users(db: Session, skip: int = 0, limit: int = 10):
-    result = db.execute(select(User).offset(skip).limit(limit))
+def get_users(db: Session, skip: int = 0, limit: int = 10, branch_id: UUID | None = None):
+    query = select(User)
+    if branch_id is not None:
+        query = query.where(User.branch_id == branch_id)
+    result = db.execute(query.offset(skip).limit(limit))
     return result.scalars().all()
 
-def get_users_count(db: Session):
-    result = db.execute(select(func.count(User.id)))
+def get_users_count(db: Session, branch_id: UUID | None = None):
+    query = select(func.count(User.id))
+    if branch_id is not None:
+        query = query.where(User.branch_id == branch_id)
+    result = db.execute(query)
     return result.scalar_one()
 def update_user_rol(db: Session, user_id: UUID, update_data: UserUpdateRol) -> User | None:
     user = db.query(User).filter(User.id == user_id).first()

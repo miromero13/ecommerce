@@ -18,7 +18,7 @@ def create_provider(db: Session, provider: ProviderCreate) -> Provider:
         hashed_password=hashed_password,
         gender=provider.gender,
         rol=RolEnum.proveedor,
-        branch_id=None,
+        branch_id=provider.branch_id,
     )
 
     db_provider = Provider(
@@ -44,8 +44,11 @@ def create_provider(db: Session, provider: ProviderCreate) -> Provider:
         raise ValueError("No se pudo crear el proveedor")
 
 
-def get_providers(db: Session):
-    result = db.execute(select(Provider, User).join(User, User.id == Provider.user_id).order_by(Provider.business_name.asc()))
+def get_providers(db: Session, branch_id=None):
+    query = select(Provider, User).join(User, User.id == Provider.user_id)
+    if branch_id is not None:
+        query = query.where(Provider.branch_id == branch_id)
+    result = db.execute(query.order_by(Provider.business_name.asc()))
     return result.all()
 
 

@@ -52,3 +52,11 @@ def require_roles(*allowed_roles: RolEnum) -> Callable:
         return payload
 
     return role_dependency
+
+
+def get_current_branch_id(payload: dict = Depends(get_current_payload)) -> UUID | None:
+    branch_id = payload.get("branch_id")
+    if not branch_id:
+        return None
+
+    return UUID(branch_id)

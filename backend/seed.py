@@ -124,8 +124,8 @@ def _seed_users(session, branches: list[Branch]) -> list[User]:
         {"name": "Cajera La Paz", "email": "cajera.lp@fashionstore.bo", "gender": GenderEnum.femenino, "rol": RolEnum.cajero, "branch_id": branches[0].id},
         {"name": "Cajero Santa Cruz", "email": "cajero.sc@fashionstore.bo", "gender": GenderEnum.masculino, "rol": RolEnum.cajero, "branch_id": branches[1].id},
         {"name": "Cajera Cochabamba", "email": "cajera.cbba@fashionstore.bo", "gender": GenderEnum.femenino, "rol": RolEnum.cajero, "branch_id": branches[2].id},
-        {"name": "Delivery Uno", "email": "delivery1@fashionstore.bo", "gender": GenderEnum.masculino, "rol": RolEnum.delivery, "branch_id": None},
-        {"name": "Delivery Dos", "email": "delivery2@fashionstore.bo", "gender": GenderEnum.femenino, "rol": RolEnum.delivery, "branch_id": None},
+        {"name": "Delivery Uno", "email": "delivery1@fashionstore.bo", "gender": GenderEnum.masculino, "rol": RolEnum.delivery, "branch_id": branches[0].id},
+        {"name": "Delivery Dos", "email": "delivery2@fashionstore.bo", "gender": GenderEnum.femenino, "rol": RolEnum.delivery, "branch_id": branches[1].id},
     ]
 
     for payload in users_payload:
@@ -206,7 +206,7 @@ def _seed_providers(session, branches: list[Branch]) -> list[Provider]:
                 "name": payload["contact"],
                 "gender": payload["gender"],
                 "rol": RolEnum.proveedor,
-                "branch_id": None,
+                "branch_id": payload["branch_id"],
                 "hashed_password": _hash_password(),
             },
         )

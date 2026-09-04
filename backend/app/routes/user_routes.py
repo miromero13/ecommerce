@@ -6,7 +6,7 @@ from app.schemas.user_schema import UserCreate, UserRead, UsersPaginatedResponse
 from app.services.user_service import create_user, get_user, get_users, get_users_count, update_user_rol, update_user_branch
 from app.core.database import get_db
 from app.utils.response import response
-from app.auth.dependencies import get_current_user, require_roles
+from app.auth.dependencies import get_current_user, get_current_branch_id, require_roles
 from app.models.user import User
 from app.schemas.enums import RolEnum
 
@@ -43,10 +43,13 @@ async def get_me_route(current_user: User = Depends(get_current_user)):
 async def get_user_route(
     user_id: UUID,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(RolEnum.administrador))
+    current_user: dict = Depends(require_roles(RolEnum.administrador)),
+    current_branch_id: UUID | None = Depends(get_current_branch_id),
 ):
     db_user = get_user(db, user_id)
     if not db_user:
+        raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
+    if current_branch_id is not None and db_user.branch_id != current_branch_id:
         raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
     user_data = UserRead.model_validate(db_user).model_dump()
     return response(
@@ -61,10 +64,11 @@ async def get_users_route(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, gt=0, le=100),
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(RolEnum.administrador))
+    current_user: dict = Depends(require_roles(RolEnum.administrador)),
+    current_branch_id: UUID | None = Depends(get_current_branch_id),
 ):
-    users = get_users(db, skip, limit)
-    total = get_users_count(db)
+    users = get_users(db, skip, limit, current_branch_id)
+    total = get_users_count(db, current_branch_id)
 
     users_data = [UserRead.model_validate(user).model_dump() for user in users]
 
@@ -79,8 +83,15 @@ async def update_user_rol_route(
     user_id: UUID,
     update_data: UserUpdateRol,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(RolEnum.administrador))
+    current_user: dict = Depends(require_roles(RolEnum.administrador)),
+    current_branch_id: UUID | None = Depends(get_current_branch_id),
 ):
+    target_user = get_user(db, user_id)
+    if not target_user:
+        raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
+    if current_branch_id is not None and target_user.branch_id != current_branch_id:
+        raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
+
     db_user = update_user_rol(db, user_id, update_data)
     if not db_user:
         raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
@@ -98,9 +109,16 @@ async def update_user_branch_route(
     user_id: UUID,
     update_data: UserUpdateBranch,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(RolEnum.administrador))
+    current_user: dict = Depends(require_roles(RolEnum.administrador)),
+    current_branch_id: UUID | None = Depends(get_current_branch_id),
 ):
     try:
+        target_user = get_user(db, user_id)
+        if not target_user:
+            raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
+        if current_branch_id is not None and target_user.branch_id != current_branch_id:
+            raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
+
         db_user = update_user_branch(db, user_id, update_data)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
