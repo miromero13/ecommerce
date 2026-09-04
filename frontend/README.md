@@ -125,8 +125,9 @@ Si quieres crear uno nuevo, usa la misma estructura de `src/app/components/<comp
 ## Módulos actuales
 
 - `shared/`: auth, perfil, guardas e interceptores.
-- `admin/`: dashboard, usuarios, sucursales y proveedores.
-- `cliente/`, `proveedor/`, `encargado/`, `cajero/`, `delivery/`: bases por rol.
+- `admin/`: dashboard, usuarios, sucursales, proveedores y catálogo.
+- `cliente/`: consulta de catálogo y filtros por sucursal.
+- `proveedor/`, `encargado/`, `cajero/`, `delivery/`: bases por rol.
 
 ## Notas
 
