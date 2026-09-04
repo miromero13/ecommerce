@@ -1,12 +1,14 @@
 import { CommonModule } from '@angular/common';
 import { Component, effect, inject, signal } from '@angular/core';
 
+import { HlmBadgeImports } from '../../../components/badge/src';
+import { HlmCardImports } from '../../../components/card/src';
 import { SessionService } from '../services/session.service';
 
 @Component({
   selector: 'app-profile-page',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ...HlmBadgeImports, ...HlmCardImports],
   templateUrl: './profile-page.component.html',
 })
 export class ProfilePageComponent {
