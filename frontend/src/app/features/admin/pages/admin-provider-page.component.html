@@ -84,10 +84,15 @@
           }
           <div hlmField>
             <label hlmFieldLabel for="provider-gender">Género</label>
-            <select id="provider-gender" class="rounded-lg border border-slate-300 px-3 py-2" formControlName="gender">
-              <option value="masculino">Masculino</option>
-              <option value="femenino">Femenino</option>
-            </select>
+            <div hlmSelect formControlName="gender">
+              <hlm-select-trigger buttonId="provider-gender">
+                <span hlmSelectValue placeholder="Género"></span>
+              </hlm-select-trigger>
+              <hlm-select-content>
+                <hlm-select-item value="masculino">Masculino</hlm-select-item>
+                <hlm-select-item value="femenino">Femenino</hlm-select-item>
+              </hlm-select-content>
+            </div>
           </div>
           <div hlmField>
             <label hlmFieldLabel for="provider-phone">Teléfono</label>
@@ -95,26 +100,41 @@
           </div>
           <div hlmField class="md:col-span-2">
             <label hlmFieldLabel for="provider-branch">Sucursal</label>
-            <select id="provider-branch" class="rounded-lg border border-slate-300 px-3 py-2" formControlName="branch_id">
-              <option value="">Sin sucursal</option>
-              @for (branch of branches(); track branch.id) {
-                <option [value]="branch.id">{{ branch.name }} - {{ branch.city }}</option>
-              }
-            </select>
+            <div hlmSelect formControlName="branch_id">
+              <hlm-select-trigger buttonId="provider-branch">
+                <span hlmSelectValue placeholder="Sin sucursal"></span>
+              </hlm-select-trigger>
+              <hlm-select-content>
+                <hlm-select-item value="">Sin sucursal</hlm-select-item>
+                @for (branch of branches(); track branch.id) {
+                  <hlm-select-item [value]="branch.id">{{ branch.name }} - {{ branch.city }}</hlm-select-item>
+                }
+              </hlm-select-content>
+            </div>
           </div>
           <div hlmField>
             <label hlmFieldLabel for="provider-status">Estado</label>
-            <select id="provider-status" class="rounded-lg border border-slate-300 px-3 py-2" formControlName="status">
-              <option value="active">Activo</option>
-              <option value="suspended">Suspendido</option>
-            </select>
+            <div hlmSelect formControlName="status">
+              <hlm-select-trigger buttonId="provider-status">
+                <span hlmSelectValue placeholder="Estado"></span>
+              </hlm-select-trigger>
+              <hlm-select-content>
+                <hlm-select-item value="active">Activo</hlm-select-item>
+                <hlm-select-item value="suspended">Suspendido</hlm-select-item>
+              </hlm-select-content>
+            </div>
           </div>
           <div hlmField>
             <label hlmFieldLabel for="provider-active">Activo</label>
-            <select id="provider-active" class="rounded-lg border border-slate-300 px-3 py-2" formControlName="is_active">
-              <option [ngValue]="true">Sí</option>
-              <option [ngValue]="false">No</option>
-            </select>
+            <div hlmSelect formControlName="is_active">
+              <hlm-select-trigger buttonId="provider-active">
+                <span hlmSelectValue placeholder="Activo"></span>
+              </hlm-select-trigger>
+              <hlm-select-content>
+                <hlm-select-item [value]="true">Sí</hlm-select-item>
+                <hlm-select-item [value]="false">No</hlm-select-item>
+              </hlm-select-content>
+            </div>
           </div>
           <div class="md:col-span-3 flex justify-end gap-2 pt-2">
             <button hlmBtn variant="outline" type="button" (click)="closeModal()">Cancelar</button>

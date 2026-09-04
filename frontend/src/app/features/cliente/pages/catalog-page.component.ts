@@ -8,6 +8,7 @@ import { HlmButton } from '../../../components/button/src';
 import { HlmCardImports } from '../../../components/card/src';
 import { HlmFieldImports } from '../../../components/field/src';
 import { HlmInput } from '../../../components/input/src';
+import { HlmSelectImports } from '../../../components/select/src';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
 import {
   CatalogBranch,
@@ -22,7 +23,7 @@ import { CatalogApiService } from '../../shared/services/catalog-api.service';
 @Component({
   selector: 'app-catalog-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, HlmButton, HlmInput, ...HlmBadgeImports, ...HlmCardImports, ...HlmFieldImports],
+  imports: [CommonModule, ReactiveFormsModule, HlmButton, HlmInput, ...HlmBadgeImports, ...HlmCardImports, ...HlmFieldImports, ...HlmSelectImports],
   templateUrl: './catalog-page.component.html',
 })
 export class CatalogPageComponent {
@@ -148,7 +149,11 @@ export class CatalogPageComponent {
     return variants.find((variant) => variant.id === selectedId) ?? variants[0] ?? null;
   }
 
-  protected setSelectedVariant(productId: string, variantId: string): void {
+  protected setSelectedVariant(productId: string, variantId: string | null | undefined): void {
+    if (!variantId) {
+      return;
+    }
+
     this.selectedVariantByProduct.update((current) => ({
       ...current,
       [productId]: variantId,

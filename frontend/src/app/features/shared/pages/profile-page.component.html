@@ -70,10 +70,15 @@
 
         <div hlmField>
           <label hlmFieldLabel for="profile-gender">Género</label>
-          <select id="profile-gender" class="rounded-lg border border-slate-300 px-3 py-2" formControlName="gender" [disabled]="!isEditing()">
-            <option value="masculino">Masculino</option>
-            <option value="femenino">Femenino</option>
-          </select>
+          <div hlmSelect formControlName="gender" [disabled]="!isEditing()">
+            <hlm-select-trigger buttonId="profile-gender">
+              <span hlmSelectValue placeholder="Género"></span>
+            </hlm-select-trigger>
+            <hlm-select-content>
+              <hlm-select-item value="masculino">Masculino</hlm-select-item>
+              <hlm-select-item value="femenino">Femenino</hlm-select-item>
+            </hlm-select-content>
+          </div>
         </div>
       </div>
     </form>

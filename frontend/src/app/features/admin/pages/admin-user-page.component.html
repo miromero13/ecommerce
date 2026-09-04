@@ -47,23 +47,33 @@
             </td>
             <td class="px-4 py-3 text-sm text-black">
               <div class="flex flex-col gap-2">
-                <select class="rounded-lg border border-slate-300 px-3 py-2 text-sm" [value]="user.rol" [disabled]="currentUserId() === user.id" (change)="actualizarRol(user, $any($event.target).value)">
-                  <option value="administrador">Administrador</option>
-                  <option value="cliente">Cliente</option>
-                  <option value="proveedor">Proveedor</option>
-                  <option value="encargado">Encargado</option>
-                  <option value="cajero">Cajero</option>
-                  <option value="delivery">Delivery</option>
-                </select>
+                <div hlmSelect class="w-full min-w-44" [value]="user.rol" [disabled]="currentUserId() === user.id" (valueChange)="actualizarRol(user, $event)">
+                  <hlm-select-trigger size="sm">
+                    <span hlmSelectValue placeholder="Rol"></span>
+                  </hlm-select-trigger>
+                  <hlm-select-content>
+                    <hlm-select-item value="administrador">Administrador</hlm-select-item>
+                    <hlm-select-item value="cliente">Cliente</hlm-select-item>
+                    <hlm-select-item value="proveedor">Proveedor</hlm-select-item>
+                    <hlm-select-item value="encargado">Encargado</hlm-select-item>
+                    <hlm-select-item value="cajero">Cajero</hlm-select-item>
+                    <hlm-select-item value="delivery">Delivery</hlm-select-item>
+                  </hlm-select-content>
+                </div>
               </div>
             </td>
             <td class="px-4 py-3 text-sm text-black">
-              <select class="rounded-lg border border-slate-300 px-3 py-2 text-sm" [value]="user.branch_id ?? ''" [disabled]="currentUserId() === user.id || !canAssignBranch(user)" (change)="actualizarBranch(user, $any($event.target).value)">
-                <option value="">Sin sucursal</option>
-                @for (branch of branches(); track branch.id) {
-                  <option [value]="branch.id">{{ branch.name }} - {{ branch.city }}</option>
-                }
-              </select>
+              <div hlmSelect class="w-full min-w-44" [value]="user.branch_id ?? ''" [disabled]="currentUserId() === user.id || !canAssignBranch(user)" (valueChange)="actualizarBranch(user, $event)">
+                <hlm-select-trigger size="sm">
+                  <span hlmSelectValue placeholder="Sin sucursal"></span>
+                </hlm-select-trigger>
+                <hlm-select-content>
+                  <hlm-select-item value="">Sin sucursal</hlm-select-item>
+                  @for (branch of branches(); track branch.id) {
+                    <hlm-select-item [value]="branch.id">{{ branch.name }} - {{ branch.city }}</hlm-select-item>
+                  }
+                </hlm-select-content>
+              </div>
             </td>
             <td class="px-4 py-3 text-sm text-black">{{ activeLabel(user) }}</td>
             <td class="px-4 py-3 text-right">
@@ -108,26 +118,41 @@
           </div>
           <div hlmField>
             <label hlmFieldLabel for="user-gender">Género</label>
-            <select id="user-gender" class="rounded-lg border border-slate-300 px-3 py-2" formControlName="gender">
-              <option value="masculino">Masculino</option>
-              <option value="femenino">Femenino</option>
-            </select>
+            <div hlmSelect formControlName="gender">
+              <hlm-select-trigger buttonId="user-gender">
+                <span hlmSelectValue placeholder="Género"></span>
+              </hlm-select-trigger>
+              <hlm-select-content>
+                <hlm-select-item value="masculino">Masculino</hlm-select-item>
+                <hlm-select-item value="femenino">Femenino</hlm-select-item>
+              </hlm-select-content>
+            </div>
           </div>
           <div hlmField>
             <label hlmFieldLabel for="user-branch">Sucursal</label>
-            <select id="user-branch" class="rounded-lg border border-slate-300 px-3 py-2" formControlName="branch_id">
-              <option value="">Sin sucursal</option>
-              @for (branch of branches(); track branch.id) {
-                <option [value]="branch.id">{{ branch.name }} - {{ branch.city }}</option>
-              }
-            </select>
+            <div hlmSelect formControlName="branch_id">
+              <hlm-select-trigger buttonId="user-branch">
+                <span hlmSelectValue placeholder="Sin sucursal"></span>
+              </hlm-select-trigger>
+              <hlm-select-content>
+                <hlm-select-item value="">Sin sucursal</hlm-select-item>
+                @for (branch of branches(); track branch.id) {
+                  <hlm-select-item [value]="branch.id">{{ branch.name }} - {{ branch.city }}</hlm-select-item>
+                }
+              </hlm-select-content>
+            </div>
           </div>
           <div hlmField>
             <label hlmFieldLabel for="user-active">Estado</label>
-            <select id="user-active" class="rounded-lg border border-slate-300 px-3 py-2" formControlName="is_active">
-              <option [ngValue]="true">Activo</option>
-              <option [ngValue]="false">Inactivo</option>
-            </select>
+            <div hlmSelect formControlName="is_active">
+              <hlm-select-trigger buttonId="user-active">
+                <span hlmSelectValue placeholder="Estado"></span>
+              </hlm-select-trigger>
+              <hlm-select-content>
+                <hlm-select-item [value]="true">Activo</hlm-select-item>
+                <hlm-select-item [value]="false">Inactivo</hlm-select-item>
+              </hlm-select-content>
+            </div>
           </div>
           <div class="md:col-span-2 flex justify-end gap-2 pt-2">
             <button hlmBtn variant="outline" type="button" (click)="closeModal()">Cancelar</button>

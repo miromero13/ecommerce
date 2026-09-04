@@ -70,17 +70,27 @@
           </div>
           <div hlmField>
             <label hlmFieldLabel for="branch-default">Default</label>
-            <select id="branch-default" class="rounded-lg border border-slate-300 px-3 py-2" formControlName="is_default">
-              <option [ngValue]="false">No</option>
-              <option [ngValue]="true">Sí</option>
-            </select>
+            <div hlmSelect formControlName="is_default">
+              <hlm-select-trigger buttonId="branch-default">
+                <span hlmSelectValue placeholder="Default"></span>
+              </hlm-select-trigger>
+              <hlm-select-content>
+                <hlm-select-item [value]="false">No</hlm-select-item>
+                <hlm-select-item [value]="true">Sí</hlm-select-item>
+              </hlm-select-content>
+            </div>
           </div>
           <div hlmField class="sm:col-span-3">
             <label hlmFieldLabel for="branch-active">Estado</label>
-            <select id="branch-active" class="rounded-lg border border-slate-300 px-3 py-2" formControlName="is_active">
-              <option [ngValue]="true">Activa</option>
-              <option [ngValue]="false">Inactiva</option>
-            </select>
+            <div hlmSelect formControlName="is_active">
+              <hlm-select-trigger buttonId="branch-active">
+                <span hlmSelectValue placeholder="Estado"></span>
+              </hlm-select-trigger>
+              <hlm-select-content>
+                <hlm-select-item [value]="true">Activa</hlm-select-item>
+                <hlm-select-item [value]="false">Inactiva</hlm-select-item>
+              </hlm-select-content>
+            </div>
           </div>
           <div class="sm:col-span-3 flex justify-end gap-2 pt-2">
             <button hlmBtn variant="outline" type="button" (click)="closeModal()">Cancelar</button>

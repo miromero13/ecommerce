@@ -8,6 +8,7 @@ import { HlmButton } from '../../../components/button/src';
 import { HlmCardImports } from '../../../components/card/src';
 import { HlmFieldImports } from '../../../components/field/src';
 import { HlmInput } from '../../../components/input/src';
+import { HlmSelectImports } from '../../../components/select/src';
 import { AdminBranch } from '../models/admin-branch.model';
 import { AdminBranchService } from '../services/admin-branch.service';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
@@ -15,7 +16,7 @@ import { getErrorMessage } from '../../../core/utils/http-error.util';
 @Component({
   selector: 'app-admin-branch-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, HlmButton, HlmInput, AdminActionMenuComponent, ...HlmCardImports, ...HlmFieldImports],
+  imports: [CommonModule, ReactiveFormsModule, HlmButton, HlmInput, AdminActionMenuComponent, ...HlmCardImports, ...HlmFieldImports, ...HlmSelectImports],
   templateUrl: './admin-branch-page.component.html',
 })
 export class AdminBranchPageComponent {

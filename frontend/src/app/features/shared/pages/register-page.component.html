@@ -24,10 +24,15 @@
 
         <div class="space-y-2">
           <label for="gender" class="text-sm font-medium text-slate-900">Género</label>
-          <select id="gender" class="w-full rounded-lg border border-slate-300 px-3 py-2" formControlName="gender">
-            <option value="masculino">Masculino</option>
-            <option value="femenino">Femenino</option>
-          </select>
+          <div hlmSelect formControlName="gender">
+            <hlm-select-trigger buttonId="gender">
+              <span hlmSelectValue placeholder="Género"></span>
+            </hlm-select-trigger>
+            <hlm-select-content>
+              <hlm-select-item value="masculino">Masculino</hlm-select-item>
+              <hlm-select-item value="femenino">Femenino</hlm-select-item>
+            </hlm-select-content>
+          </div>
         </div>
 
         @if (errorMessage()) {

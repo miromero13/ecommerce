@@ -8,6 +8,7 @@ import { HlmButton } from '../../../components/button/src';
 import { HlmCardImports } from '../../../components/card/src';
 import { HlmFieldImports } from '../../../components/field/src';
 import { HlmInput } from '../../../components/input/src';
+import { HlmSelectImports } from '../../../components/select/src';
 import { HlmTable } from '../../../components/table/src';
 import { HlmTabsImports } from '../../../components/tabs/src';
 import { AdminActionMenuComponent } from '../components/admin-action-menu.component';
@@ -54,6 +55,7 @@ const CATALOG_CREATE_LABELS: Record<CatalogTab, string> = {
     AdminActionMenuComponent,
     ...HlmCardImports,
     ...HlmFieldImports,
+    ...HlmSelectImports,
     ...HlmTabsImports,
   ],
   templateUrl: './admin-catalog-page.component.html',

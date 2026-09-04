@@ -14,6 +14,7 @@ import type { ClassValue } from 'clsx';
   hostDirectives: [BrnSelectTriggerWrapper],
   template: `
     <button
+      type="button"
       brnSelectTrigger
       brnFieldControlDescribedBy
       [id]="buttonId()"

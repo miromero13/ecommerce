@@ -9,6 +9,7 @@ import { HlmButton } from '../../../components/button/src';
 import { HlmFieldImports } from '../../../components/field/src';
 import { HlmIconImports } from '../../../components/icon/src';
 import { HlmInput } from '../../../components/input/src';
+import { HlmSelectImports } from '../../../components/select/src';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
 import { UpdateProfileRequest } from '../models/auth.model';
 import { PerfilUsuario } from '../models/user.model';
@@ -18,7 +19,7 @@ import { UserApiService } from '../services/user-api.service';
 @Component({
   selector: 'app-profile-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, HlmButton, HlmInput, ...HlmFieldImports, ...HlmIconImports],
+  imports: [CommonModule, ReactiveFormsModule, HlmButton, HlmInput, ...HlmFieldImports, ...HlmIconImports, ...HlmSelectImports],
   providers: [provideIcons({ lucidePencil })],
   templateUrl: './profile-page.component.html',
 })

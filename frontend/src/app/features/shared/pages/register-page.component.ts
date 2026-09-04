@@ -9,11 +9,12 @@ import { getDefaultRouteForRole } from '../../../core/utils/role-route.util';
 import { HlmButton } from '../../../components/button/src';
 import { HlmCardImports } from '../../../components/card/src';
 import { HlmInput } from '../../../components/input/src';
+import { HlmSelectImports } from '../../../components/select/src';
 
 @Component({
   selector: 'app-register-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, HlmButton, HlmInput, ...HlmCardImports],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, HlmButton, HlmInput, ...HlmCardImports, ...HlmSelectImports],
   templateUrl: './register-page.component.html',
 })
 export class RegisterPageComponent {

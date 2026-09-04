@@ -13,42 +13,72 @@
       <label hlmFieldLabel for="catalog-search">Buscar producto</label>
       <input id="catalog-search" hlmInput placeholder="Buscar producto" formControlName="q" />
     </div>
-    <select class="rounded-lg border border-slate-300 px-3 py-2" formControlName="branch_id" (change)="updateBranchAvailability()">
-      <option value="">Sucursal</option>
-      @for (branch of branches(); track branch.id) {
-        <option [value]="branch.id">{{ branch.name }} - {{ branch.city }}</option>
-      }
-    </select>
-    <select class="rounded-lg border border-slate-300 px-3 py-2" formControlName="category_id">
-      <option value="">Categoría</option>
-      @for (category of categories(); track category.id) {
-        <option [value]="category.id">{{ category.name }}</option>
-      }
-    </select>
-    <select class="rounded-lg border border-slate-300 px-3 py-2" formControlName="size_id">
-      <option value="">Talla</option>
-      @for (size of sizes(); track size.id) {
-        <option [value]="size.id">{{ size.name }}</option>
-      }
-    </select>
-    <select class="rounded-lg border border-slate-300 px-3 py-2" formControlName="color_id">
-      <option value="">Color</option>
-      @for (color of colors(); track color.id) {
-        <option [value]="color.id">{{ color.name }}</option>
-      }
-    </select>
-    <select class="rounded-lg border border-slate-300 px-3 py-2" formControlName="season_id">
-      <option value="">Temporada</option>
-      @for (season of seasons(); track season.id) {
-        <option [value]="season.id">{{ season.name }}</option>
-      }
-    </select>
-    <select class="rounded-lg border border-slate-300 px-3 py-2" formControlName="collection_id">
-      <option value="">Colección</option>
-      @for (collection of collections(); track collection.id) {
-        <option [value]="collection.id">{{ collection.name }}</option>
-      }
-    </select>
+    <div hlmSelect formControlName="branch_id" (valueChange)="updateBranchAvailability()">
+      <hlm-select-trigger>
+        <span hlmSelectValue placeholder="Sucursal"></span>
+      </hlm-select-trigger>
+      <hlm-select-content>
+        <hlm-select-item value="">Sucursal</hlm-select-item>
+        @for (branch of branches(); track branch.id) {
+          <hlm-select-item [value]="branch.id">{{ branch.name }} - {{ branch.city }}</hlm-select-item>
+        }
+      </hlm-select-content>
+    </div>
+    <div hlmSelect formControlName="category_id">
+      <hlm-select-trigger>
+        <span hlmSelectValue placeholder="Categoría"></span>
+      </hlm-select-trigger>
+      <hlm-select-content>
+        <hlm-select-item value="">Categoría</hlm-select-item>
+        @for (category of categories(); track category.id) {
+          <hlm-select-item [value]="category.id">{{ category.name }}</hlm-select-item>
+        }
+      </hlm-select-content>
+    </div>
+    <div hlmSelect formControlName="size_id">
+      <hlm-select-trigger>
+        <span hlmSelectValue placeholder="Talla"></span>
+      </hlm-select-trigger>
+      <hlm-select-content>
+        <hlm-select-item value="">Talla</hlm-select-item>
+        @for (size of sizes(); track size.id) {
+          <hlm-select-item [value]="size.id">{{ size.name }}</hlm-select-item>
+        }
+      </hlm-select-content>
+    </div>
+    <div hlmSelect formControlName="color_id">
+      <hlm-select-trigger>
+        <span hlmSelectValue placeholder="Color"></span>
+      </hlm-select-trigger>
+      <hlm-select-content>
+        <hlm-select-item value="">Color</hlm-select-item>
+        @for (color of colors(); track color.id) {
+          <hlm-select-item [value]="color.id">{{ color.name }}</hlm-select-item>
+        }
+      </hlm-select-content>
+    </div>
+    <div hlmSelect formControlName="season_id">
+      <hlm-select-trigger>
+        <span hlmSelectValue placeholder="Temporada"></span>
+      </hlm-select-trigger>
+      <hlm-select-content>
+        <hlm-select-item value="">Temporada</hlm-select-item>
+        @for (season of seasons(); track season.id) {
+          <hlm-select-item [value]="season.id">{{ season.name }}</hlm-select-item>
+        }
+      </hlm-select-content>
+    </div>
+    <div hlmSelect formControlName="collection_id">
+      <hlm-select-trigger>
+        <span hlmSelectValue placeholder="Colección"></span>
+      </hlm-select-trigger>
+      <hlm-select-content>
+        <hlm-select-item value="">Colección</hlm-select-item>
+        @for (collection of collections(); track collection.id) {
+          <hlm-select-item [value]="collection.id">{{ collection.name }}</hlm-select-item>
+        }
+      </hlm-select-content>
+    </div>
     <button hlmBtn class="md:col-span-6" type="submit" [disabled]="loading()">
       {{ loading() ? 'Buscando...' : 'Buscar' }}
     </button>
@@ -76,11 +106,16 @@
 
           <div class="space-y-2">
             <label class="text-xs font-medium text-slate-600">Variante</label>
-            <select class="w-full rounded-lg border border-slate-300 px-3 py-2" [value]="selectedVariant(product)?.id" (change)="setSelectedVariant(product.id, $any($event.target).value)">
-              @for (variant of productVariants(product); track variant.id) {
-                <option [value]="variant.id">{{ variantLabel(variant) }} - {{ variant.price }}</option>
-              }
-            </select>
+            <div hlmSelect class="w-full" [value]="selectedVariant(product)?.id" (valueChange)="setSelectedVariant(product.id, $event)">
+              <hlm-select-trigger size="sm">
+                <span hlmSelectValue placeholder="Variante"></span>
+              </hlm-select-trigger>
+              <hlm-select-content>
+                @for (variant of productVariants(product); track variant.id) {
+                  <hlm-select-item [value]="variant.id">{{ variantLabel(variant) }} - {{ variant.price }}</hlm-select-item>
+                }
+              </hlm-select-content>
+            </div>
           </div>
 
           <div class="rounded-xl border border-slate-200 p-3 text-xs text-slate-500">

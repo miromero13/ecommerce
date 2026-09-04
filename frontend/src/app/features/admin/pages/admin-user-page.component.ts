@@ -16,11 +16,13 @@ import { HlmButton } from '../../../components/button/src';
 import { HlmCardImports } from '../../../components/card/src';
 import { HlmFieldImports } from '../../../components/field/src';
 import { HlmInput } from '../../../components/input/src';
+import { HlmSelectImports } from '../../../components/select/src';
+import { RolUsuario } from '../../shared/models/auth.model';
 
 @Component({
   selector: 'app-admin-user-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, HlmTable, HlmButton, HlmInput, AdminActionMenuComponent, ...HlmTabsImports, ...HlmCardImports, ...HlmFieldImports],
+  imports: [CommonModule, ReactiveFormsModule, HlmTable, HlmButton, HlmInput, AdminActionMenuComponent, ...HlmTabsImports, ...HlmCardImports, ...HlmFieldImports, ...HlmSelectImports],
   templateUrl: './admin-user-page.component.html',
 })
 export class AdminUserPageComponent {
@@ -72,8 +74,8 @@ export class AdminUserPageComponent {
     this.setFiltro(tab === 'todos' ? '' : (tab as AdminUsuario['rol']));
   }
 
-  protected async actualizarRol(user: AdminUsuario, rol: AdminUsuario['rol']): Promise<void> {
-    if (user.rol === rol || this.currentUserId() === user.id) {
+  protected async actualizarRol(user: AdminUsuario, rol: RolUsuario | null): Promise<void> {
+    if (!rol || user.rol === rol || this.currentUserId() === user.id) {
       return;
     }
 
@@ -88,7 +90,7 @@ export class AdminUserPageComponent {
     }
   }
 
-  protected async actualizarBranch(user: AdminUsuario, branchId: string): Promise<void> {
+  protected async actualizarBranch(user: AdminUsuario, branchId: string | null): Promise<void> {
     if (this.currentUserId() === user.id) {
       return;
     }
