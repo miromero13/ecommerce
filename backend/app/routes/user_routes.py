@@ -49,7 +49,7 @@ async def get_user_route(
     db_user = get_user(db, user_id)
     if not db_user:
         raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
-    if current_branch_id is not None and db_user.branch_id != current_branch_id:
+    if current_branch_id is not None and db_user.rol != RolEnum.cliente and db_user.branch_id != current_branch_id:
         raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
     user_data = UserRead.model_validate(db_user).model_dump()
     return response(
@@ -89,7 +89,7 @@ async def update_user_rol_route(
     target_user = get_user(db, user_id)
     if not target_user:
         raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
-    if current_branch_id is not None and target_user.branch_id != current_branch_id:
+    if current_branch_id is not None and target_user.rol != RolEnum.cliente and target_user.branch_id != current_branch_id:
         raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
 
     db_user = update_user_rol(db, user_id, update_data)
@@ -116,7 +116,7 @@ async def update_user_branch_route(
         target_user = get_user(db, user_id)
         if not target_user:
             raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
-        if current_branch_id is not None and target_user.branch_id != current_branch_id:
+        if current_branch_id is not None and target_user.rol != RolEnum.cliente and target_user.branch_id != current_branch_id:
             raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
 
         db_user = update_user_branch(db, user_id, update_data)

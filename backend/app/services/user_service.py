@@ -1,6 +1,6 @@
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_
 from app.models.user import User
 from app.schemas.user_schema import UserCreate, UserUpdateRol, UserUpdateBranch
 from app.schemas.enums import RolEnum
@@ -39,14 +39,14 @@ def get_user(db: Session, user_id: UUID) -> User | None:  # 👈 Cambia int → 
 def get_users(db: Session, skip: int = 0, limit: int = 10, branch_id: UUID | None = None):
     query = select(User)
     if branch_id is not None:
-        query = query.where(User.branch_id == branch_id)
+        query = query.where(or_(User.branch_id == branch_id, User.rol == RolEnum.cliente))
     result = db.execute(query.offset(skip).limit(limit))
     return result.scalars().all()
 
 def get_users_count(db: Session, branch_id: UUID | None = None):
     query = select(func.count(User.id))
     if branch_id is not None:
-        query = query.where(User.branch_id == branch_id)
+        query = query.where(or_(User.branch_id == branch_id, User.rol == RolEnum.cliente))
     result = db.execute(query)
     return result.scalar_one()
 def update_user_rol(db: Session, user_id: UUID, update_data: UserUpdateRol) -> User | None:
