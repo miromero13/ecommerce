@@ -11,3 +11,8 @@ class RolEnum(str, Enum):
 class GenderEnum(str, Enum):
     masculino = "masculino"
     femenino = "femenino"
+
+
+class ProviderStatusEnum(str, Enum):
+    active = "active"
+    suspended = "suspended"

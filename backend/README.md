@@ -60,6 +60,9 @@ No hay configuración personalizada para desactivarlo en `main.py`.
 - `PATCH /api/users/{id}/branch`
 - `GET /api/branches/`
 - `POST /api/branches/`
+- `GET /api/providers/`
+- `POST /api/providers/`
+- `PATCH /api/providers/{id}/status`
 
 ## Migraciones y seeders
 
