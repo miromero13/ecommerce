@@ -97,6 +97,13 @@ export const routes: Routes = [
                 (m) => m.AdminBranchPageComponent,
               ),
           },
+          {
+            path: 'provider',
+            loadComponent: () =>
+              import('./features/admin/pages/admin-provider-page.component').then(
+                (m) => m.AdminProviderPageComponent,
+              ),
+          },
         ],
       },
     ],

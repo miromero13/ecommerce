@@ -1,0 +1,66 @@
+<section class="space-y-6">
+  <header>
+    <h1 class="text-2xl font-semibold">Proveedores</h1>
+    <p class="text-sm text-slate-500">Administra las cuentas de proveedor.</p>
+  </header>
+
+  @if (errorMessage()) {
+    <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ errorMessage() }}</p>
+  }
+
+  @if (successMessage()) {
+    <p class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{{ successMessage() }}</p>
+  }
+
+  <form class="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-3" [formGroup]="form" (ngSubmit)="submit()">
+    <input class="rounded-lg border border-slate-300 px-3 py-2" placeholder="Razón social" formControlName="business_name" />
+    <input class="rounded-lg border border-slate-300 px-3 py-2" placeholder="Nombre contacto" formControlName="contact_name" />
+    <input class="rounded-lg border border-slate-300 px-3 py-2" placeholder="Email" formControlName="email" />
+    <input class="rounded-lg border border-slate-300 px-3 py-2" placeholder="Contraseña" type="password" formControlName="password" />
+    <select class="rounded-lg border border-slate-300 px-3 py-2" formControlName="gender">
+      <option value="masculino">Masculino</option>
+      <option value="femenino">Femenino</option>
+    </select>
+    <input class="rounded-lg border border-slate-300 px-3 py-2" placeholder="Teléfono" formControlName="phone" />
+    <select class="rounded-lg border border-slate-300 px-3 py-2 md:col-span-2" formControlName="branch_id">
+      <option value="">Sin sucursal</option>
+      @for (branch of branches(); track branch.id) {
+        <option [value]="branch.id">{{ branch.name }} - {{ branch.city }}</option>
+      }
+    </select>
+    <button class="rounded-lg bg-slate-900 px-4 py-2 text-sm text-white md:col-span-1" type="submit" [disabled]="form.invalid || loading()">
+      {{ loading() ? 'Guardando...' : 'Crear proveedor' }}
+    </button>
+  </form>
+
+  <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+        <tr>
+          <th class="px-4 py-3">Empresa</th>
+          <th class="px-4 py-3">Contacto</th>
+          <th class="px-4 py-3">Email</th>
+          <th class="px-4 py-3">Sucursal</th>
+          <th class="px-4 py-3">Estado</th>
+          <th class="px-4 py-3 text-right">Acción</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-200">
+        @for (provider of providers(); track provider.id) {
+          <tr>
+            <td class="px-4 py-3">{{ provider.business_name }}</td>
+            <td class="px-4 py-3">{{ provider.contact_name }}<br /><span class="text-xs text-slate-500">{{ provider.gender }}</span></td>
+            <td class="px-4 py-3">{{ provider.email }}</td>
+            <td class="px-4 py-3">{{ branchName(provider.branch_id) }}</td>
+            <td class="px-4 py-3">{{ statusLabel(provider.status) }}</td>
+            <td class="px-4 py-3 text-right">
+              <button class="rounded-lg border px-3 py-1 text-sm" type="button" (click)="updateStatus(provider, provider.status === 'active' ? 'suspended' : 'active')">
+                {{ provider.status === 'active' ? 'Suspender' : 'Activar' }}
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>

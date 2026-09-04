@@ -130,6 +130,7 @@ export class AppShellComponent {
               { label: 'Dashboard', route: '/app/admin', icon: 'lucideLayoutDashboard', exact: true },
               { label: 'Usuarios', route: '/app/admin/user', icon: 'lucideUsers' },
               { label: 'Sucursales', route: '/app/admin/branch', icon: 'lucideLayoutDashboard' },
+              { label: 'Proveedores', route: '/app/admin/provider', icon: 'lucideUsers' },
             ],
           },
         ];
