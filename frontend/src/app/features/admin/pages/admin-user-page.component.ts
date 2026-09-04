@@ -46,11 +46,18 @@ export class AdminUserPageComponent {
   protected readonly userForm = this.fb.nonNullable.group({
     name: ['', [Validators.required]],
     email: ['', [Validators.required, Validators.email]],
-    password: [''],
     gender: ['masculino', [Validators.required]],
     branch_id: [''],
     is_active: [true],
   });
+
+  protected normalizeEmailInput(event: Event): void {
+    const input = event.target as HTMLInputElement | null;
+    if (!input) return;
+
+    const value = input.value.trim().toLowerCase();
+    this.userForm.controls.email.setValue(value, { emitEvent: false });
+  }
 
   constructor() {
     void this.loadData();
@@ -106,7 +113,6 @@ export class AdminUserPageComponent {
     this.userForm.reset({
       name: user.name,
       email: user.email,
-      password: '',
       gender: user.gender,
       branch_id: user.branch_id || '',
       is_active: user.is_active,
@@ -182,8 +188,7 @@ export class AdminUserPageComponent {
       const payload = this.userForm.getRawValue();
       await firstValueFrom(this.api.updateUsuario(this.editingUserId()!, {
         name: payload.name,
-        email: payload.email,
-        password: payload.password || null,
+        email: payload.email.trim().toLowerCase(),
         gender: payload.gender as AdminUsuario['gender'],
         branch_id: payload.branch_id || null,
         is_active: payload.is_active,

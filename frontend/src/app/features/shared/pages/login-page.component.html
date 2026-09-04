@@ -39,7 +39,7 @@
           <div hlmFieldGroup>
             <div hlmField class="space-y-1">
               <label hlmFieldLabel for="email">Correo</label>
-              <input id="email" hlmInput type="email" formControlName="email" autocomplete="email" placeholder="tucorreo@gmail.com" />
+              <input id="email" hlmInput type="email" formControlName="email" autocomplete="email" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="tucorreo@gmail.com" (input)="normalizeEmailInput($event)" />
               <hlm-field-error validator="required">El correo es obligatorio.</hlm-field-error>
               <hlm-field-error validator="email">Ingresa un correo válido.</hlm-field-error>
             </div>

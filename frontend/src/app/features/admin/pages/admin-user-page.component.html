@@ -104,11 +104,7 @@
           </div>
           <div hlmField>
             <label hlmFieldLabel for="user-email">Correo</label>
-            <input id="user-email" hlmInput class="w-full" formControlName="email" />
-          </div>
-          <div hlmField>
-            <label hlmFieldLabel for="user-password">Contraseña nueva</label>
-            <input id="user-password" hlmInput class="w-full" type="password" formControlName="password" />
+            <input id="user-email" hlmInput class="w-full" type="email" autocomplete="email" autocapitalize="none" autocorrect="off" spellcheck="false" formControlName="email" (input)="normalizeEmailInput($event)" />
           </div>
           <div hlmField>
             <label hlmFieldLabel for="user-gender">Género</label>

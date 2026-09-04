@@ -50,7 +50,7 @@ export class SessionService {
   async login(email: string, password: string, rol: RolUsuario): Promise<void> {
     this.loadingSignal.set(true);
     try {
-      const response = await firstValueFrom(this.authApi.login({ email, password, rol }));
+      const response = await firstValueFrom(this.authApi.login({ email: this.normalizeEmail(email), password, rol }));
       this.applyAuthResponse(response);
     } finally {
       this.loadingSignal.set(false);
@@ -60,7 +60,7 @@ export class SessionService {
   async register(payload: RegisterRequest): Promise<void> {
     this.loadingSignal.set(true);
     try {
-      const response = await firstValueFrom(this.authApi.register(payload));
+      const response = await firstValueFrom(this.authApi.register({ ...payload, email: this.normalizeEmail(payload.email) }));
       this.applyAuthResponse(response);
     } finally {
       this.loadingSignal.set(false);
@@ -128,10 +128,15 @@ export class SessionService {
     return {
       id: user.id ?? '',
       name: user.name ?? '',
-      email: user.email ?? '',
+      email: this.normalizeEmail(user.email ?? ''),
       gender: user.gender ?? 'masculino',
       rol: user.rol ?? 'cliente',
       branch_id: user.branch_id ?? null,
+      is_active: user.is_active ?? true,
     };
+  }
+
+  private normalizeEmail(email: string): string {
+    return email.trim().toLowerCase();
   }
 }

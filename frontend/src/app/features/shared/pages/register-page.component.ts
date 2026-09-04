@@ -31,6 +31,14 @@ export class RegisterPageComponent {
     gender: ['masculino' as GeneroUsuario, [Validators.required]],
   });
 
+  protected normalizeEmailInput(event: Event): void {
+    const input = event.target as HTMLInputElement | null;
+    if (!input) return;
+
+    const value = input.value.trim().toLowerCase();
+    this.form.controls.email.setValue(value, { emitEvent: false });
+  }
+
   protected async submit(): Promise<void> {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -40,7 +48,8 @@ export class RegisterPageComponent {
     this.loading.set(true);
     this.errorMessage.set('');
     try {
-      await this.session.register(this.form.getRawValue());
+      const payload = this.form.getRawValue();
+      await this.session.register({ ...payload, email: payload.email.trim().toLowerCase() });
       await this.router.navigateByUrl(getDefaultRouteForRole(this.session.user()?.rol));
     } catch {
       this.errorMessage.set('No se pudo registrar la cuenta. Verifica los datos.');

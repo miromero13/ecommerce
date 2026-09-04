@@ -74,12 +74,14 @@
           </div>
           <div hlmField>
             <label hlmFieldLabel for="provider-email">Email</label>
-            <input id="provider-email" hlmInput placeholder="Email" formControlName="email" />
+            <input id="provider-email" hlmInput type="email" autocomplete="email" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Email" formControlName="email" (input)="normalizeEmailInput($event)" />
           </div>
-          <div hlmField>
-            <label hlmFieldLabel for="provider-password">Contraseña</label>
-            <input id="provider-password" hlmInput placeholder="Contraseña" type="password" formControlName="password" />
-          </div>
+          @if (modalMode() === 'create') {
+            <div hlmField>
+              <label hlmFieldLabel for="provider-password">Contraseña</label>
+              <input id="provider-password" hlmInput placeholder="Contraseña" type="password" formControlName="password" />
+            </div>
+          }
           <div hlmField>
             <label hlmFieldLabel for="provider-gender">Género</label>
             <select id="provider-gender" class="rounded-lg border border-slate-300 px-3 py-2" formControlName="gender">

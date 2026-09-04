@@ -14,7 +14,6 @@ export interface AdminUsuario {
 export interface UpdateUsuarioRequest {
   name: string;
   email: string;
-  password?: string | null;
   gender: GeneroUsuario;
   branch_id?: string | null;
   is_active: boolean;

@@ -1,39 +1,81 @@
-<section class="space-y-5">
-  <header>
-    <h1 class="text-2xl font-semibold">Mi perfil</h1>
-    <p class="text-sm text-slate-500">Datos actuales de sesión.</p>
-  </header>
+<section class="space-y-5 text-slate-700">
+  <header class="flex items-start justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-semibold">Mi perfil</h1>
+      <p class="text-sm text-slate-500">Actualiza tus datos personales.</p>
+    </div>
 
-  <section hlmCard class="bg-white text-slate-900 shadow-sm">
-    @if (user(); as currentUser) {
-      <div hlmCardContent class="grid gap-4 sm:grid-cols-2">
-      <div class="rounded-xl border border-slate-200 p-4">
-        <p class="text-xs uppercase tracking-wide text-slate-500">Nombre</p>
-        <p class="mt-1 font-medium">{{ currentUser.name }}</p>
-      </div>
-      <div class="rounded-xl border border-slate-200 p-4">
-        <p class="text-xs uppercase tracking-wide text-slate-500">Correo</p>
-        <p class="mt-1 font-medium">{{ currentUser.email }}</p>
-      </div>
-      <div class="rounded-xl border border-slate-200 p-4">
-        <p class="text-xs uppercase tracking-wide text-slate-500">Género</p>
-        <p class="mt-1 font-medium">{{ currentUser.gender === 'masculino' ? 'Masculino' : 'Femenino' }}</p>
-      </div>
-      <div class="rounded-xl border border-slate-200 p-4">
-        <p class="text-xs uppercase tracking-wide text-slate-500">Rol</p>
-        <p class="mt-2"><span hlmBadge class="bg-slate-900 text-white">{{ userRoleLabel() }}</span></p>
-      </div>
-      <div class="rounded-xl border border-slate-200 p-4 sm:col-span-2">
-        <p class="text-xs uppercase tracking-wide text-slate-500">Sucursal</p>
-        <p class="mt-2">
-          @if (currentUser.branch_id) {
-            <span hlmBadge class="bg-slate-100 text-slate-900">{{ currentUser.branch_id }}</span>
-          } @else {
-            <span class="text-sm text-slate-500">Sin sucursal</span>
-          }
-        </p>
-      </div>
+    @if (!isEditing()) {
+      <button hlmBtn type="button" (click)="startEditing()">
+        <ng-icon hlm name="lucidePencil" size="sm"></ng-icon>
+        <span>Editar</span>
+      </button>
+    } @else {
+      <div class="flex gap-2">
+        <button hlmBtn variant="outline" type="button" (click)="cancelEditing()">Cancelar</button>
+        <button hlmBtn type="submit" form="profile-form" [disabled]="loading()">Guardar cambios</button>
       </div>
     }
-  </section>
+  </header>
+
+  @if (errorMessage()) {
+    <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ errorMessage() }}</p>
+  }
+
+  @if (successMessage()) {
+    <p class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{{ successMessage() }}</p>
+  }
+
+  @if (user(); as currentUser) {
+    <form id="profile-form" class="space-y-6" [formGroup]="form" (ngSubmit)="submit()">
+      <section class="grid gap-4 md:grid-cols-3">
+        <div hlmField>
+          <label hlmFieldLabel for="profile-role">Rol</label>
+          <input id="profile-role" hlmInput class="w-full" [value]="userRoleLabel()" disabled />
+        </div>
+
+        <div hlmField>
+          <label hlmFieldLabel for="profile-branch">Sucursal</label>
+          <input id="profile-branch" hlmInput class="w-full" [value]="currentUser.branch_id || 'Sin sucursal'" disabled />
+        </div>
+
+        <div hlmField>
+          <label hlmFieldLabel for="profile-status">Estado</label>
+          <input id="profile-status" hlmInput class="w-full" [value]="currentUser.is_active === false ? 'Inactivo' : 'Activo'" disabled />
+        </div>
+      </section>
+
+      <div class="grid gap-4 md:grid-cols-2">
+        <div hlmField>
+          <label hlmFieldLabel for="profile-name">Nombre</label>
+          <input id="profile-name" hlmInput class="w-full" formControlName="name" [disabled]="!isEditing()" />
+        </div>
+
+        <div hlmField>
+          <label hlmFieldLabel for="profile-email">Correo</label>
+          <input
+            id="profile-email"
+            hlmInput
+            class="w-full"
+            type="email"
+            autocomplete="email"
+            autocapitalize="none"
+            autocorrect="off"
+            spellcheck="false"
+            formControlName="email"
+            [disabled]="!isEditing()"
+            (input)="normalizeEmailInput($event)"
+          />
+        </div>
+
+        <div hlmField>
+          <label hlmFieldLabel for="profile-gender">Género</label>
+          <select id="profile-gender" class="rounded-lg border border-slate-300 px-3 py-2" formControlName="gender" [disabled]="!isEditing()">
+            <option value="masculino">Masculino</option>
+            <option value="femenino">Femenino</option>
+          </select>
+        </div>
+      </div>
+    </form>
+  }
 </section>

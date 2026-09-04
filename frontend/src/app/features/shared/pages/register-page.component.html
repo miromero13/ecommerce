@@ -14,7 +14,7 @@
 
         <div class="space-y-2">
           <label for="email" class="text-sm font-medium text-slate-900">Correo</label>
-          <input id="email" hlmInput type="email" formControlName="email" autocomplete="email" />
+          <input id="email" hlmInput type="email" formControlName="email" autocomplete="email" autocapitalize="none" autocorrect="off" spellcheck="false" (input)="normalizeEmailInput($event)" />
         </div>
 
         <div class="space-y-2">

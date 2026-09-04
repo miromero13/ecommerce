@@ -9,6 +9,7 @@ export interface UsuarioAuth {
   gender: GeneroUsuario;
   rol: RolUsuario;
   branch_id: string | null;
+  is_active?: boolean;
 }
 
 export interface LoginRequest {
@@ -21,6 +22,12 @@ export interface RegisterRequest {
   name: string;
   email: string;
   password: string;
+  gender: GeneroUsuario;
+}
+
+export interface UpdateProfileRequest {
+  name: string;
+  email: string;
   gender: GeneroUsuario;
 }
 

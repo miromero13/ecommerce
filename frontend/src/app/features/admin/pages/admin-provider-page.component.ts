@@ -49,6 +49,14 @@ export class AdminProviderPageComponent {
     is_active: [true],
   });
 
+  protected normalizeEmailInput(event: Event): void {
+    const input = event.target as HTMLInputElement | null;
+    if (!input) return;
+
+    const value = input.value.trim().toLowerCase();
+    this.form.controls.email.setValue(value, { emitEvent: false });
+  }
+
   constructor() {
     void this.loadData();
   }
@@ -153,8 +161,7 @@ export class AdminProviderPageComponent {
       const request = {
         business_name: payload.business_name,
         contact_name: payload.contact_name,
-        email: payload.email,
-        password: payload.password || null,
+        email: payload.email.trim().toLowerCase(),
         gender: payload.gender as 'masculino' | 'femenino',
         phone: payload.phone || null,
         branch_id: payload.branch_id || null,

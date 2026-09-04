@@ -39,6 +39,14 @@ export class LoginPageComponent {
     this.form.controls.rol.setValue(selectedRole);
   }
 
+  protected normalizeEmailInput(event: Event): void {
+    const input = event.target as HTMLInputElement | null;
+    if (!input) return;
+
+    const value = input.value.trim().toLowerCase();
+    this.form.controls.email.setValue(value, { emitEvent: false });
+  }
+
   protected async submit(): Promise<void> {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -49,7 +57,7 @@ export class LoginPageComponent {
     this.errorMessage.set('');
     try {
       const { email, password, rol } = this.form.getRawValue();
-      await this.session.login(email, password, rol);
+      await this.session.login(email.trim().toLowerCase(), password, rol);
       await this.router.navigateByUrl(getDefaultRouteForRole(this.session.user()?.rol));
     } catch {
       this.errorMessage.set('No se pudo iniciar sesión. Verifica tus credenciales.');
