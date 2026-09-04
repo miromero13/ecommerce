@@ -4,10 +4,6 @@
     <p class="text-sm text-slate-500">Consulta productos y disponibilidad por sucursal.</p>
   </header>
 
-  @if (errorMessage()) {
-    <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ errorMessage() }}</p>
-  }
-
   <form hlmCard class="grid gap-3 bg-white p-4 shadow-sm md:grid-cols-6" [formGroup]="form" (ngSubmit)="search()">
     <div hlmField class="md:col-span-2">
       <label hlmFieldLabel for="catalog-search">Buscar producto</label>

@@ -18,14 +18,6 @@
     }
   </header>
 
-  @if (errorMessage()) {
-    <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ errorMessage() }}</p>
-  }
-
-  @if (successMessage()) {
-    <p class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{{ successMessage() }}</p>
-  }
-
   @if (user(); as currentUser) {
     <form id="profile-form" class="space-y-6" [formGroup]="form" (ngSubmit)="submit()">
       <section class="grid gap-4 md:grid-cols-3">

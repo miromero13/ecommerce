@@ -3,6 +3,8 @@ import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 
+import { toast } from '@spartan-ng/brain/sonner';
+
 import { AdminActionMenuComponent } from '../components/admin-action-menu.component';
 import { HlmButton } from '../../../components/button/src';
 import { HlmCardImports } from '../../../components/card/src';
@@ -10,6 +12,7 @@ import { HlmFieldImports } from '../../../components/field/src';
 import { HlmInput } from '../../../components/input/src';
 import { HlmSelectImports } from '../../../components/select/src';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
+import { requestWithToast } from '../../../core/utils/request-toast.util';
 import { AdminBranch } from '../models/admin-branch.model';
 import { AdminBranchService } from '../services/admin-branch.service';
 import { AdminProvider, ProviderStatus } from '../models/admin-provider.model';
@@ -28,8 +31,6 @@ export class AdminProviderPageComponent {
 
   protected readonly providers = signal<AdminProvider[]>([]);
   protected readonly branches = signal<AdminBranch[]>([]);
-  protected readonly errorMessage = signal('');
-  protected readonly successMessage = signal('');
   protected readonly loading = signal(false);
   protected readonly modalOpen = signal(false);
   protected readonly modalMode = signal<'create' | 'edit'>('create');
@@ -76,8 +77,6 @@ export class AdminProviderPageComponent {
       status: 'active',
       is_active: true,
     });
-    this.errorMessage.set('');
-    this.successMessage.set('');
     this.modalOpen.set(true);
   }
 
@@ -95,8 +94,6 @@ export class AdminProviderPageComponent {
       status: provider.status,
       is_active: provider.is_active,
     });
-    this.errorMessage.set('');
-    this.successMessage.set('');
     this.modalOpen.set(true);
   }
 
@@ -115,11 +112,13 @@ export class AdminProviderPageComponent {
   protected async toggleActive(provider: AdminProvider): Promise<void> {
     this.closeMenu();
     try {
-      await firstValueFrom(this.providerApi.updateProviderActive(provider.id, { is_active: !provider.is_active }));
+      await requestWithToast(
+        this.providerApi.updateProviderActive(provider.id, { is_active: !provider.is_active }),
+        { loading: 'Actualizando estado...', success: `Proveedor ${!provider.is_active ? 'activado' : 'desactivado'} correctamente.`, error: 'No se pudo actualizar el estado del proveedor.' },
+      );
       await this.loadData();
-      this.successMessage.set(`Proveedor ${!provider.is_active ? 'activado' : 'desactivado'} correctamente.`);
-    } catch (error) {
-      this.errorMessage.set(getErrorMessage(error, 'No se pudo actualizar el estado del proveedor.'));
+    } catch {
+      // El toast de error ya se mostró con requestWithToast
     }
   }
 
@@ -139,12 +138,14 @@ export class AdminProviderPageComponent {
     if (!provider) return;
 
     try {
-      await firstValueFrom(this.providerApi.deleteProvider(provider.id));
+      await requestWithToast(
+        this.providerApi.deleteProvider(provider.id),
+        { loading: 'Eliminando proveedor...', success: 'Proveedor eliminado correctamente.', error: 'No se pudo eliminar el proveedor.' },
+      );
       await this.loadData();
-      this.successMessage.set('Proveedor eliminado correctamente.');
       this.cancelDelete();
-    } catch (error) {
-      this.errorMessage.set(getErrorMessage(error, 'No se pudo eliminar el proveedor.'));
+    } catch {
+      // El toast de error ya se mostró con requestWithToast
     }
   }
 
@@ -155,8 +156,6 @@ export class AdminProviderPageComponent {
     }
 
     this.loading.set(true);
-    this.errorMessage.set('');
-    this.successMessage.set('');
     try {
       const payload = this.form.getRawValue();
       const request = {
@@ -171,13 +170,16 @@ export class AdminProviderPageComponent {
       };
 
       if (this.modalMode() === 'edit' && this.editingProviderId()) {
-        await firstValueFrom(this.providerApi.updateProvider(this.editingProviderId()!, request));
-        this.successMessage.set('Proveedor actualizado correctamente.');
+        await requestWithToast(
+          this.providerApi.updateProvider(this.editingProviderId()!, request),
+          { loading: 'Guardando proveedor...', success: 'Proveedor actualizado correctamente.', error: 'No se pudo guardar el proveedor.' },
+        );
       } else {
         if (!payload.password) {
-          throw new Error('La contraseña es obligatoria para crear un proveedor.');
+          toast.warning('La contraseña es obligatoria para crear un proveedor.');
+          return;
         }
-        await firstValueFrom(
+        await requestWithToast(
           this.providerApi.createProvider({
             business_name: request.business_name,
             contact_name: request.contact_name,
@@ -187,15 +189,15 @@ export class AdminProviderPageComponent {
             phone: request.phone,
             branch_id: request.branch_id,
           }),
+          { loading: 'Guardando proveedor...', success: 'Proveedor creado correctamente.', error: 'No se pudo guardar el proveedor.' },
         );
-        this.successMessage.set('Proveedor creado correctamente.');
       }
 
       this.form.reset({ business_name: '', contact_name: '', email: '', password: '', gender: 'masculino', phone: '', branch_id: '', status: 'active', is_active: true });
       await this.loadData();
       this.closeModal();
-    } catch (error) {
-      this.errorMessage.set(getErrorMessage(error, 'No se pudo guardar el proveedor.'));
+    } catch {
+      // El toast de error ya se mostró con requestWithToast
     } finally {
       this.loading.set(false);
     }
@@ -206,14 +208,14 @@ export class AdminProviderPageComponent {
       return;
     }
 
-    this.errorMessage.set('');
-    this.successMessage.set('');
     try {
-      await firstValueFrom(this.providerApi.updateProviderStatus(provider.id, status));
+      await requestWithToast(
+        this.providerApi.updateProviderStatus(provider.id, status),
+        { loading: 'Actualizando estado...', success: 'Estado del proveedor actualizado.', error: 'No se pudo actualizar el proveedor.' },
+      );
       await this.loadData();
-      this.successMessage.set('Estado del proveedor actualizado.');
-    } catch (error) {
-      this.errorMessage.set(getErrorMessage(error, 'No se pudo actualizar el proveedor.'));
+    } catch {
+      // El toast de error ya se mostró con requestWithToast
     }
   }
 
@@ -243,7 +245,7 @@ export class AdminProviderPageComponent {
       this.providers.set(providersResponse.data ?? []);
       this.branches.set(branchesResponse.data ?? []);
     } catch (error) {
-      this.errorMessage.set(getErrorMessage(error, 'No se pudieron cargar los proveedores.'));
+      toast.error(getErrorMessage(error, 'No se pudieron cargar los proveedores.'));
     }
   }
 }

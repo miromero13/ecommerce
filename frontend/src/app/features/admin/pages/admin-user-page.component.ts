@@ -3,11 +3,14 @@ import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 
+import { toast } from '@spartan-ng/brain/sonner';
+
 import { AdminActionMenuComponent } from '../components/admin-action-menu.component';
 import { AdminUsuario } from '../models/admin-user.model';
 import { AdminUserService } from '../services/admin-user.service';
 import { SessionService } from '../../shared/services/session.service';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
+import { requestWithToast } from '../../../core/utils/request-toast.util';
 import { HlmTable } from '@spartan-ng/helm/table';
 import { AdminBranch } from '../models/admin-branch.model';
 import { AdminBranchService } from '../services/admin-branch.service';
@@ -35,8 +38,6 @@ export class AdminUserPageComponent {
   protected readonly usuariosFiltrados = signal<AdminUsuario[]>([]);
   protected readonly branches = signal<AdminBranch[]>([]);
   protected readonly filtroRol = signal<'' | AdminUsuario['rol']>('');
-  protected readonly errorMessage = signal('');
-  protected readonly successMessage = signal('');
   protected readonly currentUserId = signal(this.session.user()?.id ?? '');
   protected readonly openMenuId = signal<string | null>(null);
   protected readonly modalOpen = signal(false);
@@ -79,14 +80,14 @@ export class AdminUserPageComponent {
       return;
     }
 
-    this.errorMessage.set('');
-    this.successMessage.set('');
     try {
-      await firstValueFrom(this.api.updateUsuarioRol(user.id, rol));
+      await requestWithToast(
+        this.api.updateUsuarioRol(user.id, rol),
+        { loading: 'Actualizando rol...', success: 'Rol de usuario actualizado correctamente.', error: 'No se pudo actualizar el rol del usuario.' },
+      );
       await this.loadData();
-      this.successMessage.set('Rol de usuario actualizado correctamente.');
-    } catch (error) {
-      this.errorMessage.set(getErrorMessage(error, 'No se pudo actualizar el rol del usuario.'));
+    } catch {
+      // El toast de error ya se mostró con requestWithToast
     }
   }
 
@@ -95,14 +96,14 @@ export class AdminUserPageComponent {
       return;
     }
 
-    this.errorMessage.set('');
-    this.successMessage.set('');
     try {
-      await firstValueFrom(this.api.updateUsuarioBranch(user.id, branchId || null));
+      await requestWithToast(
+        this.api.updateUsuarioBranch(user.id, branchId || null),
+        { loading: 'Asignando sucursal...', success: 'Sucursal de usuario actualizada correctamente.', error: 'No se pudo actualizar la sucursal del usuario.' },
+      );
       await this.loadData();
-      this.successMessage.set('Sucursal de usuario actualizada correctamente.');
-    } catch (error) {
-      this.errorMessage.set(getErrorMessage(error, 'No se pudo actualizar la sucursal del usuario.'));
+    } catch {
+      // El toast de error ya se mostró con requestWithToast
     }
   }
 
@@ -119,8 +120,6 @@ export class AdminUserPageComponent {
       branch_id: user.branch_id || '',
       is_active: user.is_active,
     });
-    this.errorMessage.set('');
-    this.successMessage.set('');
     this.modalOpen.set(true);
   }
 
@@ -142,11 +141,13 @@ export class AdminUserPageComponent {
     }
     this.closeMenu();
     try {
-      await firstValueFrom(this.api.updateUsuarioActive(user.id, { is_active: !user.is_active }));
+      await requestWithToast(
+        this.api.updateUsuarioActive(user.id, { is_active: !user.is_active }),
+        { loading: 'Actualizando estado...', success: `Usuario ${!user.is_active ? 'activado' : 'desactivado'} correctamente.`, error: 'No se pudo actualizar el estado del usuario.' },
+      );
       await this.loadData();
-      this.successMessage.set(`Usuario ${!user.is_active ? 'activado' : 'desactivado'} correctamente.`);
-    } catch (error) {
-      this.errorMessage.set(getErrorMessage(error, 'No se pudo actualizar el estado del usuario.'));
+    } catch {
+      // El toast de error ya se mostró con requestWithToast
     }
   }
 
@@ -169,12 +170,14 @@ export class AdminUserPageComponent {
     if (!user) return;
 
     try {
-      await firstValueFrom(this.api.deleteUsuario(user.id));
+      await requestWithToast(
+        this.api.deleteUsuario(user.id),
+        { loading: 'Eliminando usuario...', success: 'Usuario eliminado correctamente.', error: 'No se pudo eliminar el usuario.' },
+      );
       await this.loadData();
-      this.successMessage.set('Usuario eliminado correctamente.');
       this.cancelDelete();
-    } catch (error) {
-      this.errorMessage.set(getErrorMessage(error, 'No se pudo eliminar el usuario.'));
+    } catch {
+      // El toast de error ya se mostró con requestWithToast
     }
   }
 
@@ -184,22 +187,22 @@ export class AdminUserPageComponent {
       return;
     }
 
-    this.errorMessage.set('');
-    this.successMessage.set('');
     try {
       const payload = this.userForm.getRawValue();
-      await firstValueFrom(this.api.updateUsuario(this.editingUserId()!, {
-        name: payload.name,
-        email: payload.email.trim().toLowerCase(),
-        gender: payload.gender as AdminUsuario['gender'],
-        branch_id: payload.branch_id || null,
-        is_active: payload.is_active,
-      }));
+      await requestWithToast(
+        this.api.updateUsuario(this.editingUserId()!, {
+          name: payload.name,
+          email: payload.email.trim().toLowerCase(),
+          gender: payload.gender as AdminUsuario['gender'],
+          branch_id: payload.branch_id || null,
+          is_active: payload.is_active,
+        }),
+        { loading: 'Guardando usuario...', success: 'Usuario actualizado correctamente.', error: 'No se pudo actualizar el usuario.' },
+      );
       await this.loadData();
-      this.successMessage.set('Usuario actualizado correctamente.');
       this.closeModal();
-    } catch (error) {
-      this.errorMessage.set(getErrorMessage(error, 'No se pudo actualizar el usuario.'));
+    } catch {
+      // El toast de error ya se mostró con requestWithToast
     }
   }
 
@@ -212,7 +215,6 @@ export class AdminUserPageComponent {
   }
 
   private async loadData(): Promise<void> {
-    this.errorMessage.set('');
     try {
       const [usersResponse, branchesResponse] = await Promise.all([
         firstValueFrom(this.api.listUsuarios()),
@@ -223,7 +225,7 @@ export class AdminUserPageComponent {
       this.branches.set(branchesResponse.data ?? []);
       this.applyFiltro();
     } catch (error) {
-      this.errorMessage.set(getErrorMessage(error, 'No se pudieron cargar los usuarios.'));
+      toast.error(getErrorMessage(error, 'No se pudieron cargar los usuarios.'));
     }
   }
 

@@ -3,6 +3,8 @@ import { Component, inject, signal } from '@angular/core';
 import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 
+import { toast } from '@spartan-ng/brain/sonner';
+
 import { HlmBadge } from '../../../components/badge/src';
 import { HlmButton } from '../../../components/button/src';
 import { HlmCardImports } from '../../../components/card/src';
@@ -13,6 +15,7 @@ import { HlmTable } from '../../../components/table/src';
 import { HlmTabsImports } from '../../../components/tabs/src';
 import { AdminActionMenuComponent } from '../components/admin-action-menu.component';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
+import { requestWithToast } from '../../../core/utils/request-toast.util';
 import {
   CatalogCollectionItem,
   CatalogColorItem,
@@ -70,8 +73,6 @@ export class AdminCatalogPageComponent {
   protected readonly seasons = signal<CatalogNameItem[]>([]);
   protected readonly collections = signal<CatalogCollectionItem[]>([]);
   protected readonly products = signal<CatalogProduct[]>([]);
-  protected readonly errorMessage = signal('');
-  protected readonly successMessage = signal('');
   protected readonly loading = signal(false);
   protected readonly activeTab = signal<CatalogTab>('products');
   protected readonly modalOpen = signal(false);
@@ -111,8 +112,6 @@ export class AdminCatalogPageComponent {
     this.modalMode.set('create');
     this.editingItemId.set(null);
     this.editingProductId.set(null);
-    this.errorMessage.set('');
-    this.successMessage.set('');
     if (tab === 'products') {
       this.productForm.reset({ name: '', description: '', category_id: '', season_id: '', collection_id: '' });
       this.variantsArray().clear();
@@ -128,8 +127,6 @@ export class AdminCatalogPageComponent {
     this.modalMode.set('edit');
     this.editingItemId.set(item.id);
     this.editingProductId.set(null);
-    this.errorMessage.set('');
-    this.successMessage.set('');
     if (tab === 'categories') {
       this.categoryForm.reset({ name: item.name });
     } else if (tab === 'sizes') {
@@ -151,8 +148,6 @@ export class AdminCatalogPageComponent {
     this.modalMode.set('edit');
     this.editingProductId.set(product.id);
     this.editingItemId.set(null);
-    this.errorMessage.set('');
-    this.successMessage.set('');
 
     this.productForm.reset({
       name: product.name,
@@ -205,22 +200,24 @@ export class AdminCatalogPageComponent {
     if (!target) return;
 
     this.loading.set(true);
-    this.errorMessage.set('');
-    this.successMessage.set('');
-
     try {
-      if (target.tab === 'categories') await firstValueFrom(this.api.deleteCategory(target.id));
-      else if (target.tab === 'sizes') await firstValueFrom(this.api.deleteSize(target.id));
-      else if (target.tab === 'colors') await firstValueFrom(this.api.deleteColor(target.id));
-      else if (target.tab === 'seasons') await firstValueFrom(this.api.deleteSeason(target.id));
-      else if (target.tab === 'collections') await firstValueFrom(this.api.deleteCollection(target.id));
-      else await firstValueFrom(this.api.deleteProduct(target.id));
+      const operation = (() => {
+        if (target.tab === 'categories') return this.api.deleteCategory(target.id);
+        if (target.tab === 'sizes') return this.api.deleteSize(target.id);
+        if (target.tab === 'colors') return this.api.deleteColor(target.id);
+        if (target.tab === 'seasons') return this.api.deleteSeason(target.id);
+        if (target.tab === 'collections') return this.api.deleteCollection(target.id);
+        return this.api.deleteProduct(target.id);
+      })();
 
+      await requestWithToast(
+        operation,
+        { loading: 'Eliminando...', success: `${target.label} eliminado correctamente.`, error: `No se pudo eliminar ${target.label.toLowerCase()}.` },
+      );
       await this.loadData();
-      this.successMessage.set(`${target.label} eliminado correctamente.`);
       this.cancelDelete();
-    } catch (error) {
-      this.errorMessage.set(getErrorMessage(error, `No se pudo eliminar ${target.label.toLowerCase()}.`));
+    } catch {
+      // El toast de error ya se mostró con requestWithToast
     } finally {
       this.loading.set(false);
     }
@@ -261,20 +258,18 @@ export class AdminCatalogPageComponent {
     }
 
     if (this.hasDuplicateVariants()) {
-      this.errorMessage.set('No puedes repetir la misma combinacion de talla y color dentro del producto.');
+      toast.warning('No puedes repetir la misma combinacion de talla y color dentro del producto.');
       return;
     }
 
     const variants = this.variantForms().getRawValue();
     const firstVariant = variants[0];
     if (!firstVariant?.price) {
-      this.errorMessage.set('Debes definir al menos una variante con precio.');
+      toast.warning('Debes definir al menos una variante con precio.');
       return;
     }
 
     this.loading.set(true);
-    this.errorMessage.set('');
-    this.successMessage.set('');
     try {
       const payload = this.productForm.getRawValue();
       const request = {
@@ -294,19 +289,23 @@ export class AdminCatalogPageComponent {
       };
 
       if (this.modalMode() === 'edit' && this.editingProductId()) {
-        await firstValueFrom(this.api.updateProduct(this.editingProductId()!, request));
-        this.successMessage.set('Producto actualizado correctamente.');
+        await requestWithToast(
+          this.api.updateProduct(this.editingProductId()!, request),
+          { loading: 'Guardando producto...', success: 'Producto actualizado correctamente.', error: 'No se pudo guardar el producto.' },
+        );
       } else {
-        await firstValueFrom(this.api.createProduct(request));
-        this.successMessage.set('Producto creado correctamente.');
+        await requestWithToast(
+          this.api.createProduct(request),
+          { loading: 'Guardando producto...', success: 'Producto creado correctamente.', error: 'No se pudo guardar el producto.' },
+        );
       }
       this.productForm.reset({ name: '', description: '', category_id: '', season_id: '', collection_id: '' });
       this.variantsArray().clear();
       this.variantsArray().push(this.createVariantGroup());
       await this.loadData();
       this.closeModal();
-    } catch (error) {
-      this.errorMessage.set(getErrorMessage(error, 'No se pudo guardar el producto.'));
+    } catch {
+      // El toast de error ya se mostró con requestWithToast
     } finally {
       this.loading.set(false);
     }
@@ -315,11 +314,13 @@ export class AdminCatalogPageComponent {
   protected async toggleVariantStatus(variant: CatalogProductVariant): Promise<void> {
     const nextStatus = variant.status === 'active' ? 'inactive' : 'active';
     try {
-      await firstValueFrom(this.api.updateVariantStatus(variant.id, nextStatus));
+      await requestWithToast(
+        this.api.updateVariantStatus(variant.id, nextStatus),
+        { loading: 'Actualizando variante...', success: 'Estado de la variante actualizado.', error: 'No se pudo actualizar la variante.' },
+      );
       await this.loadData();
-      this.successMessage.set('Estado de la variante actualizado.');
-    } catch (error) {
-      this.errorMessage.set(getErrorMessage(error, 'No se pudo actualizar la variante.'));
+    } catch {
+      // El toast de error ya se mostró con requestWithToast
     }
   }
 
@@ -391,22 +392,24 @@ export class AdminCatalogPageComponent {
     }
 
     this.loading.set(true);
-    this.errorMessage.set('');
-    this.successMessage.set('');
     try {
       const payload = { name: form.controls.name.value };
       if (this.modalMode() === 'edit' && this.editingItemId()) {
-        await firstValueFrom(updateAction(this.editingItemId()!, payload));
-        this.successMessage.set(updateMessage);
+        await requestWithToast(
+          updateAction(this.editingItemId()!, payload),
+          { loading: 'Guardando...', success: updateMessage, error: 'No se pudo guardar el registro.' },
+        );
       } else {
-        await firstValueFrom(createAction());
-        this.successMessage.set(createMessage);
+        await requestWithToast(
+          createAction(),
+          { loading: 'Guardando...', success: createMessage, error: 'No se pudo guardar el registro.' },
+        );
       }
       form.reset();
       await this.loadData();
       this.closeModal();
-    } catch (error) {
-      this.errorMessage.set(getErrorMessage(error, 'No se pudo guardar el registro.'));
+    } catch {
+      // El toast de error ya se mostró con requestWithToast
     } finally {
       this.loading.set(false);
     }
@@ -443,22 +446,24 @@ export class AdminCatalogPageComponent {
     }
 
     this.loading.set(true);
-    this.errorMessage.set('');
-    this.successMessage.set('');
     try {
       const payload = this.colorForm.getRawValue();
       if (this.modalMode() === 'edit' && this.editingItemId()) {
-        await firstValueFrom(this.api.updateColor(this.editingItemId()!, { name: payload.name, hex_code: payload.hex_code || null }));
-        this.successMessage.set('Color actualizado correctamente.');
+        await requestWithToast(
+          this.api.updateColor(this.editingItemId()!, { name: payload.name, hex_code: payload.hex_code || null }),
+          { loading: 'Guardando...', success: 'Color actualizado correctamente.', error: 'No se pudo guardar el color.' },
+        );
       } else {
-        await firstValueFrom(this.api.createColor({ name: payload.name, hex_code: payload.hex_code || null }));
-        this.successMessage.set('Color creado correctamente.');
+        await requestWithToast(
+          this.api.createColor({ name: payload.name, hex_code: payload.hex_code || null }),
+          { loading: 'Guardando...', success: 'Color creado correctamente.', error: 'No se pudo guardar el color.' },
+        );
       }
       this.colorForm.reset({ name: '', hex_code: '' });
       await this.loadData();
       this.closeModal();
-    } catch (error) {
-      this.errorMessage.set(getErrorMessage(error, 'No se pudo guardar el color.'));
+    } catch {
+      // El toast de error ya se mostró con requestWithToast
     } finally {
       this.loading.set(false);
     }
@@ -471,25 +476,27 @@ export class AdminCatalogPageComponent {
     }
 
     this.loading.set(true);
-    this.errorMessage.set('');
-    this.successMessage.set('');
     try {
       const payload = {
         name: this.collectionForm.controls.name.value,
         season_id: this.collectionForm.controls.season_id.value || null,
       };
       if (this.modalMode() === 'edit' && this.editingItemId()) {
-        await firstValueFrom(this.api.updateCollection(this.editingItemId()!, payload));
-        this.successMessage.set('Colección actualizada correctamente.');
+        await requestWithToast(
+          this.api.updateCollection(this.editingItemId()!, payload),
+          { loading: 'Guardando...', success: 'Colección actualizada correctamente.', error: 'No se pudo guardar la colección.' },
+        );
       } else {
-        await firstValueFrom(this.api.createCollection(payload));
-        this.successMessage.set('Colección creada correctamente.');
+        await requestWithToast(
+          this.api.createCollection(payload),
+          { loading: 'Guardando...', success: 'Colección creada correctamente.', error: 'No se pudo guardar la colección.' },
+        );
       }
       this.collectionForm.reset({ name: '', season_id: '' });
       await this.loadData();
       this.closeModal();
-    } catch (error) {
-      this.errorMessage.set(getErrorMessage(error, 'No se pudo guardar la colección.'));
+    } catch {
+      // El toast de error ya se mostró con requestWithToast
     } finally {
       this.loading.set(false);
     }
@@ -570,7 +577,7 @@ export class AdminCatalogPageComponent {
       this.collections.set(collections.data ?? []);
       this.products.set(products.data ?? []);
     } catch (error) {
-      this.errorMessage.set(getErrorMessage(error, 'No se pudo cargar el catálogo.'));
+      toast.error(getErrorMessage(error, 'No se pudo cargar el catálogo.'));
     }
   }
 }

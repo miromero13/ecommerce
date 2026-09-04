@@ -3,6 +3,8 @@ import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 
+import { toast } from '@spartan-ng/brain/sonner';
+
 import { HlmBadgeImports } from '../../../components/badge/src';
 import { HlmButton } from '../../../components/button/src';
 import { HlmCardImports } from '../../../components/card/src';
@@ -10,6 +12,7 @@ import { HlmFieldImports } from '../../../components/field/src';
 import { HlmInput } from '../../../components/input/src';
 import { HlmSelectImports } from '../../../components/select/src';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
+import { requestWithToast } from '../../../core/utils/request-toast.util';
 import {
   CatalogBranch,
   CatalogCollectionItem,
@@ -38,7 +41,6 @@ export class CatalogPageComponent {
   protected readonly collections = signal<CatalogCollectionItem[]>([]);
   protected readonly products = signal<CatalogProduct[]>([]);
   protected readonly selectedVariantByProduct = signal<Record<string, string>>({});
-  protected readonly errorMessage = signal('');
   protected readonly loading = signal(false);
 
   protected readonly form = this.fb.nonNullable.group({
@@ -57,22 +59,24 @@ export class CatalogPageComponent {
 
   protected async search(): Promise<void> {
     this.loading.set(true);
-    this.errorMessage.set('');
     try {
       const value = this.form.getRawValue();
-      const response = await firstValueFrom(this.api.listProducts({
-        q: value.q || undefined,
-        branch_id: value.branch_id || undefined,
-        category_id: value.category_id || undefined,
-        size_id: value.size_id || undefined,
-        color_id: value.color_id || undefined,
-        season_id: value.season_id || undefined,
-        collection_id: value.collection_id || undefined,
-      }));
+      const response = await requestWithToast(
+        this.api.listProducts({
+          q: value.q || undefined,
+          branch_id: value.branch_id || undefined,
+          category_id: value.category_id || undefined,
+          size_id: value.size_id || undefined,
+          color_id: value.color_id || undefined,
+          season_id: value.season_id || undefined,
+          collection_id: value.collection_id || undefined,
+        }),
+        { loading: 'Consultando catálogo...', success: 'Catálogo actualizado.', error: 'No se pudo consultar el catálogo.' },
+      );
       this.products.set(response.data ?? []);
       this.ensureSelectedVariants();
-    } catch (error) {
-      this.errorMessage.set(getErrorMessage(error, 'No se pudo consultar el catálogo.'));
+    } catch {
+      // El toast de error ya se mostró con requestWithToast
     } finally {
       this.loading.set(false);
     }
@@ -102,7 +106,7 @@ export class CatalogPageComponent {
       this.products.set(products.data ?? []);
       this.ensureSelectedVariants();
     } catch (error) {
-      this.errorMessage.set(getErrorMessage(error, 'No se pudo cargar el catálogo.'));
+      toast.error(getErrorMessage(error, 'No se pudo cargar el catálogo.'));
     }
   }
 

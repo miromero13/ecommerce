@@ -1,7 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, effect, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { firstValueFrom } from 'rxjs';
 import { provideIcons } from '@ng-icons/core';
 import { lucidePencil } from '@ng-icons/lucide';
 
@@ -10,7 +9,7 @@ import { HlmFieldImports } from '../../../components/field/src';
 import { HlmIconImports } from '../../../components/icon/src';
 import { HlmInput } from '../../../components/input/src';
 import { HlmSelectImports } from '../../../components/select/src';
-import { getErrorMessage } from '../../../core/utils/http-error.util';
+import { requestWithToast } from '../../../core/utils/request-toast.util';
 import { UpdateProfileRequest } from '../models/auth.model';
 import { PerfilUsuario } from '../models/user.model';
 import { SessionService } from '../services/session.service';
@@ -30,8 +29,6 @@ export class ProfilePageComponent {
 
   protected readonly user = signal<PerfilUsuario | null>(this.session.user());
   protected readonly userRoleLabel = signal('');
-  protected readonly errorMessage = signal('');
-  protected readonly successMessage = signal('');
   protected readonly loading = signal(false);
   protected readonly isEditing = signal(false);
 
@@ -72,7 +69,6 @@ export class ProfilePageComponent {
       });
     }
 
-    this.errorMessage.set('');
     this.setEditingState(false);
   }
 
@@ -125,8 +121,6 @@ export class ProfilePageComponent {
     }
 
     this.loading.set(true);
-    this.errorMessage.set('');
-    this.successMessage.set('');
     try {
       const payload = this.form.getRawValue();
       const request: UpdateProfileRequest = {
@@ -135,13 +129,15 @@ export class ProfilePageComponent {
         gender: payload.gender as UpdateProfileRequest['gender'],
       };
 
-      await firstValueFrom(this.userApi.updateMe(request));
+      await requestWithToast(
+        this.userApi.updateMe(request),
+        { loading: 'Actualizando perfil...', success: 'Perfil actualizado correctamente.', error: 'No se pudo actualizar el perfil.' },
+      );
       await this.session.refreshMe();
       this.user.set(this.session.user());
-      this.successMessage.set('Perfil actualizado correctamente.');
       this.setEditingState(false);
-    } catch (error) {
-      this.errorMessage.set(getErrorMessage(error, 'No se pudo actualizar el perfil.'));
+    } catch {
+      // El toast de error ya se mostró con requestWithToast
     } finally {
       this.loading.set(false);
     }

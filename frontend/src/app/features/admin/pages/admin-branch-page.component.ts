@@ -3,6 +3,8 @@ import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 
+import { toast } from '@spartan-ng/brain/sonner';
+
 import { AdminActionMenuComponent } from '../components/admin-action-menu.component';
 import { HlmButton } from '../../../components/button/src';
 import { HlmCardImports } from '../../../components/card/src';
@@ -12,6 +14,7 @@ import { HlmSelectImports } from '../../../components/select/src';
 import { AdminBranch } from '../models/admin-branch.model';
 import { AdminBranchService } from '../services/admin-branch.service';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
+import { requestWithToast } from '../../../core/utils/request-toast.util';
 
 @Component({
   selector: 'app-admin-branch-page',
@@ -24,8 +27,6 @@ export class AdminBranchPageComponent {
   private readonly api = inject(AdminBranchService);
 
   protected readonly branches = signal<AdminBranch[]>([]);
-  protected readonly errorMessage = signal('');
-  protected readonly successMessage = signal('');
   protected readonly loading = signal(false);
   protected readonly modalOpen = signal(false);
   protected readonly modalMode = signal<'create' | 'edit'>('create');
@@ -49,8 +50,6 @@ export class AdminBranchPageComponent {
     this.modalMode.set('create');
     this.editingBranchId.set(null);
     this.form.reset({ name: '', city: '', is_default: false, is_active: true });
-    this.errorMessage.set('');
-    this.successMessage.set('');
     this.modalOpen.set(true);
   }
 
@@ -58,8 +57,6 @@ export class AdminBranchPageComponent {
     this.modalMode.set('edit');
     this.editingBranchId.set(branch.id);
     this.form.reset({ name: branch.name, city: branch.city, is_default: branch.is_default, is_active: branch.is_active });
-    this.errorMessage.set('');
-    this.successMessage.set('');
     this.modalOpen.set(true);
   }
 
@@ -78,11 +75,13 @@ export class AdminBranchPageComponent {
   protected async toggleActive(branch: AdminBranch): Promise<void> {
     this.closeMenu();
     try {
-      await firstValueFrom(this.api.updateBranchActive(branch.id, { is_active: !branch.is_active }));
+      await requestWithToast(
+        this.api.updateBranchActive(branch.id, { is_active: !branch.is_active }),
+        { loading: 'Actualizando estado...', success: `Sucursal ${!branch.is_active ? 'activada' : 'desactivada'} correctamente.`, error: 'No se pudo actualizar el estado de la sucursal.' },
+      );
       await this.loadBranches();
-      this.successMessage.set(`Sucursal ${!branch.is_active ? 'activada' : 'desactivada'} correctamente.`);
-    } catch (error) {
-      this.errorMessage.set(getErrorMessage(error, 'No se pudo actualizar el estado de la sucursal.'));
+    } catch {
+      // El toast de error ya se mostró con requestWithToast
     }
   }
 
@@ -102,12 +101,14 @@ export class AdminBranchPageComponent {
     if (!branch) return;
 
     try {
-      await firstValueFrom(this.api.deleteBranch(branch.id));
+      await requestWithToast(
+        this.api.deleteBranch(branch.id),
+        { loading: 'Eliminando sucursal...', success: 'Sucursal eliminada correctamente.', error: 'No se pudo eliminar la sucursal.' },
+      );
       await this.loadBranches();
-      this.successMessage.set('Sucursal eliminada correctamente.');
       this.cancelDelete();
-    } catch (error) {
-      this.errorMessage.set(getErrorMessage(error, 'No se pudo eliminar la sucursal.'));
+    } catch {
+      // El toast de error ya se mostró con requestWithToast
     }
   }
 
@@ -118,22 +119,24 @@ export class AdminBranchPageComponent {
     }
 
     this.loading.set(true);
-    this.errorMessage.set('');
-    this.successMessage.set('');
     try {
       const payload = this.form.getRawValue();
       if (this.modalMode() === 'edit' && this.editingBranchId()) {
-        await firstValueFrom(this.api.updateBranch(this.editingBranchId()!, payload));
-        this.successMessage.set('Sucursal actualizada correctamente.');
+        await requestWithToast(
+          this.api.updateBranch(this.editingBranchId()!, payload),
+          { loading: 'Guardando sucursal...', success: 'Sucursal actualizada correctamente.', error: 'No se pudo guardar la sucursal.' },
+        );
       } else {
-        await firstValueFrom(this.api.createBranch(payload));
-        this.successMessage.set('Sucursal creada correctamente.');
+        await requestWithToast(
+          this.api.createBranch(payload),
+          { loading: 'Guardando sucursal...', success: 'Sucursal creada correctamente.', error: 'No se pudo guardar la sucursal.' },
+        );
       }
       this.form.reset({ name: '', city: '', is_default: false, is_active: true });
       await this.loadBranches();
       this.closeModal();
-    } catch (error) {
-      this.errorMessage.set(getErrorMessage(error, 'No se pudo guardar la sucursal.'));
+    } catch {
+      // El toast de error ya se mostró con requestWithToast
     } finally {
       this.loading.set(false);
     }
@@ -144,7 +147,7 @@ export class AdminBranchPageComponent {
       const response = await firstValueFrom(this.api.listBranches());
       this.branches.set(response.data ?? []);
     } catch (error) {
-      this.errorMessage.set(getErrorMessage(error, 'No se pudieron cargar las sucursales.'));
+      toast.error(getErrorMessage(error, 'No se pudieron cargar las sucursales.'));
     }
   }
 }

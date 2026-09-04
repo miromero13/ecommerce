@@ -3,6 +3,8 @@ import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 
+import { toast } from '@spartan-ng/brain/sonner';
+
 import { GeneroUsuario } from '../models/auth.model';
 import { SessionService } from '../services/session.service';
 import { getDefaultRouteForRole } from '../../../core/utils/role-route.util';
@@ -23,7 +25,6 @@ export class RegisterPageComponent {
   private readonly router = inject(Router);
 
   protected readonly loading = signal(false);
-  protected readonly errorMessage = signal('');
 
   protected readonly form = this.fb.nonNullable.group({
     name: ['', [Validators.required]],
@@ -47,13 +48,18 @@ export class RegisterPageComponent {
     }
 
     this.loading.set(true);
-    this.errorMessage.set('');
     try {
       const payload = this.form.getRawValue();
-      await this.session.register({ ...payload, email: payload.email.trim().toLowerCase() });
+      const request = this.session.register({ ...payload, email: payload.email.trim().toLowerCase() });
+      toast.promise(request, {
+        loading: 'Creando cuenta...',
+        success: 'Cuenta creada correctamente.',
+        error: () => 'No se pudo registrar la cuenta. Verifica los datos.',
+      });
+      await request;
       await this.router.navigateByUrl(getDefaultRouteForRole(this.session.user()?.rol));
     } catch {
-      this.errorMessage.set('No se pudo registrar la cuenta. Verifica los datos.');
+      // El toast de error ya se mostró con toast.promise
     } finally {
       this.loading.set(false);
     }

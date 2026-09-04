@@ -35,10 +35,6 @@
           </div>
         </div>
 
-        @if (errorMessage()) {
-          <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ errorMessage() }}</p>
-        }
-
         <button hlmBtn class="w-full" type="submit" [disabled]="form.invalid || loading()">
           {{ loading() ? 'Creando cuenta...' : 'Crear cuenta' }}
         </button>

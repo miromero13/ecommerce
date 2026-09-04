@@ -16,14 +16,6 @@
     </hlm-tabs-list>
   </hlm-tabs>
 
-  @if (errorMessage()) {
-    <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ errorMessage() }}</p>
-  }
-
-  @if (successMessage()) {
-    <p class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{{ successMessage() }}</p>
-  }
-
   <div class="overflow-hidden rounded-xl border border-slate-200">
     <table hlmTable class="w-full">
       <thead class="bg-primary text-left text-xs font-bold uppercase tracking-wide text-white">

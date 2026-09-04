@@ -4,14 +4,6 @@
     <p class="text-sm text-slate-500">Administra las cuentas de proveedor.</p>
   </header>
 
-  @if (errorMessage()) {
-    <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ errorMessage() }}</p>
-  }
-
-  @if (successMessage()) {
-    <p class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{{ successMessage() }}</p>
-  }
-
   <div class="flex justify-start">
     <button hlmBtn type="button" (click)="openModal()">Crear proveedor</button>
   </div>

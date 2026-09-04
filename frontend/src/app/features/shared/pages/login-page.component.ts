@@ -3,6 +3,8 @@ import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 
+import { toast } from '@spartan-ng/brain/sonner';
+
 import { RolUsuario } from '../models/auth.model';
 import { SessionService } from '../services/session.service';
 import { getDefaultRouteForRole } from '../../../core/utils/role-route.util';
@@ -24,7 +26,6 @@ export class LoginPageComponent {
   private readonly router = inject(Router);
 
   protected readonly loading = signal(false);
-  protected readonly errorMessage = signal('');
   protected readonly activeRole = signal<RolUsuario>('cliente');
 
   protected readonly form = this.fb.nonNullable.group({
@@ -54,13 +55,18 @@ export class LoginPageComponent {
     }
 
     this.loading.set(true);
-    this.errorMessage.set('');
     try {
       const { email, password, rol } = this.form.getRawValue();
-      await this.session.login(email.trim().toLowerCase(), password, rol);
+      const request = this.session.login(email.trim().toLowerCase(), password, rol);
+      toast.promise(request, {
+        loading: 'Iniciando sesión...',
+        success: 'Sesión iniciada correctamente.',
+        error: () => 'No se pudo iniciar sesión. Verifica tus credenciales.',
+      });
+      await request;
       await this.router.navigateByUrl(getDefaultRouteForRole(this.session.user()?.rol));
     } catch {
-      this.errorMessage.set('No se pudo iniciar sesión. Verifica tus credenciales.');
+      // El toast de error ya se mostró con toast.promise
     } finally {
       this.loading.set(false);
     }
