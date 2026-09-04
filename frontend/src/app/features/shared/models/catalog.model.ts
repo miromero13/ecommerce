@@ -22,19 +22,32 @@ export interface CatalogCollectionItem extends CatalogNameItem {
 
 export type ProductStatus = 'pending' | 'active' | 'inactive';
 
+export interface CatalogProductVariant {
+  id: string;
+  product_id: string;
+  sku: string;
+  price: string;
+  size_id: string | null;
+  color_id: string | null;
+  status: ProductStatus;
+  branch_quantity?: number | null;
+}
+
 export interface CatalogProduct {
   id: string;
-  sku: string;
   name: string;
   description: string | null;
   price: string;
-  status: ProductStatus;
+  provider_id?: string | null;
   category_id: string;
-  size_id: string | null;
-  color_id: string | null;
   season_id: string | null;
   collection_id: string | null;
+  sku?: string | null;
+  status?: ProductStatus | null;
+  size_id?: string | null;
+  color_id?: string | null;
   branch_quantity?: number | null;
+  variants?: CatalogProductVariant[];
 }
 
 export interface CreateNameItemRequest {
@@ -51,16 +64,27 @@ export interface CreateCollectionRequest {
   season_id?: string | null;
 }
 
-export interface CreateProductRequest {
+export interface CreateProductVariantRequest {
   sku: string;
+  price: string;
+  size_id?: string | null;
+  color_id?: string | null;
+  status?: ProductStatus;
+}
+
+export interface CreateProductRequest {
   name: string;
   description?: string | null;
   price: string;
   category_id: string;
+  provider_id?: string | null;
   size_id?: string | null;
   color_id?: string | null;
   season_id?: string | null;
   collection_id?: string | null;
+  status?: ProductStatus;
+  sku?: string;
+  variants?: CreateProductVariantRequest[];
 }
 
 export type ListResponse<T> = ApiResponse<T[]>;

@@ -21,7 +21,7 @@ class CollectionCreate(BaseModel):
 
 class ProductVariantCreate(BaseModel):
     sku: str
-    price: Decimal | None = None
+    price: Decimal
     size_id: UUID | None = None
     color_id: UUID | None = None
     status: ProductStatusEnum | None = None
@@ -71,7 +71,6 @@ class ProductRead(BaseModel):
     season_id: UUID | None = None
     collection_id: UUID | None = None
     sku: str | None = None
-    price: Decimal | None = None
     status: ProductStatusEnum | None = None
     size_id: UUID | None = None
     color_id: UUID | None = None

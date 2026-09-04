@@ -92,4 +92,14 @@ export class CatalogApiService {
       `/catalog/availability?product_id=${productId}&branch_id=${branchId}`,
     );
   }
+
+  getVariantAvailability(variantId: string, branchId: string) {
+    return this.api.get<ApiResponse<{ variant_id: string; branch_id: string; quantity: number }>>(
+      `/catalog/availability?variant_id=${variantId}&branch_id=${branchId}`,
+    );
+  }
+
+  updateVariantStatus(variantId: string, status: ProductStatus) {
+    return this.api.patch<ApiResponse<CatalogProduct>>(`/catalog/variants/${variantId}/status`, { status });
+  }
 }

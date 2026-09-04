@@ -219,19 +219,19 @@ export class AdminCatalogPageComponent {
     return this.lookupName(this.categories(), categoryId, 'Sin categoría');
   }
 
-  protected sizeName(sizeId: string | null): string {
+  protected sizeName(sizeId: string | null | undefined): string {
     return this.lookupName(this.sizes(), sizeId, 'Sin talla');
   }
 
-  protected colorName(colorId: string | null): string {
+  protected colorName(colorId: string | null | undefined): string {
     return this.lookupName(this.colors(), colorId, 'Sin color');
   }
 
-  protected collectionName(collectionId: string | null): string {
+  protected collectionName(collectionId: string | null | undefined): string {
     return this.lookupName(this.collections(), collectionId, 'Sin colección');
   }
 
-  private lookupName(items: Array<{ id: string; name: string }>, id: string | null, fallback: string): string {
+  private lookupName(items: Array<{ id: string; name: string }>, id: string | null | undefined, fallback: string): string {
     if (!id) {
       return fallback;
     }
