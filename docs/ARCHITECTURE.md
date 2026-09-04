@@ -8,8 +8,9 @@ Definir una arquitectura base para FashionStore que soporte el ciclo 1 de los 10
 
 - El backend es la fuente de verdad.
 - El frontend solo controla la experiencia de usuario.
-- La autorizacion depende de `rol` y `sucursal_id` dentro del JWT.
-- Un usuario solo pertenece a una sucursal.
+- La autorizacion depende de `rol` y `branch_id` dentro del JWT.
+- El cliente no pertenece a una sucursal.
+- Los usuarios internos pueden pertenecer a una sucursal.
 - El administrador global puede ver todo.
 - Los usuarios operativos solo ven datos de su sucursal.
 
@@ -49,7 +50,7 @@ El token debe incluir:
 
 - `sub`: `user_id`
 - `rol`: rol del usuario
-- `sucursal_id`: sucursal asignada o `null` para admin global
+- `branch_id`: sucursal asignada o `null` si el usuario no pertenece a una sucursal
 
 ### Reglas de autorizacion
 
@@ -86,11 +87,11 @@ Cada endpoint debe aplicar una de estas dos validaciones:
 
 ### Relaciones clave
 
-- `users.sucursal_id -> branches.id`
-- `inventory.sucursal_id -> branches.id`
+- `users.branch_id -> branches.id`
+- `inventory.branch_id -> branches.id`
 - `inventory.product_id -> products.id`
-- `reservations.sucursal_id -> branches.id`
-- `sales.sucursal_id -> branches.id`
+- `reservations.branch_id -> branches.id`
+- `sales.branch_id -> branches.id`
 
 ## Vista por rol en frontend
 
@@ -135,17 +136,19 @@ Cada endpoint debe aplicar una de estas dos validaciones:
 
 - login y registro
 - JWT
+- sucursales base
+- usuarios internos ligados a sucursal
 - perfil de usuario
 - listado de usuarios internos
 - cambio de rol
+- alta y listado de sucursales
+- asignacion de sucursal a usuarios internos
+- alta y gestion de proveedores
+- alta y gestion de catalogo
 - guardas basicos por autenticacion y rol
 
 ### Falta construir
 
-- sucursales
-- enlace usuario-sucursal
-- administracion de proveedores
-- catalogo y atributos
 - inventario
 - reservas
 - ventas
@@ -157,7 +160,7 @@ Cada endpoint debe aplicar una de estas dos validaciones:
 Implementar primero la capa de identidad y alcance:
 
 1. sucursales
-2. usuarios con `sucursal_id`
-3. JWT con `rol` y `sucursal_id`
+2. usuarios internos con `branch_id`
+3. JWT con `rol` y `branch_id`
 4. policies de acceso en backend
 5. frontend por rol
