@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from uuid import UUID
 
 from app.auth.dependencies import get_current_user, require_roles
@@ -12,7 +12,7 @@ from app.schemas.catalog_schema import (
     CollectionCreate,
     ProductCreate,
     ProductRead,
-    ProductStatusUpdate,
+    ProductVariantStatusUpdate,
 )
 from app.schemas.enums import RolEnum
 from app.models.category import Category
@@ -21,6 +21,8 @@ from app.models.color import Color
 from app.models.season import Season
 from app.models.collection import Collection
 from app.models.product import Product
+from app.models.product_variant import ProductVariant
+from app.models.inventory import Inventory
 from app.models.provider import Provider
 from app.services.catalog_service import (
     create_name_item,
@@ -31,6 +33,7 @@ from app.services.catalog_service import (
     list_public_products,
     create_or_update_inventory,
     get_branch_quantity,
+    list_pending_products as list_pending_products_service,
 )
 from app.utils.response import response
 
@@ -38,21 +41,16 @@ from app.utils.response import response
 router = APIRouter(prefix="/catalog", tags=["Catalog"])
 
 
-def _rows_to_data(rows):
-    return [ProductRead.model_validate({
-        "id": product.id,
-        "sku": product.sku,
-        "name": product.name,
-        "description": product.description,
-        "price": product.price,
-        "status": product.status,
-        "category_id": product.category_id,
-        "size_id": product.size_id,
-        "color_id": product.color_id,
-        "season_id": product.season_id,
-        "collection_id": product.collection_id,
-        "branch_quantity": branch_quantity,
-    }).model_dump() for product, branch_quantity in rows]
+def _resolve_legacy_variant(db: Session, product_id: UUID):
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        return None
+    return (
+        db.query(ProductVariant)
+        .filter(ProductVariant.product_id == product.id)
+        .order_by(ProductVariant.sku.asc())
+        .first()
+    )
 
 
 @router.get("/categories")
@@ -127,13 +125,13 @@ async def list_products(
     collection_id: UUID | None = None,
 ):
     rows = list_public_products(db, branch_id, category_id, size_id, color_id, season_id, collection_id, q)
-    return response(status_code=200, message="Productos obtenidos exitosamente", data=_rows_to_data(rows))
+    return response(status_code=200, message="Productos obtenidos exitosamente", data=rows)
 
 
 @router.get("/products/pending")
 async def list_pending_products(db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
-    products = db.query(Product).filter(Product.status == ProductStatusEnum.pending).order_by(Product.name.asc()).all()
-    return response(status_code=200, message="Productos pendientes obtenidos exitosamente", data=[ProductRead.model_validate(product).model_dump() for product in products])
+    products = list_pending_products_service(db)
+    return response(status_code=200, message="Productos pendientes obtenidos exitosamente", data=products)
 
 
 @router.post("/products", status_code=status.HTTP_201_CREATED)
@@ -151,20 +149,57 @@ async def submit_product_route(payload: ProductCreate, db: Session = Depends(get
 
 
 @router.patch("/products/{product_id}/status")
-async def update_product_status_route(product_id: UUID, payload: ProductStatusUpdate, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
-    product = update_product_status(db, product_id, payload)
-    if not product:
+async def update_product_status_route(product_id: UUID, payload: ProductVariantStatusUpdate, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
+    variant = _resolve_legacy_variant(db, product_id)
+    if not variant:
         raise HTTPException(status_code=404, detail=f"Producto con id {product_id} no encontrado")
-    return response(status_code=200, message="Producto actualizado exitosamente", data=ProductRead.model_validate(product).model_dump())
+    updated = update_product_status(db, variant.id, payload)
+    return response(status_code=200, message="Producto actualizado exitosamente", data=ProductRead.model_validate(updated.product).model_dump())
+
+
+@router.patch("/variants/{variant_id}/status")
+async def update_variant_status_route(variant_id: UUID, payload: ProductVariantStatusUpdate, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
+    variant = update_product_status(db, variant_id, payload)
+    if not variant:
+        raise HTTPException(status_code=404, detail=f"Variante con id {variant_id} no encontrada")
+    return response(status_code=200, message="Variante actualizada exitosamente", data=ProductRead.model_validate(variant.product).model_dump())
 
 
 @router.get("/availability")
-async def get_availability(product_id: UUID, branch_id: UUID, db: Session = Depends(get_db)):
-    quantity = get_branch_quantity(db, product_id, branch_id)
-    return response(status_code=200, message="Disponibilidad obtenida exitosamente", data={"product_id": product_id, "branch_id": branch_id, "quantity": quantity})
+async def get_availability(product_id: UUID | None = None, variant_id: UUID | None = None, branch_id: UUID | None = None, db: Session = Depends(get_db)):
+    if branch_id is None:
+        raise HTTPException(status_code=422, detail="branch_id es requerido")
+
+    if variant_id:
+        quantity = get_branch_quantity(db, variant_id, branch_id)
+        return response(status_code=200, message="Disponibilidad obtenida exitosamente", data={"variant_id": variant_id, "branch_id": branch_id, "quantity": quantity})
+
+    if product_id:
+        product = db.query(Product).options(selectinload(Product.variants)).filter(Product.id == product_id).first()
+        if not product:
+            raise HTTPException(status_code=404, detail=f"Producto con id {product_id} no encontrado")
+        variant_ids = [variant.id for variant in product.variants]
+        inventories = db.query(Inventory).filter(Inventory.variant_id.in_(variant_ids), Inventory.branch_id == branch_id).all()
+        quantity = sum(inventory.quantity for inventory in inventories)
+        return response(status_code=200, message="Disponibilidad obtenida exitosamente", data={"product_id": product_id, "branch_id": branch_id, "quantity": quantity})
+
+    raise HTTPException(status_code=422, detail="Debes enviar product_id o variant_id")
 
 
 @router.put("/inventory")
-async def set_inventory(product_id: UUID, branch_id: UUID, quantity: int, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
-    inv = create_or_update_inventory(db, product_id, branch_id, quantity)
-    return response(status_code=200, message="Inventario actualizado exitosamente", data={"product_id": inv.product_id, "branch_id": inv.branch_id, "quantity": inv.quantity})
+async def set_inventory(product_id: UUID | None = None, variant_id: UUID | None = None, branch_id: UUID | None = None, quantity: int = 0, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
+    if branch_id is None:
+        raise HTTPException(status_code=422, detail="branch_id es requerido")
+
+    resolved_variant_id = variant_id
+    if not resolved_variant_id and product_id:
+        variant = _resolve_legacy_variant(db, product_id)
+        if not variant:
+            raise HTTPException(status_code=404, detail=f"Producto con id {product_id} no encontrado")
+        resolved_variant_id = variant.id
+
+    if not resolved_variant_id:
+        raise HTTPException(status_code=422, detail="Debes enviar product_id o variant_id")
+
+    inv = create_or_update_inventory(db, resolved_variant_id, branch_id, quantity)
+    return response(status_code=200, message="Inventario actualizado exitosamente", data={"variant_id": inv.variant_id, "branch_id": inv.branch_id, "quantity": inv.quantity})

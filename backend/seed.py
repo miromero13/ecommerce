@@ -12,6 +12,7 @@ from app.models.collection import Collection
 from app.models.color import Color
 from app.models.inventory import Inventory
 from app.models.product import Product
+from app.models.product_variant import ProductVariant
 from app.models.provider import Provider
 from app.models.season import Season
 from app.models.size import Size
@@ -35,14 +36,14 @@ def main() -> None:
         colors = _seed_colors(session)
         seasons = _seed_seasons(session)
         collections = _seed_collections(session, seasons)
-        products = _seed_products(session, categories, sizes, colors, seasons, collections, providers)
-        _seed_inventory(session, branches, products)
+        product_variants = _seed_products(session, categories, sizes, colors, seasons, collections, providers)
+        _seed_inventory(session, branches, product_variants)
         session.commit()
         print("Seeder demo ejecutado correctamente")
         print(f"- Sucursales: {len(branches)}")
         print(f"- Usuarios: {len(users)}")
         print(f"- Proveedores: {len(providers)}")
-        print(f"- Productos: {len(products)}")
+        print(f"- Productos/variantes: {len(product_variants)}")
     except Exception:
         session.rollback()
         raise
@@ -61,6 +62,7 @@ def _ensure_tables() -> None:
         "seasons",
         "collections",
         "products",
+        "product_variants",
         "inventory",
     }
     inspector = inspect(engine)
@@ -301,7 +303,7 @@ def _seed_products(
     seasons: list[Season],
     collections: list[Collection],
     providers: list[Provider],
-) -> list[Product]:
+) -> list[tuple[Product, ProductVariant]]:
     category_styles = {
         "Camisetas": ["Básica", "Oversize", "Estampada", "Manga Larga", "Slim Fit"],
         "Jeans": ["Skinny", "Straight", "Wide Leg", "Mom Fit", "Jogger"],
@@ -311,7 +313,7 @@ def _seed_products(
         "Accesorios": ["Mochila", "Cinturón", "Gorra", "Bufanda", "Bolso"],
     }
 
-    all_products: list[Product] = []
+    all_products: list[tuple[Product, ProductVariant]] = []
     sku_counter = 1001
     singular_names = {
         "Camisetas": "Camiseta",
@@ -350,16 +352,13 @@ def _seed_products(
             product, _ = _get_or_create(
                 session,
                 Product,
-                {"sku": sku},
+                {"name": product_name},
                 {
                     "name": product_name,
                     "description": f"{product_name} de FashionStore, pensado para la demo del MVP.",
                     "price": price,
-                    "status": status,
                     "provider_id": provider.id if provider else None,
                     "category_id": category.id,
-                    "size_id": size.id if size else None,
-                    "color_id": color.id,
                     "season_id": season.id,
                     "collection_id": collection.id,
                 },
@@ -368,26 +367,41 @@ def _seed_products(
             product.name = product_name
             product.description = f"{product_name} de FashionStore, pensado para la demo del MVP."
             product.price = price
-            product.status = status
             product.provider_id = provider.id if provider else None
             product.category_id = category.id
-            product.size_id = size.id if size else None
-            product.color_id = color.id
             product.season_id = season.id
             product.collection_id = collection.id
 
-            all_products.append(product)
+            variant, _ = _get_or_create(
+                session,
+                ProductVariant,
+                {"sku": sku},
+                {
+                    "product_id": product.id,
+                    "price": price,
+                    "size_id": size.id if size else None,
+                    "color_id": color.id,
+                    "status": status,
+                },
+            )
+            variant.product_id = product.id
+            variant.price = price
+            variant.size_id = size.id if size else None
+            variant.color_id = color.id
+            variant.status = status
+
+            all_products.append((product, variant))
             sku_counter += 1
 
     return all_products
 
 
-def _seed_inventory(session, branches: list[Branch], products: list[Product]) -> None:
-    for p_index, product in enumerate(products, start=1):
+def _seed_inventory(session, branches: list[Branch], product_variants: list[tuple[Product, ProductVariant]]) -> None:
+    for p_index, (product, variant) in enumerate(product_variants, start=1):
         for b_index, branch in enumerate(branches, start=1):
-            if product.status == ProductStatusEnum.inactive:
+            if variant.status == ProductStatusEnum.inactive:
                 quantity = 0
-            elif product.status == ProductStatusEnum.pending:
+            elif variant.status == ProductStatusEnum.pending:
                 quantity = 1 if b_index == 1 and p_index % 2 == 0 else 0
             else:
                 base = 18 - ((p_index + b_index) % 7)
@@ -395,13 +409,13 @@ def _seed_inventory(session, branches: list[Branch], products: list[Product]) ->
                 quantity = max(0, int(round(base * branch_factor)))
 
             reserved_quantity = 0
-            if quantity > 0 and product.status == ProductStatusEnum.active and (p_index + b_index) % 4 == 0:
+            if quantity > 0 and variant.status == ProductStatusEnum.active and (p_index + b_index) % 4 == 0:
                 reserved_quantity = min(3, max(1, quantity // 4))
 
             inventory, _ = _get_or_create(
                 session,
                 Inventory,
-                {"product_id": product.id, "branch_id": branch.id},
+                {"variant_id": variant.id, "branch_id": branch.id},
                 {"quantity": quantity, "reserved_quantity": reserved_quantity},
             )
             inventory.quantity = quantity
