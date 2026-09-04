@@ -1,7 +1,7 @@
 """add is_active flags to users branches and providers
 
 Revision ID: 0011_add_is_active_flags
-Revises: 0010_cleanup_legacy_catalog_columns
+Revises: 0010_cleanup_catalog
 Create Date: 2026-09-04 00:00:03.000000
 """
 
@@ -11,7 +11,7 @@ from sqlalchemy import inspect, text
 
 
 revision = "0011_add_is_active_flags"
-down_revision = "0010_cleanup_legacy_catalog_columns"
+down_revision = "0010_cleanup_catalog"
 branch_labels = None
 depends_on = None
 
