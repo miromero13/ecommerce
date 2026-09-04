@@ -3,6 +3,11 @@ import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 
+import { HlmBadgeImports } from '../../../components/badge/src';
+import { HlmButton } from '../../../components/button/src';
+import { HlmCardImports } from '../../../components/card/src';
+import { HlmFieldImports } from '../../../components/field/src';
+import { HlmInput } from '../../../components/input/src';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
 import { CatalogBranch, CatalogNameItem, CatalogProduct } from '../../shared/models/catalog.model';
 import { CatalogApiService } from '../../shared/services/catalog-api.service';
@@ -10,7 +15,7 @@ import { CatalogApiService } from '../../shared/services/catalog-api.service';
 @Component({
   selector: 'app-catalog-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, HlmButton, HlmInput, ...HlmBadgeImports, ...HlmCardImports, ...HlmFieldImports],
   templateUrl: './catalog-page.component.html',
 })
 export class CatalogPageComponent {
