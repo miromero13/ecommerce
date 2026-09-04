@@ -254,7 +254,10 @@ async def list_pending_products(db: Session = Depends(get_db), current_user: Use
 
 @router.post("/products", status_code=status.HTTP_201_CREATED)
 async def create_product_route(payload: ProductCreate, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
-    product = create_product(db, payload, status=ProductStatusEnum.active)
+    try:
+        product = create_product(db, payload, status=ProductStatusEnum.active)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     return response(status_code=201, message="Producto creado exitosamente", data=ProductRead.model_validate(product).model_dump())
 
 
@@ -284,7 +287,10 @@ async def delete_product_route(product_id: UUID, db: Session = Depends(get_db), 
 async def submit_product_route(payload: ProductCreate, db: Session = Depends(get_db), current_payload: dict = Depends(require_roles(RolEnum.proveedor, RolEnum.administrador))):
     provider = db.query(Provider).filter(Provider.user_id == UUID(current_payload["sub"])).first()
     provider_id = provider.id if provider else None
-    product = create_product(db, payload, provider_id=provider_id, status=ProductStatusEnum.pending)
+    try:
+        product = create_product(db, payload, provider_id=provider_id, status=ProductStatusEnum.pending)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     return response(status_code=201, message="Producto enviado exitosamente", data=ProductRead.model_validate(product).model_dump())
 
 

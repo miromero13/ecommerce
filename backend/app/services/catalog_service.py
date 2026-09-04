@@ -102,41 +102,43 @@ def create_product(
         normalized_variants = _normalized_variants(payload, status)
         _validate_variant_payload(normalized_variants)
 
-        product = Product(
-            name=payload.name,
-            description=payload.description,
-            price=payload.price,
-            provider_id=provider_id,
-            category_id=payload.category_id,
-            season_id=payload.season_id,
-            collection_id=payload.collection_id,
-        )
-        db.add(product)
-        db.flush()
-
-        variants = []
-        for variant_data in normalized_variants:
-            variant = ProductVariant(
-                product_id=product.id,
-                sku=variant_data["sku"],
-                price=variant_data["price"],
-                size_id=variant_data["size_id"],
-                color_id=variant_data["color_id"],
-                status=variant_data["status"],
+        with db.begin_nested():
+            product = Product(
+                name=payload.name,
+                description=payload.description,
+                price=payload.price,
+                provider_id=provider_id,
+                category_id=payload.category_id,
+                season_id=payload.season_id,
+                collection_id=payload.collection_id,
             )
-            db.add(variant)
-            variants.append(variant)
+            db.add(product)
+            db.flush()
 
-        if variants:
-            product.price = variants[0].price
+            variants = []
+            for variant_data in normalized_variants:
+                variant = ProductVariant(
+                    product_id=product.id,
+                    sku=variant_data["sku"],
+                    price=variant_data["price"],
+                    size_id=variant_data["size_id"],
+                    color_id=variant_data["color_id"],
+                    status=variant_data["status"],
+                )
+                db.add(variant)
+                variants.append(variant)
 
-        db.commit()
+            if variants:
+                product.price = variants[0].price
 
         db.refresh(product)
         for variant in variants:
             db.refresh(variant)
         return product
-    except IntegrityError:
+    except (IntegrityError, ValueError):
+        db.rollback()
+        raise
+    except Exception:
         db.rollback()
         raise ValueError("No se pudo crear el producto")
 
@@ -242,41 +244,43 @@ def update_product(db: Session, product_id, payload: ProductCreate) -> Product |
 
     try:
         variant_ids = [variant.id for variant in product.variants]
-        if variant_ids:
-            db.query(Inventory).filter(Inventory.variant_id.in_(variant_ids)).delete(synchronize_session=False)
-            db.query(ProductVariant).filter(ProductVariant.id.in_(variant_ids)).delete(synchronize_session=False)
-
-        product.name = payload.name
-        product.description = payload.description
-        product.price = payload.price
-        product.provider_id = payload.provider_id
-        product.category_id = payload.category_id
-        product.season_id = payload.season_id
-        product.collection_id = payload.collection_id
-
-        variants = []
         normalized_variants = _normalized_variants(payload, payload.status or ProductStatusEnum.active)
         _validate_variant_payload(normalized_variants)
 
-        for variant_data in normalized_variants:
-            variant = ProductVariant(
-                product_id=product.id,
-                sku=variant_data["sku"],
-                price=variant_data["price"],
-                size_id=variant_data["size_id"],
-                color_id=variant_data["color_id"],
-                status=variant_data["status"],
-            )
-            db.add(variant)
-            variants.append(variant)
+        with db.begin_nested():
+            if variant_ids:
+                db.query(Inventory).filter(Inventory.variant_id.in_(variant_ids)).delete(synchronize_session=False)
+                db.query(ProductVariant).filter(ProductVariant.id.in_(variant_ids)).delete(synchronize_session=False)
 
-        if variants:
-            product.price = variants[0].price
+            product.name = payload.name
+            product.description = payload.description
+            product.price = payload.price
+            product.provider_id = payload.provider_id
+            product.category_id = payload.category_id
+            product.season_id = payload.season_id
+            product.collection_id = payload.collection_id
 
-        db.commit()
+            variants = []
+            for variant_data in normalized_variants:
+                variant = ProductVariant(
+                    product_id=product.id,
+                    sku=variant_data["sku"],
+                    price=variant_data["price"],
+                    size_id=variant_data["size_id"],
+                    color_id=variant_data["color_id"],
+                    status=variant_data["status"],
+                )
+                db.add(variant)
+                variants.append(variant)
+
+            if variants:
+                product.price = variants[0].price
 
         return db.query(Product).options(selectinload(Product.variants)).filter(Product.id == product_id).first()
-    except IntegrityError:
+    except (IntegrityError, ValueError):
+        db.rollback()
+        raise
+    except Exception:
         db.rollback()
         raise ValueError("No se pudo actualizar el producto")
 
@@ -287,14 +291,17 @@ def delete_product(db: Session, product_id) -> bool:
         return False
 
     try:
-        variant_ids = [variant.id for variant in product.variants]
-        if variant_ids:
-            db.query(Inventory).filter(Inventory.variant_id.in_(variant_ids)).delete(synchronize_session=False)
-            db.query(ProductVariant).filter(ProductVariant.id.in_(variant_ids)).delete(synchronize_session=False)
-        db.delete(product)
-        db.commit()
+        with db.begin_nested():
+            variant_ids = [variant.id for variant in product.variants]
+            if variant_ids:
+                db.query(Inventory).filter(Inventory.variant_id.in_(variant_ids)).delete(synchronize_session=False)
+                db.query(ProductVariant).filter(ProductVariant.id.in_(variant_ids)).delete(synchronize_session=False)
+            db.delete(product)
         return True
-    except IntegrityError:
+    except (IntegrityError, ValueError):
+        db.rollback()
+        raise
+    except Exception:
         db.rollback()
         raise ValueError("No se pudo eliminar el producto")
 
