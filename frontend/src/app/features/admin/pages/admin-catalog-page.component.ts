@@ -3,6 +3,11 @@ import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 
+import { HlmButton } from '../../../components/button/src';
+import { HlmCardImports } from '../../../components/card/src';
+import { HlmFieldImports } from '../../../components/field/src';
+import { HlmInput } from '../../../components/input/src';
+import { HlmTable } from '../../../components/table/src';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
 import {
   CatalogCollectionItem,
@@ -15,7 +20,7 @@ import { CatalogApiService } from '../../shared/services/catalog-api.service';
 @Component({
   selector: 'app-admin-catalog-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, HlmButton, HlmInput, HlmTable, ...HlmCardImports, ...HlmFieldImports],
   templateUrl: './admin-catalog-page.component.html',
 })
 export class AdminCatalogPageComponent {

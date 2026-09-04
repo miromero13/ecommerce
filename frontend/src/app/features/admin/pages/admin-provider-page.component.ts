@@ -3,6 +3,10 @@ import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 
+import { HlmButton } from '../../../components/button/src';
+import { HlmCardImports } from '../../../components/card/src';
+import { HlmFieldImports } from '../../../components/field/src';
+import { HlmInput } from '../../../components/input/src';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
 import { AdminBranch } from '../models/admin-branch.model';
 import { AdminBranchService } from '../services/admin-branch.service';
@@ -12,7 +16,7 @@ import { AdminProviderService } from '../services/admin-provider.service';
 @Component({
   selector: 'app-admin-provider-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, HlmButton, HlmInput, ...HlmCardImports, ...HlmFieldImports],
   templateUrl: './admin-provider-page.component.html',
 })
 export class AdminProviderPageComponent {

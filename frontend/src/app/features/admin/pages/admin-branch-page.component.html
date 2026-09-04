@@ -1,8 +1,11 @@
 <section class="space-y-6">
-  <header>
-    <h1 class="text-2xl font-semibold">Sucursales</h1>
-    <p class="text-sm text-slate-500">Administra las sucursales de la cadena.</p>
-  </header>
+  <section hlmCard class="bg-white shadow-sm">
+    <div hlmCardHeader class="space-y-2">
+      <span class="text-xs uppercase tracking-wide text-slate-500">Administración</span>
+      <h1 hlmCardTitle class="text-2xl">Sucursales</h1>
+      <p hlmCardDescription>Administra las sucursales de la cadena.</p>
+    </div>
+  </section>
 
   @if (errorMessage()) {
     <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ errorMessage() }}</p>
@@ -12,16 +15,22 @@
     <p class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{{ successMessage() }}</p>
   }
 
-  <form class="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-3" [formGroup]="form" (ngSubmit)="submit()">
-    <input class="rounded-lg border border-slate-300 px-3 py-2" placeholder="Nombre" formControlName="name" />
-    <input class="rounded-lg border border-slate-300 px-3 py-2" placeholder="Ciudad" formControlName="city" />
-    <button class="rounded-lg bg-slate-900 px-4 py-2 text-sm text-white" type="submit" [disabled]="form.invalid || loading()">
+  <form hlmCard class="grid gap-3 bg-white p-4 shadow-sm sm:grid-cols-3" [formGroup]="form" (ngSubmit)="submit()">
+    <div hlmField>
+      <label hlmFieldLabel for="branch-name">Nombre</label>
+      <input id="branch-name" hlmInput placeholder="Nombre" formControlName="name" />
+    </div>
+    <div hlmField>
+      <label hlmFieldLabel for="branch-city">Ciudad</label>
+      <input id="branch-city" hlmInput placeholder="Ciudad" formControlName="city" />
+    </div>
+    <button hlmBtn class="mt-auto" type="submit" [disabled]="form.invalid || loading()">
       {{ loading() ? 'Guardando...' : 'Crear sucursal' }}
     </button>
   </form>
 
   <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
-    <table class="w-full text-left text-sm">
+    <table hlmTable class="w-full text-left text-sm">
       <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
         <tr>
           <th class="px-4 py-3">Nombre</th>
