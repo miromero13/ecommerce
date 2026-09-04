@@ -44,7 +44,12 @@ export const routes: Routes = [
       {
         path: 'cliente',
         loadComponent: () =>
-          import('./features/cliente/pages/cliente-home-page.component').then((m) => m.ClienteHomePageComponent),
+          import('./features/cliente/pages/catalog-page.component').then((m) => m.CatalogPageComponent),
+      },
+      {
+        path: 'cliente/catalog',
+        loadComponent: () =>
+          import('./features/cliente/pages/catalog-page.component').then((m) => m.CatalogPageComponent),
       },
       {
         path: 'proveedor',
@@ -81,6 +86,13 @@ export const routes: Routes = [
             loadComponent: () =>
               import('./features/admin/pages/admin-home-page.component').then(
                 (m) => m.AdminHomePageComponent,
+              ),
+          },
+          {
+            path: 'catalog',
+            loadComponent: () =>
+              import('./features/admin/pages/admin-catalog-page.component').then(
+                (m) => m.AdminCatalogPageComponent,
               ),
           },
           {

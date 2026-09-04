@@ -128,9 +128,19 @@ export class AppShellComponent {
             title: 'Administración',
             items: [
               { label: 'Dashboard', route: '/app/admin', icon: 'lucideLayoutDashboard', exact: true },
+              { label: 'Catálogo', route: '/app/admin/catalog', icon: 'lucideLayoutDashboard' },
               { label: 'Usuarios', route: '/app/admin/user', icon: 'lucideUsers' },
               { label: 'Sucursales', route: '/app/admin/branch', icon: 'lucideLayoutDashboard' },
               { label: 'Proveedores', route: '/app/admin/provider', icon: 'lucideUsers' },
+            ],
+          },
+        ];
+      case 'cliente':
+        return [
+          {
+            title: 'Navegación',
+            items: [
+              { label: 'Catálogo', route: '/app/cliente/catalog', icon: 'lucideLayoutDashboard', exact: true },
             ],
           },
         ];

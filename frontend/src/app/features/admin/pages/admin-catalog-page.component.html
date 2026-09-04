@@ -1,0 +1,125 @@
+<section class="space-y-8">
+  <header>
+    <h1 class="text-2xl font-semibold">Catálogo</h1>
+    <p class="text-sm text-slate-500">Administra atributos y productos del catálogo.</p>
+  </header>
+
+  @if (errorMessage()) {
+    <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ errorMessage() }}</p>
+  }
+
+  @if (successMessage()) {
+    <p class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{{ successMessage() }}</p>
+  }
+
+  <div class="grid gap-4 lg:grid-cols-2">
+    <form class="space-y-3 rounded-xl border border-slate-200 bg-white p-4" [formGroup]="categoryForm" (ngSubmit)="submitCategory()">
+      <h2 class="font-medium">Categoría</h2>
+      <input class="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="Nombre" formControlName="name" />
+      <button class="rounded-lg bg-slate-900 px-4 py-2 text-sm text-white" type="submit">Crear categoría</button>
+    </form>
+
+    <form class="space-y-3 rounded-xl border border-slate-200 bg-white p-4" [formGroup]="sizeForm" (ngSubmit)="submitSize()">
+      <h2 class="font-medium">Talla</h2>
+      <input class="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="Nombre" formControlName="name" />
+      <button class="rounded-lg bg-slate-900 px-4 py-2 text-sm text-white" type="submit">Crear talla</button>
+    </form>
+
+    <form class="space-y-3 rounded-xl border border-slate-200 bg-white p-4" [formGroup]="colorForm" (ngSubmit)="submitColor()">
+      <h2 class="font-medium">Color</h2>
+      <input class="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="Nombre" formControlName="name" />
+      <input class="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="Hex" formControlName="hex_code" />
+      <button class="rounded-lg bg-slate-900 px-4 py-2 text-sm text-white" type="submit">Crear color</button>
+    </form>
+
+    <form class="space-y-3 rounded-xl border border-slate-200 bg-white p-4" [formGroup]="seasonForm" (ngSubmit)="submitSeason()">
+      <h2 class="font-medium">Temporada</h2>
+      <input class="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="Nombre" formControlName="name" />
+      <button class="rounded-lg bg-slate-900 px-4 py-2 text-sm text-white" type="submit">Crear temporada</button>
+    </form>
+
+    <form class="space-y-3 rounded-xl border border-slate-200 bg-white p-4 lg:col-span-2" [formGroup]="collectionForm" (ngSubmit)="submitCollection()">
+      <h2 class="font-medium">Colección</h2>
+      <div class="grid gap-3 md:grid-cols-2">
+        <input class="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="Nombre" formControlName="name" />
+        <select class="w-full rounded-lg border border-slate-300 px-3 py-2" formControlName="season_id">
+          <option value="">Sin temporada</option>
+          @for (season of seasons(); track season.id) {
+            <option [value]="season.id">{{ season.name }}</option>
+          }
+        </select>
+      </div>
+      <button class="rounded-lg bg-slate-900 px-4 py-2 text-sm text-white" type="submit">Crear colección</button>
+    </form>
+  </div>
+
+  <form class="space-y-4 rounded-xl border border-slate-200 bg-white p-4" [formGroup]="productForm" (ngSubmit)="submitProduct()">
+    <h2 class="font-medium">Producto</h2>
+    <div class="grid gap-3 md:grid-cols-3">
+      <input class="rounded-lg border border-slate-300 px-3 py-2" placeholder="SKU" formControlName="sku" />
+      <input class="rounded-lg border border-slate-300 px-3 py-2 md:col-span-2" placeholder="Nombre" formControlName="name" />
+      <input class="rounded-lg border border-slate-300 px-3 py-2 md:col-span-3" placeholder="Descripción" formControlName="description" />
+      <input class="rounded-lg border border-slate-300 px-3 py-2" placeholder="Precio" formControlName="price" />
+      <select class="rounded-lg border border-slate-300 px-3 py-2" formControlName="category_id">
+        <option value="">Categoría</option>
+        @for (category of categories(); track category.id) {
+          <option [value]="category.id">{{ category.name }}</option>
+        }
+      </select>
+      <select class="rounded-lg border border-slate-300 px-3 py-2" formControlName="size_id">
+        <option value="">Talla</option>
+        @for (size of sizes(); track size.id) {
+          <option [value]="size.id">{{ size.name }}</option>
+        }
+      </select>
+      <select class="rounded-lg border border-slate-300 px-3 py-2" formControlName="color_id">
+        <option value="">Color</option>
+        @for (color of colors(); track color.id) {
+          <option [value]="color.id">{{ color.name }}</option>
+        }
+      </select>
+      <select class="rounded-lg border border-slate-300 px-3 py-2" formControlName="season_id">
+        <option value="">Temporada</option>
+        @for (season of seasons(); track season.id) {
+          <option [value]="season.id">{{ season.name }}</option>
+        }
+      </select>
+      <select class="rounded-lg border border-slate-300 px-3 py-2 md:col-span-2" formControlName="collection_id">
+        <option value="">Colección</option>
+        @for (collection of collections(); track collection.id) {
+          <option [value]="collection.id">{{ collection.name }} - {{ seasonName(collection.season_id) }}</option>
+        }
+      </select>
+    </div>
+    <button class="rounded-lg bg-slate-900 px-4 py-2 text-sm text-white" type="submit" [disabled]="loading()">{{ loading() ? 'Guardando...' : 'Crear producto' }}</button>
+  </form>
+
+  <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+        <tr>
+          <th class="px-4 py-3">SKU</th>
+          <th class="px-4 py-3">Nombre</th>
+          <th class="px-4 py-3">Precio</th>
+          <th class="px-4 py-3">Estado</th>
+          <th class="px-4 py-3 text-right">Acción</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-200">
+        @for (product of products(); track product.id) {
+          <tr>
+            <td class="px-4 py-3">{{ product.sku }}</td>
+            <td class="px-4 py-3">{{ product.name }}</td>
+            <td class="px-4 py-3">{{ product.price }}</td>
+            <td class="px-4 py-3">{{ product.status }}</td>
+            <td class="px-4 py-3 text-right">
+              <button class="rounded-lg border px-3 py-1 text-sm" type="button" (click)="toggleProductStatus(product)">
+                {{ product.status === 'active' ? 'Desactivar' : 'Activar' }}
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
