@@ -44,3 +44,14 @@ async def create_branch_route(
         message="Sucursal creada exitosamente",
         data=branch_data,
     )
+
+
+@router.get("/public")
+async def list_public_branches_route(db: Session = Depends(get_db)):
+    branches = get_branches(db)
+    branches_data = [BranchRead.model_validate(branch).model_dump() for branch in branches]
+    return response(
+        status_code=status.HTTP_200_OK,
+        message="Sucursales obtenidas exitosamente",
+        data=branches_data,
+    )

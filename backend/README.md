@@ -63,6 +63,13 @@ No hay configuración personalizada para desactivarlo en `main.py`.
 - `GET /api/providers/`
 - `POST /api/providers/`
 - `PATCH /api/providers/{id}/status`
+- `GET /api/catalog/products`
+- `GET /api/catalog/products/pending`
+- `POST /api/catalog/products`
+- `POST /api/catalog/products/provider-submission`
+- `PATCH /api/catalog/products/{id}/status`
+- `GET /api/catalog/availability`
+- `GET /api/catalog/categories`, `/sizes`, `/colors`, `/seasons`, `/collections`
 
 ## Migraciones y seeders
 
