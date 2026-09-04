@@ -25,3 +25,7 @@ class BranchUpdate(BaseModel):
     city: str
     is_default: bool = False
     is_active: bool = True
+
+
+class BranchActiveUpdate(BaseModel):
+    is_active: bool

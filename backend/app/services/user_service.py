@@ -1,7 +1,6 @@
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func, or_
-from sqlalchemy import update as sa_update
 from app.models.user import User
 from app.models.provider import Provider
 from app.models.product import Product

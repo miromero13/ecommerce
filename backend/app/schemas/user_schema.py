@@ -64,3 +64,7 @@ class UserUpdate(BaseModel):
     gender: GenderEnum
     branch_id: UUID | None = None
     is_active: bool = True
+
+
+class UserActiveUpdate(BaseModel):
+    is_active: bool

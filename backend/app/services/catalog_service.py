@@ -75,6 +75,23 @@ def _normalized_variants(payload: ProductCreate, default_status: ProductStatusEn
     return normalized
 
 
+def _validate_variant_payload(variants: list[dict]) -> None:
+    sku_set: set[str] = set()
+    combo_set: set[tuple] = set()
+
+    for variant in variants:
+        sku = variant["sku"]
+        combo = (variant["size_id"], variant["color_id"])
+
+        if sku in sku_set:
+            raise ValueError("No se pueden repetir SKUs dentro del mismo producto")
+        if combo in combo_set:
+            raise ValueError("No se puede repetir la combinacion talla y color dentro del mismo producto")
+
+        sku_set.add(sku)
+        combo_set.add(combo)
+
+
 def create_product(
     db: Session,
     payload: ProductCreate,
@@ -82,6 +99,9 @@ def create_product(
     status: ProductStatusEnum = ProductStatusEnum.active,
 ):
     try:
+        normalized_variants = _normalized_variants(payload, status)
+        _validate_variant_payload(normalized_variants)
+
         product = Product(
             name=payload.name,
             description=payload.description,
@@ -95,7 +115,7 @@ def create_product(
         db.flush()
 
         variants = []
-        for variant_data in _normalized_variants(payload, status):
+        for variant_data in normalized_variants:
             variant = ProductVariant(
                 product_id=product.id,
                 sku=variant_data["sku"],
@@ -235,7 +255,10 @@ def update_product(db: Session, product_id, payload: ProductCreate) -> Product |
         product.collection_id = payload.collection_id
 
         variants = []
-        for variant_data in _normalized_variants(payload, payload.status or ProductStatusEnum.active):
+        normalized_variants = _normalized_variants(payload, payload.status or ProductStatusEnum.active)
+        _validate_variant_payload(normalized_variants)
+
+        for variant_data in normalized_variants:
             variant = ProductVariant(
                 product_id=product.id,
                 sku=variant_data["sku"],

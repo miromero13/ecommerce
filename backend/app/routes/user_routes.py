@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, status, Query, HTTPException
 from sqlalchemy.orm import Session
 from uuid import UUID
 
-from app.schemas.user_schema import UserCreate, UserRead, UsersPaginatedResponse, UserUpdateRol, UserUpdateBranch
-from app.services.user_service import create_user, get_user, get_users, get_users_count, update_user_rol, update_user_branch
+from app.schemas.user_schema import UserCreate, UserRead, UsersPaginatedResponse, UserUpdateRol, UserUpdateBranch, UserUpdate, UserActiveUpdate
+from app.services.user_service import create_user, get_user, get_users, get_users_count, update_user_rol, update_user_branch, update_user_full, delete_user, set_user_active
 from app.core.database import get_db
 from app.utils.response import response
 from app.auth.dependencies import get_current_user, get_current_branch_id, require_roles
@@ -130,4 +130,86 @@ async def update_user_branch_route(
         status_code=200,
         message="Sucursal de usuario actualizada exitosamente",
         data=user_data
+    )
+
+
+@router.put("/{user_id}")
+async def update_user_full_route(
+    user_id: UUID,
+    update_data: UserUpdate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_roles(RolEnum.administrador)),
+    current_branch_id: UUID | None = Depends(get_current_branch_id),
+):
+    target_user = get_user(db, user_id)
+    if not target_user:
+        raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
+    if current_branch_id is not None and target_user.rol != RolEnum.cliente and target_user.branch_id != current_branch_id:
+        raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
+
+    try:
+        db_user = update_user_full(db, user_id, update_data)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    if not db_user:
+        raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
+
+    return response(
+        status_code=200,
+        message="Usuario actualizado exitosamente",
+        data=UserRead.model_validate(db_user).model_dump(),
+    )
+
+
+@router.patch("/{user_id}/active")
+async def update_user_active_route(
+    user_id: UUID,
+    update_data: UserActiveUpdate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_roles(RolEnum.administrador)),
+    current_branch_id: UUID | None = Depends(get_current_branch_id),
+):
+    target_user = get_user(db, user_id)
+    if not target_user:
+        raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
+    if current_branch_id is not None and target_user.rol != RolEnum.cliente and target_user.branch_id != current_branch_id:
+        raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
+
+    db_user = set_user_active(db, user_id, update_data.is_active)
+    if not db_user:
+        raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
+
+    return response(
+        status_code=200,
+        message="Estado de usuario actualizado exitosamente",
+        data=UserRead.model_validate(db_user).model_dump(),
+    )
+
+
+@router.delete("/{user_id}")
+async def delete_user_route(
+    user_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_roles(RolEnum.administrador)),
+    current_branch_id: UUID | None = Depends(get_current_branch_id),
+):
+    target_user = get_user(db, user_id)
+    if not target_user:
+        raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
+    if current_branch_id is not None and target_user.rol != RolEnum.cliente and target_user.branch_id != current_branch_id:
+        raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
+
+    try:
+        deleted = delete_user(db, user_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
+
+    return response(
+        status_code=200,
+        message="Usuario eliminado exitosamente",
+        data={"id": str(user_id)},
     )

@@ -29,6 +29,14 @@ from app.services.catalog_service import (
     create_color,
     create_collection,
     create_product,
+    update_name_item,
+    delete_category,
+    delete_size,
+    delete_color,
+    delete_season,
+    delete_collection,
+    update_product,
+    delete_product,
     update_product_status,
     list_public_products,
     create_or_update_inventory,
@@ -65,6 +73,28 @@ async def create_category(payload: NameCreate, db: Session = Depends(get_db), cu
     return response(status_code=201, message="Categoria creada exitosamente", data={"id": item.id, "name": item.name})
 
 
+@router.put("/categories/{category_id}")
+async def update_category(category_id: UUID, payload: NameCreate, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
+    try:
+        item = update_name_item(db, Category, category_id, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not item:
+        raise HTTPException(status_code=404, detail=f"Categoria con id {category_id} no encontrada")
+    return response(status_code=200, message="Categoria actualizada exitosamente", data={"id": item.id, "name": item.name})
+
+
+@router.delete("/categories/{category_id}")
+async def delete_category_route(category_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
+    try:
+        deleted = delete_category(db, category_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"Categoria con id {category_id} no encontrada")
+    return response(status_code=200, message="Categoria eliminada exitosamente", data={"id": str(category_id)})
+
+
 @router.get("/sizes")
 async def list_sizes(db: Session = Depends(get_db)):
     items = db.query(Size).order_by(Size.name.asc()).all()
@@ -75,6 +105,28 @@ async def list_sizes(db: Session = Depends(get_db)):
 async def create_size(payload: NameCreate, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
     item = create_name_item(db, Size, payload)
     return response(status_code=201, message="Talla creada exitosamente", data={"id": item.id, "name": item.name})
+
+
+@router.put("/sizes/{size_id}")
+async def update_size(size_id: UUID, payload: NameCreate, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
+    try:
+        item = update_name_item(db, Size, size_id, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not item:
+        raise HTTPException(status_code=404, detail=f"Talla con id {size_id} no encontrada")
+    return response(status_code=200, message="Talla actualizada exitosamente", data={"id": item.id, "name": item.name})
+
+
+@router.delete("/sizes/{size_id}")
+async def delete_size_route(size_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
+    try:
+        deleted = delete_size(db, size_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"Talla con id {size_id} no encontrada")
+    return response(status_code=200, message="Talla eliminada exitosamente", data={"id": str(size_id)})
 
 
 @router.get("/colors")
@@ -89,6 +141,28 @@ async def create_color_route(payload: ColorCreate, db: Session = Depends(get_db)
     return response(status_code=201, message="Color creado exitosamente", data={"id": item.id, "name": item.name, "hex_code": item.hex_code})
 
 
+@router.put("/colors/{color_id}")
+async def update_color(color_id: UUID, payload: ColorCreate, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
+    try:
+        item = update_name_item(db, Color, color_id, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not item:
+        raise HTTPException(status_code=404, detail=f"Color con id {color_id} no encontrado")
+    return response(status_code=200, message="Color actualizado exitosamente", data={"id": item.id, "name": item.name, "hex_code": item.hex_code})
+
+
+@router.delete("/colors/{color_id}")
+async def delete_color_route(color_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
+    try:
+        deleted = delete_color(db, color_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"Color con id {color_id} no encontrado")
+    return response(status_code=200, message="Color eliminado exitosamente", data={"id": str(color_id)})
+
+
 @router.get("/seasons")
 async def list_seasons(db: Session = Depends(get_db)):
     items = db.query(Season).order_by(Season.name.asc()).all()
@@ -101,6 +175,28 @@ async def create_season(payload: NameCreate, db: Session = Depends(get_db), curr
     return response(status_code=201, message="Temporada creada exitosamente", data={"id": item.id, "name": item.name})
 
 
+@router.put("/seasons/{season_id}")
+async def update_season(season_id: UUID, payload: NameCreate, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
+    try:
+        item = update_name_item(db, Season, season_id, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not item:
+        raise HTTPException(status_code=404, detail=f"Temporada con id {season_id} no encontrada")
+    return response(status_code=200, message="Temporada actualizada exitosamente", data={"id": item.id, "name": item.name})
+
+
+@router.delete("/seasons/{season_id}")
+async def delete_season_route(season_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
+    try:
+        deleted = delete_season(db, season_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"Temporada con id {season_id} no encontrada")
+    return response(status_code=200, message="Temporada eliminada exitosamente", data={"id": str(season_id)})
+
+
 @router.get("/collections")
 async def list_collections(db: Session = Depends(get_db)):
     items = db.query(Collection).order_by(Collection.name.asc()).all()
@@ -111,6 +207,28 @@ async def list_collections(db: Session = Depends(get_db)):
 async def create_collection_route(payload: CollectionCreate, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
     item = create_collection(db, payload)
     return response(status_code=201, message="Coleccion creada exitosamente", data={"id": item.id, "name": item.name, "season_id": item.season_id})
+
+
+@router.put("/collections/{collection_id}")
+async def update_collection(collection_id: UUID, payload: CollectionCreate, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
+    try:
+        item = update_name_item(db, Collection, collection_id, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not item:
+        raise HTTPException(status_code=404, detail=f"Coleccion con id {collection_id} no encontrada")
+    return response(status_code=200, message="Coleccion actualizada exitosamente", data={"id": item.id, "name": item.name, "season_id": item.season_id})
+
+
+@router.delete("/collections/{collection_id}")
+async def delete_collection_route(collection_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
+    try:
+        deleted = delete_collection(db, collection_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"Coleccion con id {collection_id} no encontrada")
+    return response(status_code=200, message="Coleccion eliminada exitosamente", data={"id": str(collection_id)})
 
 
 @router.get("/products")
@@ -138,6 +256,28 @@ async def list_pending_products(db: Session = Depends(get_db), current_user: Use
 async def create_product_route(payload: ProductCreate, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
     product = create_product(db, payload, status=ProductStatusEnum.active)
     return response(status_code=201, message="Producto creado exitosamente", data=ProductRead.model_validate(product).model_dump())
+
+
+@router.put("/products/{product_id}")
+async def update_product_route(product_id: UUID, payload: ProductCreate, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
+    try:
+        product = update_product(db, product_id, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not product:
+        raise HTTPException(status_code=404, detail=f"Producto con id {product_id} no encontrado")
+    return response(status_code=200, message="Producto actualizado exitosamente", data=ProductRead.model_validate(product).model_dump())
+
+
+@router.delete("/products/{product_id}")
+async def delete_product_route(product_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
+    try:
+        deleted = delete_product(db, product_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"Producto con id {product_id} no encontrado")
+    return response(status_code=200, message="Producto eliminado exitosamente", data={"id": str(product_id)})
 
 
 @router.post("/products/provider-submission", status_code=status.HTTP_201_CREATED)

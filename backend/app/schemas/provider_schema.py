@@ -41,3 +41,7 @@ class ProviderUpdate(BaseModel):
     branch_id: UUID | None = None
     status: ProviderStatusEnum = ProviderStatusEnum.active
     is_active: bool = True
+
+
+class ProviderActiveUpdate(BaseModel):
+    is_active: bool

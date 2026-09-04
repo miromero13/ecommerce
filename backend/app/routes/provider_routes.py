@@ -8,8 +8,8 @@ from app.core.database import get_db
 from app.models.provider import Provider
 from app.models.user import User
 from app.schemas.enums import RolEnum
-from app.schemas.provider_schema import ProviderCreate, ProviderRead, ProviderStatusUpdate
-from app.services.provider_service import create_provider, get_providers, update_provider_status
+from app.schemas.provider_schema import ProviderCreate, ProviderRead, ProviderStatusUpdate, ProviderUpdate, ProviderActiveUpdate
+from app.services.provider_service import create_provider, get_providers, update_provider_status, update_provider_full, delete_provider, set_provider_active
 from app.utils.response import response
 
 
@@ -113,3 +113,103 @@ async def update_provider_status_route(
         }
     ).model_dump()
     return response(status_code=status.HTTP_200_OK, message="Estado de proveedor actualizado exitosamente", data=provider_data)
+
+
+@router.put("/{provider_id}")
+async def update_provider_full_route(
+    provider_id: UUID,
+    update_data: ProviderUpdate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_roles(RolEnum.administrador)),
+    current_branch_id: UUID | None = Depends(get_current_branch_id),
+):
+    target_provider = db.query(Provider).filter(Provider.id == provider_id).first()
+    if not target_provider:
+        raise HTTPException(status_code=404, detail=f"Proveedor con id {provider_id} no encontrado")
+    if current_branch_id is not None and target_provider.branch_id != current_branch_id:
+        raise HTTPException(status_code=404, detail=f"Proveedor con id {provider_id} no encontrado")
+
+    try:
+        db_provider = update_provider_full(db, provider_id, update_data)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    if not db_provider:
+        raise HTTPException(status_code=404, detail=f"Proveedor con id {provider_id} no encontrado")
+
+    user = db.query(User).filter(User.id == db_provider.user_id).first()
+    provider_data = ProviderRead.model_validate(
+        {
+            "id": db_provider.id,
+            "user_id": db_provider.user_id,
+            "business_name": db_provider.business_name,
+            "contact_name": db_provider.contact_name,
+            "email": user.email if user else "",
+            "gender": user.gender if user else "masculino",
+            "phone": db_provider.phone,
+            "branch_id": db_provider.branch_id,
+            "status": db_provider.status,
+            "is_active": db_provider.is_active,
+        }
+    ).model_dump()
+    return response(status_code=status.HTTP_200_OK, message="Proveedor actualizado exitosamente", data=provider_data)
+
+
+@router.patch("/{provider_id}/active")
+async def update_provider_active_route(
+    provider_id: UUID,
+    update_data: ProviderActiveUpdate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_roles(RolEnum.administrador)),
+    current_branch_id: UUID | None = Depends(get_current_branch_id),
+):
+    target_provider = db.query(Provider).filter(Provider.id == provider_id).first()
+    if not target_provider:
+        raise HTTPException(status_code=404, detail=f"Proveedor con id {provider_id} no encontrado")
+    if current_branch_id is not None and target_provider.branch_id != current_branch_id:
+        raise HTTPException(status_code=404, detail=f"Proveedor con id {provider_id} no encontrado")
+
+    db_provider = set_provider_active(db, provider_id, update_data.is_active)
+    if not db_provider:
+        raise HTTPException(status_code=404, detail=f"Proveedor con id {provider_id} no encontrado")
+
+    user = db.query(User).filter(User.id == db_provider.user_id).first()
+    provider_data = ProviderRead.model_validate(
+        {
+            "id": db_provider.id,
+            "user_id": db_provider.user_id,
+            "business_name": db_provider.business_name,
+            "contact_name": db_provider.contact_name,
+            "email": user.email if user else "",
+            "gender": user.gender if user else "masculino",
+            "phone": db_provider.phone,
+            "branch_id": db_provider.branch_id,
+            "status": db_provider.status,
+            "is_active": db_provider.is_active,
+        }
+    ).model_dump()
+    return response(status_code=status.HTTP_200_OK, message="Estado de proveedor actualizado exitosamente", data=provider_data)
+
+
+@router.delete("/{provider_id}")
+async def delete_provider_route(
+    provider_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_roles(RolEnum.administrador)),
+    current_branch_id: UUID | None = Depends(get_current_branch_id),
+):
+    target_provider = db.query(Provider).filter(Provider.id == provider_id).first()
+    if not target_provider:
+        raise HTTPException(status_code=404, detail=f"Proveedor con id {provider_id} no encontrado")
+    if current_branch_id is not None and target_provider.branch_id != current_branch_id:
+        raise HTTPException(status_code=404, detail=f"Proveedor con id {provider_id} no encontrado")
+
+    try:
+        deleted = delete_provider(db, provider_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"Proveedor con id {provider_id} no encontrado")
+
+    return response(status_code=status.HTTP_200_OK, message="Proveedor eliminado exitosamente", data={"id": str(provider_id)})
