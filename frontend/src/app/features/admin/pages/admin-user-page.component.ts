@@ -73,6 +73,12 @@ export class AdminUserPageComponent {
         return 'Administrador';
       case 'cliente':
         return 'Cliente';
+      case 'proveedor':
+        return 'Proveedor';
+      case 'encargado':
+        return 'Encargado';
+      case 'cajero':
+        return 'Cajero';
       case 'delivery':
         return 'Delivery';
       default:

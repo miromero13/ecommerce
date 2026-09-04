@@ -7,6 +7,9 @@
   <div class="flex flex-wrap gap-2">
     <button class="rounded-lg border px-3 py-1 text-sm" [class.bg-slate-900]="filtroRol() === ''" [class.text-white]="filtroRol() === ''" type="button" (click)="setFiltro('')">Todos</button>
     <button class="rounded-lg border px-3 py-1 text-sm" [class.bg-slate-900]="filtroRol() === 'cliente'" [class.text-white]="filtroRol() === 'cliente'" type="button" (click)="setFiltro('cliente')">Cliente</button>
+    <button class="rounded-lg border px-3 py-1 text-sm" [class.bg-slate-900]="filtroRol() === 'proveedor'" [class.text-white]="filtroRol() === 'proveedor'" type="button" (click)="setFiltro('proveedor')">Proveedor</button>
+    <button class="rounded-lg border px-3 py-1 text-sm" [class.bg-slate-900]="filtroRol() === 'encargado'" [class.text-white]="filtroRol() === 'encargado'" type="button" (click)="setFiltro('encargado')">Encargado</button>
+    <button class="rounded-lg border px-3 py-1 text-sm" [class.bg-slate-900]="filtroRol() === 'cajero'" [class.text-white]="filtroRol() === 'cajero'" type="button" (click)="setFiltro('cajero')">Cajero</button>
     <button class="rounded-lg border px-3 py-1 text-sm" [class.bg-slate-900]="filtroRol() === 'delivery'" [class.text-white]="filtroRol() === 'delivery'" type="button" (click)="setFiltro('delivery')">Delivery</button>
     <button class="rounded-lg border px-3 py-1 text-sm" [class.bg-slate-900]="filtroRol() === 'administrador'" [class.text-white]="filtroRol() === 'administrador'" type="button" (click)="setFiltro('administrador')">Administrador</button>
   </div>
@@ -45,9 +48,12 @@
               <td class="px-4 py-3 text-sm text-slate-600">{{ labelRol(user.rol) }}</td>
               <td class="px-4 py-3 text-right">
                 <select class="rounded-lg border border-slate-300 px-3 py-2 text-sm" [value]="user.rol" [disabled]="currentUserId() === user.id" (change)="actualizarRol(user, $any($event.target).value)">
-                  <option value="cliente">Cliente</option>
-                  <option value="delivery">Delivery</option>
                   <option value="administrador">Administrador</option>
+                  <option value="cliente">Cliente</option>
+                  <option value="proveedor">Proveedor</option>
+                  <option value="encargado">Encargado</option>
+                  <option value="cajero">Cajero</option>
+                  <option value="delivery">Delivery</option>
                 </select>
               </td>
             </tr>

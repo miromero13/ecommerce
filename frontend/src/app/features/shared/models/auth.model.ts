@@ -1,4 +1,4 @@
-export type RolUsuario = 'administrador' | 'cliente' | 'delivery';
+export type RolUsuario = 'administrador' | 'cliente' | 'proveedor' | 'encargado' | 'cajero' | 'delivery';
 
 export type GeneroUsuario = 'masculino' | 'femenino';
 

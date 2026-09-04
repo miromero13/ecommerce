@@ -42,6 +42,37 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'cliente',
+        loadComponent: () =>
+          import('./features/cliente/pages/cliente-home-page.component').then((m) => m.ClienteHomePageComponent),
+      },
+      {
+        path: 'proveedor',
+        loadComponent: () =>
+          import('./features/proveedor/pages/proveedor-home-page.component').then(
+            (m) => m.ProveedorHomePageComponent,
+          ),
+      },
+      {
+        path: 'encargado',
+        loadComponent: () =>
+          import('./features/encargado/pages/encargado-home-page.component').then(
+            (m) => m.EncargadoHomePageComponent,
+          ),
+      },
+      {
+        path: 'cajero',
+        loadComponent: () =>
+          import('./features/cajero/pages/cajero-home-page.component').then((m) => m.CajeroHomePageComponent),
+      },
+      {
+        path: 'delivery',
+        loadComponent: () =>
+          import('./features/delivery/pages/delivery-home-page.component').then(
+            (m) => m.DeliveryHomePageComponent,
+          ),
+      },
+      {
         path: 'admin',
         canActivate: [roleGuard(['administrador'])],
         children: [

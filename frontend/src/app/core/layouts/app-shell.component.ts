@@ -76,10 +76,35 @@ export class AppShellComponent {
         return 'Administrador';
       case 'cliente':
         return 'Cliente';
+      case 'proveedor':
+        return 'Proveedor';
+      case 'encargado':
+        return 'Encargado';
+      case 'cajero':
+        return 'Cajero';
       case 'delivery':
         return 'Delivery';
       default:
         return 'Sin sesión';
+    }
+  });
+
+  protected readonly homeItem = computed(() => {
+    switch (this.userRole()) {
+      case 'administrador':
+        return { label: 'Dashboard', route: '/app/admin', icon: 'lucideLayoutDashboard', exact: true };
+      case 'cliente':
+        return { label: 'Inicio', route: '/app/cliente', icon: 'lucideUserRound', exact: true };
+      case 'proveedor':
+        return { label: 'Inicio', route: '/app/proveedor', icon: 'lucideUserRound', exact: true };
+      case 'encargado':
+        return { label: 'Inicio', route: '/app/encargado', icon: 'lucideUserRound', exact: true };
+      case 'cajero':
+        return { label: 'Inicio', route: '/app/cajero', icon: 'lucideUserRound', exact: true };
+      case 'delivery':
+        return { label: 'Inicio', route: '/app/delivery', icon: 'lucideUserRound', exact: true };
+      default:
+        return { label: 'Inicio', route: '/app/perfil', icon: 'lucideUserRound', exact: true };
     }
   });
 
@@ -103,7 +128,12 @@ export class AppShellComponent {
           },
         ];
       default:
-        return [];
+        return [
+          {
+            title: 'Navegación',
+            items: [this.homeItem()],
+          },
+        ];
     }
   });
 
