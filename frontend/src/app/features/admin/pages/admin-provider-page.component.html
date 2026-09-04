@@ -25,6 +25,7 @@
           <th class="px-4 py-3">Email</th>
           <th class="px-4 py-3">Sucursal</th>
           <th class="px-4 py-3">Estado</th>
+          <th class="px-4 py-3">Activo</th>
           <th class="px-4 py-3 text-right">Acción</th>
         </tr>
       </thead>
@@ -36,10 +37,16 @@
             <td class="px-4 py-3">{{ provider.email }}</td>
             <td class="px-4 py-3">{{ branchName(provider.branch_id) }}</td>
             <td class="px-4 py-3">{{ statusLabel(provider.status) }}</td>
+            <td class="px-4 py-3">{{ isActiveLabel(provider) }}</td>
             <td class="px-4 py-3 text-right">
-              <button class="rounded-lg border px-3 py-1 text-sm" type="button" (click)="updateStatus(provider, provider.status === 'active' ? 'suspended' : 'active')">
-                {{ provider.status === 'active' ? 'Suspender' : 'Activar' }}
-              </button>
+              <app-admin-action-menu
+                [isOpen]="openMenuId() === provider.id"
+                [activeLabel]="provider.is_active ? 'Desactivar' : 'Activar'"
+                (toggleMenu)="toggleMenu(provider.id)"
+                (edit)="editProvider(provider)"
+                (toggleActive)="toggleActive(provider)"
+                (delete)="askDelete(provider)"
+              />
             </td>
           </tr>
         }
@@ -52,8 +59,8 @@
       <section hlmCard class="w-full max-w-3xl bg-white shadow-xl" (click)="$event.stopPropagation()">
         <div hlmCardHeader class="space-y-1 border-b border-slate-200 pb-4">
           <span class="text-xs uppercase tracking-wide text-slate-500">Administración</span>
-          <h2 hlmCardTitle class="text-xl">Crear proveedor</h2>
-          <p hlmCardDescription>Completa el formulario para registrar un nuevo proveedor.</p>
+          <h2 hlmCardTitle class="text-xl">{{ modalMode() === 'edit' ? 'Editar proveedor' : 'Crear proveedor' }}</h2>
+          <p hlmCardDescription>Completa el formulario para guardar el proveedor.</p>
         </div>
 
         <form class="grid gap-3 p-6 md:grid-cols-3" [formGroup]="form" (ngSubmit)="submit()">
@@ -93,13 +100,42 @@
               }
             </select>
           </div>
+          <div hlmField>
+            <label hlmFieldLabel for="provider-status">Estado</label>
+            <select id="provider-status" class="rounded-lg border border-slate-300 px-3 py-2" formControlName="status">
+              <option value="active">Activo</option>
+              <option value="suspended">Suspendido</option>
+            </select>
+          </div>
+          <div hlmField>
+            <label hlmFieldLabel for="provider-active">Activo</label>
+            <select id="provider-active" class="rounded-lg border border-slate-300 px-3 py-2" formControlName="is_active">
+              <option [ngValue]="true">Sí</option>
+              <option [ngValue]="false">No</option>
+            </select>
+          </div>
           <div class="md:col-span-3 flex justify-end gap-2 pt-2">
             <button hlmBtn variant="outline" type="button" (click)="closeModal()">Cancelar</button>
             <button hlmBtn type="submit" [disabled]="form.invalid || loading()">
-              {{ loading() ? 'Guardando...' : 'Crear proveedor' }}
+              {{ loading() ? 'Guardando...' : (modalMode() === 'edit' ? 'Actualizar proveedor' : 'Crear proveedor') }}
             </button>
           </div>
         </form>
+      </section>
+    </div>
+  }
+
+  @if (deleteConfirmOpen()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6" (click)="cancelDelete()">
+      <section hlmCard class="w-full max-w-lg bg-white shadow-xl" (click)="$event.stopPropagation()">
+        <div hlmCardHeader class="space-y-1 border-b border-slate-200 pb-4">
+          <span class="text-xs uppercase tracking-wide text-red-500">Eliminar</span>
+          <h2 hlmCardTitle class="text-xl">Estas seguro que quieres eliminar esto permanentemente?</h2>
+        </div>
+        <div class="flex justify-end gap-2 p-6">
+          <button hlmBtn variant="outline" type="button" (click)="cancelDelete()">Cancelar</button>
+          <button hlmBtn type="button" class="bg-red-600 text-white hover:bg-red-700" (click)="confirmDelete()">Eliminar</button>
+        </div>
       </section>
     </div>
   }

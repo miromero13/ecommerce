@@ -24,60 +24,136 @@
     <p class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{{ successMessage() }}</p>
   }
 
-  <!-- <article class="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"> -->
-    <!-- <h2 class="font-medium">Usuarios filtrados ({{ usuariosFiltrados().length }})</h2> -->
-    <div class="overflow-hidden rounded-xl border border-slate-200">
-      <table hlmTable class="w-full">
-        <thead class="bg-primary text-left text-xs font-bold uppercase tracking-wide text-white">
-          <tr>
-            <th class="px-4 py-3">Usuario</th>
-            <th class="px-4 py-3">Correo</th>
-            <th class="px-4 py-3">Rol</th>
-            <th class="px-4 py-3">Sucursal</th>
-            <th class="px-4 py-3 text-right">Acción</th>
+  <div class="overflow-hidden rounded-xl border border-slate-200">
+    <table hlmTable class="w-full">
+      <thead class="bg-primary text-left text-xs font-bold uppercase tracking-wide text-white">
+        <tr>
+          <th class="px-4 py-3">Usuario</th>
+          <th class="px-4 py-3">Correo</th>
+          <th class="px-4 py-3">Rol</th>
+          <th class="px-4 py-3">Sucursal</th>
+          <th class="px-4 py-3">Estado</th>
+          <th class="px-4 py-3 text-right">Acciones</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-200 text-black">
+        @for (user of usuariosFiltrados(); track user.id) {
+          <tr class="hover:bg-slate-50">
+            <td class="px-4 py-3">
+              <p class="font-medium text-black">{{ user.name }}</p>
+            </td>
+            <td class="px-4 py-3 text-sm text-black">
+              <p>{{ user.email }}</p>
+            </td>
+            <td class="px-4 py-3 text-sm text-black">
+              <div class="flex flex-col gap-2">
+                <select class="rounded-lg border border-slate-300 px-3 py-2 text-sm" [value]="user.rol" [disabled]="currentUserId() === user.id" (change)="actualizarRol(user, $any($event.target).value)">
+                  <option value="administrador">Administrador</option>
+                  <option value="cliente">Cliente</option>
+                  <option value="proveedor">Proveedor</option>
+                  <option value="encargado">Encargado</option>
+                  <option value="cajero">Cajero</option>
+                  <option value="delivery">Delivery</option>
+                </select>
+              </div>
+            </td>
+            <td class="px-4 py-3 text-sm text-black">
+              <select class="rounded-lg border border-slate-300 px-3 py-2 text-sm" [value]="user.branch_id ?? ''" [disabled]="currentUserId() === user.id || !canAssignBranch(user)" (change)="actualizarBranch(user, $any($event.target).value)">
+                <option value="">Sin sucursal</option>
+                @for (branch of branches(); track branch.id) {
+                  <option [value]="branch.id">{{ branch.name }} - {{ branch.city }}</option>
+                }
+              </select>
+            </td>
+            <td class="px-4 py-3 text-sm text-black">{{ activeLabel(user) }}</td>
+            <td class="px-4 py-3 text-right">
+              <app-admin-action-menu
+                [isOpen]="openMenuId() === user.id"
+                [activeLabel]="user.is_active ? 'Desactivar' : 'Activar'"
+                (toggleMenu)="toggleMenu(user.id)"
+                (edit)="openEditModal(user)"
+                (toggleActive)="toggleActive(user)"
+                (delete)="askDelete(user)"
+              />
+            </td>
           </tr>
-        </thead>
-        <tbody class="divide-y divide-slate-200 text-black">
-          @for (user of usuariosFiltrados(); track user.id) {
-            <tr class="hover:bg-slate-50">
-              <td class="px-4 py-3">
-                <p class="font-medium text-black">{{ user.name }}</p>
-                <!-- <p class="text-sm text-black">ID: {{ user.id.slice(0, 8) }}</p> -->
-              </td>
-              <td class="px-4 py-3 text-sm text-black">
-                <p>{{ user.email }}</p>
-                <!-- <p>{{ labelGenero(user.gender) }}</p> -->
-              </td>
-              <td class="px-4 py-3 text-sm text-black">{{ labelRol(user.rol) }}</td>
-              <td class="px-4 py-3 text-sm text-black">{{ branchName(user.branch_id) }}</td>
-              <td class="px-4 py-3 text-right">
-                <div class="flex flex-col gap-2">
-                  <select class="rounded-lg border border-slate-300 px-3 py-2 text-sm" [value]="user.rol" [disabled]="currentUserId() === user.id" (change)="actualizarRol(user, $any($event.target).value)">
-                    <option value="administrador">Administrador</option>
-                    <option value="cliente">Cliente</option>
-                    <option value="proveedor">Proveedor</option>
-                    <option value="encargado">Encargado</option>
-                    <option value="cajero">Cajero</option>
-                    <option value="delivery">Delivery</option>
-                  </select>
-                  <select class="rounded-lg border border-slate-300 px-3 py-2 text-sm" [value]="user.branch_id ?? ''" [disabled]="currentUserId() === user.id || !canAssignBranch(user)" (change)="actualizarBranch(user, $any($event.target).value)">
-                    <option value="">Sin sucursal</option>
-                    @for (branch of branches(); track branch.id) {
-                      <option [value]="branch.id">{{ branch.name }} - {{ branch.city }}</option>
-                    }
-                  </select>
-                </div>
-              </td>
-            </tr>
-          }
+        }
 
-          @if (!usuariosFiltrados().length) {
-            <tr>
-              <td class="px-4 py-8 text-center text-sm text-black" colspan="5">No hay usuarios para el filtro seleccionado.</td>
-            </tr>
-          }
-        </tbody>
-      </table>
+        @if (!usuariosFiltrados().length) {
+          <tr>
+            <td class="px-4 py-8 text-center text-sm text-black" colspan="6">No hay usuarios para el filtro seleccionado.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  @if (modalOpen()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6" (click)="closeModal()">
+      <section hlmCard class="w-full max-w-2xl bg-white shadow-xl" (click)="$event.stopPropagation()">
+        <div hlmCardHeader class="space-y-1 border-b border-slate-200 pb-4">
+          <span class="text-xs uppercase tracking-wide text-slate-500">Usuarios</span>
+          <h2 hlmCardTitle class="text-xl">Editar usuario</h2>
+          <p hlmCardDescription>Actualiza los datos del usuario.</p>
+        </div>
+
+        <form class="grid gap-3 p-6 md:grid-cols-2" [formGroup]="userForm" (ngSubmit)="submitUser()">
+          <div hlmField>
+            <label hlmFieldLabel for="user-name">Nombre</label>
+            <input id="user-name" hlmInput class="w-full" formControlName="name" />
+          </div>
+          <div hlmField>
+            <label hlmFieldLabel for="user-email">Correo</label>
+            <input id="user-email" hlmInput class="w-full" formControlName="email" />
+          </div>
+          <div hlmField>
+            <label hlmFieldLabel for="user-password">Contraseña nueva</label>
+            <input id="user-password" hlmInput class="w-full" type="password" formControlName="password" />
+          </div>
+          <div hlmField>
+            <label hlmFieldLabel for="user-gender">Género</label>
+            <select id="user-gender" class="rounded-lg border border-slate-300 px-3 py-2" formControlName="gender">
+              <option value="masculino">Masculino</option>
+              <option value="femenino">Femenino</option>
+            </select>
+          </div>
+          <div hlmField>
+            <label hlmFieldLabel for="user-branch">Sucursal</label>
+            <select id="user-branch" class="rounded-lg border border-slate-300 px-3 py-2" formControlName="branch_id">
+              <option value="">Sin sucursal</option>
+              @for (branch of branches(); track branch.id) {
+                <option [value]="branch.id">{{ branch.name }} - {{ branch.city }}</option>
+              }
+            </select>
+          </div>
+          <div hlmField>
+            <label hlmFieldLabel for="user-active">Estado</label>
+            <select id="user-active" class="rounded-lg border border-slate-300 px-3 py-2" formControlName="is_active">
+              <option [ngValue]="true">Activo</option>
+              <option [ngValue]="false">Inactivo</option>
+            </select>
+          </div>
+          <div class="md:col-span-2 flex justify-end gap-2 pt-2">
+            <button hlmBtn variant="outline" type="button" (click)="closeModal()">Cancelar</button>
+            <button hlmBtn type="submit">Guardar cambios</button>
+          </div>
+        </form>
+      </section>
     </div>
-  <!-- </article> -->
+  }
+
+  @if (deleteConfirmOpen()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6" (click)="cancelDelete()">
+      <section hlmCard class="w-full max-w-lg bg-white shadow-xl" (click)="$event.stopPropagation()">
+        <div hlmCardHeader class="space-y-1 border-b border-slate-200 pb-4">
+          <span class="text-xs uppercase tracking-wide text-red-500">Eliminar</span>
+          <h2 hlmCardTitle class="text-xl">Estas seguro que quieres eliminar esto permanentemente?</h2>
+        </div>
+        <div class="flex justify-end gap-2 p-6">
+          <button hlmBtn variant="outline" type="button" (click)="cancelDelete()">Cancelar</button>
+          <button hlmBtn type="button" class="bg-red-600 text-white hover:bg-red-700" (click)="confirmDelete()">Eliminar</button>
+        </div>
+      </section>
+    </div>
+  }
 </section>

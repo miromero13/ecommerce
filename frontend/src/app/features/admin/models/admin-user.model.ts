@@ -8,6 +8,20 @@ export interface AdminUsuario {
   gender: GeneroUsuario;
   rol: RolUsuario;
   branch_id: string | null;
+  is_active: boolean;
+}
+
+export interface UpdateUsuarioRequest {
+  name: string;
+  email: string;
+  password?: string | null;
+  gender: GeneroUsuario;
+  branch_id?: string | null;
+  is_active: boolean;
+}
+
+export interface UpdateUsuarioActiveRequest {
+  is_active: boolean;
 }
 
 export type ListResponse<T> = ApiResponse<T[]>;

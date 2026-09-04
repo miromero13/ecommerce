@@ -23,6 +23,8 @@
           <th class="px-4 py-3">Nombre</th>
           <th class="px-4 py-3">Ciudad</th>
           <th class="px-4 py-3">Default</th>
+          <th class="px-4 py-3">Estado</th>
+          <th class="px-4 py-3 text-right">Acciones</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-slate-200 text-black">
@@ -31,6 +33,17 @@
             <td class="px-4 py-3">{{ branch.name }}</td>
             <td class="px-4 py-3">{{ branch.city }}</td>
             <td class="px-4 py-3">{{ branch.is_default ? 'Sí' : 'No' }}</td>
+            <td class="px-4 py-3">{{ branch.is_active ? 'Activa' : 'Inactiva' }}</td>
+            <td class="px-4 py-3 text-right">
+              <app-admin-action-menu
+                [isOpen]="openMenuId() === branch.id"
+                [activeLabel]="branch.is_active ? 'Desactivar' : 'Activar'"
+                (toggleMenu)="toggleMenu(branch.id)"
+                (edit)="editBranch(branch)"
+                (toggleActive)="toggleActive(branch)"
+                (delete)="askDelete(branch)"
+              />
+            </td>
           </tr>
         }
       </tbody>
@@ -42,8 +55,8 @@
       <section hlmCard class="w-full max-w-xl bg-white shadow-xl" (click)="$event.stopPropagation()">
         <div hlmCardHeader class="space-y-1 border-b border-slate-200 pb-4">
           <span class="text-xs uppercase tracking-wide text-slate-500">Administración</span>
-          <h2 hlmCardTitle class="text-xl">Crear sucursal</h2>
-          <p hlmCardDescription>Completa el formulario para registrar una nueva sucursal.</p>
+          <h2 hlmCardTitle class="text-xl">{{ modalMode() === 'edit' ? 'Editar sucursal' : 'Crear sucursal' }}</h2>
+          <p hlmCardDescription>Completa el formulario para guardar la sucursal.</p>
         </div>
 
         <form class="grid gap-3 p-6 sm:grid-cols-3" [formGroup]="form" (ngSubmit)="submit()">
@@ -55,13 +68,42 @@
             <label hlmFieldLabel for="branch-city">Ciudad</label>
             <input id="branch-city" hlmInput placeholder="Ciudad" formControlName="city" />
           </div>
+          <div hlmField>
+            <label hlmFieldLabel for="branch-default">Default</label>
+            <select id="branch-default" class="rounded-lg border border-slate-300 px-3 py-2" formControlName="is_default">
+              <option [ngValue]="false">No</option>
+              <option [ngValue]="true">Sí</option>
+            </select>
+          </div>
+          <div hlmField class="sm:col-span-3">
+            <label hlmFieldLabel for="branch-active">Estado</label>
+            <select id="branch-active" class="rounded-lg border border-slate-300 px-3 py-2" formControlName="is_active">
+              <option [ngValue]="true">Activa</option>
+              <option [ngValue]="false">Inactiva</option>
+            </select>
+          </div>
           <div class="sm:col-span-3 flex justify-end gap-2 pt-2">
             <button hlmBtn variant="outline" type="button" (click)="closeModal()">Cancelar</button>
             <button hlmBtn type="submit" [disabled]="form.invalid || loading()">
-              {{ loading() ? 'Guardando...' : 'Crear sucursal' }}
+              {{ loading() ? 'Guardando...' : (modalMode() === 'edit' ? 'Actualizar sucursal' : 'Crear sucursal') }}
             </button>
           </div>
         </form>
+      </section>
+    </div>
+  }
+
+  @if (deleteConfirmOpen()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6" (click)="cancelDelete()">
+      <section hlmCard class="w-full max-w-lg bg-white shadow-xl" (click)="$event.stopPropagation()">
+        <div hlmCardHeader class="space-y-1 border-b border-slate-200 pb-4">
+          <span class="text-xs uppercase tracking-wide text-red-500">Eliminar</span>
+          <h2 hlmCardTitle class="text-xl">Estas seguro que quieres eliminar esto permanentemente?</h2>
+        </div>
+        <div class="flex justify-end gap-2 p-6">
+          <button hlmBtn variant="outline" type="button" (click)="cancelDelete()">Cancelar</button>
+          <button hlmBtn type="button" class="bg-red-600 text-white hover:bg-red-700" (click)="confirmDelete()">Eliminar</button>
+        </div>
       </section>
     </div>
   }
