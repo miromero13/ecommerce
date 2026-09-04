@@ -7,15 +7,16 @@ from app.models.provider import Provider
 from app.models.user import User
 from app.schemas.enums import RolEnum, ProviderStatusEnum
 from app.schemas.provider_schema import ProviderCreate, ProviderStatusUpdate
-from app.services.user_service import pwd_context
+from app.services.user_service import pwd_context, normalize_email, ensure_email_available
 
 
 def create_provider(db: Session, provider: ProviderCreate) -> Provider:
     hashed_password = pwd_context.hash(provider.password)
+    ensure_email_available(db, provider.email)
 
     db_user = User(
         name=provider.contact_name,
-        email=provider.email,
+        email=normalize_email(provider.email),
         hashed_password=hashed_password,
         gender=provider.gender,
         rol=RolEnum.proveedor,
@@ -74,6 +75,7 @@ def update_provider_full(db: Session, provider_id, update_data) -> Provider | No
     if not user:
         return None
 
+    ensure_email_available(db, update_data.email, exclude_user_id=user.id)
     provider.business_name = update_data.business_name
     provider.contact_name = update_data.contact_name
     provider.phone = update_data.phone
@@ -82,12 +84,10 @@ def update_provider_full(db: Session, provider_id, update_data) -> Provider | No
     provider.is_active = update_data.is_active
 
     user.name = update_data.contact_name
-    user.email = update_data.email
+    user.email = normalize_email(update_data.email)
     user.gender = update_data.gender
     user.branch_id = update_data.branch_id
     user.is_active = update_data.is_active
-    if update_data.password:
-        user.hashed_password = pwd_context.hash(update_data.password)
 
     try:
         db.commit()

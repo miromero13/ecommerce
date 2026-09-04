@@ -35,7 +35,6 @@ class ProviderUpdate(BaseModel):
     business_name: str
     contact_name: str
     email: EmailStr
-    password: str | None = None
     gender: GenderEnum
     phone: str | None = None
     branch_id: UUID | None = None

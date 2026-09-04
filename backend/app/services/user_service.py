@@ -4,7 +4,7 @@ from sqlalchemy import select, func, or_
 from app.models.user import User
 from app.models.provider import Provider
 from app.models.product import Product
-from app.schemas.user_schema import UserCreate, UserUpdateRol, UserUpdateBranch
+from app.schemas.user_schema import UserCreate, UserUpdateRol, UserUpdateBranch, UserProfileUpdate
 from app.schemas.enums import RolEnum
 from uuid import UUID  
 from passlib.context import CryptContext
@@ -12,13 +12,33 @@ from passlib.context import CryptContext
 # Configura el hasher
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+
+def normalize_email(email: str) -> str:
+    return email.strip().lower()
+
+
+def get_user_by_email(db: Session, email: str, exclude_user_id: UUID | None = None) -> User | None:
+    normalized_email = normalize_email(email)
+    query = select(User).where(User.email == normalized_email)
+    if exclude_user_id is not None:
+        query = query.where(User.id != exclude_user_id)
+
+    result = db.execute(query)
+    return result.scalars().first()
+
+
+def ensure_email_available(db: Session, email: str, exclude_user_id: UUID | None = None) -> None:
+    if get_user_by_email(db, email, exclude_user_id) is not None:
+        raise ValueError("El correo ya está registrado")
+
 def create_user(db: Session, user: UserCreate) -> User:
     # 🔐 Hashea la contraseña antes de guardarla
     hashed_password = pwd_context.hash(user.password)
+    ensure_email_available(db, user.email)
 
     db_user = User(
         name=user.name,
-        email=user.email,
+        email=normalize_email(user.email),
         gender=user.gender,
         rol=RolEnum.cliente,
         hashed_password=hashed_password,
@@ -82,13 +102,12 @@ def update_user_full(db: Session, user_id: UUID, update_data) -> User | None:
     if not user:
         return None
 
+    ensure_email_available(db, update_data.email, exclude_user_id=user_id)
     user.name = update_data.name
-    user.email = update_data.email
+    user.email = normalize_email(update_data.email)
     user.gender = update_data.gender
     user.branch_id = update_data.branch_id
     user.is_active = update_data.is_active
-    if update_data.password:
-        user.hashed_password = pwd_context.hash(update_data.password)
 
     try:
         db.commit()
@@ -128,3 +147,18 @@ def set_user_active(db: Session, user_id: UUID, is_active: bool) -> User | None:
     db.commit()
     db.refresh(user)
     return user
+
+
+def update_user_profile(db: Session, user: User, update_data: UserProfileUpdate) -> User:
+    ensure_email_available(db, update_data.email, exclude_user_id=user.id)
+    user.name = update_data.name
+    user.email = normalize_email(update_data.email)
+    user.gender = update_data.gender
+
+    try:
+        db.commit()
+        db.refresh(user)
+        return user
+    except IntegrityError:
+        db.rollback()
+        raise ValueError("No se pudo actualizar el perfil")

@@ -60,7 +60,6 @@ class UserUpdateBranch(BaseModel):
 class UserUpdate(BaseModel):
     name: str
     email: EmailStr
-    password: str | None = None
     gender: GenderEnum
     branch_id: UUID | None = None
     is_active: bool = True
@@ -68,3 +67,9 @@ class UserUpdate(BaseModel):
 
 class UserActiveUpdate(BaseModel):
     is_active: bool
+
+
+class UserProfileUpdate(BaseModel):
+    name: str
+    email: EmailStr
+    gender: GenderEnum

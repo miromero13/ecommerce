@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, status, Query, HTTPException
 from sqlalchemy.orm import Session
 from uuid import UUID
 
-from app.schemas.user_schema import UserCreate, UserRead, UsersPaginatedResponse, UserUpdateRol, UserUpdateBranch, UserUpdate, UserActiveUpdate
-from app.services.user_service import create_user, get_user, get_users, get_users_count, update_user_rol, update_user_branch, update_user_full, delete_user, set_user_active
+from app.schemas.user_schema import UserCreate, UserRead, UsersPaginatedResponse, UserUpdateRol, UserUpdateBranch, UserUpdate, UserActiveUpdate, UserProfileUpdate
+from app.services.user_service import create_user, get_user, get_users, get_users_count, update_user_rol, update_user_branch, update_user_full, delete_user, set_user_active, update_user_profile
 from app.core.database import get_db
 from app.utils.response import response
 from app.auth.dependencies import get_current_user, get_current_branch_id, require_roles
@@ -36,6 +36,24 @@ async def get_me_route(current_user: User = Depends(get_current_user)):
         status_code=200,
         message="Perfil obtenido correctamente",
         data=user_data
+    )
+
+
+@router.put("/me")
+async def update_me_route(
+    update_data: UserProfileUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    try:
+        db_user = update_user_profile(db, current_user, update_data)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    return response(
+        status_code=200,
+        message="Perfil actualizado exitosamente",
+        data=UserRead.model_validate(db_user).model_dump(),
     )
 
 # ✅ GET /users/{user_id}
