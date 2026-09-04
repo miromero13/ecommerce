@@ -13,6 +13,7 @@ class BranchRead(BaseModel):
     name: str
     city: str
     is_default: bool
+    is_active: bool
 
     model_config = {
         "from_attributes": True,

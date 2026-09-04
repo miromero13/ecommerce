@@ -28,3 +28,4 @@ class ProviderRead(BaseModel):
     phone: str | None = None
     branch_id: UUID | None = None
     status: ProviderStatusEnum
+    is_active: bool

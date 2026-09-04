@@ -12,3 +12,4 @@ class Branch(Base):
     name = Column(String, nullable=False, unique=True)
     city = Column(String, nullable=False)
     is_default = Column(Boolean, nullable=False, default=False)
+    is_active = Column(Boolean, nullable=False, default=True)

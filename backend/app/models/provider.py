@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Enum as SQLAlchemyEnum, ForeignKey
+from sqlalchemy import Column, String, Boolean, Enum as SQLAlchemyEnum, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 
 from app.core.database import Base
@@ -16,3 +16,4 @@ class Provider(Base):
     contact_name = Column(String, nullable=False)
     phone = Column(String, nullable=True)
     status = Column(SQLAlchemyEnum(ProviderStatusEnum), nullable=False, default=ProviderStatusEnum.active)
+    is_active = Column(Boolean, nullable=False, default=True)

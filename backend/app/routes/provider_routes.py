@@ -35,6 +35,7 @@ async def list_providers_route(
                 "phone": provider.phone,
                 "branch_id": provider.branch_id,
                 "status": provider.status,
+                "is_active": provider.is_active,
             }
         ).model_dump()
         for provider, user in rows
@@ -72,6 +73,7 @@ async def create_provider_route(
             "phone": db_provider.phone,
             "branch_id": db_provider.branch_id,
             "status": db_provider.status,
+            "is_active": db_provider.is_active,
         }
     ).model_dump()
     return response(status_code=status.HTTP_201_CREATED, message="Proveedor creado exitosamente", data=provider_data)
@@ -107,6 +109,7 @@ async def update_provider_status_route(
             "phone": db_provider.phone,
             "branch_id": db_provider.branch_id,
             "status": db_provider.status,
+            "is_active": db_provider.is_active,
         }
     ).model_dump()
     return response(status_code=status.HTTP_200_OK, message="Estado de proveedor actualizado exitosamente", data=provider_data)

@@ -25,6 +25,7 @@ class UserOut(BaseModel):
     gender: GenderEnum
     rol: RolEnum
     branch_id: UUID | None = None
+    is_active: bool
 
 
     class Config:
@@ -38,6 +39,7 @@ class UserRead(BaseModel):
     gender: GenderEnum
     rol: RolEnum
     branch_id: UUID | None = None
+    is_active: bool
 
     model_config = {
         "from_attributes": True

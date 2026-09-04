@@ -21,6 +21,7 @@ def create_user(db: Session, user: UserCreate) -> User:
         rol=RolEnum.cliente,
         hashed_password=hashed_password,
         branch_id=None,
+        is_active=True,
     )
     
     db.add(db_user)
@@ -69,6 +70,17 @@ def update_user_branch(db: Session, user_id: UUID, update_data: UserUpdateBranch
         raise ValueError("Solo los usuarios internos pueden tener sucursal asignada")
 
     user.branch_id = update_data.branch_id
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def set_user_active(db: Session, user_id: UUID, is_active: bool) -> User | None:
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        return None
+
+    user.is_active = is_active
     db.commit()
     db.refresh(user)
     return user

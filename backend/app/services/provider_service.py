@@ -28,6 +28,7 @@ def create_provider(db: Session, provider: ProviderCreate) -> Provider:
         phone=provider.phone,
         branch_id=provider.branch_id,
         status=ProviderStatusEnum.active,
+        is_active=True,
     )
 
     db.add(db_user)
@@ -58,6 +59,17 @@ def update_provider_status(db: Session, provider_id, update_data: ProviderStatus
         return None
 
     provider.status = update_data.status
+    db.commit()
+    db.refresh(provider)
+    return provider
+
+
+def set_provider_active(db: Session, provider_id, is_active: bool) -> Provider | None:
+    provider = db.query(Provider).filter(Provider.id == provider_id).first()
+    if not provider:
+        return None
+
+    provider.is_active = is_active
     db.commit()
     db.refresh(provider)
     return provider
