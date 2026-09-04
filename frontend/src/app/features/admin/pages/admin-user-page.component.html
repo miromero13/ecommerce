@@ -31,6 +31,7 @@
             <th class="px-4 py-3">Usuario</th>
             <th class="px-4 py-3">Género</th>
             <th class="px-4 py-3">Rol</th>
+            <th class="px-4 py-3">Sucursal</th>
             <th class="px-4 py-3 text-right">Acción</th>
           </tr>
         </thead>
@@ -46,6 +47,7 @@
                 <p>{{ labelGenero(user.gender) }}</p>
               </td>
               <td class="px-4 py-3 text-sm text-slate-600">{{ labelRol(user.rol) }}</td>
+              <td class="px-4 py-3 text-sm text-slate-600">{{ user.branch_id ?? 'Sin sucursal' }}</td>
               <td class="px-4 py-3 text-right">
                 <select class="rounded-lg border border-slate-300 px-3 py-2 text-sm" [value]="user.rol" [disabled]="currentUserId() === user.id" (change)="actualizarRol(user, $any($event.target).value)">
                   <option value="administrador">Administrador</option>
@@ -61,7 +63,7 @@
 
           @if (!usuariosFiltrados().length) {
             <tr>
-              <td class="px-4 py-8 text-center text-sm text-slate-500" colspan="4">No hay usuarios para el filtro seleccionado.</td>
+              <td class="px-4 py-8 text-center text-sm text-slate-500" colspan="5">No hay usuarios para el filtro seleccionado.</td>
             </tr>
           }
         </tbody>

@@ -19,8 +19,12 @@
       </div>
       <div>
         <p class="text-xs uppercase tracking-wide text-muted-foreground">Rol</p>
+        <p class="mt-1 font-medium text-foreground">{{ userRoleLabel() }}</p>
+      </div>
+      <div>
+        <p class="text-xs uppercase tracking-wide text-muted-foreground">Sucursal</p>
         <p class="mt-1 font-medium text-foreground">
-          {{ currentUser.rol === 'administrador' ? 'Administrador' : currentUser.rol === 'delivery' ? 'Delivery' : 'Cliente' }}
+          {{ currentUser.branch_id ?? 'Sin sucursal' }}
         </p>
       </div>
     </div>

@@ -100,7 +100,7 @@ export class SessionService {
       throw new Error('La respuesta de autenticación no incluye datos');
     }
 
-    this.setSession(auth.access_token, auth.user);
+    this.setSession(auth.access_token, this.normalizeUser(auth.user));
   }
 
   clearSession(): void {
@@ -117,10 +117,21 @@ export class SessionService {
     }
 
     try {
-      return JSON.parse(raw) as UsuarioAuth;
+      return this.normalizeUser(JSON.parse(raw) as Partial<UsuarioAuth>);
     } catch {
       localStorage.removeItem(USER_KEY);
       return null;
     }
+  }
+
+  private normalizeUser(user: Partial<UsuarioAuth>): UsuarioAuth {
+    return {
+      id: user.id ?? '',
+      name: user.name ?? '',
+      email: user.email ?? '',
+      gender: user.gender ?? 'masculino',
+      rol: user.rol ?? 'cliente',
+      branch_id: user.branch_id ?? null,
+    };
   }
 }

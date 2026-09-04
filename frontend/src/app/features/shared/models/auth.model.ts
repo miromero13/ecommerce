@@ -8,6 +8,7 @@ export interface UsuarioAuth {
   email: string;
   gender: GeneroUsuario;
   rol: RolUsuario;
+  branch_id: string | null;
 }
 
 export interface LoginRequest {

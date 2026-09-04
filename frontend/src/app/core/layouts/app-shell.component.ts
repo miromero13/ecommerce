@@ -89,6 +89,11 @@ export class AppShellComponent {
     }
   });
 
+  protected readonly userBranchLabel = computed(() => {
+    const branchId = this.session.user()?.branch_id;
+    return branchId ? `Sucursal ${branchId.slice(0, 8)}` : 'Sin sucursal';
+  });
+
   protected readonly homeItem = computed(() => {
     switch (this.userRole()) {
       case 'administrador':

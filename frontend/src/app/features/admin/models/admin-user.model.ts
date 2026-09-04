@@ -7,6 +7,7 @@ export interface AdminUsuario {
   email: string;
   gender: GeneroUsuario;
   rol: RolUsuario;
+  branch_id: string | null;
 }
 
 export type ListResponse<T> = ApiResponse<T[]>;
