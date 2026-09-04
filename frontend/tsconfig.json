@@ -29,7 +29,8 @@
       "@spartan-ng/helm/sheet": ["./src/app/components/sheet/src/index.ts"],
       "@spartan-ng/helm/skeleton": ["./src/app/components/skeleton/src/index.ts"],
       "@spartan-ng/helm/tooltip": ["./src/app/components/tooltip/src/index.ts"],
-      "@spartan-ng/helm/avatar": ["./src/app/components/avatar/src/index.ts"]
+      "@spartan-ng/helm/avatar": ["./src/app/components/avatar/src/index.ts"],
+      "@spartan-ng/helm/sonner": ["./src/app/components/sonner/src/index.ts"]
     }
   },
   "angularCompilerOptions": {
