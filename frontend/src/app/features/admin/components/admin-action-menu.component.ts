@@ -9,7 +9,7 @@ import { lucideMoreVertical, lucidePencil, lucidePower, lucideTrash2 } from '@ng
   imports: [CommonModule, NgIcon],
   providers: [provideIcons({ lucideMoreVertical, lucidePencil, lucidePower, lucideTrash2 })],
   template: `
-    <div class="relative inline-flex justify-end">
+    <div class="relative flex w-full items-center justify-center">
       <button
         type="button"
         class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
@@ -20,7 +20,7 @@ import { lucideMoreVertical, lucidePencil, lucidePower, lucideTrash2 } from '@ng
       </button>
 
       @if (isOpen) {
-        <div class="absolute right-0 top-11 z-20 min-w-44 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg">
+        <div class="absolute left-1/2 top-full z-20 mt-2 min-w-44 -translate-x-1/2 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg">
           <button type="button" class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50" (click)="edit.emit()">
             <ng-icon name="lucidePencil" />
             <span>Editar</span>
