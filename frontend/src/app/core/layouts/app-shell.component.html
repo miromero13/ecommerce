@@ -4,19 +4,14 @@
       <div class="flex items-center gap-3 text-primary">
         <button hlmSidebarTrigger type="button" aria-label="Abrir o cerrar navegación"></button>
         <div class="min-w-0">
-          <p class="truncate text-sm font-semibold">ACI Web</p>
-          <p class="truncate text-xs text-sidebar-foreground/70">Panel operativo</p>
+          <p class="truncate text-lg font-semibold">ACI Web</p>
+          <p class="truncate text-md text-sidebar-foreground/70">Panel operativo</p>
         </div>
       </div>
     </header>
 
     <div hlmSidebarContent class="px-4 py-3">
       @for (section of sidebarSections(); track section.title ?? section.items[0].route; let last = $last) {
-        <!-- @if (section.title) {
-          <div class="px-2 pb-2 pt-1 text-xs font-medium uppercase tracking-wide text-sidebar-foreground/60">
-            {{ section.title }}
-          </div>
-        } -->
 
         <ul hlmSidebarMenu class="space-y-1">
           @for (item of section.items; track item.route) {

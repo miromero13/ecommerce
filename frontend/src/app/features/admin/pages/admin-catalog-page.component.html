@@ -390,7 +390,7 @@
                         <button hlmBtn type="button" variant="ghost" [disabled]="variantControls().length === 1" (click)="removeVariant(i)">Quitar</button>
                       </div>
 
-                      <div class="grid gap-4 md:grid-cols-5">
+                      <div class="grid gap-4 md:grid-cols-4">
                         <div hlmField>
                           <label hlmFieldLabel [for]="'variant-sku-' + i">SKU</label>
                           <input [id]="'variant-sku-' + i" hlmInput class="w-full" placeholder="SKU" formControlName="sku" />
@@ -424,19 +424,6 @@
                               @for (color of colors(); track color.id) {
                                 <hlm-select-item [value]="color.id">{{ color.name }}</hlm-select-item>
                               }
-                            </hlm-select-content>
-                          </div>
-                        </div>
-                        <div hlmField>
-                          <label hlmFieldLabel [for]="'variant-status-' + i">Estado</label>
-                            <div hlmSelect formControlName="status" [itemToString]="variantStatusSelectLabel">
-                            <hlm-select-trigger [buttonId]="'variant-status-' + i">
-                              <span hlmSelectValue placeholder="Estado"></span>
-                            </hlm-select-trigger>
-                            <hlm-select-content>
-                              <hlm-select-item value="active">active</hlm-select-item>
-                              <hlm-select-item value="pending">pending</hlm-select-item>
-                              <hlm-select-item value="inactive">inactive</hlm-select-item>
                             </hlm-select-content>
                           </div>
                         </div>

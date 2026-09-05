@@ -114,14 +114,6 @@ export class AdminCatalogPageComponent {
     return this.colorName(colorId);
   };
 
-  protected readonly variantStatusSelectLabel = (status: string | null | undefined): string => {
-    if (!status) return 'Estado';
-    if (status === 'active') return 'Activo';
-    if (status === 'pending') return 'Pendiente';
-    if (status === 'inactive') return 'Inactivo';
-    return status;
-  };
-
   protected readonly statusLabel = (status: ProductStatus | null | undefined): string => {
     if (!status) return 'Pendiente';
     if (status === 'active') return 'Activo';
