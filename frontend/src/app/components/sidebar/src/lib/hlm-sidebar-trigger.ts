@@ -31,7 +31,7 @@ export class HlmSidebarTrigger {
   private readonly _sidebarService = inject(HlmSidebarService);
 
   constructor() {
-    this._hlmBtn.setClass('size-7');
+    this._hlmBtn.setClass('size-8');
   }
 
   protected _onClick(): void {
