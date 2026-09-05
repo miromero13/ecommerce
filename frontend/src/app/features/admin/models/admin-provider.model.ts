@@ -13,7 +13,6 @@ export interface AdminProvider {
   phone: string | null;
   branch_id: string | null;
   status: ProviderStatus;
-  is_active: boolean;
 }
 
 export interface CreateProviderRequest {
@@ -38,11 +37,6 @@ export interface UpdateProviderRequest {
   phone?: string | null;
   branch_id?: string | null;
   status: ProviderStatus;
-  is_active: boolean;
-}
-
-export interface UpdateProviderActiveRequest {
-  is_active: boolean;
 }
 
 export type ProviderListResponse = ApiResponse<AdminProvider[]>;

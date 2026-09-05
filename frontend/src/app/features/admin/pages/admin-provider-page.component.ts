@@ -48,7 +48,6 @@ export class AdminProviderPageComponent {
     phone: [''],
     branch_id: [''],
     status: ['active', [Validators.required]],
-    is_active: [true],
   });
 
   protected normalizeEmailInput(event: Event): void {
@@ -75,7 +74,6 @@ export class AdminProviderPageComponent {
       phone: '',
       branch_id: '',
       status: 'active',
-      is_active: true,
     });
     this.modalOpen.set(true);
   }
@@ -92,7 +90,6 @@ export class AdminProviderPageComponent {
       phone: provider.phone || '',
       branch_id: provider.branch_id || '',
       status: provider.status,
-      is_active: provider.is_active,
     });
     this.modalOpen.set(true);
   }
@@ -107,19 +104,6 @@ export class AdminProviderPageComponent {
 
   protected toggleMenu(providerId: string): void {
     this.openMenuId.set(this.openMenuId() === providerId ? null : providerId);
-  }
-
-  protected async toggleActive(provider: AdminProvider): Promise<void> {
-    this.closeMenu();
-    try {
-      await requestWithToast(
-        this.providerApi.updateProviderActive(provider.id, { is_active: !provider.is_active }),
-        { loading: 'Actualizando estado...', success: `Proveedor ${!provider.is_active ? 'activado' : 'desactivado'} correctamente.`, error: 'No se pudo actualizar el estado del proveedor.' },
-      );
-      await this.loadData();
-    } catch {
-      // El toast de error ya se mostró con requestWithToast
-    }
   }
 
   protected askDelete(provider: AdminProvider): void {
@@ -166,7 +150,6 @@ export class AdminProviderPageComponent {
         phone: payload.phone || null,
         branch_id: payload.branch_id || null,
         status: payload.status as ProviderStatus,
-        is_active: payload.is_active,
       };
 
       if (this.modalMode() === 'edit' && this.editingProviderId()) {
@@ -193,7 +176,7 @@ export class AdminProviderPageComponent {
         );
       }
 
-      this.form.reset({ business_name: '', contact_name: '', email: '', password: '', gender: 'masculino', phone: '', branch_id: '', status: 'active', is_active: true });
+      this.form.reset({ business_name: '', contact_name: '', email: '', password: '', gender: 'masculino', phone: '', branch_id: '', status: 'active' });
       await this.loadData();
       this.closeModal();
     } catch {
@@ -219,6 +202,11 @@ export class AdminProviderPageComponent {
     }
   }
 
+  protected async toggleStatus(provider: AdminProvider): Promise<void> {
+    this.closeMenu();
+    await this.updateStatus(provider, provider.status === 'active' ? 'suspended' : 'active');
+  }
+
   protected branchName(branchId: string | null): string {
     if (!branchId) {
       return 'Sin sucursal';
@@ -229,10 +217,6 @@ export class AdminProviderPageComponent {
 
   protected statusLabel(status: ProviderStatus): string {
     return status === 'active' ? 'Activo' : 'Suspendido';
-  }
-
-  protected isActiveLabel(provider: AdminProvider): string {
-    return provider.is_active ? 'Activo' : 'Inactivo';
   }
 
   private async loadData(): Promise<void> {

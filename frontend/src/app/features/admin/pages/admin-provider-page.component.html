@@ -17,7 +17,6 @@
           <th class="px-4 py-3">Email</th>
           <th class="px-4 py-3">Sucursal</th>
           <th class="px-4 py-3">Estado</th>
-          <th class="px-4 py-3">Activo</th>
           <th class="px-4 py-3 text-right">Acción</th>
         </tr>
       </thead>
@@ -29,14 +28,13 @@
             <td class="px-4 py-3">{{ provider.email }}</td>
             <td class="px-4 py-3">{{ branchName(provider.branch_id) }}</td>
             <td class="px-4 py-3">{{ statusLabel(provider.status) }}</td>
-            <td class="px-4 py-3">{{ isActiveLabel(provider) }}</td>
             <td class="px-4 py-3 text-right">
               <app-admin-action-menu
                 [isOpen]="openMenuId() === provider.id"
-                [activeLabel]="provider.is_active ? 'Desactivar' : 'Activar'"
+                [activeLabel]="provider.status === 'active' ? 'Desactivar' : 'Activar'"
                 (toggleMenu)="toggleMenu(provider.id)"
                 (edit)="editProvider(provider)"
-                (toggleActive)="toggleActive(provider)"
+                (toggleActive)="toggleStatus(provider)"
                 (delete)="askDelete(provider)"
               />
             </td>
@@ -113,18 +111,6 @@
               <hlm-select-content>
                 <hlm-select-item value="active">Activo</hlm-select-item>
                 <hlm-select-item value="suspended">Suspendido</hlm-select-item>
-              </hlm-select-content>
-            </div>
-          </div>
-          <div hlmField>
-            <label hlmFieldLabel for="provider-active">Activo</label>
-            <div hlmSelect formControlName="is_active">
-              <hlm-select-trigger buttonId="provider-active">
-                <span hlmSelectValue placeholder="Activo"></span>
-              </hlm-select-trigger>
-              <hlm-select-content>
-                <hlm-select-item [value]="true">Sí</hlm-select-item>
-                <hlm-select-item [value]="false">No</hlm-select-item>
               </hlm-select-content>
             </div>
           </div>
