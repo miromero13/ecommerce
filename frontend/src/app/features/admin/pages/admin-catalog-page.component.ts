@@ -311,19 +311,6 @@ export class AdminCatalogPageComponent {
     }
   }
 
-  protected async toggleVariantStatus(variant: CatalogProductVariant): Promise<void> {
-    const nextStatus = variant.status === 'active' ? 'inactive' : 'active';
-    try {
-      await requestWithToast(
-        this.api.updateVariantStatus(variant.id, nextStatus),
-        { loading: 'Actualizando variante...', success: 'Estado de la variante actualizado.', error: 'No se pudo actualizar la variante.' },
-      );
-      await this.loadData();
-    } catch {
-      // El toast de error ya se mostró con requestWithToast
-    }
-  }
-
   protected variantsArray(): FormArray {
     return this.productForm.controls.variants as FormArray;
   }

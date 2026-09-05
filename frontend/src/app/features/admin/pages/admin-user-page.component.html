@@ -38,34 +38,10 @@
               <p>{{ user.email }}</p>
             </td>
             <td class="px-4 py-3 text-sm text-black">
-              <div class="flex flex-col gap-2">
-                <div hlmSelect class="w-full min-w-44" [value]="user.rol" [disabled]="currentUserId() === user.id" (valueChange)="actualizarRol(user, $event)">
-                  <hlm-select-trigger size="sm">
-                    <span hlmSelectValue placeholder="Rol"></span>
-                  </hlm-select-trigger>
-                  <hlm-select-content>
-                    <hlm-select-item value="administrador">Administrador</hlm-select-item>
-                    <hlm-select-item value="cliente">Cliente</hlm-select-item>
-                    <hlm-select-item value="proveedor">Proveedor</hlm-select-item>
-                    <hlm-select-item value="encargado">Encargado</hlm-select-item>
-                    <hlm-select-item value="cajero">Cajero</hlm-select-item>
-                    <hlm-select-item value="delivery">Delivery</hlm-select-item>
-                  </hlm-select-content>
-                </div>
-              </div>
+              {{ labelRol(user.rol) }}
             </td>
             <td class="px-4 py-3 text-sm text-black">
-              <div hlmSelect class="w-full min-w-44" [value]="user.branch_id ?? ''" [disabled]="currentUserId() === user.id || !canAssignBranch(user)" (valueChange)="actualizarBranch(user, $event)">
-                <hlm-select-trigger size="sm">
-                  <span hlmSelectValue placeholder="Sin sucursal"></span>
-                </hlm-select-trigger>
-                <hlm-select-content>
-                  <hlm-select-item value="">Sin sucursal</hlm-select-item>
-                  @for (branch of branches(); track branch.id) {
-                    <hlm-select-item [value]="branch.id">{{ branch.name }} - {{ branch.city }}</hlm-select-item>
-                  }
-                </hlm-select-content>
-              </div>
+              {{ branchName(user.branch_id) }}
             </td>
             <td class="px-4 py-3 text-sm text-black">{{ activeLabel(user) }}</td>
             <td class="px-4 py-3 text-right">

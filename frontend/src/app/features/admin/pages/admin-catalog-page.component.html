@@ -210,12 +210,7 @@
                           <p class="font-medium">{{ variantLabel(variant) }}</p>
                           <p class="text-xs text-slate-500">SKU: {{ variant.sku }} · Precio: {{ variant.price }}</p>
                         </div>
-                        <div class="flex items-center gap-2">
-                          <span hlmBadge class="bg-slate-900 text-white">{{ variant.status }}</span>
-                          <button class="rounded-lg border px-3 py-1 text-xs" type="button" (click)="toggleVariantStatus(variant)">
-                            {{ variant.status === 'active' ? 'Desactivar' : 'Activar' }}
-                          </button>
-                        </div>
+                        <span hlmBadge class="bg-slate-900 text-white">{{ variant.status }}</span>
                       </div>
                     </div>
                   } @empty {

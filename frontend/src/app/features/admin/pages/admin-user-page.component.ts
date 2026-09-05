@@ -20,7 +20,6 @@ import { HlmCardImports } from '../../../components/card/src';
 import { HlmFieldImports } from '../../../components/field/src';
 import { HlmInput } from '../../../components/input/src';
 import { HlmSelectImports } from '../../../components/select/src';
-import { RolUsuario } from '../../shared/models/auth.model';
 
 @Component({
   selector: 'app-admin-user-page',
@@ -73,38 +72,6 @@ export class AdminUserPageComponent {
 
   protected selectFiltro(tab: string): void {
     this.setFiltro(tab === 'todos' ? '' : (tab as AdminUsuario['rol']));
-  }
-
-  protected async actualizarRol(user: AdminUsuario, rol: RolUsuario | null): Promise<void> {
-    if (!rol || user.rol === rol || this.currentUserId() === user.id) {
-      return;
-    }
-
-    try {
-      await requestWithToast(
-        this.api.updateUsuarioRol(user.id, rol),
-        { loading: 'Actualizando rol...', success: 'Rol de usuario actualizado correctamente.', error: 'No se pudo actualizar el rol del usuario.' },
-      );
-      await this.loadData();
-    } catch {
-      // El toast de error ya se mostró con requestWithToast
-    }
-  }
-
-  protected async actualizarBranch(user: AdminUsuario, branchId: string | null): Promise<void> {
-    if (this.currentUserId() === user.id) {
-      return;
-    }
-
-    try {
-      await requestWithToast(
-        this.api.updateUsuarioBranch(user.id, branchId || null),
-        { loading: 'Asignando sucursal...', success: 'Sucursal de usuario actualizada correctamente.', error: 'No se pudo actualizar la sucursal del usuario.' },
-      );
-      await this.loadData();
-    } catch {
-      // El toast de error ya se mostró con requestWithToast
-    }
   }
 
   protected openEditModal(user: AdminUsuario): void {
@@ -263,10 +230,6 @@ export class AdminUserPageComponent {
       default:
         return gender;
     }
-  }
-
-  protected canAssignBranch(user: AdminUsuario): boolean {
-    return user.rol === 'administrador' || user.rol === 'encargado' || user.rol === 'cajero';
   }
 
   protected activeLabel(user: AdminUsuario): string {
