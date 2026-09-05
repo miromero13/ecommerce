@@ -1,12 +1,11 @@
 <section class="space-y-5">
-  <header>
-    <h1 class="text-2xl font-semibold">Proveedores</h1>
-    <p class="text-sm text-slate-500">Administra las cuentas de proveedor.</p>
-  </header>
-
-  <div class="flex justify-start">
+  <header class="flex items-start justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-semibold">Proveedores</h1>
+      <p class="text-sm text-slate-500">Administra las cuentas de proveedor.</p>
+    </div>
     <button hlmBtn type="button" (click)="openModal()">Crear proveedor</button>
-  </div>
+  </header>
 
   <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
     <table hlmTable class="w-full text-left text-sm">
