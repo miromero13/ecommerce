@@ -66,6 +66,7 @@ const CATALOG_CREATE_LABELS: Record<CatalogTab, string> = {
 export class AdminCatalogPageComponent {
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(CatalogApiService);
+  private readonly initialDataLoad = this.loadData();
 
   protected readonly categories = signal<CatalogNameItem[]>([]);
   protected readonly sizes = signal<CatalogNameItem[]>([]);
@@ -136,9 +137,7 @@ export class AdminCatalogPageComponent {
     variants: this.fb.array([this.createVariantGroup()]),
   });
 
-  constructor() {
-    void this.loadData();
-  }
+  constructor() {}
 
   protected readonly tabs: CatalogTab[] = ['products', 'categories', 'sizes', 'colors', 'seasons', 'collections'];
 
@@ -146,7 +145,8 @@ export class AdminCatalogPageComponent {
     this.activeTab.set(tab as CatalogTab);
   }
 
-  protected openModal(tab: CatalogTab): void {
+  protected async openModal(tab: CatalogTab): Promise<void> {
+    await this.initialDataLoad;
     this.activeTab.set(tab);
     this.modalMode.set('create');
     this.editingItemId.set(null);
@@ -161,7 +161,8 @@ export class AdminCatalogPageComponent {
     this.modalOpen.set(true);
   }
 
-  protected openEditModal(tab: CatalogTab, item: CatalogNameItem | CatalogColorItem | CatalogCollectionItem): void {
+  protected async openEditModal(tab: CatalogTab, item: CatalogNameItem | CatalogColorItem | CatalogCollectionItem): Promise<void> {
+    await this.initialDataLoad;
     this.activeTab.set(tab);
     this.modalMode.set('edit');
     this.editingItemId.set(item.id);
@@ -182,7 +183,8 @@ export class AdminCatalogPageComponent {
     this.modalOpen.set(true);
   }
 
-  protected openEditProduct(product: CatalogProduct): void {
+  protected async openEditProduct(product: CatalogProduct): Promise<void> {
+    await this.initialDataLoad;
     this.activeTab.set('products');
     this.modalMode.set('edit');
     this.editingProductId.set(product.id);

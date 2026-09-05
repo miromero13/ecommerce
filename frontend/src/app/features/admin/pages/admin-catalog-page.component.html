@@ -238,9 +238,15 @@
     </div>
   }
 
-  @if (modalOpen()) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6" (click)="closeModal()">
-      <section hlmCard class="relative w-full max-w-3xl bg-white shadow-xl" (click)="$event.stopPropagation()">
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6 transition-opacity duration-150"
+    [class.opacity-0]="!modalOpen()"
+    [class.pointer-events-none]="!modalOpen()"
+    [class.opacity-100]="modalOpen()"
+    [attr.aria-hidden]="!modalOpen()"
+    (click)="closeModal()"
+  >
+    <section hlmCard class="relative w-full max-w-3xl bg-white shadow-xl" (click)="$event.stopPropagation()">
         <div hlmCardHeader class="space-y-1 border-b border-slate-200 pb-4">
           <span class="text-xs uppercase tracking-wide text-slate-500">Catálogo</span>
           <h2 hlmCardTitle class="text-xl">{{ modalTitle() }}</h2>
@@ -254,7 +260,10 @@
                 <label hlmFieldLabel for="category-name">Nombre</label>
                 <input id="category-name" hlmInput class="w-full" placeholder="Nombre" formControlName="name" />
               </div>
-              <button hlmBtn type="submit" [disabled]="loading()">{{ loading() ? 'Guardando...' : (modalMode() === 'edit' ? 'Actualizar categoría' : 'Guardar categoría') }}</button>
+              <div class="flex justify-end gap-2 pt-2">
+                <button hlmBtn variant="outline" type="button" (click)="closeModal()">Cancelar</button>
+                <button hlmBtn type="submit" [disabled]="loading()">{{ loading() ? 'Guardando...' : (modalMode() === 'edit' ? 'Actualizar categoría' : 'Guardar categoría') }}</button>
+              </div>
             </form>
           } @else if (activeTab() === 'sizes') {
             <form class="space-y-4" [formGroup]="sizeForm" (ngSubmit)="submitSize()">
@@ -262,7 +271,10 @@
                 <label hlmFieldLabel for="size-name">Nombre</label>
                 <input id="size-name" hlmInput class="w-full" placeholder="Nombre" formControlName="name" />
               </div>
-              <button hlmBtn type="submit" [disabled]="loading()">{{ loading() ? 'Guardando...' : (modalMode() === 'edit' ? 'Actualizar talla' : 'Guardar talla') }}</button>
+              <div class="flex justify-end gap-2 pt-2">
+                <button hlmBtn variant="outline" type="button" (click)="closeModal()">Cancelar</button>
+                <button hlmBtn type="submit" [disabled]="loading()">{{ loading() ? 'Guardando...' : (modalMode() === 'edit' ? 'Actualizar talla' : 'Guardar talla') }}</button>
+              </div>
             </form>
           } @else if (activeTab() === 'colors') {
             <form class="space-y-4" [formGroup]="colorForm" (ngSubmit)="submitColor()">
@@ -276,7 +288,10 @@
                   <input id="color-hex" hlmInput class="w-full" placeholder="#000000" formControlName="hex_code" />
                 </div>
               </div>
-              <button hlmBtn type="submit" [disabled]="loading()">{{ loading() ? 'Guardando...' : (modalMode() === 'edit' ? 'Actualizar color' : 'Guardar color') }}</button>
+              <div class="flex justify-end gap-2 pt-2">
+                <button hlmBtn variant="outline" type="button" (click)="closeModal()">Cancelar</button>
+                <button hlmBtn type="submit" [disabled]="loading()">{{ loading() ? 'Guardando...' : (modalMode() === 'edit' ? 'Actualizar color' : 'Guardar color') }}</button>
+              </div>
             </form>
           } @else if (activeTab() === 'seasons') {
             <form class="space-y-4" [formGroup]="seasonForm" (ngSubmit)="submitSeason()">
@@ -284,7 +299,10 @@
                 <label hlmFieldLabel for="season-name">Nombre</label>
                 <input id="season-name" hlmInput class="w-full" placeholder="Nombre" formControlName="name" />
               </div>
-              <button hlmBtn type="submit" [disabled]="loading()">{{ loading() ? 'Guardando...' : (modalMode() === 'edit' ? 'Actualizar temporada' : 'Guardar temporada') }}</button>
+              <div class="flex justify-end gap-2 pt-2">
+                <button hlmBtn variant="outline" type="button" (click)="closeModal()">Cancelar</button>
+                <button hlmBtn type="submit" [disabled]="loading()">{{ loading() ? 'Guardando...' : (modalMode() === 'edit' ? 'Actualizar temporada' : 'Guardar temporada') }}</button>
+              </div>
             </form>
           } @else if (activeTab() === 'collections') {
             <form class="space-y-4" [formGroup]="collectionForm" (ngSubmit)="submitCollection()">
@@ -308,7 +326,10 @@
                   </div>
                 </div>
               </div>
-              <button hlmBtn type="submit" [disabled]="loading()">{{ loading() ? 'Guardando...' : (modalMode() === 'edit' ? 'Actualizar colección' : 'Guardar colección') }}</button>
+              <div class="flex justify-end gap-2 pt-2">
+                <button hlmBtn variant="outline" type="button" (click)="closeModal()">Cancelar</button>
+                <button hlmBtn type="submit" [disabled]="loading()">{{ loading() ? 'Guardando...' : (modalMode() === 'edit' ? 'Actualizar colección' : 'Guardar colección') }}</button>
+              </div>
             </form>
           } @else {
             <form class="space-y-4" [formGroup]="productForm" (ngSubmit)="submitProduct()">
@@ -442,17 +463,15 @@
                 </div>
               </section>
 
-              <button hlmBtn type="submit" [disabled]="loading()">{{ loading() ? 'Guardando...' : (modalMode() === 'edit' ? 'Actualizar producto' : 'Guardar producto') }}</button>
+              <div class="flex justify-end gap-2 pt-2">
+                <button hlmBtn variant="outline" type="button" (click)="closeModal()">Cancelar</button>
+                <button hlmBtn type="submit" [disabled]="loading()">{{ loading() ? 'Guardando...' : (modalMode() === 'edit' ? 'Actualizar producto' : 'Guardar producto') }}</button>
+              </div>
             </form>
           }
         </div>
-
-        <div hlmCardFooter class="flex justify-end border-t border-slate-200 p-6 pt-4">
-          <button hlmBtn variant="outline" type="button" (click)="closeModal()">Cerrar</button>
-        </div>
       </section>
-    </div>
-  }
+  </div>
 
   @if (deleteConfirmOpen()) {
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6" (click)="cancelDelete()">
