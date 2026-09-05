@@ -39,6 +39,22 @@ export class AdminProviderPageComponent {
   protected readonly deletingProvider = signal<AdminProvider | null>(null);
   protected readonly openMenuId = signal<string | null>(null);
 
+  protected readonly genderSelectLabel = (gender: string | null | undefined): string => {
+    if (!gender) return 'Género';
+    return gender === 'masculino' ? 'Masculino' : 'Femenino';
+  };
+
+  protected readonly branchSelectLabel = (branchId: string | null | undefined): string => {
+    if (!branchId) return 'Sin sucursal';
+    const branch = this.branches().find((item) => item.id === branchId);
+    return branch ? `${branch.name} - ${branch.city}` : branchId;
+  };
+
+  protected readonly statusSelectLabel = (status: ProviderStatus | null | undefined): string => {
+    if (!status) return 'Estado';
+    return status === 'active' ? 'Activo' : 'Suspendido';
+  };
+
   protected readonly form = this.fb.nonNullable.group({
     business_name: ['', [Validators.required]],
     contact_name: ['', [Validators.required]],

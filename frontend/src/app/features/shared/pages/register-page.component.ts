@@ -33,6 +33,11 @@ export class RegisterPageComponent {
     gender: ['masculino' as GeneroUsuario, [Validators.required]],
   });
 
+  protected readonly genderSelectLabel = (gender: GeneroUsuario | null | undefined): string => {
+    if (!gender) return 'Género';
+    return gender === 'masculino' ? 'Masculino' : 'Femenino';
+  };
+
   protected normalizeEmailInput(event: Event): void {
     const input = event.target as HTMLInputElement | null;
     if (!input) return;

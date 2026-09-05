@@ -45,6 +45,19 @@ export class AdminUserPageComponent {
   protected readonly deleteConfirmOpen = signal(false);
   protected readonly deletingUser = signal<AdminUsuario | null>(null);
 
+  protected readonly genderSelectLabel = (gender: string | null | undefined): string => {
+    if (!gender) return 'Género';
+    return this.labelGenero(gender as AdminUsuario['gender']);
+  };
+
+  protected readonly branchSelectLabel = (branchId: string | null | undefined): string => {
+    if (!branchId) return 'Sin sucursal';
+    const branch = this.branches().find((item) => item.id === branchId);
+    return branch ? `${branch.name} - ${branch.city}` : branchId;
+  };
+
+  protected readonly activeSelectLabel = (value: boolean | null | undefined): string => (value ? 'Activo' : 'Inactivo');
+
   protected readonly userForm = this.fb.nonNullable.group({
     name: ['', [Validators.required]],
     email: ['', [Validators.required, Validators.email]],

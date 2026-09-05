@@ -62,7 +62,7 @@
           </div>
           <div hlmField>
             <label hlmFieldLabel for="branch-default">Default</label>
-            <div hlmSelect formControlName="is_default">
+            <div hlmSelect formControlName="is_default" [itemToString]="defaultSelectLabel">
               <hlm-select-trigger buttonId="branch-default">
                 <span hlmSelectValue placeholder="Default"></span>
               </hlm-select-trigger>
@@ -74,7 +74,7 @@
           </div>
           <div hlmField class="sm:col-span-3">
             <label hlmFieldLabel for="branch-active">Estado</label>
-            <div hlmSelect formControlName="is_active">
+            <div hlmSelect formControlName="is_active" [itemToString]="activeSelectLabel">
               <hlm-select-trigger buttonId="branch-active">
                 <span hlmSelectValue placeholder="Estado"></span>
               </hlm-select-trigger>

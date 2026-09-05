@@ -53,6 +53,39 @@ export class CatalogPageComponent {
     collection_id: [''],
   });
 
+  protected readonly branchSelectLabel = (branchId: string | null | undefined): string => {
+    if (!branchId) return 'Sucursal';
+    const branch = this.branches().find((item) => item.id === branchId);
+    return branch ? `${branch.name} - ${branch.city}` : branchId;
+  };
+
+  protected readonly categorySelectLabel = (categoryId: string | null | undefined): string => {
+    if (!categoryId) return 'Categoría';
+    return this.categories().find((category) => category.id === categoryId)?.name ?? categoryId;
+  };
+
+  protected readonly sizeSelectLabel = (sizeId: string | null | undefined): string => {
+    if (!sizeId) return 'Talla';
+    return this.sizes().find((size) => size.id === sizeId)?.name ?? sizeId;
+  };
+
+  protected readonly colorSelectLabel = (colorId: string | null | undefined): string => {
+    if (!colorId) return 'Color';
+    return this.colors().find((color) => color.id === colorId)?.name ?? colorId;
+  };
+
+  protected readonly seasonSelectLabel = (seasonId: string | null | undefined): string => {
+    if (!seasonId) return 'Temporada';
+    return this.seasons().find((season) => season.id === seasonId)?.name ?? seasonId;
+  };
+
+  protected readonly collectionSelectLabel = (collectionId: string | null | undefined): string => {
+    if (!collectionId) return 'Colección';
+    const collection = this.collections().find((item) => item.id === collectionId);
+    if (!collection) return collectionId;
+    return `${collection.name} - ${this.seasonName(collection.season_id)}`;
+  };
+
   constructor() {
     void this.loadData();
   }
@@ -166,6 +199,14 @@ export class CatalogPageComponent {
 
   protected variantLabel(variant: CatalogProductVariant): string {
     return `${this.sizeName(variant.size_id)} / ${this.colorName(variant.color_id)}`;
+  }
+
+  protected variantSelectLabel(product: CatalogProduct): (variantId: string | null | undefined) => string {
+    return (variantId: string | null | undefined): string => {
+      if (!variantId) return 'Variante';
+      const variant = this.productVariants(product).find((item) => item.id === variantId);
+      return variant ? `${this.variantLabel(variant)} - ${variant.price}` : variantId;
+    };
   }
 
   protected availabilityLabel(variant: CatalogProductVariant | null, branchId: string | null): string {

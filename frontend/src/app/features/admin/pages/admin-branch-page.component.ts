@@ -35,6 +35,10 @@ export class AdminBranchPageComponent {
   protected readonly deletingBranch = signal<AdminBranch | null>(null);
   protected readonly openMenuId = signal<string | null>(null);
 
+  protected readonly defaultSelectLabel = (value: boolean | null | undefined): string => (value ? 'Sí' : 'No');
+
+  protected readonly activeSelectLabel = (value: boolean | null | undefined): string => (value ? 'Activa' : 'Inactiva');
+
   protected readonly form = this.fb.nonNullable.group({
     name: ['', [Validators.required]],
     city: ['', [Validators.required]],

@@ -9,7 +9,7 @@
       <label hlmFieldLabel for="catalog-search">Buscar producto</label>
       <input id="catalog-search" hlmInput placeholder="Buscar producto" formControlName="q" />
     </div>
-    <div hlmSelect formControlName="branch_id" (valueChange)="updateBranchAvailability()">
+    <div hlmSelect formControlName="branch_id" [itemToString]="branchSelectLabel" (valueChange)="updateBranchAvailability()">
       <hlm-select-trigger>
         <span hlmSelectValue placeholder="Sucursal"></span>
       </hlm-select-trigger>
@@ -20,7 +20,7 @@
         }
       </hlm-select-content>
     </div>
-    <div hlmSelect formControlName="category_id">
+    <div hlmSelect formControlName="category_id" [itemToString]="categorySelectLabel">
       <hlm-select-trigger>
         <span hlmSelectValue placeholder="Categoría"></span>
       </hlm-select-trigger>
@@ -31,7 +31,7 @@
         }
       </hlm-select-content>
     </div>
-    <div hlmSelect formControlName="size_id">
+    <div hlmSelect formControlName="size_id" [itemToString]="sizeSelectLabel">
       <hlm-select-trigger>
         <span hlmSelectValue placeholder="Talla"></span>
       </hlm-select-trigger>
@@ -42,7 +42,7 @@
         }
       </hlm-select-content>
     </div>
-    <div hlmSelect formControlName="color_id">
+    <div hlmSelect formControlName="color_id" [itemToString]="colorSelectLabel">
       <hlm-select-trigger>
         <span hlmSelectValue placeholder="Color"></span>
       </hlm-select-trigger>
@@ -53,7 +53,7 @@
         }
       </hlm-select-content>
     </div>
-    <div hlmSelect formControlName="season_id">
+    <div hlmSelect formControlName="season_id" [itemToString]="seasonSelectLabel">
       <hlm-select-trigger>
         <span hlmSelectValue placeholder="Temporada"></span>
       </hlm-select-trigger>
@@ -64,7 +64,7 @@
         }
       </hlm-select-content>
     </div>
-    <div hlmSelect formControlName="collection_id">
+    <div hlmSelect formControlName="collection_id" [itemToString]="collectionSelectLabel">
       <hlm-select-trigger>
         <span hlmSelectValue placeholder="Colección"></span>
       </hlm-select-trigger>
@@ -102,7 +102,7 @@
 
           <div class="space-y-2">
             <label class="text-xs font-medium text-slate-600">Variante</label>
-            <div hlmSelect class="w-full" [value]="selectedVariant(product)?.id" (valueChange)="setSelectedVariant(product.id, $event)">
+            <div hlmSelect class="w-full" [value]="selectedVariant(product)?.id" [itemToString]="variantSelectLabel(product)" (valueChange)="setSelectedVariant(product.id, $event)">
               <hlm-select-trigger size="sm">
                 <span hlmSelectValue placeholder="Variante"></span>
               </hlm-select-trigger>

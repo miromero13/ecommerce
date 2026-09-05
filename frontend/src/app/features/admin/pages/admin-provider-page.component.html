@@ -74,7 +74,7 @@
           }
           <div hlmField>
             <label hlmFieldLabel for="provider-gender">Género</label>
-            <div hlmSelect formControlName="gender">
+            <div hlmSelect formControlName="gender" [itemToString]="genderSelectLabel">
               <hlm-select-trigger buttonId="provider-gender">
                 <span hlmSelectValue placeholder="Género"></span>
               </hlm-select-trigger>
@@ -90,7 +90,7 @@
           </div>
           <div hlmField class="md:col-span-2">
             <label hlmFieldLabel for="provider-branch">Sucursal</label>
-            <div hlmSelect formControlName="branch_id">
+            <div hlmSelect formControlName="branch_id" [itemToString]="branchSelectLabel">
               <hlm-select-trigger buttonId="provider-branch">
                 <span hlmSelectValue placeholder="Sin sucursal"></span>
               </hlm-select-trigger>
@@ -104,7 +104,7 @@
           </div>
           <div hlmField>
             <label hlmFieldLabel for="provider-status">Estado</label>
-            <div hlmSelect formControlName="status">
+            <div hlmSelect formControlName="status" [itemToString]="statusSelectLabel">
               <hlm-select-trigger buttonId="provider-status">
                 <span hlmSelectValue placeholder="Estado"></span>
               </hlm-select-trigger>

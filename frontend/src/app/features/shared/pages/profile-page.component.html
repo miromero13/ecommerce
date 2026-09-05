@@ -62,7 +62,7 @@
 
         <div hlmField>
           <label hlmFieldLabel for="profile-gender">Género</label>
-          <div hlmSelect formControlName="gender" [disabled]="!isEditing()">
+          <div hlmSelect formControlName="gender" [disabled]="!isEditing()" [itemToString]="genderSelectLabel">
             <hlm-select-trigger buttonId="profile-gender">
               <span hlmSelectValue placeholder="Género"></span>
             </hlm-select-trigger>

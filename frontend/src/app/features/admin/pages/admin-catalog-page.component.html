@@ -295,7 +295,7 @@
                 </div>
                 <div hlmField>
                   <label hlmFieldLabel for="collection-season">Temporada</label>
-                  <div hlmSelect formControlName="season_id">
+                    <div hlmSelect formControlName="season_id" [itemToString]="collectionSeasonSelectLabel">
                     <hlm-select-trigger buttonId="collection-season">
                       <span hlmSelectValue placeholder="Sin temporada"></span>
                     </hlm-select-trigger>
@@ -327,7 +327,7 @@
                 </div>
                 <div hlmField>
                   <label hlmFieldLabel for="product-category">Categoría</label>
-                  <div hlmSelect formControlName="category_id">
+                    <div hlmSelect formControlName="category_id" [itemToString]="productCategorySelectLabel">
                     <hlm-select-trigger buttonId="product-category">
                       <span hlmSelectValue placeholder="Categoría"></span>
                     </hlm-select-trigger>
@@ -341,7 +341,7 @@
                 </div>
                 <div hlmField>
                   <label hlmFieldLabel for="product-season">Temporada</label>
-                  <div hlmSelect formControlName="season_id">
+                    <div hlmSelect formControlName="season_id" [itemToString]="productSeasonSelectLabel">
                     <hlm-select-trigger buttonId="product-season">
                       <span hlmSelectValue placeholder="Temporada"></span>
                     </hlm-select-trigger>
@@ -355,7 +355,7 @@
                 </div>
                 <div hlmField class="md:col-span-2">
                   <label hlmFieldLabel for="product-collection">Colección</label>
-                  <div hlmSelect formControlName="collection_id">
+                    <div hlmSelect formControlName="collection_id" [itemToString]="productCollectionSelectLabel">
                     <hlm-select-trigger buttonId="product-collection">
                       <span hlmSelectValue placeholder="Colección"></span>
                     </hlm-select-trigger>
@@ -397,7 +397,7 @@
                         </div>
                         <div hlmField>
                           <label hlmFieldLabel [for]="'variant-size-' + i">Talla</label>
-                          <div hlmSelect formControlName="size_id">
+                            <div hlmSelect formControlName="size_id" [itemToString]="variantSizeSelectLabel">
                             <hlm-select-trigger [buttonId]="'variant-size-' + i">
                               <span hlmSelectValue placeholder="Talla"></span>
                             </hlm-select-trigger>
@@ -411,7 +411,7 @@
                         </div>
                         <div hlmField>
                           <label hlmFieldLabel [for]="'variant-color-' + i">Color</label>
-                          <div hlmSelect formControlName="color_id">
+                            <div hlmSelect formControlName="color_id" [itemToString]="variantColorSelectLabel">
                             <hlm-select-trigger [buttonId]="'variant-color-' + i">
                               <span hlmSelectValue placeholder="Color"></span>
                             </hlm-select-trigger>
@@ -425,7 +425,7 @@
                         </div>
                         <div hlmField>
                           <label hlmFieldLabel [for]="'variant-status-' + i">Estado</label>
-                          <div hlmSelect formControlName="status">
+                            <div hlmSelect formControlName="status" [itemToString]="variantStatusSelectLabel">
                             <hlm-select-trigger [buttonId]="'variant-status-' + i">
                               <span hlmSelectValue placeholder="Estado"></span>
                             </hlm-select-trigger>

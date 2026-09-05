@@ -32,6 +32,11 @@ export class ProfilePageComponent {
   protected readonly loading = signal(false);
   protected readonly isEditing = signal(false);
 
+  protected readonly genderSelectLabel = (gender: string | null | undefined): string => {
+    if (!gender) return 'Género';
+    return gender === 'masculino' ? 'Masculino' : 'Femenino';
+  };
+
   protected readonly form = this.fb.nonNullable.group({
     name: ['', [Validators.required]],
     email: ['', [Validators.required, Validators.email]],

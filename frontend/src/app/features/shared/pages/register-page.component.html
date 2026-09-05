@@ -24,7 +24,7 @@
 
         <div class="space-y-2">
           <label for="gender" class="text-sm font-medium text-slate-900">Género</label>
-          <div hlmSelect formControlName="gender">
+          <div hlmSelect formControlName="gender" [itemToString]="genderSelectLabel">
             <hlm-select-trigger buttonId="gender">
               <span hlmSelectValue placeholder="Género"></span>
             </hlm-select-trigger>

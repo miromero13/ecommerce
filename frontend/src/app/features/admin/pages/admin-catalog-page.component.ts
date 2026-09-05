@@ -83,6 +83,45 @@ export class AdminCatalogPageComponent {
   protected readonly deleteConfirmOpen = signal(false);
   protected readonly deletingItem = signal<{ tab: CatalogTab; id: string; label: string } | null>(null);
 
+  protected readonly collectionSeasonSelectLabel = (seasonId: string | null | undefined): string => {
+    if (!seasonId) return 'Sin temporada';
+    return this.seasonName(seasonId);
+  };
+
+  protected readonly productCategorySelectLabel = (categoryId: string | null | undefined): string => {
+    if (!categoryId) return 'Categoría';
+    return this.categoryName(categoryId);
+  };
+
+  protected readonly productSeasonSelectLabel = (seasonId: string | null | undefined): string => {
+    if (!seasonId) return 'Temporada';
+    return this.seasonName(seasonId);
+  };
+
+  protected readonly productCollectionSelectLabel = (collectionId: string | null | undefined): string => {
+    if (!collectionId) return 'Colección';
+    const collection = this.collections().find((item) => item.id === collectionId);
+    return collection ? `${collection.name} - ${this.seasonName(collection.season_id)}` : collectionId;
+  };
+
+  protected readonly variantSizeSelectLabel = (sizeId: string | null | undefined): string => {
+    if (!sizeId) return 'Talla';
+    return this.sizeName(sizeId);
+  };
+
+  protected readonly variantColorSelectLabel = (colorId: string | null | undefined): string => {
+    if (!colorId) return 'Color';
+    return this.colorName(colorId);
+  };
+
+  protected readonly variantStatusSelectLabel = (status: string | null | undefined): string => {
+    if (!status) return 'Estado';
+    if (status === 'active') return 'Activo';
+    if (status === 'pending') return 'Pendiente';
+    if (status === 'inactive') return 'Inactivo';
+    return status;
+  };
+
   protected readonly categoryForm = this.fb.nonNullable.group({ name: ['', [Validators.required]] });
   protected readonly sizeForm = this.fb.nonNullable.group({ name: ['', [Validators.required]] });
   protected readonly colorForm = this.fb.nonNullable.group({ name: ['', [Validators.required]], hex_code: [''] });

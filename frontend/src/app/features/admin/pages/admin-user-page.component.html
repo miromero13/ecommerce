@@ -86,7 +86,7 @@
           </div>
           <div hlmField>
             <label hlmFieldLabel for="user-gender">Género</label>
-            <div hlmSelect formControlName="gender">
+              <div hlmSelect formControlName="gender" [itemToString]="genderSelectLabel">
               <hlm-select-trigger buttonId="user-gender">
                 <span hlmSelectValue placeholder="Género"></span>
               </hlm-select-trigger>
@@ -98,7 +98,7 @@
           </div>
           <div hlmField>
             <label hlmFieldLabel for="user-branch">Sucursal</label>
-            <div hlmSelect formControlName="branch_id">
+              <div hlmSelect formControlName="branch_id" [itemToString]="branchSelectLabel">
               <hlm-select-trigger buttonId="user-branch">
                 <span hlmSelectValue placeholder="Sin sucursal"></span>
               </hlm-select-trigger>
@@ -112,7 +112,7 @@
           </div>
           <div hlmField>
             <label hlmFieldLabel for="user-active">Estado</label>
-            <div hlmSelect formControlName="is_active">
+              <div hlmSelect formControlName="is_active" [itemToString]="activeSelectLabel">
               <hlm-select-trigger buttonId="user-active">
                 <span hlmSelectValue placeholder="Estado"></span>
               </hlm-select-trigger>
