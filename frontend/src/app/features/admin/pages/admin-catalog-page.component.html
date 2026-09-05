@@ -192,7 +192,8 @@
           <tr>
             <th class="px-4 py-3">Nombre</th>
             <th class="px-4 py-3">Categoría</th>
-            <th class="px-4 py-3">Variantes</th>
+            <th class="px-4 py-3">Descripción</th>
+            <th class="px-4 py-3">Estado</th>
             <th class="px-4 py-3 text-right">Acciones</th>
           </tr>
         </thead>
@@ -201,23 +202,8 @@
             <tr class="align-top">
               <td class="px-4 py-3 font-medium">{{ product.name }}</td>
               <td class="px-4 py-3 text-sm">{{ categoryName(product.category_id) }}</td>
-              <td class="px-4 py-3 text-sm">
-                <div class="space-y-2">
-                  @for (variant of productVariants(product); track variant.id) {
-                    <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                      <div class="flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                          <p class="font-medium">{{ variantLabel(variant) }}</p>
-                          <p class="text-xs text-slate-500">SKU: {{ variant.sku }} · Precio: {{ variant.price }}</p>
-                        </div>
-                        <span hlmBadge class="bg-slate-900 text-white">{{ variant.status }}</span>
-                      </div>
-                    </div>
-                  } @empty {
-                    <p class="text-xs text-slate-500">Sin variantes.</p>
-                  }
-                </div>
-              </td>
+              <td class="px-4 py-3 text-sm">{{ product.description }}</td>
+              <td class="px-4 py-3 text-sm">{{ statusLabel(product.status) }}</td>
               <td class="px-4 py-3 text-right">
                 <app-admin-action-menu
                   [isOpen]="openMenuId() === product.id"
@@ -230,7 +216,7 @@
             </tr>
           } @empty {
             <tr>
-              <td class="px-4 py-8 text-center text-sm text-slate-500" colspan="4">No hay productos registrados.</td>
+              <td class="px-4 py-8 text-center text-sm text-slate-500" colspan="5">No hay productos registrados.</td>
             </tr>
           }
         </tbody>
@@ -248,9 +234,7 @@
   >
     <section hlmCard class="relative w-full max-w-3xl bg-white shadow-xl" (click)="$event.stopPropagation()">
         <div hlmCardHeader class="space-y-1 border-b border-slate-200 pb-4">
-          <span class="text-xs uppercase tracking-wide text-slate-500">Catálogo</span>
           <h2 hlmCardTitle class="text-xl">{{ modalTitle() }}</h2>
-          <p hlmCardDescription>Completa los datos para guardar el registro.</p>
         </div>
 
         <div hlmCardContent class="max-h-[75vh] space-y-4 overflow-y-auto p-6">
@@ -477,7 +461,6 @@
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6" (click)="cancelDelete()">
       <section hlmCard class="w-full max-w-lg bg-white shadow-xl" (click)="$event.stopPropagation()">
         <div hlmCardHeader class="space-y-1 border-b border-slate-200 pb-4">
-          <span class="text-xs uppercase tracking-wide text-red-500">Eliminar</span>
           <h2 hlmCardTitle class="text-xl">Estas seguro que quieres eliminar esto permanentemente?</h2>
         </div>
         <div class="flex justify-end gap-2 p-6">

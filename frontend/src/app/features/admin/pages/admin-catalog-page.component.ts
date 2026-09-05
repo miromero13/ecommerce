@@ -5,7 +5,6 @@ import { firstValueFrom } from 'rxjs';
 
 import { toast } from '@spartan-ng/brain/sonner';
 
-import { HlmBadge } from '../../../components/badge/src';
 import { HlmButton } from '../../../components/button/src';
 import { HlmCardImports } from '../../../components/card/src';
 import { HlmFieldImports } from '../../../components/field/src';
@@ -22,6 +21,7 @@ import {
   CatalogNameItem,
   CatalogProduct,
   CatalogProductVariant,
+  ProductStatus,
 } from '../../shared/models/catalog.model';
 import { CatalogApiService } from '../../shared/services/catalog-api.service';
 
@@ -51,7 +51,6 @@ const CATALOG_CREATE_LABELS: Record<CatalogTab, string> = {
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    HlmBadge,
     HlmButton,
     HlmInput,
     HlmTable,
@@ -117,6 +116,14 @@ export class AdminCatalogPageComponent {
 
   protected readonly variantStatusSelectLabel = (status: string | null | undefined): string => {
     if (!status) return 'Estado';
+    if (status === 'active') return 'Activo';
+    if (status === 'pending') return 'Pendiente';
+    if (status === 'inactive') return 'Inactivo';
+    return status;
+  };
+
+  protected readonly statusLabel = (status: ProductStatus | null | undefined): string => {
+    if (!status) return 'Pendiente';
     if (status === 'active') return 'Activo';
     if (status === 'pending') return 'Pendiente';
     if (status === 'inactive') return 'Inactivo';

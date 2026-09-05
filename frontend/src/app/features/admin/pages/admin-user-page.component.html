@@ -70,9 +70,7 @@
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6" (click)="closeModal()">
       <section hlmCard class="w-full max-w-2xl bg-white shadow-xl" (click)="$event.stopPropagation()">
         <div hlmCardHeader class="space-y-1 border-b border-slate-200 pb-4">
-          <span class="text-xs uppercase tracking-wide text-slate-500">Usuarios</span>
           <h2 hlmCardTitle class="text-xl">Editar usuario</h2>
-          <p hlmCardDescription>Actualiza los datos del usuario.</p>
         </div>
 
         <form class="grid gap-3 p-6 md:grid-cols-2" [formGroup]="userForm" (ngSubmit)="submitUser()">
@@ -135,7 +133,6 @@
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6" (click)="cancelDelete()">
       <section hlmCard class="w-full max-w-lg bg-white shadow-xl" (click)="$event.stopPropagation()">
         <div hlmCardHeader class="space-y-1 border-b border-slate-200 pb-4">
-          <span class="text-xs uppercase tracking-wide text-red-500">Eliminar</span>
           <h2 hlmCardTitle class="text-xl">Estas seguro que quieres eliminar esto permanentemente?</h2>
         </div>
         <div class="flex justify-end gap-2 p-6">
