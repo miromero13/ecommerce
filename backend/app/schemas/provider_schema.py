@@ -28,7 +28,6 @@ class ProviderRead(BaseModel):
     phone: str | None = None
     branch_id: UUID | None = None
     status: ProviderStatusEnum
-    is_active: bool
 
 
 class ProviderUpdate(BaseModel):
@@ -39,8 +38,3 @@ class ProviderUpdate(BaseModel):
     phone: str | None = None
     branch_id: UUID | None = None
     status: ProviderStatusEnum = ProviderStatusEnum.active
-    is_active: bool = True
-
-
-class ProviderActiveUpdate(BaseModel):
-    is_active: bool

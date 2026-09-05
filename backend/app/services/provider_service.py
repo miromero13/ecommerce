@@ -30,7 +30,6 @@ def create_provider(db: Session, provider: ProviderCreate) -> Provider:
         phone=provider.phone,
         branch_id=provider.branch_id,
         status=ProviderStatusEnum.active,
-        is_active=True,
     )
 
     db.add(db_user)
@@ -61,6 +60,11 @@ def update_provider_status(db: Session, provider_id, update_data: ProviderStatus
         return None
 
     provider.status = update_data.status
+    if provider.user_id:
+        db.query(User).filter(User.id == provider.user_id).update(
+            {User.is_active: update_data.status == ProviderStatusEnum.active},
+            synchronize_session=False,
+        )
     db.commit()
     db.refresh(provider)
     return provider
@@ -81,13 +85,12 @@ def update_provider_full(db: Session, provider_id, update_data) -> Provider | No
     provider.phone = update_data.phone
     provider.branch_id = update_data.branch_id
     provider.status = update_data.status
-    provider.is_active = update_data.is_active
 
     user.name = update_data.contact_name
     user.email = normalize_email(update_data.email)
     user.gender = update_data.gender
     user.branch_id = update_data.branch_id
-    user.is_active = update_data.is_active
+    user.is_active = update_data.status == ProviderStatusEnum.active
 
     try:
         db.commit()
@@ -115,14 +118,3 @@ def delete_provider(db: Session, provider_id) -> bool:
     except IntegrityError:
         db.rollback()
         raise ValueError("No se pudo eliminar el proveedor")
-
-
-def set_provider_active(db: Session, provider_id, is_active: bool) -> Provider | None:
-    provider = db.query(Provider).filter(Provider.id == provider_id).first()
-    if not provider:
-        return None
-
-    provider.is_active = is_active
-    db.commit()
-    db.refresh(provider)
-    return provider
