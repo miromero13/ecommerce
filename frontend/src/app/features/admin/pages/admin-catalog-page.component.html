@@ -374,19 +374,18 @@
                 </div>
               </div>
 
-              <section class="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <section class="space-y-2">
                 <div class="flex items-center justify-between gap-3">
                   <div>
-                    <h3 class="text-sm font-semibold">Variantes</h3>
-                    <p class="text-xs text-slate-500">Cada combinación necesita SKU y precio propio.</p>
+                    <h3 class="text-sm">Variantes</h3>
                   </div>
                   <button hlmBtn type="button" variant="outline" (click)="addVariant()">Agregar variante</button>
                 </div>
 
-                <div class="space-y-4" formArrayName="variants">
+                <div class="space-y-1" formArrayName="variants">
                   @for (variant of variantControls(); track $index; let i = $index) {
                     <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm" [formGroupName]="i">
-                      <div class="mb-3 flex items-center justify-between gap-3">
+                      <div class="flex items-center justify-between">
                         <h4 class="text-sm font-semibold">Variante {{ i + 1 }}</h4>
                         <button hlmBtn type="button" variant="ghost" [disabled]="variantControls().length === 1" (click)="removeVariant(i)">Quitar</button>
                       </div>
