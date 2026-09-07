@@ -1,7 +1,7 @@
 from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routes import user_routes, auth, branch_routes, provider_routes, catalog_routes, inventory_routes, cart_routes, reservation_routes, order_routes, payment_routes
+from app.routes import user_routes, auth, branch_routes, provider_routes, catalog_routes, inventory_routes, cart_routes, reservation_routes, order_routes, payment_routes, sales_routes
 from app.core.error_handlers import register_error_handlers
 
 app = FastAPI(title="ACI")
@@ -27,6 +27,7 @@ api_router.include_router(cart_routes.router)
 api_router.include_router(reservation_routes.router)
 api_router.include_router(order_routes.router)
 api_router.include_router(payment_routes.router)
+api_router.include_router(sales_routes.router)
 
 app.include_router(api_router)
 
