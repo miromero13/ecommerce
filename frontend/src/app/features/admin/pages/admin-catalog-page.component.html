@@ -428,6 +428,34 @@
                           </div>
                         </div>
                       </div>
+
+                      <div class="mt-4 grid gap-4 md:grid-cols-[180px_1fr]">
+                        <div class="overflow-hidden rounded-xl border border-dashed border-slate-300 bg-slate-50">
+                          @if (variantImagePreview(i)) {
+                            <img [src]="variantImagePreview(i)!" [alt]="'Vista previa variante ' + (i + 1)" class="h-40 w-full object-cover" />
+                          } @else {
+                            <div class="flex h-40 items-center justify-center text-xs text-slate-500">Sin imagen</div>
+                          }
+                        </div>
+
+                        <div class="space-y-3">
+                          <div hlmField>
+                            <label hlmFieldLabel [for]="'variant-image-' + i">Imagen de la variante</label>
+                            <input
+                              [id]="'variant-image-' + i"
+                              type="file"
+                              accept="image/*"
+                              class="block w-full text-sm text-slate-600 file:mr-4 file:rounded-md file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-slate-700"
+                              (change)="onVariantImageChange(i, $event)"
+                            />
+                            <p class="mt-2 text-xs text-slate-500">PNG, JPG o WEBP. La imagen se guarda por variante.</p>
+                          </div>
+
+                          <div class="flex justify-end">
+                            <button hlmBtn type="button" variant="outline" [disabled]="!variantHasImage(i)" (click)="clearVariantImage(i)">Quitar imagen</button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   }
                 </div>

@@ -41,6 +41,7 @@ export class CatalogPageComponent {
   protected readonly collections = signal<CatalogCollectionItem[]>([]);
   protected readonly products = signal<CatalogProduct[]>([]);
   protected readonly selectedVariantByProduct = signal<Record<string, string>>({});
+  protected readonly selectedImageByProduct = signal<Record<string, number>>({});
   protected readonly loading = signal(false);
 
   protected readonly form = this.fb.nonNullable.group({
@@ -221,6 +222,50 @@ export class CatalogPageComponent {
 
   protected variantStock(variant: CatalogProductVariant | null): number | null {
     return variant?.branch_quantity ?? null;
+  }
+
+  protected productImages(product: CatalogProduct): string[] {
+    const images = new Set<string>();
+    for (const variant of product.variants ?? []) {
+      if (variant.image_url) {
+        images.add(variant.image_url);
+      }
+    }
+    if (product.image_url) {
+      images.add(product.image_url);
+    }
+    return [...images];
+  }
+
+  protected currentProductImage(product: CatalogProduct): string | null {
+    const images = this.productImages(product);
+    if (!images.length) {
+      return null;
+    }
+    return images[this.currentProductImageIndex(product)] ?? null;
+  }
+
+  protected currentProductImageIndex(product: CatalogProduct): number {
+    const images = this.productImages(product);
+    if (!images.length) {
+      return 0;
+    }
+    const index = this.selectedImageByProduct()[product.id] ?? 0;
+    return ((index % images.length) + images.length) % images.length;
+  }
+
+  protected previousProductImage(productId: string, total: number): void {
+    this.selectedImageByProduct.update((current) => ({
+      ...current,
+      [productId]: ((current[productId] ?? 0) - 1 + total) % total,
+    }));
+  }
+
+  protected nextProductImage(productId: string, total: number): void {
+    this.selectedImageByProduct.update((current) => ({
+      ...current,
+      [productId]: ((current[productId] ?? 0) + 1) % total,
+    }));
   }
 
   private ensureSelectedVariants(): void {

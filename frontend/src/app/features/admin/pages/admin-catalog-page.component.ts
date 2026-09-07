@@ -27,6 +27,13 @@ import { CatalogApiService } from '../../shared/services/catalog-api.service';
 
 type CatalogTab = 'categories' | 'sizes' | 'colors' | 'seasons' | 'collections' | 'products';
 
+interface VariantImageState {
+  currentUrl: string | null;
+  currentPublicId: string | null;
+  selectedFile: File | null;
+  previewUrl: string | null;
+}
+
 const CATALOG_TAB_LABELS: Record<CatalogTab, string> = {
   categories: 'Categorías',
   sizes: 'Tallas',
@@ -82,6 +89,8 @@ export class AdminCatalogPageComponent {
   protected readonly openMenuId = signal<string | null>(null);
   protected readonly deleteConfirmOpen = signal(false);
   protected readonly deletingItem = signal<{ tab: CatalogTab; id: string; label: string } | null>(null);
+  private variantImageStates: VariantImageState[] = [];
+  private editingVariantIds: Array<string | null> = [];
 
   protected readonly collectionSeasonSelectLabel = (seasonId: string | null | undefined): string => {
     if (!seasonId) return 'Sin temporada';
@@ -151,9 +160,12 @@ export class AdminCatalogPageComponent {
     this.editingItemId.set(null);
     this.editingProductId.set(null);
     if (tab === 'products') {
+      this.resetVariantImageStates();
       this.productForm.reset({ name: '', description: '', category_id: '', season_id: '', collection_id: '' });
       this.variantsArray().clear();
       this.variantsArray().push(this.createVariantGroup());
+      this.editingVariantIds = [null];
+      this.variantImageStates = [this.createEmptyVariantImageState()];
     } else {
       this.resetSimpleForm(tab);
     }
@@ -188,6 +200,7 @@ export class AdminCatalogPageComponent {
     this.modalMode.set('edit');
     this.editingProductId.set(product.id);
     this.editingItemId.set(null);
+    this.resetVariantImageStates();
 
     this.productForm.reset({
       name: product.name,
@@ -198,8 +211,14 @@ export class AdminCatalogPageComponent {
     });
     this.variantsArray().clear();
 
-    const variants = product.variants?.length ? product.variants : [{ sku: product.sku ?? '', price: product.price, size_id: product.size_id ?? '', color_id: product.color_id ?? '', status: product.status ?? 'active' }];
+    const variants = product.variants?.length
+      ? product.variants
+      : [{ id: '', sku: product.sku ?? '', price: product.price, size_id: product.size_id ?? '', color_id: product.color_id ?? '', image_url: product.image_url ?? null, image_public_id: product.image_public_id ?? null, status: product.status ?? 'active' }];
+    this.editingVariantIds = [];
+    this.variantImageStates = [];
     variants.forEach((variant) => {
+      this.editingVariantIds.push(variant.id);
+      this.variantImageStates.push(this.createVariantImageState(variant.image_url ?? null, variant.image_public_id ?? null));
       this.variantsArray().push(this.fb.nonNullable.group({
         sku: [variant.sku, [Validators.required]],
         price: [variant.price, [Validators.required]],
@@ -213,6 +232,7 @@ export class AdminCatalogPageComponent {
   }
 
   protected closeModal(): void {
+    this.resetVariantImageStates();
     this.modalOpen.set(false);
   }
 
@@ -312,6 +332,7 @@ export class AdminCatalogPageComponent {
     this.loading.set(true);
     try {
       const payload = this.productForm.getRawValue();
+      let savedProduct: CatalogProduct | null = null;
       const request = {
         name: payload.name,
         description: payload.description || null,
@@ -319,29 +340,36 @@ export class AdminCatalogPageComponent {
         category_id: payload.category_id,
         season_id: payload.season_id || null,
         collection_id: payload.collection_id || null,
-        variants: variants.map((variant) => ({
+        variants: variants.map((variant, index) => ({
           sku: variant.sku,
           price: variant.price,
           size_id: variant.size_id || null,
           color_id: variant.color_id || null,
           status: variant.status || 'active',
+          image_url: this.variantImageStateAt(index)?.currentUrl ?? null,
+          image_public_id: this.variantImageStateAt(index)?.currentPublicId ?? null,
         })),
       };
 
       if (this.modalMode() === 'edit' && this.editingProductId()) {
-        await requestWithToast(
+        const response = await requestWithToast(
           this.api.updateProduct(this.editingProductId()!, request),
           { loading: 'Guardando producto...', success: 'Producto actualizado correctamente.', error: 'No se pudo guardar el producto.' },
         );
+        savedProduct = response.data ?? null;
       } else {
-        await requestWithToast(
+        const response = await requestWithToast(
           this.api.createProduct(request),
           { loading: 'Guardando producto...', success: 'Producto creado correctamente.', error: 'No se pudo guardar el producto.' },
         );
+        savedProduct = response.data ?? null;
       }
+      await this.syncVariantImages(savedProduct);
       this.productForm.reset({ name: '', description: '', category_id: '', season_id: '', collection_id: '' });
       this.variantsArray().clear();
       this.variantsArray().push(this.createVariantGroup());
+      this.editingVariantIds = [null];
+      this.variantImageStates = [this.createEmptyVariantImageState()];
       await this.loadData();
       this.closeModal();
     } catch {
@@ -361,13 +389,28 @@ export class AdminCatalogPageComponent {
 
   protected addVariant(): void {
     this.variantsArray().push(this.createVariantGroup());
+    this.editingVariantIds.push(null);
+    this.variantImageStates.push(this.createEmptyVariantImageState());
   }
 
-  protected removeVariant(index: number): void {
+  protected async removeVariant(index: number): Promise<void> {
     if (this.variantsArray().length === 1) {
       return;
     }
+
+    const variantId = this.editingVariantIds[index];
+    const state = this.variantImageStateAt(index);
+    if (variantId && state?.currentPublicId) {
+      await requestWithToast(
+        this.api.deleteVariantImage(variantId),
+        { loading: 'Eliminando imagen...', success: 'Imagen eliminada correctamente.', error: 'No se pudo eliminar la imagen.' },
+      );
+    }
+
+    this.revokeVariantPreview(index);
     this.variantsArray().removeAt(index);
+    this.editingVariantIds.splice(index, 1);
+    this.variantImageStates.splice(index, 1);
   }
 
   protected variantControls(): Array<any> {
@@ -390,6 +433,44 @@ export class AdminCatalogPageComponent {
 
   protected variantStatusBadge(variant: CatalogProductVariant): string {
     return variant.status;
+  }
+
+  protected variantImagePreview(index: number): string | null {
+    const state = this.variantImageStateAt(index);
+    return state?.previewUrl ?? state?.currentUrl ?? null;
+  }
+
+  protected variantHasImage(index: number): boolean {
+    return !!this.variantImagePreview(index);
+  }
+
+  protected onVariantImageChange(index: number, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    this.setVariantFile(index, file);
+    input.value = '';
+  }
+
+  protected async clearVariantImage(index: number): Promise<void> {
+    const state = this.variantImageStateAt(index);
+    if (!state) {
+      return;
+    }
+
+    if (state.selectedFile) {
+      this.setVariantFile(index, null);
+      return;
+    }
+
+    const variantId = this.editingVariantIds[index];
+    if (variantId && state.currentPublicId) {
+      await requestWithToast(
+        this.api.deleteVariantImage(variantId),
+        { loading: 'Eliminando imagen...', success: 'Imagen eliminada correctamente.', error: 'No se pudo eliminar la imagen.' },
+      );
+    }
+
+    this.setVariantImageState(index, this.createEmptyVariantImageState());
   }
 
   protected seasonName(seasonId: string | null): string {
@@ -553,6 +634,88 @@ export class AdminCatalogPageComponent {
 
   protected collectionName(collectionId: string | null | undefined): string {
     return this.lookupName(this.collections(), collectionId, 'Sin colección');
+  }
+
+  private createEmptyVariantImageState(): VariantImageState {
+    return {
+      currentUrl: null,
+      currentPublicId: null,
+      selectedFile: null,
+      previewUrl: null,
+    };
+  }
+
+  private createVariantImageState(currentUrl: string | null, currentPublicId: string | null): VariantImageState {
+    return {
+      currentUrl,
+      currentPublicId,
+      selectedFile: null,
+      previewUrl: currentUrl,
+    };
+  }
+
+  private variantImageStateAt(index: number): VariantImageState | null {
+    return this.variantImageStates[index] ?? null;
+  }
+
+  private setVariantImageState(index: number, state: VariantImageState): void {
+    this.variantImageStates[index] = state;
+  }
+
+  private setVariantFile(index: number, file: File | null): void {
+    const state = this.variantImageStateAt(index) ?? this.createEmptyVariantImageState();
+    this.revokeVariantPreview(index);
+    this.setVariantImageState(index, {
+      ...state,
+      selectedFile: file,
+      previewUrl: file ? URL.createObjectURL(file) : state.currentUrl,
+    });
+  }
+
+  private revokeVariantPreview(index: number): void {
+    const state = this.variantImageStateAt(index);
+    if (state?.previewUrl?.startsWith('blob:')) {
+      URL.revokeObjectURL(state.previewUrl);
+    }
+  }
+
+  private resetVariantImageStates(): void {
+    this.variantImageStates.forEach((state) => {
+      if (state.previewUrl?.startsWith('blob:')) {
+        URL.revokeObjectURL(state.previewUrl);
+      }
+    });
+    this.variantImageStates = [];
+    this.editingVariantIds = [];
+  }
+
+  private async syncVariantImages(product: CatalogProduct | null): Promise<void> {
+    if (!product) {
+      return;
+    }
+
+    const savedVariants = product.variants ?? [];
+
+    for (const [index, state] of this.variantImageStates.entries()) {
+      if (!state.selectedFile) {
+        continue;
+      }
+
+      const variantId = savedVariants[index]?.id;
+      if (!variantId) {
+        continue;
+      }
+
+      const response = await firstValueFrom(this.api.updateVariantImage(variantId, state.selectedFile));
+      const updatedProduct = response.data;
+      const updatedVariant = updatedProduct?.variants?.[index];
+      this.variantImageStates[index] = {
+        currentUrl: updatedVariant?.image_url ?? state.previewUrl,
+        currentPublicId: updatedVariant?.image_public_id ?? state.currentPublicId,
+        selectedFile: null,
+        previewUrl: updatedVariant?.image_url ?? state.previewUrl,
+      };
+    }
   }
 
   private createVariantGroup() {

@@ -154,4 +154,14 @@ export class CatalogApiService {
   updateVariantStatus(variantId: string, status: ProductStatus) {
     return this.api.patch<ApiResponse<CatalogProduct>>(`/catalog/variants/${variantId}/status`, { status });
   }
+
+  updateVariantImage(variantId: string, file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.api.patch<ApiResponse<CatalogProduct>>(`/catalog/variants/${variantId}/image`, formData);
+  }
+
+  deleteVariantImage(variantId: string) {
+    return this.api.delete<ApiResponse<CatalogProduct>>(`/catalog/variants/${variantId}/image`);
+  }
 }

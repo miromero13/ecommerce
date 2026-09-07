@@ -29,6 +29,8 @@ export interface CatalogProductVariant {
   price: string;
   size_id: string | null;
   color_id: string | null;
+  image_url?: string | null;
+  image_public_id?: string | null;
   status: ProductStatus;
   branch_quantity?: number | null;
 }
@@ -43,6 +45,8 @@ export interface CatalogProduct {
   season_id: string | null;
   collection_id: string | null;
   sku?: string | null;
+  image_url?: string | null;
+  image_public_id?: string | null;
   status?: ProductStatus | null;
   size_id?: string | null;
   color_id?: string | null;
@@ -69,6 +73,8 @@ export interface CreateProductVariantRequest {
   price: string;
   size_id?: string | null;
   color_id?: string | null;
+  image_url?: string | null;
+  image_public_id?: string | null;
   status?: ProductStatus;
 }
 

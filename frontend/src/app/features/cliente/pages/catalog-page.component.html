@@ -83,6 +83,20 @@
   <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
     @for (product of products(); track product.id) {
       <article hlmCard class="bg-white shadow-sm">
+        <div class="relative overflow-hidden rounded-t-xl border-b border-slate-200 bg-slate-100">
+          @if (productImages(product).length > 0) {
+            <img [src]="currentProductImage(product)!" [alt]="product.name" class="h-64 w-full object-cover" />
+            @if (productImages(product).length > 1) {
+              <button type="button" hlmBtn variant="secondary" class="absolute left-3 top-1/2 -translate-y-1/2 rounded-full px-3 py-2 text-xs" (click)="previousProductImage(product.id, productImages(product).length)">‹</button>
+              <button type="button" hlmBtn variant="secondary" class="absolute right-3 top-1/2 -translate-y-1/2 rounded-full px-3 py-2 text-xs" (click)="nextProductImage(product.id, productImages(product).length)">›</button>
+              <div class="absolute bottom-3 right-3 rounded-full bg-slate-950/70 px-3 py-1 text-xs font-medium text-white">
+                {{ currentProductImageIndex(product) + 1 }} / {{ productImages(product).length }}
+              </div>
+            }
+          } @else {
+            <div class="flex h-64 items-center justify-center text-sm text-slate-500">Sin imagen</div>
+          }
+        </div>
         <div hlmCardHeader class="space-y-2">
           <h2 hlmCardTitle class="text-lg">{{ product.name }}</h2>
           <p hlmCardDescription>{{ product.description ?? 'Sin descripción' }}</p>
