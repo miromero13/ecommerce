@@ -8,7 +8,7 @@ Create Date: 2026-09-07 00:30:00.000000
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy import inspect
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, ENUM as PG_ENUM
 
 
 revision = "0014_add_inventory_movements"
@@ -21,12 +21,13 @@ def upgrade() -> None:
     bind = op.get_bind()
     inspector = inspect(bind)
 
-    movement_type_enum = sa.Enum(
+    movement_type_enum = PG_ENUM(
         "income",
         "outcome",
         "transfer_in",
         "transfer_out",
         name="inventorymovementtypeenum",
+        create_type=False,
     )
 
     if not inspector.has_table("inventory_movements"):
@@ -56,11 +57,12 @@ def downgrade() -> None:
     if inspector.has_table("inventory_movements"):
         op.drop_table("inventory_movements")
 
-    movement_type_enum = sa.Enum(
+    movement_type_enum = PG_ENUM(
         "income",
         "outcome",
         "transfer_in",
         "transfer_out",
         name="inventorymovementtypeenum",
+        create_type=False,
     )
-    movement_type_enum.drop(bind, checkfirst=True)
+    op.execute("DROP TYPE IF EXISTS inventorymovementtypeenum")

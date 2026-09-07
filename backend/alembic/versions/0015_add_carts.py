@@ -8,7 +8,7 @@ Create Date: 2026-09-07 01:00:00.000000
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy import inspect
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, ENUM as PG_ENUM
 
 
 revision = "0015_add_carts"
@@ -21,7 +21,7 @@ def upgrade() -> None:
     bind = op.get_bind()
     inspector = inspect(bind)
 
-    cart_status_enum = sa.Enum("active", "checked_out", "cancelled", name="cartstatusenum")
+    cart_status_enum = PG_ENUM("active", "checked_out", "cancelled", name="cartstatusenum", create_type=False)
     if not inspector.has_table("carts"):
         cart_status_enum.create(bind, checkfirst=True)
         op.create_table(
@@ -61,5 +61,4 @@ def downgrade() -> None:
     if inspector.has_table("carts"):
         op.drop_table("carts")
 
-    cart_status_enum = sa.Enum("active", "checked_out", "cancelled", name="cartstatusenum")
-    cart_status_enum.drop(bind, checkfirst=True)
+    op.execute("DROP TYPE IF EXISTS cartstatusenum")
