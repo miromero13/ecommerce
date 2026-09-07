@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
+import { Observable, firstValueFrom } from 'rxjs';
 
 import { toast } from '@spartan-ng/brain/sonner';
 
@@ -13,14 +13,11 @@ import { HlmTable } from '../../../components/table/src';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
 import { requestWithToast } from '../../../core/utils/request-toast.util';
 import { CatalogBranch, CatalogProduct } from '../../shared/models/catalog.model';
-import { InventoryReportRow, MovementReportRow, ReportQuery, ReportType, SalesReportRow } from '../../shared/models/report.model';
+import { InventoryReportRow, MovementReportRow, ReportPayload, ReportQuery, ReportResponse, ReportType, SalesReportRow } from '../../shared/models/report.model';
 import { CatalogApiService } from '../../shared/services/catalog-api.service';
 import { ReportsApiService } from '../../shared/services/reports-api.service';
 
-type ReportState = {
-  summary: Record<string, string | number>;
-  rows: Array<SalesReportRow | InventoryReportRow | MovementReportRow>;
-};
+type ReportState = ReportPayload<SalesReportRow | InventoryReportRow | MovementReportRow>;
 
 @Component({
   selector: 'app-admin-reports-page',
@@ -56,6 +53,8 @@ export class AdminReportsPageComponent {
     return this.products().find((product) => product.id === productId)?.name ?? productId;
   });
 
+  protected readonly columnCount = computed(() => 6);
+
   constructor() {
     void this.loadData();
   }
@@ -86,6 +85,26 @@ export class AdminReportsPageComponent {
 
   protected async applyFilters(): Promise<void> {
     await this.loadReport();
+  }
+
+  protected onBranchChange(event: Event): void {
+    this.selectedBranchId.set((event.target as HTMLSelectElement).value);
+  }
+
+  protected onProductChange(event: Event): void {
+    this.selectedProductId.set((event.target as HTMLSelectElement).value);
+  }
+
+  protected onFromDateChange(event: Event): void {
+    this.fromDate.set((event.target as HTMLInputElement).value);
+  }
+
+  protected onToDateChange(event: Event): void {
+    this.toDate.set((event.target as HTMLInputElement).value);
+  }
+
+  protected onSearchChange(event: Event): void {
+    this.searchTerm.set((event.target as HTMLInputElement).value);
   }
 
   protected reportTitle(): string {
@@ -173,9 +192,9 @@ export class AdminReportsPageComponent {
   private async loadReport(): Promise<void> {
     this.loading.set(true);
     try {
-      const response: any = await firstValueFrom(this.reportObservable() as any);
-      const payload = response.data ?? { summary: {}, rows: [] };
-      this.reportState.set(payload as ReportState);
+      const response = await firstValueFrom(this.reportObservable());
+      const payload: ReportState = response.data ?? { summary: {}, rows: [] };
+      this.reportState.set(payload);
     } catch (error) {
       toast.error(getErrorMessage(error, 'No se pudo cargar el reporte.'));
       this.reportState.set({ summary: {}, rows: [] });
@@ -184,7 +203,7 @@ export class AdminReportsPageComponent {
     }
   }
 
-  private reportObservable() {
+  private reportObservable(): Observable<ReportResponse> {
     const filters = this.filters();
     switch (this.selectedReport()) {
       case 'inventory':

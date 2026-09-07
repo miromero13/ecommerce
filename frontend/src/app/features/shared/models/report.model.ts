@@ -70,3 +70,4 @@ export interface ReportPayload<T> {
 export type SalesReportResponse = ApiResponse<ReportPayload<SalesReportRow>>;
 export type InventoryReportResponse = ApiResponse<ReportPayload<InventoryReportRow>>;
 export type MovementsReportResponse = ApiResponse<ReportPayload<MovementReportRow>>;
+export type ReportResponse = SalesReportResponse | InventoryReportResponse | MovementsReportResponse;

@@ -33,7 +33,7 @@
       <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
         <div class="space-y-2">
           <label class="text-xs font-medium uppercase tracking-wide text-slate-500">Sucursal</label>
-          <select class="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm" [value]="selectedBranchId()" (change)="selectedBranchId.set($any($event.target).value)">
+          <select class="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm" [value]="selectedBranchId()" (change)="onBranchChange($event)">
             <option value="">Todas</option>
             @for (branch of branches(); track branch.id) {
               <option [value]="branch.id">{{ branch.name }} - {{ branch.city }}</option>
@@ -43,7 +43,7 @@
 
         <div class="space-y-2">
           <label class="text-xs font-medium uppercase tracking-wide text-slate-500">Producto</label>
-          <select class="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm" [value]="selectedProductId()" (change)="selectedProductId.set($any($event.target).value)">
+          <select class="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm" [value]="selectedProductId()" (change)="onProductChange($event)">
             <option value="">Todos</option>
             @for (product of products(); track product.id) {
               <option [value]="product.id">{{ product.name }}</option>
@@ -53,17 +53,17 @@
 
         <div class="space-y-2">
           <label class="text-xs font-medium uppercase tracking-wide text-slate-500">Desde</label>
-          <input hlmInput type="date" [value]="fromDate()" (input)="fromDate.set($any($event.target).value)" />
+          <input hlmInput type="date" [value]="fromDate()" (input)="onFromDateChange($event)" />
         </div>
 
         <div class="space-y-2">
           <label class="text-xs font-medium uppercase tracking-wide text-slate-500">Hasta</label>
-          <input hlmInput type="date" [value]="toDate()" (input)="toDate.set($any($event.target).value)" />
+          <input hlmInput type="date" [value]="toDate()" (input)="onToDateChange($event)" />
         </div>
 
         <div class="space-y-2">
           <label class="text-xs font-medium uppercase tracking-wide text-slate-500">Buscar</label>
-          <input hlmInput type="text" [value]="searchTerm()" (input)="searchTerm.set($any($event.target).value)" placeholder="SKU, producto o sucursal" />
+          <input hlmInput type="text" [value]="searchTerm()" (input)="onSearchChange($event)" placeholder="SKU, producto o sucursal" />
         </div>
       </div>
 
@@ -145,7 +145,7 @@
               }
             } @empty {
               <tr>
-                <td class="px-4 py-8 text-center text-slate-500" colspan="6">No hay resultados para los filtros actuales.</td>
+                <td class="px-4 py-8 text-center text-slate-500" [attr.colspan]="columnCount()">No hay resultados para los filtros actuales.</td>
               </tr>
             }
           </tbody>
