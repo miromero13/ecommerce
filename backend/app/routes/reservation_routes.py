@@ -8,8 +8,11 @@ from app.core.database import get_db
 from app.schemas.enums import RolEnum
 from app.schemas.reservation_schema import ReservationCreate
 from app.services.reservation_service import (
+    attend_reservation,
+    cancel_branch_reservation,
     cancel_reservation,
     create_reservation,
+    confirm_reservation_arrival,
     get_reservation,
     list_reservations,
     list_reservations_by_branch,
@@ -85,3 +88,69 @@ async def cancel_reservation_route(
     if not reservation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Reserva con id {reservation_id} no encontrada")
     return response(status_code=200, message="Reserva cancelada exitosamente", data=reservation)
+
+
+@router.patch("/{reservation_id}/arrival")
+async def confirm_reservation_arrival_route(
+    reservation_id: UUID,
+    db: Session = Depends(get_db),
+    branch_id: UUID | None = Query(default=None),
+    current_branch_id: UUID | None = Depends(get_current_branch_id),
+    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
+):
+    resolved_branch_id = branch_id or current_branch_id
+    if resolved_branch_id is None:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="branch_id es requerido")
+
+    try:
+        reservation = confirm_reservation_arrival(db, reservation_id, resolved_branch_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    if not reservation:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Reserva con id {reservation_id} no encontrada")
+    return response(status_code=200, message="Llegada confirmada exitosamente", data=reservation)
+
+
+@router.patch("/{reservation_id}/attend")
+async def attend_reservation_route(
+    reservation_id: UUID,
+    db: Session = Depends(get_db),
+    branch_id: UUID | None = Query(default=None),
+    current_branch_id: UUID | None = Depends(get_current_branch_id),
+    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
+):
+    resolved_branch_id = branch_id or current_branch_id
+    if resolved_branch_id is None:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="branch_id es requerido")
+
+    try:
+        reservation = attend_reservation(db, reservation_id, resolved_branch_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    if not reservation:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Reserva con id {reservation_id} no encontrada")
+    return response(status_code=200, message="Reserva atendida exitosamente", data=reservation)
+
+
+@router.patch("/{reservation_id}/branch-cancel")
+async def cancel_branch_reservation_route(
+    reservation_id: UUID,
+    db: Session = Depends(get_db),
+    branch_id: UUID | None = Query(default=None),
+    current_branch_id: UUID | None = Depends(get_current_branch_id),
+    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
+):
+    resolved_branch_id = branch_id or current_branch_id
+    if resolved_branch_id is None:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="branch_id es requerido")
+
+    try:
+        reservation = cancel_branch_reservation(db, reservation_id, resolved_branch_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    if not reservation:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Reserva con id {reservation_id} no encontrada")
+    return response(status_code=200, message="Reserva cancelada por sucursal exitosamente", data=reservation)
