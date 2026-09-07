@@ -24,6 +24,8 @@ class ProductVariantCreate(BaseModel):
     price: Decimal
     size_id: UUID | None = None
     color_id: UUID | None = None
+    image_url: str | None = None
+    image_public_id: str | None = None
     status: ProductStatusEnum | None = None
 
 
@@ -38,6 +40,8 @@ class ProductCreate(BaseModel):
     sku: str | None = None
     size_id: UUID | None = None
     color_id: UUID | None = None
+    image_url: str | None = None
+    image_public_id: str | None = None
     status: ProductStatusEnum | None = None
     variants: list[ProductVariantCreate] | None = None
 
@@ -53,6 +57,8 @@ class ProductVariantRead(BaseModel):
     price: Decimal
     size_id: UUID | None = None
     color_id: UUID | None = None
+    image_url: str | None = None
+    image_public_id: str | None = None
     status: ProductStatusEnum
     branch_quantity: int | None = None
 
@@ -71,6 +77,8 @@ class ProductRead(BaseModel):
     season_id: UUID | None = None
     collection_id: UUID | None = None
     sku: str | None = None
+    image_url: str | None = None
+    image_public_id: str | None = None
     status: ProductStatusEnum | None = None
     size_id: UUID | None = None
     color_id: UUID | None = None

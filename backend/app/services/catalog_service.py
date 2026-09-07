@@ -57,6 +57,8 @@ def _normalized_variants(payload: ProductCreate, default_status: ProductStatusEn
                 "price": payload.price,
                 "size_id": payload.size_id,
                 "color_id": payload.color_id,
+                "image_url": payload.image_url,
+                "image_public_id": payload.image_public_id,
                 "status": payload.status or default_status,
             }
         ]
@@ -69,6 +71,8 @@ def _normalized_variants(payload: ProductCreate, default_status: ProductStatusEn
                 "price": variant.price if variant.price is not None else payload.price,
                 "size_id": variant.size_id,
                 "color_id": variant.color_id,
+                "image_url": variant.image_url,
+                "image_public_id": variant.image_public_id,
                 "status": variant.status or default_status,
             }
         )
@@ -123,6 +127,8 @@ def create_product(
                     price=variant_data["price"],
                     size_id=variant_data["size_id"],
                     color_id=variant_data["color_id"],
+                    image_url=variant_data["image_url"],
+                    image_public_id=variant_data["image_public_id"],
                     status=variant_data["status"],
                 )
                 db.add(variant)
@@ -268,6 +274,8 @@ def update_product(db: Session, product_id, payload: ProductCreate) -> Product |
                     price=variant_data["price"],
                     size_id=variant_data["size_id"],
                     color_id=variant_data["color_id"],
+                    image_url=variant_data["image_url"],
+                    image_public_id=variant_data["image_public_id"],
                     status=variant_data["status"],
                 )
                 db.add(variant)
@@ -324,6 +332,8 @@ def _product_to_read(product: Product, variants: list[ProductVariant], branch_qu
                 "price": variant.price,
                 "size_id": variant.size_id,
                 "color_id": variant.color_id,
+                "image_url": variant.image_url,
+                "image_public_id": variant.image_public_id,
                 "status": variant.status,
                 "branch_quantity": branch_quantity,
             }
@@ -347,6 +357,8 @@ def _product_to_read(product: Product, variants: list[ProductVariant], branch_qu
             "collection_id": product.collection_id,
             "sku": primary["sku"],
             "price": primary["price"],
+            "image_url": primary["image_url"],
+            "image_public_id": primary["image_public_id"],
             "status": primary["status"],
             "size_id": primary["size_id"],
             "color_id": primary["color_id"],
@@ -354,6 +366,13 @@ def _product_to_read(product: Product, variants: list[ProductVariant], branch_qu
             "variants": variant_reads,
         }
     ).model_dump()
+
+
+def serialize_product(db: Session, product_id):
+    product = db.query(Product).options(selectinload(Product.variants)).filter(Product.id == product_id).first()
+    if not product:
+        return None
+    return _product_to_read(product, product.variants)
 
 
 def list_public_products(
@@ -439,3 +458,43 @@ def create_or_update_inventory(db: Session, variant_id, branch_id, quantity: int
     db.commit()
     db.refresh(inv)
     return inv
+
+
+def get_variant_by_id(db: Session, variant_id):
+    return db.query(ProductVariant).filter(ProductVariant.id == variant_id).first()
+
+
+def update_variant_image(db: Session, variant_id, image_url: str, image_public_id: str):
+    variant = get_variant_by_id(db, variant_id)
+    if not variant:
+        return None
+
+    old_public_id = variant.image_public_id
+    variant.image_url = image_url
+    variant.image_public_id = image_public_id
+
+    try:
+        db.commit()
+        db.refresh(variant)
+        return variant, old_public_id
+    except Exception:
+        db.rollback()
+        raise
+
+
+def clear_variant_image(db: Session, variant_id):
+    variant = get_variant_by_id(db, variant_id)
+    if not variant:
+        return None
+
+    old_public_id = variant.image_public_id
+    variant.image_url = None
+    variant.image_public_id = None
+
+    try:
+        db.commit()
+        db.refresh(variant)
+        return variant, old_public_id
+    except Exception:
+        db.rollback()
+        raise

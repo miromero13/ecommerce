@@ -16,6 +16,8 @@ class ProductVariant(Base):
     price = Column(Numeric(10, 2), nullable=False)
     size_id = Column(UUID(as_uuid=True), ForeignKey("sizes.id"), nullable=True, index=True)
     color_id = Column(UUID(as_uuid=True), ForeignKey("colors.id"), nullable=True, index=True)
+    image_url = Column(String, nullable=True)
+    image_public_id = Column(String, nullable=True)
     status = Column(SQLAlchemyEnum(ProductStatusEnum), nullable=False, default=ProductStatusEnum.pending)
 
     product = relationship("Product", back_populates="variants")

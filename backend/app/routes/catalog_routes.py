@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status, UploadFile, File
 from sqlalchemy.orm import Session, selectinload
 from uuid import UUID
 
 from app.auth.dependencies import get_current_user, require_roles
+from app.core.config import settings
 from app.core.database import get_db
 from app.models.user import User
 from app.schemas.catalog_enums import ProductStatusEnum
@@ -42,7 +43,12 @@ from app.services.catalog_service import (
     create_or_update_inventory,
     get_branch_quantity,
     list_pending_products as list_pending_products_service,
+    get_variant_by_id,
+    serialize_product,
+    update_variant_image,
+    clear_variant_image,
 )
+from app.services.cloudinary_service import delete_image, upload_image
 from app.utils.response import response
 
 
@@ -258,7 +264,8 @@ async def create_product_route(payload: ProductCreate, db: Session = Depends(get
         product = create_product(db, payload, status=ProductStatusEnum.active)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return response(status_code=201, message="Producto creado exitosamente", data=ProductRead.model_validate(product).model_dump())
+    serialized = serialize_product(db, product.id)
+    return response(status_code=201, message="Producto creado exitosamente", data=serialized)
 
 
 @router.put("/products/{product_id}")
@@ -269,7 +276,8 @@ async def update_product_route(product_id: UUID, payload: ProductCreate, db: Ses
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if not product:
         raise HTTPException(status_code=404, detail=f"Producto con id {product_id} no encontrado")
-    return response(status_code=200, message="Producto actualizado exitosamente", data=ProductRead.model_validate(product).model_dump())
+    serialized = serialize_product(db, product.id)
+    return response(status_code=200, message="Producto actualizado exitosamente", data=serialized)
 
 
 @router.delete("/products/{product_id}")
@@ -291,7 +299,8 @@ async def submit_product_route(payload: ProductCreate, db: Session = Depends(get
         product = create_product(db, payload, provider_id=provider_id, status=ProductStatusEnum.pending)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return response(status_code=201, message="Producto enviado exitosamente", data=ProductRead.model_validate(product).model_dump())
+    serialized = serialize_product(db, product.id)
+    return response(status_code=201, message="Producto enviado exitosamente", data=serialized)
 
 
 @router.patch("/products/{product_id}/status")
@@ -300,7 +309,10 @@ async def update_product_status_route(product_id: UUID, payload: ProductVariantS
     if not variant:
         raise HTTPException(status_code=404, detail=f"Producto con id {product_id} no encontrado")
     updated = update_product_status(db, variant.id, payload)
-    return response(status_code=200, message="Producto actualizado exitosamente", data=ProductRead.model_validate(updated.product).model_dump())
+    if not updated:
+        raise HTTPException(status_code=404, detail=f"Producto con id {product_id} no encontrado")
+    serialized = serialize_product(db, updated.product_id)
+    return response(status_code=200, message="Producto actualizado exitosamente", data=serialized)
 
 
 @router.patch("/variants/{variant_id}/status")
@@ -308,7 +320,78 @@ async def update_variant_status_route(variant_id: UUID, payload: ProductVariantS
     variant = update_product_status(db, variant_id, payload)
     if not variant:
         raise HTTPException(status_code=404, detail=f"Variante con id {variant_id} no encontrada")
-    return response(status_code=200, message="Variante actualizada exitosamente", data=ProductRead.model_validate(variant.product).model_dump())
+    serialized = serialize_product(db, variant.product_id)
+    return response(status_code=200, message="Variante actualizada exitosamente", data=serialized)
+
+
+@router.patch("/variants/{variant_id}/image")
+async def update_variant_image_route(
+    variant_id: UUID,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(RolEnum.administrador)),
+):
+    variant = get_variant_by_id(db, variant_id)
+    if not variant:
+        raise HTTPException(status_code=404, detail=f"Variante con id {variant_id} no encontrada")
+
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=400, detail="El archivo de imagen no puede estar vacio")
+
+    old_public_id = None
+    try:
+        upload_result = upload_image(
+            content,
+            folder=f"{settings.cloudinary_folder}/product-variants/{variant.id}",
+            public_id=file.filename.rsplit(".", 1)[0] if file.filename else None,
+        )
+        updated, old_public_id = update_variant_image(
+            db,
+            variant_id,
+            upload_result["image_url"],
+            upload_result["image_public_id"],
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:
+        if "upload_result" in locals():
+            delete_image(upload_result.get("image_public_id"))
+        raise HTTPException(status_code=400, detail="No se pudo actualizar la imagen de la variante") from exc
+
+    if old_public_id and old_public_id != upload_result["image_public_id"]:
+        try:
+            delete_image(old_public_id)
+        except Exception:
+            pass
+
+    serialized = serialize_product(db, updated.product_id)
+    return response(status_code=200, message="Imagen de variante actualizada exitosamente", data=serialized)
+
+
+@router.delete("/variants/{variant_id}/image")
+async def delete_variant_image_route(
+    variant_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(RolEnum.administrador)),
+):
+    variant = get_variant_by_id(db, variant_id)
+    if not variant:
+        raise HTTPException(status_code=404, detail=f"Variante con id {variant_id} no encontrada")
+
+    try:
+        updated, old_public_id = clear_variant_image(db, variant_id)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="No se pudo eliminar la imagen de la variante") from exc
+
+    if old_public_id:
+        try:
+            delete_image(old_public_id)
+        except Exception:
+            pass
+
+    serialized = serialize_product(db, updated.product_id)
+    return response(status_code=200, message="Imagen de variante eliminada exitosamente", data=serialized)
 
 
 @router.get("/availability")

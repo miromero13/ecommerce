@@ -5,6 +5,10 @@ class Settings(BaseSettings):
     secret_key: str
     access_token_expire_minutes: int
     algorithm: str = "HS256"
+    cloudinary_cloud_name: str | None = None
+    cloudinary_api_key: str | None = None
+    cloudinary_api_secret: str | None = None
+    cloudinary_folder: str = "fashionstore"
 
     class Config:
         env_file = ".env"
