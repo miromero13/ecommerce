@@ -1,23 +1,228 @@
-<section class="space-y-5">
-  <header>
-    <h1 class="text-2xl font-semibold">Dashboard</h1>
-    <p class="text-sm text-slate-500">Espacio reservado para resumen general.</p>
+<section class="space-y-6">
+  <header class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+    <div>
+      <h1 class="text-2xl font-semibold">Dashboard</h1>
+      <p class="text-sm text-slate-500">Resumen ejecutivo de ventas, inventario, movimientos y reservas.</p>
+    </div>
+    <div class="flex gap-2">
+      <button hlmBtn type="button" variant="outline" (click)="refresh()" [disabled]="loading()">Actualizar</button>
+    </div>
   </header>
 
-  <section hlmCard class="border-slate-200 bg-white shadow-sm">
-  <div hlmCardContent class="grid gap-4 sm:grid-cols-3">
-    <article class="rounded-xl border border-slate-200 p-4">
-      <p class="text-xs uppercase tracking-wide text-slate-500">Usuarios</p>
-      <p class="mt-2 text-2xl font-semibold text-slate-900">-</p>
+  <section hlmCard class="bg-white shadow-sm">
+    <div hlmCardContent class="grid gap-4 p-4 lg:grid-cols-5">
+      <div class="space-y-2 lg:col-span-2">
+        <label class="text-xs font-medium uppercase tracking-wide text-slate-500">Sucursal</label>
+        <select class="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm" [value]="selectedBranchId()" (change)="onBranchChange($event)">
+          <option value="">Todas</option>
+          @for (branch of branches(); track branch.id) {
+            <option [value]="branch.id">{{ branch.name }} - {{ branch.city }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="space-y-2">
+        <label class="text-xs font-medium uppercase tracking-wide text-slate-500">Periodo</label>
+        <select class="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm" [value]="period()" (change)="onPeriodChange($event)">
+          <option value="day">Día</option>
+          <option value="week">Semana</option>
+          <option value="month">Mes</option>
+        </select>
+      </div>
+
+      <div class="space-y-2">
+        <label class="text-xs font-medium uppercase tracking-wide text-slate-500">Desde</label>
+        <input hlmInput type="date" [value]="fromDate()" (input)="onFromDateChange($event)" />
+      </div>
+
+      <div class="space-y-2">
+        <label class="text-xs font-medium uppercase tracking-wide text-slate-500">Hasta</label>
+        <input hlmInput type="date" [value]="toDate()" (input)="onToDateChange($event)" />
+      </div>
+
+      <div class="flex items-end gap-2">
+        <button hlmBtn type="button" class="w-full" (click)="applyFilters()" [disabled]="loading()">Aplicar</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    @for (card of summaryCards(); track card.label) {
+      <article hlmCard class="bg-white shadow-sm">
+        <div hlmCardContent class="p-4">
+          <p class="text-xs uppercase tracking-wide text-slate-500">{{ card.label }}</p>
+          <p class="mt-2 text-2xl font-semibold" [ngClass]="card.tone">{{ card.value }}</p>
+        </div>
+      </article>
+    }
+  </section>
+
+  <section class="grid gap-4 xl:grid-cols-2">
+    <article hlmCard class="bg-white shadow-sm">
+      <div hlmCardContent class="space-y-4 p-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-lg font-semibold">Ventas por periodo</h2>
+            <p class="text-sm text-slate-500">Sucursal: {{ branchLabel() }}</p>
+          </div>
+          <span hlmBadge class="bg-slate-100 text-slate-700">{{ dashboard().sales_series.length }} puntos</span>
+        </div>
+
+        <div class="space-y-3">
+          @for (point of dashboard().sales_series; track point.label) {
+            <div class="space-y-1">
+              <div class="flex items-center justify-between text-xs text-slate-500">
+                <span>{{ point.label }}</span>
+                <span>{{ point.sales }} · {{ point.orders }} órdenes · {{ point.units }} uds</span>
+              </div>
+                <div class="h-2 rounded-full bg-slate-100">
+                  <div class="h-2 rounded-full bg-emerald-500" [style.width]="salesPointWidth(point)"></div>
+                </div>
+            </div>
+          } @empty {
+            <p class="text-sm text-slate-500">Sin datos para el periodo seleccionado.</p>
+          }
+        </div>
+      </div>
     </article>
-    <article class="rounded-xl border border-slate-200 p-4">
-      <p class="text-xs uppercase tracking-wide text-slate-500">Sucursales</p>
-      <p class="mt-2 text-2xl font-semibold text-slate-900">-</p>
+
+    <article hlmCard class="bg-white shadow-sm">
+      <div hlmCardContent class="space-y-4 p-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-lg font-semibold">Movimientos de inventario</h2>
+            <p class="text-sm text-slate-500">Entradas, salidas y traspasos.</p>
+          </div>
+          <span hlmBadge class="bg-slate-100 text-slate-700">{{ dashboard().movement_series.length }} puntos</span>
+        </div>
+
+        <div class="space-y-3">
+          @for (point of dashboard().movement_series; track point.label) {
+            <div class="space-y-2 rounded-xl border border-slate-200 p-3">
+              <div class="flex items-center justify-between text-xs text-slate-500">
+                <span>{{ point.label }}</span>
+                <span>{{ movementTotal(point) }} mov.</span>
+              </div>
+              <div class="grid gap-1">
+                <div class="h-2 rounded-full bg-slate-100">
+                  <div class="h-2 rounded-full bg-emerald-500" [style.width]="progressWidth(point.income, maxMovementPoint())"></div>
+                </div>
+                <div class="h-2 rounded-full bg-slate-100">
+                  <div class="h-2 rounded-full bg-rose-500" [style.width]="progressWidth(point.outcome, maxMovementPoint())"></div>
+                </div>
+              </div>
+            </div>
+          } @empty {
+            <p class="text-sm text-slate-500">Sin movimientos para el periodo seleccionado.</p>
+          }
+        </div>
+      </div>
     </article>
-    <article class="rounded-xl border border-slate-200 p-4">
-      <p class="text-xs uppercase tracking-wide text-slate-500">Proveedores</p>
-      <p class="mt-2 text-2xl font-semibold text-slate-900">-</p>
+  </section>
+
+  <section class="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+    <article hlmCard class="bg-white shadow-sm">
+      <div hlmCardContent class="space-y-4 p-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-lg font-semibold">Rendimiento por sucursal</h2>
+            <p class="text-sm text-slate-500">Ventas, órdenes y stock consolidado.</p>
+          </div>
+          <span hlmBadge class="bg-slate-100 text-slate-700">{{ dashboard().branch_kpis.length }} sucursales</span>
+        </div>
+
+        <div class="space-y-3">
+          @for (branch of dashboard().branch_kpis; track branch.branch_id) {
+            <div class="rounded-xl border border-slate-200 p-3">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <p class="font-medium text-slate-900">{{ branch.branch_name }}</p>
+                  <p class="text-xs text-slate-500">{{ branch.city }}</p>
+                </div>
+                <span class="text-sm font-semibold text-slate-900">{{ branch.total_sales }}</span>
+              </div>
+              <p class="mt-2 text-xs text-slate-500">{{ branchSalesLabel(branch) }} · Stock {{ branch.total_available_stock }} disponible</p>
+            </div>
+          } @empty {
+            <p class="text-sm text-slate-500">Sin rendimiento por sucursal.</p>
+          }
+        </div>
+      </div>
     </article>
-  </div>
+
+    <article hlmCard class="bg-white shadow-sm">
+      <div hlmCardContent class="space-y-4 p-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-lg font-semibold">Top productos</h2>
+            <p class="text-sm text-slate-500">Ordenados por ventas.</p>
+          </div>
+        </div>
+
+        <div class="space-y-3">
+          @for (product of dashboard().top_products; track product.product_id) {
+            <div class="space-y-1 rounded-xl border border-slate-200 p-3">
+              <div class="flex items-center justify-between gap-3">
+                <p class="font-medium text-slate-900">{{ product.product_name }}</p>
+                <span class="text-sm text-slate-500">{{ product.total_sales }}</span>
+              </div>
+                <div class="h-2 rounded-full bg-slate-100">
+                  <div class="h-2 rounded-full bg-violet-500" [style.width]="productWidth(product)"></div>
+                </div>
+              <p class="text-xs text-slate-500">{{ product.total_units_sold }} uds · Stock {{ product.total_available_stock }} disponible</p>
+            </div>
+          } @empty {
+            <p class="text-sm text-slate-500">Sin ventas por producto.</p>
+          }
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <section class="grid gap-4 xl:grid-cols-2">
+    <article hlmCard class="bg-white shadow-sm">
+      <div hlmCardContent class="space-y-4 p-4">
+        <h2 class="text-lg font-semibold">Reservas</h2>
+        <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div class="rounded-xl bg-slate-50 p-3">
+            <p class="text-xs uppercase tracking-wide text-slate-500">Pendientes</p>
+            <p class="mt-2 text-xl font-semibold text-slate-900">{{ dashboard().summary.pending_reservations }}</p>
+          </div>
+          <div class="rounded-xl bg-slate-50 p-3">
+            <p class="text-xs uppercase tracking-wide text-slate-500">Confirmadas</p>
+            <p class="mt-2 text-xl font-semibold text-slate-900">{{ dashboard().summary.confirmed_reservations }}</p>
+          </div>
+          <div class="rounded-xl bg-slate-50 p-3">
+            <p class="text-xs uppercase tracking-wide text-slate-500">Atendidas</p>
+            <p class="mt-2 text-xl font-semibold text-slate-900">{{ dashboard().summary.attended_reservations }}</p>
+          </div>
+          <div class="rounded-xl bg-slate-50 p-3">
+            <p class="text-xs uppercase tracking-wide text-slate-500">Canceladas</p>
+            <p class="mt-2 text-xl font-semibold text-slate-900">{{ dashboard().summary.cancelled_reservations }}</p>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <article hlmCard class="bg-white shadow-sm">
+      <div hlmCardContent class="space-y-4 p-4">
+        <h2 class="text-lg font-semibold">Stock bajo</h2>
+        <div class="space-y-3">
+          @for (item of dashboard().low_stock; track item.variant_sku) {
+            <div class="rounded-xl border border-rose-100 bg-rose-50/40 p-3">
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <p class="font-medium text-slate-900">{{ item.product_name }}</p>
+                  <p class="text-xs text-slate-500">{{ item.branch_name }} · {{ item.variant_sku }}</p>
+                </div>
+                <span hlmBadge class="bg-rose-100 text-rose-700">{{ item.available_quantity }} disp.</span>
+              </div>
+            </div>
+          } @empty {
+            <p class="text-sm text-slate-500">No hay alertas de stock bajo.</p>
+          }
+        </div>
+      </div>
+    </article>
   </section>
 </section>
