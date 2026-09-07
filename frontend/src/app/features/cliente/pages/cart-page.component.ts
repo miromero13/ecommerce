@@ -13,6 +13,8 @@ import { getErrorMessage } from '../../../core/utils/http-error.util';
 import { requestWithToast } from '../../../core/utils/request-toast.util';
 import { Cart } from '../../shared/models/cart.model';
 import { CartApiService } from '../../shared/services/cart-api.service';
+import { Order } from '../../shared/models/order.model';
+import { CheckoutApiService } from '../../shared/services/checkout-api.service';
 
 @Component({
   selector: 'app-cart-page',
@@ -22,10 +24,17 @@ import { CartApiService } from '../../shared/services/cart-api.service';
 })
 export class CartPageComponent {
   private readonly cartApi = inject(CartApiService);
+  private readonly checkoutApi = inject(CheckoutApiService);
 
   protected readonly cart = signal<Cart | null>(null);
+  protected readonly lastOrder = signal<Order | null>(null);
+  protected readonly stripeClientSecret = signal<string | null>(null);
   protected readonly loading = signal(false);
   protected readonly updatingItemId = signal<string | null>(null);
+  protected readonly checkoutMethod = signal<'cash' | 'stripe'>('cash');
+  protected readonly cashReference = signal('');
+  protected readonly stripeCurrency = signal('usd');
+  protected readonly checkingOut = signal(false);
 
   constructor() {
     void this.loadCart();
@@ -86,8 +95,47 @@ export class CartPageComponent {
     }
   }
 
+  protected async checkout(): Promise<void> {
+    if (!this.cart()?.items?.length) {
+      toast.warning('Tu carrito está vacío.');
+      return;
+    }
+
+    this.checkingOut.set(true);
+    try {
+      if (this.checkoutMethod() === 'cash') {
+        const response = await requestWithToast(
+          this.checkoutApi.checkoutCash({ cash_reference: this.cashReference() || null }),
+          { loading: 'Procesando pago...', success: 'Pago procesado correctamente.', error: 'No se pudo procesar el pago.' },
+        );
+        this.lastOrder.set(response.data ?? null);
+        this.stripeClientSecret.set(null);
+      } else {
+        const response = await requestWithToast(
+          this.checkoutApi.checkoutStripe({ currency: this.stripeCurrency() || 'usd' }),
+          { loading: 'Iniciando Stripe...', success: 'Pago con Stripe iniciado.', error: 'No se pudo iniciar Stripe.' },
+        );
+        this.lastOrder.set(response.data?.order ?? null);
+        this.stripeClientSecret.set(response.data?.client_secret ?? null);
+      }
+      await this.loadCart();
+    } catch {
+      // toast handled by requestWithToast
+    } finally {
+      this.checkingOut.set(false);
+    }
+  }
+
   protected lineTotal(item: { line_total: string }): string {
     return item.line_total;
+  }
+
+  protected orderLabel(): string {
+    return this.lastOrder() ? `Pedido #${this.lastOrder()!.id}` : 'Sin pedido todavía';
+  }
+
+  protected selectCheckoutMethod(method: 'cash' | 'stripe'): void {
+    this.checkoutMethod.set(method);
   }
 
   private async loadCart(): Promise<void> {

@@ -89,7 +89,41 @@
           <button hlmBtn type="button" class="flex-1" (click)="clear()" [disabled]="!(cart()?.items?.length)">Vaciar carrito</button>
         </div>
 
-        <p class="text-xs text-slate-500">La confirmación de pago se hará en la siguiente fase.</p>
+        <div class="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <div class="flex gap-2">
+            <button hlmBtn type="button" [variant]="checkoutMethod() === 'cash' ? 'default' : 'outline'" (click)="selectCheckoutMethod('cash')">Efectivo</button>
+            <button hlmBtn type="button" [variant]="checkoutMethod() === 'stripe' ? 'default' : 'outline'" (click)="selectCheckoutMethod('stripe')">Stripe</button>
+          </div>
+
+          @if (checkoutMethod() === 'cash') {
+            <div class="space-y-2">
+              <label class="text-xs font-medium text-slate-600">Referencia de caja</label>
+              <input hlmInput type="text" [value]="cashReference()" (input)="cashReference.set($any($event.target).value)" placeholder="Referencia opcional" />
+            </div>
+          } @else {
+            <div class="space-y-2">
+              <label class="text-xs font-medium text-slate-600">Moneda Stripe</label>
+              <input hlmInput type="text" [value]="stripeCurrency()" (input)="stripeCurrency.set($any($event.target).value)" placeholder="usd" />
+            </div>
+          }
+
+          <button hlmBtn type="button" class="w-full" (click)="checkout()" [disabled]="checkingOut() || !(cart()?.items?.length)">
+            {{ checkingOut() ? 'Procesando...' : (checkoutMethod() === 'cash' ? 'Pagar en efectivo' : 'Iniciar Stripe') }}
+          </button>
+        </div>
+
+        @if (lastOrder()) {
+          <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm">
+            <p class="font-semibold text-emerald-700">{{ orderLabel() }}</p>
+            <p>Estado: {{ lastOrder()?.payment_status }}</p>
+            <p>Total: {{ lastOrder()?.total_amount }}</p>
+            @if (stripeClientSecret()) {
+              <p class="mt-2 break-all text-xs text-slate-600">Client secret: {{ stripeClientSecret() }}</p>
+            }
+          </div>
+        }
+
+        <p class="text-xs text-slate-500">La confirmación de pago se mantiene dentro del flujo actual de checkout.</p>
       </div>
     </section>
   </aside>
