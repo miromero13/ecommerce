@@ -1,0 +1,67 @@
+<section class="space-y-5">
+  <header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <h1 class="text-2xl font-semibold">Reservas de sucursal</h1>
+      <p class="text-sm text-slate-500">Seguimiento operativo de reservas por sucursal.</p>
+    </div>
+    <button hlmBtn type="button" variant="outline" (click)="refresh()" [disabled]="loading()">Actualizar</button>
+  </header>
+
+  <section class="grid gap-4 md:grid-cols-3">
+    <article hlmCard class="bg-white shadow-sm">
+      <div hlmCardContent class="p-4">
+        <p class="text-xs uppercase tracking-wide text-slate-500">Sucursal</p>
+        <p class="mt-2 text-lg font-semibold text-slate-900">{{ branchName(branchId) }}</p>
+      </div>
+    </article>
+    <article hlmCard class="bg-white shadow-sm">
+      <div hlmCardContent class="p-4">
+        <p class="text-xs uppercase tracking-wide text-slate-500">Activas</p>
+        <p class="mt-2 text-2xl font-semibold text-slate-900">{{ pending }}</p>
+      </div>
+    </article>
+    <article hlmCard class="bg-white shadow-sm">
+      <div hlmCardContent class="p-4">
+        <p class="text-xs uppercase tracking-wide text-slate-500">Vencidas</p>
+        <p class="mt-2 text-2xl font-semibold text-rose-700">{{ expired }}</p>
+      </div>
+    </article>
+  </section>
+
+  <section hlmCard class="bg-white shadow-sm">
+    <div hlmCardContent class="space-y-4 p-4">
+      <div class="overflow-hidden rounded-xl border border-slate-200">
+        <table hlmTable class="w-full text-left text-sm">
+          <thead class="bg-primary text-xs font-bold uppercase tracking-wide text-white">
+            <tr>
+              <th class="px-4 py-3">Cliente</th>
+              <th class="px-4 py-3">Visita</th>
+              <th class="px-4 py-3">Vence</th>
+              <th class="px-4 py-3 text-right">Items</th>
+              <th class="px-4 py-3 text-right">Total</th>
+              <th class="px-4 py-3">Estado</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-200 bg-white text-slate-900">
+            @for (reservation of reservations(); track reservation.id) {
+              <tr>
+                <td class="px-4 py-3 font-medium">{{ reservation.user_id }}</td>
+                <td class="px-4 py-3">{{ reservation.visit_date }}</td>
+                <td class="px-4 py-3">{{ reservation.expires_at }}</td>
+                <td class="px-4 py-3 text-right">{{ reservation.item_count }}</td>
+                <td class="px-4 py-3 text-right">{{ reservation.total_amount }}</td>
+                <td class="px-4 py-3">
+                  <span hlmBadge class="rounded-full px-2 py-1 text-[11px]" [ngClass]="reservationStatusClass(reservation.status)">{{ reservationStatusLabel(reservation.status) }}</span>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td class="px-4 py-8 text-center text-slate-500" colspan="6">No hay reservas registradas para esta sucursal.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</section>

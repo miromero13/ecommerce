@@ -52,6 +52,11 @@ export const routes: Routes = [
           import('./features/cliente/pages/catalog-page.component').then((m) => m.CatalogPageComponent),
       },
       {
+        path: 'cliente/reservations',
+        loadComponent: () =>
+          import('./features/cliente/pages/reservations-page.component').then((m) => m.ReservationsPageComponent),
+      },
+      {
         path: 'cliente/cart',
         loadComponent: () =>
           import('./features/cliente/pages/cart-page.component').then((m) => m.CartPageComponent),
@@ -69,6 +74,11 @@ export const routes: Routes = [
           import('./features/encargado/pages/encargado-home-page.component').then(
             (m) => m.EncargadoHomePageComponent,
           ),
+      },
+      {
+        path: 'encargado/reservations',
+        loadComponent: () =>
+          import('./features/encargado/pages/reservations-page.component').then((m) => m.ReservationsPageComponent),
       },
       {
         path: 'cajero',

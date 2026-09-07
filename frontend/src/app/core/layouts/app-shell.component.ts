@@ -3,7 +3,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideLayoutDashboard, lucideLogOut, lucidePackageSearch, lucideShoppingCart, lucideUserRound, lucideUsers } from '@ng-icons/lucide';
+import { lucideCalendarDays, lucideLayoutDashboard, lucideLogOut, lucidePackageSearch, lucideShoppingCart, lucideUserRound, lucideUsers } from '@ng-icons/lucide';
 
 import {
   HlmSidebar,
@@ -57,6 +57,7 @@ type SidebarSection = {
     provideIcons({
       lucideLayoutDashboard,
       lucideLogOut,
+      lucideCalendarDays,
       lucidePackageSearch,
       lucideShoppingCart,
       lucideUserRound,
@@ -158,7 +159,18 @@ export class AppShellComponent {
             title: 'Navegación',
             items: [
               { label: 'Catálogo', route: '/app/cliente/catalog', icon: 'lucideLayoutDashboard', exact: true },
+              { label: 'Reservas', route: '/app/cliente/reservations', icon: 'lucideCalendarDays' },
               { label: 'Carrito', route: '/app/cliente/cart', icon: 'lucideShoppingCart' },
+            ],
+          },
+        ];
+      case 'encargado':
+        return [
+          {
+            title: 'Operación',
+            items: [
+              this.homeItem(),
+              { label: 'Reservas', route: '/app/encargado/reservations', icon: 'lucideCalendarDays' },
             ],
           },
         ];

@@ -1,0 +1,134 @@
+<section class="grid gap-5 xl:grid-cols-[1.5fr_1fr]">
+  <div class="space-y-5">
+    <header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <h1 class="text-2xl font-semibold">Reservas</h1>
+        <p class="text-sm text-slate-500">Selecciona una sucursal, define la fecha de visita y arma tu reserva.</p>
+      </div>
+    </header>
+
+    <section hlmCard class="bg-white shadow-sm">
+      <div hlmCardContent class="grid gap-4 p-4 md:grid-cols-3">
+        <div class="md:col-span-1">
+          <label class="mb-1 block text-xs font-medium text-slate-600">Sucursal</label>
+          <div hlmSelect [value]="form.controls.branch_id.value" [itemToString]="branchSelectLabel" (valueChange)="form.controls.branch_id.setValue($event || '')">
+            <hlm-select-trigger>
+              <span hlmSelectValue placeholder="Sucursal"></span>
+            </hlm-select-trigger>
+            <hlm-select-content>
+              <hlm-select-item value="">Sucursal</hlm-select-item>
+              @for (branch of branches(); track branch.id) {
+                <hlm-select-item [value]="branch.id">{{ branch.name }} - {{ branch.city }}</hlm-select-item>
+              }
+            </hlm-select-content>
+          </div>
+        </div>
+
+        <div class="md:col-span-1">
+          <label class="mb-1 block text-xs font-medium text-slate-600">Fecha de visita</label>
+          <input hlmInput type="date" [formControl]="form.controls.visit_date" />
+        </div>
+
+        <div class="md:col-span-1 flex items-end justify-end">
+          <button hlmBtn type="button" (click)="submitReservation()" [disabled]="submitting() || !canSubmit()">
+            {{ submitting() ? 'Guardando...' : 'Crear reserva' }}
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-2">
+      @for (product of products(); track product.id) {
+        <article hlmCard class="bg-white shadow-sm">
+          <div hlmCardHeader class="space-y-1">
+            <h2 hlmCardTitle class="text-lg">{{ product.name }}</h2>
+            <p hlmCardDescription>{{ product.description ?? 'Sin descripción' }}</p>
+          </div>
+          <div hlmCardContent class="space-y-3">
+            <div class="text-xs text-slate-500">
+              <p>Categoría: {{ categoryName(product.category_id) }}</p>
+              <p>Colección: {{ collectionName(product.collection_id) }}</p>
+              <p>Temporada: {{ seasonName(product.season_id) }}</p>
+            </div>
+
+            <div hlmSelect class="w-full" [value]="selectedVariant(product)?.id" [itemToString]="variantSelectLabel(product)" (valueChange)="setSelectedVariant(product.id, $event)">
+              <hlm-select-trigger size="sm">
+                <span hlmSelectValue placeholder="Variante"></span>
+              </hlm-select-trigger>
+              <hlm-select-content>
+                @for (variant of productVariants(product); track variant.id) {
+                  <hlm-select-item [value]="variant.id">{{ variantLabel(variant) }} - {{ variant.price }}</hlm-select-item>
+                }
+              </hlm-select-content>
+            </div>
+
+            <div class="grid grid-cols-[1fr_auto] gap-2">
+              <input hlmInput type="number" min="1" [value]="draftQuantity(product)" (input)="setDraftQuantity(product, $any($event.target).value)" />
+              <button hlmBtn type="button" (click)="addToDraft(product)">Agregar</button>
+            </div>
+          </div>
+        </article>
+      }
+    </section>
+
+    <section hlmCard class="bg-white shadow-sm">
+      <div hlmCardContent class="space-y-4 p-4">
+        <h2 class="text-lg font-semibold">Mis reservas</h2>
+        <div class="space-y-3">
+          @for (reservation of reservations(); track reservation.id) {
+            <article class="rounded-xl border border-slate-200 p-4">
+              <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h3 class="font-semibold">{{ reservation.branch_name }}</h3>
+                    <span hlmBadge class="rounded-full px-2 py-1 text-[11px]" [ngClass]="reservationStatusClass(reservation.status)">{{ reservationStatusLabel(reservation.status) }}</span>
+                  </div>
+                  <p class="text-xs text-slate-500">Visita: {{ reservation.visit_date }} · Vence: {{ reservation.expires_at }}</p>
+                </div>
+                <button hlmBtn type="button" variant="outline" (click)="cancelReservation(reservation.id)" [disabled]="reservation.status === 'cancelled' || reservation.status === 'expired' || reservation.status === 'attended'">Cancelar</button>
+              </div>
+
+              <div class="mt-3 text-sm text-slate-700">
+                <p>Items: {{ reservation.item_count }}</p>
+                <p>Total: {{ reservation.total_amount }}</p>
+              </div>
+            </article>
+          } @empty {
+            <div class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">Aún no tienes reservas.</div>
+          }
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <aside class="xl:sticky xl:top-6 xl:self-start">
+    <section hlmCard class="bg-white shadow-sm">
+      <div hlmCardContent class="space-y-4 p-4">
+        <div>
+          <h2 class="text-lg font-semibold">Borrador</h2>
+          <p class="text-sm text-slate-500">Variantes seleccionadas para reservar.</p>
+        </div>
+
+        <div class="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm">
+          @for (item of draftItems(); track item.variant_id) {
+            <div class="flex items-start justify-between gap-3 border-b border-slate-200 pb-2 last:border-b-0 last:pb-0">
+              <div>
+                <p class="font-medium">{{ item.product_name }}</p>
+                <p class="text-xs text-slate-500">{{ item.variant_label }} · {{ item.variant_sku }}</p>
+                <p class="text-xs text-slate-500">Cantidad: {{ item.quantity }}</p>
+              </div>
+              <button hlmBtn type="button" variant="ghost" (click)="removeDraftItem(item.variant_id)">Quitar</button>
+            </div>
+          } @empty {
+            <p class="text-slate-500">No hay items en el borrador.</p>
+          }
+        </div>
+
+        <div class="rounded-xl border border-slate-200 bg-white p-4 text-sm">
+          <div class="flex items-center justify-between"><span>Items</span><span class="font-medium">{{ draftCount() }}</span></div>
+          <div class="flex items-center justify-between"><span>Total estimado</span><span class="font-medium">{{ draftTotal() | number:'1.2-2' }}</span></div>
+        </div>
+      </div>
+    </section>
+  </aside>
+</section>
