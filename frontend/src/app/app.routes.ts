@@ -143,6 +143,13 @@ export const routes: Routes = [
                 (m) => m.AdminProviderPageComponent,
               ),
           },
+          {
+            path: 'reports',
+            loadComponent: () =>
+              import('./features/admin/pages/admin-reports-page.component').then(
+                (m) => m.AdminReportsPageComponent,
+              ),
+          },
         ],
       },
     ],

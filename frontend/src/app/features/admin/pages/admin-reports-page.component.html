@@ -1,0 +1,156 @@
+<section class="space-y-5">
+  <header class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+    <div>
+      <h1 class="text-2xl font-semibold">Reportes</h1>
+      <p class="text-sm text-slate-500">Ventas, inventario y movimientos con filtros y exportación.</p>
+    </div>
+    <div class="flex gap-2">
+      <button hlmBtn type="button" variant="outline" (click)="refresh()" [disabled]="loading()">Actualizar</button>
+      <button hlmBtn type="button" (click)="exportCsv()" [disabled]="exporting()">{{ exporting() ? 'Exportando...' : 'Exportar CSV' }}</button>
+      <a hlmBtn variant="outline" routerLink="/app/admin">Volver</a>
+    </div>
+  </header>
+
+  <section class="grid gap-4 md:grid-cols-3 xl:grid-cols-4">
+    @for (entry of summaryEntries(); track entry.label) {
+      <article hlmCard class="bg-white shadow-sm">
+        <div hlmCardContent class="p-4">
+          <p class="text-xs uppercase tracking-wide text-slate-500">{{ entry.label }}</p>
+          <p class="mt-2 text-2xl font-semibold text-slate-900">{{ entry.value }}</p>
+        </div>
+      </article>
+    }
+  </section>
+
+  <section hlmCard class="bg-white shadow-sm">
+    <div hlmCardContent class="space-y-4 p-4">
+      <div class="flex flex-wrap gap-2">
+        <button hlmBtn type="button" [variant]="selectedReport() === 'sales' ? 'default' : 'outline'" (click)="selectReport('sales')">Ventas</button>
+        <button hlmBtn type="button" [variant]="selectedReport() === 'inventory' ? 'default' : 'outline'" (click)="selectReport('inventory')">Inventario</button>
+        <button hlmBtn type="button" [variant]="selectedReport() === 'movements' ? 'default' : 'outline'" (click)="selectReport('movements')">Movimientos</button>
+      </div>
+
+      <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+        <div class="space-y-2">
+          <label class="text-xs font-medium uppercase tracking-wide text-slate-500">Sucursal</label>
+          <select class="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm" [value]="selectedBranchId()" (change)="selectedBranchId.set($any($event.target).value)">
+            <option value="">Todas</option>
+            @for (branch of branches(); track branch.id) {
+              <option [value]="branch.id">{{ branch.name }} - {{ branch.city }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="space-y-2">
+          <label class="text-xs font-medium uppercase tracking-wide text-slate-500">Producto</label>
+          <select class="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm" [value]="selectedProductId()" (change)="selectedProductId.set($any($event.target).value)">
+            <option value="">Todos</option>
+            @for (product of products(); track product.id) {
+              <option [value]="product.id">{{ product.name }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="space-y-2">
+          <label class="text-xs font-medium uppercase tracking-wide text-slate-500">Desde</label>
+          <input hlmInput type="date" [value]="fromDate()" (input)="fromDate.set($any($event.target).value)" />
+        </div>
+
+        <div class="space-y-2">
+          <label class="text-xs font-medium uppercase tracking-wide text-slate-500">Hasta</label>
+          <input hlmInput type="date" [value]="toDate()" (input)="toDate.set($any($event.target).value)" />
+        </div>
+
+        <div class="space-y-2">
+          <label class="text-xs font-medium uppercase tracking-wide text-slate-500">Buscar</label>
+          <input hlmInput type="text" [value]="searchTerm()" (input)="searchTerm.set($any($event.target).value)" placeholder="SKU, producto o sucursal" />
+        </div>
+      </div>
+
+      <div class="flex gap-2">
+        <button hlmBtn type="button" (click)="applyFilters()" [disabled]="loading()">Aplicar filtros</button>
+      </div>
+    </div>
+  </section>
+
+  <section hlmCard class="bg-white shadow-sm">
+    <div hlmCardContent class="space-y-4 p-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-semibold">{{ reportTitle() }}</h2>
+          <p class="text-sm text-slate-500">Sucursal: {{ branchLabel() }} · Producto: {{ productLabel() }}</p>
+        </div>
+        <span hlmBadge class="bg-slate-100 text-slate-700">{{ reportState().rows.length }} filas</span>
+      </div>
+
+      <div class="overflow-hidden rounded-xl border border-slate-200">
+        <table hlmTable class="w-full text-left text-sm">
+          <thead class="bg-primary text-xs font-bold uppercase tracking-wide text-white">
+            <tr>
+              @if (selectedReport() === 'sales') {
+                <th class="px-4 py-3">Sucursal</th>
+                <th class="px-4 py-3">Producto</th>
+                <th class="px-4 py-3">Variante</th>
+                <th class="px-4 py-3 text-right">Cantidad</th>
+                <th class="px-4 py-3 text-right">Ventas</th>
+                <th class="px-4 py-3">Pago</th>
+              } @else if (selectedReport() === 'inventory') {
+                <th class="px-4 py-3">Sucursal</th>
+                <th class="px-4 py-3">Producto</th>
+                <th class="px-4 py-3">Variante</th>
+                <th class="px-4 py-3 text-right">Cantidad</th>
+                <th class="px-4 py-3 text-right">Reservado</th>
+                <th class="px-4 py-3 text-right">Disponible</th>
+              } @else {
+                <th class="px-4 py-3">Sucursal</th>
+                <th class="px-4 py-3">Producto</th>
+                <th class="px-4 py-3">Variante</th>
+                <th class="px-4 py-3">Movimiento</th>
+                <th class="px-4 py-3 text-right">Cantidad</th>
+                <th class="px-4 py-3 text-right">Eventos</th>
+              }
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-200 bg-white text-slate-900">
+            @for (row of reportState().rows; track $index) {
+              @if (isSalesRow(row)) {
+                <tr>
+                  <td class="px-4 py-3">{{ row.branch_name }}</td>
+                  <td class="px-4 py-3">{{ row.product_name }}</td>
+                  <td class="px-4 py-3 text-sm">{{ row.variant_sku }}</td>
+                  <td class="px-4 py-3 text-right">{{ row.quantity_sold }}</td>
+                  <td class="px-4 py-3 text-right">{{ row.gross_sales }}</td>
+                  <td class="px-4 py-3 text-sm">{{ row.payment_method }} / {{ row.payment_status }}</td>
+                </tr>
+              } @else if (isInventoryRow(row)) {
+                <tr>
+                  <td class="px-4 py-3">{{ row.branch_name }}</td>
+                  <td class="px-4 py-3">{{ row.product_name }}</td>
+                  <td class="px-4 py-3 text-sm">{{ row.variant_sku }}</td>
+                  <td class="px-4 py-3 text-right">{{ row.quantity }}</td>
+                  <td class="px-4 py-3 text-right">{{ row.reserved_quantity }}</td>
+                  <td class="px-4 py-3 text-right font-semibold">{{ row.available_quantity }}</td>
+                </tr>
+              } @else if (isMovementRow(row)) {
+                <tr>
+                  <td class="px-4 py-3">{{ row.branch_name }}</td>
+                  <td class="px-4 py-3">{{ row.product_name }}</td>
+                  <td class="px-4 py-3 text-sm">{{ row.variant_sku }}</td>
+                  <td class="px-4 py-3">
+                    <span hlmBadge class="rounded-full px-2 py-1 text-[11px]" [ngClass]="movementClass(row.movement_type)">{{ movementLabel(row.movement_type) }}</span>
+                  </td>
+                  <td class="px-4 py-3 text-right">{{ row.quantity }}</td>
+                  <td class="px-4 py-3 text-right">{{ row.movements_count }}</td>
+                </tr>
+              }
+            } @empty {
+              <tr>
+                <td class="px-4 py-8 text-center text-slate-500" colspan="6">No hay resultados para los filtros actuales.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</section>
