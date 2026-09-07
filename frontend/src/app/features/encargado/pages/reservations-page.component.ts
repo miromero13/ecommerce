@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
+import type { Observable } from 'rxjs';
 
 import { toast } from '@spartan-ng/brain/sonner';
 
@@ -9,6 +10,7 @@ import { HlmButton } from '../../../components/button/src';
 import { HlmCardImports } from '../../../components/card/src';
 import { HlmTable } from '../../../components/table/src';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
+import { requestWithToast } from '../../../core/utils/request-toast.util';
 import { CatalogBranch } from '../../shared/models/catalog.model';
 import { Reservation } from '../../shared/models/reservation.model';
 import { CatalogApiService } from '../../shared/services/catalog-api.service';
@@ -29,6 +31,8 @@ export class ReservationsPageComponent {
   protected readonly branches = signal<CatalogBranch[]>([]);
   protected readonly reservations = signal<Reservation[]>([]);
   protected readonly loading = signal(false);
+  protected readonly selectedReservationId = signal<string | null>(null);
+  protected readonly updatingReservationId = signal<string | null>(null);
 
   constructor() {
     void this.loadData();
@@ -48,6 +52,16 @@ export class ReservationsPageComponent {
 
   protected get expired(): number {
     return this.reservations().filter((item) => item.status === 'expired').length;
+  }
+
+  protected get selectedReservation(): Reservation | null {
+    const selectedId = this.selectedReservationId();
+    if (!selectedId) return null;
+    return this.reservations().find((reservation) => reservation.id === selectedId) ?? null;
+  }
+
+  protected canActOn(reservation: Reservation): boolean {
+    return reservation.status === 'pending' || reservation.status === 'confirmed';
   }
 
   protected branchName(branchId: string | null | undefined): string {
@@ -81,6 +95,25 @@ export class ReservationsPageComponent {
     await this.loadReservations();
   }
 
+  protected selectReservation(reservation: Reservation): void {
+    this.selectedReservationId.set(reservation.id);
+  }
+
+  protected async confirmArrival(reservation: Reservation): Promise<void> {
+    await this.runAction(reservation.id, 'Confirmando llegada...', 'Llegada confirmada.', 'No se pudo confirmar la llegada.', () =>
+      this.reservationApi.confirmArrival(reservation.id, this.branchId ?? undefined));
+  }
+
+  protected async attendReservation(reservation: Reservation): Promise<void> {
+    await this.runAction(reservation.id, 'Atendiendo reserva...', 'Reserva atendida.', 'No se pudo atender la reserva.', () =>
+      this.reservationApi.attendReservation(reservation.id, this.branchId ?? undefined));
+  }
+
+  protected async cancelReservation(reservation: Reservation): Promise<void> {
+    await this.runAction(reservation.id, 'Cancelando reserva...', 'Reserva cancelada.', 'No se pudo cancelar la reserva.', () =>
+      this.reservationApi.cancelBranchReservation(reservation.id, this.branchId ?? undefined));
+  }
+
   private async loadData(): Promise<void> {
     this.loading.set(true);
     try {
@@ -104,9 +137,34 @@ export class ReservationsPageComponent {
     try {
       const response = await firstValueFrom(this.reservationApi.listBranchReservations(branchId));
       this.reservations.set((response.data ?? []) as Reservation[]);
+      if (this.selectedReservationId() && !this.reservations().some((reservation) => reservation.id === this.selectedReservationId())) {
+        this.selectedReservationId.set(null);
+      }
     } catch (error) {
       toast.error(getErrorMessage(error, 'No se pudieron cargar las reservas.'));
       this.reservations.set([]);
+    }
+  }
+
+  private async runAction(
+    reservationId: string,
+    loadingMessage: string,
+    successMessage: string,
+    errorMessage: string,
+    executor: () => Observable<unknown>,
+  ): Promise<void> {
+    this.updatingReservationId.set(reservationId);
+    try {
+      await requestWithToast(executor(), {
+        loading: loadingMessage,
+        success: successMessage,
+        error: errorMessage,
+      });
+      await this.loadReservations();
+    } catch {
+      // toast handled by requestWithToast
+    } finally {
+      this.updatingReservationId.set(null);
     }
   }
 }
