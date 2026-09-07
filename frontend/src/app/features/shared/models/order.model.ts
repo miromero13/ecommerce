@@ -1,3 +1,6 @@
+export type PaymentMethodEnum = 'cash' | 'stripe';
+export type PaymentStatusEnum = 'pending' | 'paid' | 'failed';
+
 export interface OrderItem {
   id: string;
   order_id: string;
@@ -20,8 +23,8 @@ export interface Order {
   id: string;
   user_id: string;
   status: 'pending' | 'paid' | 'failed' | 'cancelled';
-  payment_method: 'cash' | 'stripe';
-  payment_status: 'pending' | 'paid' | 'failed';
+  payment_method: PaymentMethodEnum;
+  payment_status: PaymentStatusEnum;
   stripe_payment_intent_id: string | null;
   cash_reference: string | null;
   subtotal: string;

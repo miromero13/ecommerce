@@ -86,6 +86,11 @@ export const routes: Routes = [
           import('./features/cajero/pages/cajero-home-page.component').then((m) => m.CajeroHomePageComponent),
       },
       {
+        path: 'cajero/sales',
+        loadComponent: () =>
+          import('./features/cajero/pages/sales-page.component').then((m) => m.SalesPageComponent),
+      },
+      {
         path: 'delivery',
         loadComponent: () =>
           import('./features/delivery/pages/delivery-home-page.component').then(

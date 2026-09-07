@@ -174,6 +174,16 @@ export class AppShellComponent {
             ],
           },
         ];
+      case 'cajero':
+        return [
+          {
+            title: 'Caja',
+            items: [
+              this.homeItem(),
+              { label: 'Ventas', route: '/app/cajero/sales', icon: 'lucideShoppingCart' },
+            ],
+          },
+        ];
       default:
         return [
           {

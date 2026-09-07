@@ -1,0 +1,188 @@
+<section class="space-y-5">
+  <header class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+    <div>
+      <h1 class="text-2xl font-semibold">Caja</h1>
+      <p class="text-sm text-slate-500">Venta presencial, búsqueda rápida y comprobante inmediato.</p>
+    </div>
+    <div class="flex gap-2">
+      <button hlmBtn type="button" variant="outline" (click)="searchProducts()" [disabled]="loadingProducts()">Actualizar productos</button>
+      <button hlmBtn type="button" variant="outline" routerLink="/app/cajero">Volver</button>
+    </div>
+  </header>
+
+  <section class="grid gap-4 md:grid-cols-3">
+    <article hlmCard class="bg-white shadow-sm">
+      <div hlmCardContent class="p-4">
+        <p class="text-xs uppercase tracking-wide text-slate-500">Sucursal</p>
+        <p class="mt-2 text-lg font-semibold text-slate-900">{{ branchLabel() }}</p>
+      </div>
+    </article>
+    <article hlmCard class="bg-white shadow-sm">
+      <div hlmCardContent class="p-4">
+        <p class="text-xs uppercase tracking-wide text-slate-500">Items</p>
+        <p class="mt-2 text-2xl font-semibold text-slate-900">{{ itemCount() }}</p>
+      </div>
+    </article>
+    <article hlmCard class="bg-white shadow-sm">
+      <div hlmCardContent class="p-4">
+        <p class="text-xs uppercase tracking-wide text-slate-500">Total</p>
+        <p class="mt-2 text-2xl font-semibold text-slate-900">{{ subtotal() }}</p>
+      </div>
+    </article>
+  </section>
+
+  <section class="grid gap-4 xl:grid-cols-[1.2fr_1fr]">
+    <div class="space-y-4">
+      <section hlmCard class="bg-white shadow-sm">
+        <div hlmCardContent class="space-y-4 p-4">
+          <div class="grid gap-3 md:grid-cols-[1fr_auto]">
+            <div class="space-y-2">
+              <label class="text-xs font-medium uppercase tracking-wide text-slate-500">Buscar producto</label>
+              <input hlmInput type="text" [value]="searchTerm()" (input)="searchTerm.set($any($event.target).value)" placeholder="Nombre, SKU o colección" />
+            </div>
+            <div class="flex items-end">
+              <button hlmBtn type="button" (click)="searchProducts()" [disabled]="loadingProducts()" class="w-full md:w-auto">Buscar</button>
+            </div>
+          </div>
+
+          <div class="grid gap-3 md:grid-cols-[1fr_auto]">
+            <div class="space-y-2">
+              <label class="text-xs font-medium uppercase tracking-wide text-slate-500">Buscar reserva</label>
+              <input hlmInput type="text" [value]="reservationQuery()" (input)="reservationQuery.set($any($event.target).value)" placeholder="ID de reserva" />
+            </div>
+            <div class="flex items-end">
+              <button hlmBtn type="button" variant="outline" (click)="loadReservation()" [disabled]="loadingReservation()" class="w-full md:w-auto">Cargar reserva</button>
+            </div>
+          </div>
+
+          @if (selectedReservation()) {
+            <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+              <p class="font-semibold">Reserva {{ selectedReservation()?.id }}</p>
+              <p>Cliente: {{ selectedReservation()?.user_id }}</p>
+              <p>Estado: {{ selectedReservation()?.status }}</p>
+            </div>
+          }
+        </div>
+      </section>
+
+      <section hlmCard class="bg-white shadow-sm">
+        <div hlmCardContent class="space-y-4 p-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-lg font-semibold">Resultados</h2>
+              <p class="text-sm text-slate-500">Toca una variante para agregarla a la venta.</p>
+            </div>
+            <span class="text-xs text-slate-500">{{ products().length }} productos</span>
+          </div>
+
+          <div class="space-y-3">
+            @for (product of products(); track product.id) {
+              <article class="rounded-xl border border-slate-200 p-4">
+                <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <p class="font-semibold text-slate-900">{{ product.name }}</p>
+                    <p class="text-sm text-slate-500">{{ product.description ?? 'Sin descripción' }}</p>
+                  </div>
+                  <span class="text-sm font-medium text-slate-900">Desde {{ product.price }}</span>
+                </div>
+
+                <div class="mt-3 flex flex-wrap gap-2">
+                  @for (variant of product.variants ?? []; track variant.id) {
+                    <button hlmBtn type="button" variant="outline" class="text-xs" (click)="addVariant(product, variant)">
+                      {{ variant.sku }} · {{ variant.price }}
+                    </button>
+                  }
+                  @if (!(product.variants?.length)) {
+                    <button hlmBtn type="button" variant="outline" class="text-xs" (click)="addVariant(product, { id: product.id, product_id: product.id, sku: product.sku ?? product.id, price: product.price, size_id: product.size_id ?? null, color_id: product.color_id ?? null, image_url: product.image_url ?? null, image_public_id: product.image_public_id ?? null, status: 'active' })">Agregar</button>
+                  }
+                </div>
+              </article>
+            } @empty {
+              <div class="rounded-xl border border-dashed border-slate-300 p-6 text-sm text-slate-500">No hay resultados para la búsqueda actual.</div>
+            }
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <aside class="space-y-4 xl:sticky xl:top-6 xl:self-start">
+      <section hlmCard class="bg-white shadow-sm">
+        <div hlmCardContent class="space-y-4 p-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-lg font-semibold">Venta</h2>
+            <button hlmBtn type="button" variant="outline" (click)="clearSale()">Limpiar</button>
+          </div>
+
+          <div class="space-y-2">
+            @for (item of selectedItems(); track item.variant_id) {
+              <div class="rounded-xl border border-slate-200 p-3">
+                <div class="flex items-start justify-between gap-3">
+                  <div>
+                    <p class="font-medium text-slate-900">{{ item.product_name }}</p>
+                    <p class="text-xs text-slate-500">{{ item.variant_sku }} · {{ item.size_name ?? 'Sin talla' }} · {{ item.color_name ?? 'Sin color' }}</p>
+                  </div>
+                  <button hlmBtn type="button" variant="ghost" class="text-xs" (click)="removeItem(item.variant_id)">Quitar</button>
+                </div>
+                <div class="mt-3 flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-2">
+                    <button hlmBtn type="button" variant="outline" class="h-8 w-8 px-0" (click)="decreaseItem(item.variant_id)">-</button>
+                    <span class="min-w-8 text-center text-sm font-medium">{{ item.quantity }}</span>
+                    <button hlmBtn type="button" variant="outline" class="h-8 w-8 px-0" (click)="increaseItem(item.variant_id)">+</button>
+                  </div>
+                  <span class="text-sm font-semibold">{{ lineTotal(item) }}</span>
+                </div>
+              </div>
+            } @empty {
+              <div class="rounded-xl border border-dashed border-slate-300 p-6 text-sm text-slate-500">Aún no agregaste items.</div>
+            }
+          </div>
+
+          <div class="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <div class="flex items-center justify-between text-sm"><span>Subtotal</span><span>{{ subtotal() }}</span></div>
+            <div class="flex items-center justify-between text-sm"><span>Estado</span><span class="font-medium">Lista para cobrar</span></div>
+          </div>
+
+          <div class="space-y-3 rounded-xl border border-slate-200 p-4">
+            <div class="flex gap-2">
+              <button hlmBtn type="button" [variant]="paymentMethod() === 'cash' ? 'default' : 'outline'" (click)="paymentMethod.set('cash')">Efectivo</button>
+              <button hlmBtn type="button" [variant]="paymentMethod() === 'stripe' ? 'default' : 'outline'" (click)="paymentMethod.set('stripe')">Stripe</button>
+            </div>
+
+            @if (paymentMethod() === 'cash') {
+              <div class="space-y-2">
+                <label class="text-xs font-medium uppercase tracking-wide text-slate-500">Referencia de caja</label>
+                <input hlmInput type="text" [value]="cashReference()" (input)="cashReference.set($any($event.target).value)" placeholder="Opcional" />
+              </div>
+            } @else {
+              <div class="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Stripe en caja queda registrado como medio de pago de la venta.</div>
+            }
+
+            <button hlmBtn type="button" class="w-full" (click)="submitSale()" [disabled]="submitting() || (!selectedReservation() && !selectedItems().length)">
+              {{ submitting() ? 'Procesando...' : 'Confirmar venta' }}
+            </button>
+          </div>
+        </div>
+      </section>
+
+      @if (lastSale()) {
+        <section hlmCard class="bg-white shadow-sm">
+          <div hlmCardContent class="space-y-3 p-4">
+            <div>
+              <p class="text-xs uppercase tracking-wide text-slate-500">Comprobante</p>
+              <p class="text-lg font-semibold text-slate-900">{{ saleLabel() }}</p>
+            </div>
+            <div class="rounded-xl p-3 text-sm" [ngClass]="saleStatusClass()">
+              Estado: {{ lastSale()?.payment_status }}
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-sm">
+              <div class="rounded-lg bg-slate-50 p-3"><p class="text-xs text-slate-500">Sucursal</p><p class="font-medium">{{ lastSale()?.branch_name }}</p></div>
+              <div class="rounded-lg bg-slate-50 p-3"><p class="text-xs text-slate-500">Total</p><p class="font-medium">{{ lastSale()?.total_amount }}</p></div>
+              <div class="rounded-lg bg-slate-50 p-3"><p class="text-xs text-slate-500">Medio</p><p class="font-medium">{{ lastSale()?.payment_method }}</p></div>
+              <div class="rounded-lg bg-slate-50 p-3"><p class="text-xs text-slate-500">Items</p><p class="font-medium">{{ lastSale()?.items?.length ?? 0 }}</p></div>
+            </div>
+          </div>
+        </section>
+      }
+    </aside>
+  </section>
+</section>
