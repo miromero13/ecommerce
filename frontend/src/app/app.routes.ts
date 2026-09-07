@@ -52,6 +52,11 @@ export const routes: Routes = [
           import('./features/cliente/pages/catalog-page.component').then((m) => m.CatalogPageComponent),
       },
       {
+        path: 'cliente/cart',
+        loadComponent: () =>
+          import('./features/cliente/pages/cart-page.component').then((m) => m.CartPageComponent),
+      },
+      {
         path: 'proveedor',
         loadComponent: () =>
           import('./features/proveedor/pages/proveedor-home-page.component').then(
@@ -93,6 +98,13 @@ export const routes: Routes = [
             loadComponent: () =>
               import('./features/admin/pages/admin-catalog-page.component').then(
                 (m) => m.AdminCatalogPageComponent,
+              ),
+          },
+          {
+            path: 'inventory',
+            loadComponent: () =>
+              import('./features/admin/pages/admin-inventory-page.component').then(
+                (m) => m.AdminInventoryPageComponent,
               ),
           },
           {

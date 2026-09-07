@@ -3,7 +3,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideLayoutDashboard, lucideLogOut, lucideUserRound, lucideUsers } from '@ng-icons/lucide';
+import { lucideLayoutDashboard, lucideLogOut, lucidePackageSearch, lucideShoppingCart, lucideUserRound, lucideUsers } from '@ng-icons/lucide';
 
 import {
   HlmSidebar,
@@ -57,6 +57,8 @@ type SidebarSection = {
     provideIcons({
       lucideLayoutDashboard,
       lucideLogOut,
+      lucidePackageSearch,
+      lucideShoppingCart,
       lucideUserRound,
       lucideUsers,
     }),
@@ -143,6 +145,7 @@ export class AppShellComponent {
             items: [
               { label: 'Dashboard', route: '/app/admin', icon: 'lucideLayoutDashboard', exact: true },
               { label: 'Catálogo', route: '/app/admin/catalog', icon: 'lucideLayoutDashboard' },
+              { label: 'Inventario', route: '/app/admin/inventory', icon: 'lucidePackageSearch' },
               { label: 'Usuarios', route: '/app/admin/user', icon: 'lucideUsers' },
               { label: 'Sucursales', route: '/app/admin/branch', icon: 'lucideLayoutDashboard' },
               { label: 'Proveedores', route: '/app/admin/provider', icon: 'lucideUsers' },
@@ -155,6 +158,7 @@ export class AppShellComponent {
             title: 'Navegación',
             items: [
               { label: 'Catálogo', route: '/app/cliente/catalog', icon: 'lucideLayoutDashboard', exact: true },
+              { label: 'Carrito', route: '/app/cliente/cart', icon: 'lucideShoppingCart' },
             ],
           },
         ];

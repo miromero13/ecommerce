@@ -1,0 +1,96 @@
+<section class="grid gap-5 xl:grid-cols-[1.6fr_1fr]">
+  <div class="space-y-5">
+    <header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <h1 class="text-2xl font-semibold">Carrito de compras</h1>
+        <p class="text-sm text-slate-500">Gestiona cantidades, elimina items y revisa tu resumen.</p>
+      </div>
+      <div class="flex gap-2">
+        <a hlmBtn variant="outline" routerLink="/app/cliente/catalog">Seguir comprando</a>
+        <button hlmBtn type="button" variant="outline" (click)="refresh()" [disabled]="loading()">Actualizar</button>
+      </div>
+    </header>
+
+    <section hlmCard class="bg-white shadow-sm">
+      <div hlmCardContent class="space-y-4 p-4">
+        <div class="overflow-hidden rounded-xl border border-slate-200">
+          <table hlmTable class="w-full text-left text-sm">
+            <thead class="bg-primary text-xs font-bold uppercase tracking-wide text-white">
+              <tr>
+                <th class="px-4 py-3">Producto</th>
+                <th class="px-4 py-3">Variante</th>
+                <th class="px-4 py-3 text-right">Precio</th>
+                <th class="px-4 py-3 text-right">Cantidad</th>
+                <th class="px-4 py-3 text-right">Total</th>
+                <th class="px-4 py-3 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 bg-white text-slate-900">
+              @for (item of cart()?.items ?? []; track item.id) {
+                <tr>
+                  <td class="px-4 py-3">
+                    <div class="font-medium">{{ item.product_name }}</div>
+                    <div class="text-xs text-slate-500">SKU: {{ item.variant_sku }}</div>
+                  </td>
+                  <td class="px-4 py-3 text-sm">{{ item.size_name ?? 'Sin talla' }} / {{ item.color_name ?? 'Sin color' }}</td>
+                  <td class="px-4 py-3 text-right">{{ item.unit_price }}</td>
+                  <td class="px-4 py-3 text-right">
+                    <div class="inline-flex items-center gap-2 rounded-full border border-slate-200 px-2 py-1">
+                      <button type="button" hlmBtn variant="ghost" class="h-7 w-7 rounded-full p-0" (click)="decrease(item.id, item.quantity)" [disabled]="updatingItemId() === item.id">-</button>
+                      <span class="min-w-6 text-center text-sm font-medium">{{ item.quantity }}</span>
+                      <button type="button" hlmBtn variant="ghost" class="h-7 w-7 rounded-full p-0" (click)="increase(item.id, item.quantity)" [disabled]="updatingItemId() === item.id">+</button>
+                    </div>
+                  </td>
+                  <td class="px-4 py-3 text-right font-semibold">{{ lineTotal(item) }}</td>
+                  <td class="px-4 py-3 text-right">
+                    <button hlmBtn type="button" variant="outline" (click)="remove(item.id)" [disabled]="updatingItemId() === item.id">Eliminar</button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td class="px-4 py-8 text-center text-slate-500" colspan="6">Tu carrito está vacío.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <aside class="xl:sticky xl:top-6 xl:self-start">
+    <section hlmCard class="bg-white shadow-sm">
+      <div hlmCardContent class="space-y-4 p-4">
+        <div>
+          <h2 class="text-lg font-semibold">Resumen</h2>
+          <p class="text-sm text-slate-500">Totales actuales del carrito.</p>
+        </div>
+
+        <div class="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm">
+          <div class="flex items-center justify-between">
+            <span>Items</span>
+            <span class="font-medium">{{ itemCount }}</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span>Subtotal</span>
+            <span class="font-medium">{{ subtotal }}</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span>Descuento</span>
+            <span class="font-medium">{{ discount }}</span>
+          </div>
+          <div class="flex items-center justify-between border-t border-slate-200 pt-2 text-base font-semibold">
+            <span>Total</span>
+            <span>{{ total }}</span>
+          </div>
+        </div>
+
+        <div class="flex gap-2">
+          <button hlmBtn type="button" class="flex-1" (click)="clear()" [disabled]="!(cart()?.items?.length)">Vaciar carrito</button>
+        </div>
+
+        <p class="text-xs text-slate-500">La confirmación de pago se hará en la siguiente fase.</p>
+      </div>
+    </section>
+  </aside>
+</section>

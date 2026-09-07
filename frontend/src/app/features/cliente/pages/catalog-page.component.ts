@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 
@@ -22,16 +23,18 @@ import {
   CatalogProductVariant,
 } from '../../shared/models/catalog.model';
 import { CatalogApiService } from '../../shared/services/catalog-api.service';
+import { CartApiService } from '../../shared/services/cart-api.service';
 
 @Component({
   selector: 'app-catalog-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, HlmButton, HlmInput, ...HlmBadgeImports, ...HlmCardImports, ...HlmFieldImports, ...HlmSelectImports],
+  imports: [CommonModule, RouterLink, ReactiveFormsModule, HlmButton, HlmInput, ...HlmBadgeImports, ...HlmCardImports, ...HlmFieldImports, ...HlmSelectImports],
   templateUrl: './catalog-page.component.html',
 })
 export class CatalogPageComponent {
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(CatalogApiService);
+  private readonly cartApi = inject(CartApiService);
 
   protected readonly branches = signal<CatalogBranch[]>([]);
   protected readonly categories = signal<CatalogNameItem[]>([]);
@@ -42,6 +45,7 @@ export class CatalogPageComponent {
   protected readonly products = signal<CatalogProduct[]>([]);
   protected readonly selectedVariantByProduct = signal<Record<string, string>>({});
   protected readonly selectedImageByProduct = signal<Record<string, number>>({});
+  protected readonly addingToCartByProduct = signal<Record<string, boolean>>({});
   protected readonly loading = signal(false);
 
   protected readonly form = this.fb.nonNullable.group({
@@ -118,6 +122,26 @@ export class CatalogPageComponent {
 
   protected async updateBranchAvailability(): Promise<void> {
     await this.search();
+  }
+
+  protected async addSelectedVariantToCart(product: CatalogProduct): Promise<void> {
+    const variant = this.selectedVariant(product);
+    if (!variant) {
+      toast.warning('Selecciona una variante primero.');
+      return;
+    }
+
+    this.addingToCartByProduct.update((current) => ({ ...current, [product.id]: true }));
+    try {
+      await requestWithToast(
+        this.cartApi.addItem({ variant_id: variant.id, quantity: 1 }),
+        { loading: 'Agregando al carrito...', success: 'Producto agregado al carrito.', error: 'No se pudo agregar al carrito.' },
+      );
+    } catch {
+      // El toast de error ya se mostró con requestWithToast
+    } finally {
+      this.addingToCartByProduct.update((current) => ({ ...current, [product.id]: false }));
+    }
   }
 
   private async loadData(): Promise<void> {
@@ -222,6 +246,10 @@ export class CatalogPageComponent {
 
   protected variantStock(variant: CatalogProductVariant | null): number | null {
     return variant?.branch_quantity ?? null;
+  }
+
+  protected isAddingToCart(productId: string): boolean {
+    return this.addingToCartByProduct()[productId] ?? false;
   }
 
   protected productImages(product: CatalogProduct): string[] {
