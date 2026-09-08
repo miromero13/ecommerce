@@ -451,6 +451,21 @@ export class AdminCatalogPageComponent {
     input.value = '';
   }
 
+  protected onVariantImageDragOver(event: DragEvent): void {
+    event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'copy';
+    }
+  }
+
+  protected onVariantImageDrop(index: number, event: DragEvent): void {
+    event.preventDefault();
+    const file = event.dataTransfer?.files?.[0] ?? null;
+    if (file) {
+      this.setVariantFile(index, file);
+    }
+  }
+
   protected async clearVariantImage(index: number): Promise<void> {
     const state = this.variantImageStateAt(index);
     if (!state) {

@@ -232,7 +232,13 @@
     [attr.aria-hidden]="!modalOpen()"
     (click)="closeModal()"
   >
-    <section hlmCard class="relative w-full max-w-3xl bg-white shadow-xl" (click)="$event.stopPropagation()">
+    <section
+      hlmCard
+      class="relative w-full bg-white shadow-xl"
+      [class.max-w-3xl]="activeTab() !== 'products'"
+      [class.max-w-6xl]="activeTab() === 'products'"
+      (click)="$event.stopPropagation()"
+    >
         <div hlmCardHeader class="space-y-1 border-b border-slate-200 pb-4">
           <h2 hlmCardTitle class="text-xl">{{ modalTitle() }}</h2>
         </div>
@@ -318,7 +324,7 @@
           } @else {
             <form class="space-y-4" [formGroup]="productForm" (ngSubmit)="submitProduct()">
               <div class="grid gap-4 md:grid-cols-3">
-                <div hlmField class="md:col-span-2">
+                <div hlmField class="md:col-span-3">
                   <label hlmFieldLabel for="product-name">Nombre</label>
                   <input id="product-name" hlmInput class="w-full" placeholder="Nombre" formControlName="name" />
                 </div>
@@ -379,7 +385,10 @@
                   <div>
                     <h3 class="text-sm">Variantes</h3>
                   </div>
-                  <button hlmBtn type="button" variant="outline" (click)="addVariant()">Agregar variante</button>
+                  <button hlmBtn type="button" variant="ghost" class="gap-2 px-2 py-0 my-0 text-primary hover:text-primary/80 hover:bg-transparent cursor-pointer" (click)="addVariant()">
+                    <span class="text-base leading-none">+</span>
+                    <span class="hover:underline hover:underline-offset-2">Agregar variante</span>
+                  </button>
                 </div>
 
                 <div class="space-y-1" formArrayName="variants">
@@ -390,7 +399,7 @@
                         <button hlmBtn type="button" variant="ghost" [disabled]="variantControls().length === 1" (click)="removeVariant(i)">Quitar</button>
                       </div>
 
-                      <div class="grid gap-4 md:grid-cols-4">
+                      <div class="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_160px] lg:items-start">
                         <div hlmField>
                           <label hlmFieldLabel [for]="'variant-sku-' + i">SKU</label>
                           <input [id]="'variant-sku-' + i" hlmInput class="w-full" placeholder="SKU" formControlName="sku" />
@@ -401,7 +410,7 @@
                         </div>
                         <div hlmField>
                           <label hlmFieldLabel [for]="'variant-size-' + i">Talla</label>
-                            <div hlmSelect formControlName="size_id" [itemToString]="variantSizeSelectLabel">
+                          <div hlmSelect formControlName="size_id" [itemToString]="variantSizeSelectLabel">
                             <hlm-select-trigger [buttonId]="'variant-size-' + i">
                               <span hlmSelectValue placeholder="Talla"></span>
                             </hlm-select-trigger>
@@ -415,7 +424,7 @@
                         </div>
                         <div hlmField>
                           <label hlmFieldLabel [for]="'variant-color-' + i">Color</label>
-                            <div hlmSelect formControlName="color_id" [itemToString]="variantColorSelectLabel">
+                          <div hlmSelect formControlName="color_id" [itemToString]="variantColorSelectLabel">
                             <hlm-select-trigger [buttonId]="'variant-color-' + i">
                               <span hlmSelectValue placeholder="Color"></span>
                             </hlm-select-trigger>
@@ -427,32 +436,41 @@
                             </hlm-select-content>
                           </div>
                         </div>
-                      </div>
 
-                      <div class="mt-4 grid gap-4 md:grid-cols-[180px_1fr]">
-                        <div class="overflow-hidden rounded-xl border border-dashed border-slate-300 bg-slate-50">
-                          @if (variantImagePreview(i)) {
-                            <img [src]="variantImagePreview(i)!" [alt]="'Vista previa variante ' + (i + 1)" class="h-40 w-full object-cover" />
-                          } @else {
-                            <div class="flex h-40 items-center justify-center text-xs text-slate-500">Sin imagen</div>
-                          }
-                        </div>
-
-                        <div class="space-y-3">
-                          <div hlmField>
-                            <label hlmFieldLabel [for]="'variant-image-' + i">Imagen de la variante</label>
+                        <div class="space-y-2">
+                          <label class="block text-sm font-medium text-slate-700" [for]="'variant-image-' + i">Imagen</label>
+                          <div class="group relative">
+                          <label
+                            class="flex aspect-square min-h-40 w-full cursor-pointer overflow-hidden rounded-xl border border-dashed border-slate-300 bg-slate-50 transition-colors hover:border-slate-400 hover:bg-slate-100"
+                            [for]="'variant-image-' + i"
+                            (dragover)="onVariantImageDragOver($event)"
+                            (drop)="onVariantImageDrop(i, $event)"
+                          >
+                            @if (variantImagePreview(i)) {
+                              <img [src]="variantImagePreview(i)!" [alt]="'Vista previa variante ' + (i + 1)" class="h-full w-full object-cover" />
+                            } @else {
+                              <span class="absolute inset-0 flex items-center justify-center px-3 text-center text-sm font-medium leading-tight text-slate-500 transition-colors group-hover:text-slate-700">Toca para seleccionar imagen o arrastra para subirla</span>
+                            }
                             <input
                               [id]="'variant-image-' + i"
                               type="file"
                               accept="image/*"
-                              class="block w-full text-sm text-slate-600 file:mr-4 file:rounded-md file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-slate-700"
+                              class="sr-only"
                               (change)="onVariantImageChange(i, $event)"
                             />
-                            <p class="mt-2 text-xs text-slate-500">PNG, JPG o WEBP. La imagen se guarda por variante.</p>
-                          </div>
+                          </label>
 
-                          <div class="flex justify-end">
-                            <button hlmBtn type="button" variant="outline" [disabled]="!variantHasImage(i)" (click)="clearVariantImage(i)">Quitar imagen</button>
+                          @if (variantHasImage(i)) {
+                            <button
+                              hlmBtn
+                              type="button"
+                              class="absolute right-2 top-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-red-600 p-0 text-white shadow-md hover:bg-red-700"
+                              (click)="$event.stopPropagation(); clearVariantImage(i)"
+                              aria-label="Eliminar imagen"
+                              >
+                                +
+                              </button>
+                          }
                           </div>
                         </div>
                       </div>
