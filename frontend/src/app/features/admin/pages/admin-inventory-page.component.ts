@@ -9,8 +9,8 @@ import { HlmBadgeImports } from '../../../components/badge/src';
 import { HlmButton } from '../../../components/button/src';
 import { HlmCardImports } from '../../../components/card/src';
 import { HlmFieldImports } from '../../../components/field/src';
-import { HlmSelectImports } from '../../../components/select/src';
 import { HlmTable } from '../../../components/table/src';
+import { HlmTabsImports } from '../../../components/tabs/src';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
 import { CatalogBranch } from '../../shared/models/catalog.model';
 import {
@@ -21,10 +21,12 @@ import {
 import { CatalogApiService } from '../../shared/services/catalog-api.service';
 import { InventoryApiService } from '../../shared/services/inventory-api.service';
 
+type InventoryTab = 'consolidated' | 'branch' | 'movements';
+
 @Component({
   selector: 'app-admin-inventory-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, HlmButton, HlmTable, ...HlmBadgeImports, ...HlmCardImports, ...HlmFieldImports, ...HlmSelectImports],
+  imports: [CommonModule, ReactiveFormsModule, HlmButton, HlmTable, ...HlmBadgeImports, ...HlmCardImports, ...HlmFieldImports, ...HlmTabsImports],
   templateUrl: './admin-inventory-page.component.html',
 })
 export class AdminInventoryPageComponent {
@@ -36,6 +38,8 @@ export class AdminInventoryPageComponent {
   protected readonly branchStock = signal<InventoryBranchStock[]>([]);
   protected readonly movements = signal<InventoryMovement[]>([]);
   protected readonly selectedBranchId = signal('');
+  protected readonly activeTab = signal<InventoryTab>('consolidated');
+  protected readonly tabs: InventoryTab[] = ['consolidated', 'branch', 'movements'];
   protected readonly loading = signal(false);
 
   constructor() {
@@ -68,6 +72,12 @@ export class AdminInventoryPageComponent {
 
   protected async refresh(): Promise<void> {
     await this.loadInventoryData();
+  }
+
+  protected selectTab(tab: string): void {
+    if (tab === 'consolidated' || tab === 'branch' || tab === 'movements') {
+      this.activeTab.set(tab);
+    }
   }
 
   protected async selectBranch(branchId: string | null | undefined): Promise<void> {

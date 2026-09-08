@@ -199,7 +199,7 @@
         </thead>
         <tbody class="divide-y divide-slate-200 text-black">
           @for (product of products(); track product.id) {
-            <tr class="align-top">
+            <tr>
               <td class="px-4 py-3 font-medium">{{ product.name }}</td>
               <td class="px-4 py-3 text-sm">{{ categoryName(product.category_id) }}</td>
               <td class="px-4 py-3 text-sm">{{ product.description }}</td>
