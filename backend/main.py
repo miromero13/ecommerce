@@ -27,9 +27,9 @@ api_router.include_router(cart_routes.router)
 api_router.include_router(reservation_routes.router)
 api_router.include_router(order_routes.router)
 api_router.include_router(payment_routes.router)
-    api_router.include_router(sales_routes.router)
-    api_router.include_router(report_routes.router)
-    api_router.include_router(dashboard_routes.router)
+api_router.include_router(sales_routes.router)
+api_router.include_router(report_routes.router)
+api_router.include_router(dashboard_routes.router)
 
 app.include_router(api_router)
 
