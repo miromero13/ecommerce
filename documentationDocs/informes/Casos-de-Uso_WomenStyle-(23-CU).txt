@@ -1,0 +1,46 @@
+Casos de Uso – WomenStyle (23 CU)
+CICLO 1 : primeros 10 CU
+ 
+Módulo 1 – Usuarios y Roles
+ 
+CU01 – Registrar cliente: Alta de cuenta con datos personales y credenciales de acceso. Actor: Cliente.
+CU02 – Iniciar sesión: Autenticación mediante JWT según el rol del usuario. Actores: Cliente, Administrador, Encargado de sucursal, Cajero, Proveedor.
+CU03 – Gestionar usuarios internos: Alta, edición y baja de administradores, encargados de sucursal y cajeros. Actor: Administrador.
+CU04 – Gestionar sucursales: Registro y administración de sucursales por ciudad. Actor: Administrador.
+CU05 – Gestionar cuentas de proveedor: Alta, aprobación o suspensión de la cuenta que usará el proveedor. Actor: Administrador.
+CU06 – Consultar y actualizar perfil: Edición de datos personales del cliente. Actor: Cliente.
+ 
+Módulo 2 – Inventario
+ 
+CU07 – Registrar y enviar información de productos: El proveedor envía datos de sus prendas (características, disponibilidad, temporada/colección); el administrador valida antes de publicar. Actor principal: Proveedor. Actor secundario: Administrador.
+CU08 – Gestionar catálogo y productos: Alta, edición y baja de prendas ya validadas, incluyendo promociones y condiciones comerciales. Actor: Administrador.
+CU09 – Gestionar atributos del catálogo: Administración de categorías, tallas, colores, temporadas y colecciones. Actor: Administrador.
+CU10 – Consultar y filtrar catálogo: Búsqueda por categoría, talla, color, temporada y precio desde web/móvil. Actor: Cliente.
+CU11 – Consultar disponibilidad por sucursal: Verificación de stock en tiempo real por talla, color y sucursal. Actor: Cliente.
+CU12 – Registrar movimiento de inventario: Registro de ingresos, salidas y traspasos entre sucursales. Actores: Encargado de sucursal, Cajero.
+CU13 – Consultar inventario consolidado: Vista global de existencias de todas las sucursales. Actor: Administrador.
+ 
+Módulo 3 – Compra
+ 
+CU14 – Gestionar reservas de prendas: Selección de prendas, sucursal y horario; consulta y cancelación de la reserva. Actor: Cliente.
+CU15 – Gestionar carrito de compras: Adición y edición de productos antes de la compra. Actor: Cliente.
+CU16 – Realizar compra digital y consultar estado del pedido: Checkout vía web/móvil con pasarela de pago electrónica, y seguimiento del estado (pagado, en preparación, listo). Actor: Cliente.
+ 
+Módulo 4 – Venta
+ 
+CU17 – Atender reserva en sucursal: Preparación de prendas reservadas y confirmación de la llegada del cliente. Actor: Encargado de sucursal.
+CU18 – Registrar venta presencial y procesar pago en caja: Registro de venta física (con o sin reserva previa), cobro y emisión de comprobante. Actor: Cajero.
+ 
+Módulo 5 – Realidad Aumentada
+ 
+CU19 – Usar vestidor virtual: Visualización de la prenda sobre la imagen del cliente vía cámara del dispositivo móvil. Actor: Cliente.
+ 
+Módulo 6 – Reportes
+ 
+CU20 – Generar reportes y dashboards: Reportes de ventas e inventario por sucursal, producto y periodo, con indicadores visuales y exportación. Actor: Administrador.
+ 
+Módulo 7 – Asistencia Inteligente
+ 
+CU21 – Recibir recomendaciones de IA: Sugerencias de productos según historial, temporada y disponibilidad. Actor: Cliente.
+CU22 – Consultar asistente virtual/chatbot: Resolución de dudas del cliente sobre productos. Actor: Cliente.
+CU23 – Generar reporte por voz/lenguaje natural: Solicitud de reportes generativos mediante comando de voz. Actor: Administrador.
