@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_stripe/flutter_stripe.dart' hide PaymentMethod;
 
+import '../../core/config/app_config.dart';
 import '../../shared/widgets/app_button.dart';
 import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/app_empty_view.dart';
@@ -28,6 +30,8 @@ class _OrdersPageState extends State<OrdersPage> {
   late final OrderController _controller;
   late final bool _ownsController;
   String? _loadedToken;
+  String? _pickupBranchId;
+  PaymentMethod _paymentMethod = PaymentMethod.cash;
 
   @override
   void initState() {
@@ -139,6 +143,13 @@ class _OrdersPageState extends State<OrdersPage> {
 
   Widget _checkoutCard(BuildContext context) {
     final isSaving = _controller.status == OrderControllerStatus.saving;
+    final branches = _controller.pickupBranches
+        .where((branch) => branch.isActive)
+        .toList(growable: false);
+    final pickupBranchId =
+        _pickupBranchId ??
+        branches.where((branch) => branch.isDefault).firstOrNull?.id ??
+        branches.firstOrNull?.id;
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -150,12 +161,55 @@ class _OrdersPageState extends State<OrdersPage> {
             ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 4),
-          const Text('El pedido se registrará con pago en efectivo.'),
+          const Text('Elige dónde retirarás tu pedido y cómo pagarás.'),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            initialValue: pickupBranchId,
+            decoration: const InputDecoration(labelText: 'Sucursal de retiro'),
+            hint: const Text('Selecciona una sucursal'),
+            items: branches
+                .map(
+                  (branch) => DropdownMenuItem(
+                    value: branch.id,
+                    child: Text('${branch.name} · ${branch.city}'),
+                  ),
+                )
+                .toList(growable: false),
+            onChanged: isSaving
+                ? null
+                : (value) => setState(() => _pickupBranchId = value),
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<PaymentMethod>(
+            initialValue: _paymentMethod,
+            decoration: const InputDecoration(labelText: 'Método de pago'),
+            items: const [
+              DropdownMenuItem(
+                value: PaymentMethod.cash,
+                child: Text('Efectivo al retirar'),
+              ),
+              DropdownMenuItem(
+                value: PaymentMethod.stripe,
+                child: Text('Tarjeta'),
+              ),
+            ],
+            onChanged: isSaving
+                ? null
+                : (value) => setState(() => _paymentMethod = value!),
+          ),
           const SizedBox(height: 12),
           AppButton(
-            label: 'Comprar con efectivo',
-            icon: const Icon(Icons.payments_outlined),
-            onPressed: isSaving ? null : _checkout,
+            label: _paymentMethod == PaymentMethod.cash
+                ? 'Comprar con efectivo'
+                : 'Pagar con tarjeta',
+            icon: Icon(
+              _paymentMethod == PaymentMethod.cash
+                  ? Icons.payments_outlined
+                  : Icons.credit_card_outlined,
+            ),
+            onPressed: isSaving || pickupBranchId == null
+                ? null
+                : () => _checkout(pickupBranchId),
             isLoading: isSaving,
             expand: true,
           ),
@@ -164,13 +218,22 @@ class _OrdersPageState extends State<OrdersPage> {
     );
   }
 
-  Future<void> _checkout() async {
+  Future<void> _checkout(String pickupBranchId) async {
+    if (_paymentMethod == PaymentMethod.stripe &&
+        AppConfig.stripePublishableKey.isEmpty) {
+      AppSnackBar.show(
+        context,
+        'Configura STRIPE_PUBLISHABLE_KEY para pagar con tarjeta.',
+        tone: AppSnackBarTone.error,
+      );
+      return;
+    }
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Confirmar compra'),
         content: const Text(
-          'Se creará un pedido con los productos del carrito y pago en efectivo.',
+          'Se creará un pedido con los productos del carrito.',
         ),
         actions: [
           TextButton(
@@ -185,7 +248,11 @@ class _OrdersPageState extends State<OrdersPage> {
       ),
     );
     if (confirmed != true) return;
-    await _controller.checkoutCash();
+    if (_paymentMethod == PaymentMethod.stripe) {
+      await _checkoutStripe(pickupBranchId);
+      return;
+    }
+    await _controller.checkoutCash(pickupBranchId: pickupBranchId);
     if (!mounted) return;
     final isError = _controller.status == OrderControllerStatus.error;
     final message = isError
@@ -198,6 +265,92 @@ class _OrdersPageState extends State<OrdersPage> {
         tone: isError ? AppSnackBarTone.error : AppSnackBarTone.success,
       );
     }
+    if (!isError && _controller.selectedOrder != null) {
+      final branch = _controller.pickupBranches
+          .where((branch) => branch.id == pickupBranchId)
+          .firstOrNull;
+      await _showCashPickup(_controller.selectedOrder!, branch);
+    }
+  }
+
+  Future<void> _checkoutStripe(String pickupBranchId) async {
+    final result = await _controller.checkoutStripe(
+      pickupBranchId: pickupBranchId,
+    );
+    if (!mounted) return;
+    if (result == null) {
+      AppSnackBar.show(
+        context,
+        _controller.errorMessage ?? 'No se pudo iniciar el pago.',
+        tone: AppSnackBarTone.error,
+      );
+      return;
+    }
+    try {
+      await Stripe.instance.initPaymentSheet(
+        paymentSheetParameters: SetupPaymentSheetParameters(
+          merchantDisplayName: 'FashionStore',
+          paymentIntentClientSecret: result.checkout.clientSecret,
+        ),
+      );
+      await Stripe.instance.presentPaymentSheet();
+      await _controller.loadDetail(result.checkout.orderId);
+      if (!mounted) return;
+      final paid = _controller.selectedOrder?.paymentStatus == PaymentStatus.paid;
+      AppSnackBar.show(
+        context,
+        paid
+            ? 'Pago confirmado. Tu pedido queda pendiente de retiro.'
+            : 'Pago enviado. Esperando confirmación del servidor.',
+        tone: paid ? AppSnackBarTone.success : AppSnackBarTone.warning,
+      );
+    } on StripeException catch (error) {
+      if (!mounted) return;
+      AppSnackBar.show(
+        context,
+        error.error.localizedMessage ?? 'No se pudo completar el pago.',
+        tone: AppSnackBarTone.error,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      AppSnackBar.show(
+        context,
+        'No se pudo completar el pago.',
+        tone: AppSnackBarTone.error,
+      );
+    }
+  }
+
+  Future<void> _showCashPickup(Order order, PickupBranch? branch) {
+    return showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Retiro en efectivo',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 12),
+              Text('Código: ${order.pickupCode ?? 'No disponible'}'),
+              Text(
+                'Sucursal: ${branch?.name ?? order.pickupBranchId ?? 'No disponible'}',
+              ),
+              Text(
+                'Vence: ${order.pickupExpiresAt == null ? 'No disponible' : _displayDateTime(order.pickupExpiresAt!)}',
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _showDetails(String orderId) async {
@@ -221,6 +374,14 @@ class _OrdersPageState extends State<OrdersPage> {
             const SizedBox(height: 8),
             Text('Estado: ${_statusLabel(order.status)}'),
             Text('Pago: ${_paymentStatusLabel(order.paymentStatus)}'),
+            if (order.paymentMethod == PaymentMethod.cash) ...[
+              Text('Código de retiro: ${order.pickupCode ?? 'No disponible'}'),
+              Text(
+                'Sucursal: ${_controller.pickupBranches.where((branch) => branch.id == order.pickupBranchId).firstOrNull?.name ?? order.pickupBranchId ?? 'No disponible'}',
+              ),
+              if (order.pickupExpiresAt != null)
+                Text('Vence: ${_displayDateTime(order.pickupExpiresAt!)}'),
+            ],
             const SizedBox(height: 16),
             for (final item in order.items)
               ListTile(
@@ -330,4 +491,10 @@ String _displayDate(DateTime date) {
   final local = date.toLocal();
   return '${local.day.toString().padLeft(2, '0')}/'
       '${local.month.toString().padLeft(2, '0')}/${local.year}';
+}
+
+String _displayDateTime(DateTime date) {
+  final local = date.toLocal();
+  return '${_displayDate(local)} ${local.hour.toString().padLeft(2, '0')}:'
+      '${local.minute.toString().padLeft(2, '0')}';
 }
