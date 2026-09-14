@@ -68,5 +68,8 @@ async def clear_cart_route(
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_roles(RolEnum.cliente)),
 ):
-    cart = clear_cart(db, UUID(current_user["sub"]))
+    try:
+        cart = clear_cart(db, UUID(current_user["sub"]))
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return response(status_code=200, message="Carrito vaciado exitosamente", data=cart.model_dump())

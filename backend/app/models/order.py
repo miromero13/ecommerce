@@ -6,7 +6,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.core.database import Base
-from app.schemas.order_schema import OrderStatusEnum, PaymentMethodEnum, PaymentStatusEnum
+from app.schemas.order_schema import FulfillmentStatusEnum, OrderStatusEnum, PaymentMethodEnum, PaymentStatusEnum
 
 
 class Order(Base):
@@ -19,6 +19,10 @@ class Order(Base):
     payment_status = Column(SQLAlchemyEnum(PaymentStatusEnum, name="paymentstatusenum"), nullable=False, default=PaymentStatusEnum.pending)
     stripe_payment_intent_id = Column(String, nullable=True, index=True)
     cash_reference = Column(String, nullable=True)
+    pickup_branch_id = Column(UUID(as_uuid=True), ForeignKey("branches.id"), nullable=True, index=True)
+    pickup_expires_at = Column(DateTime(timezone=True), nullable=True)
+    pickup_code = Column(String, nullable=True, unique=True)
+    fulfillment_status = Column(SQLAlchemyEnum(FulfillmentStatusEnum, name="fulfillmentstatusenum"), nullable=True)
     subtotal = Column(Numeric(10, 2), nullable=False, default=0)
     discount_amount = Column(Numeric(10, 2), nullable=False, default=0)
     total_amount = Column(Numeric(10, 2), nullable=False, default=0)
