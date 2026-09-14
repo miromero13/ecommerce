@@ -24,6 +24,14 @@ class PaymentStatusEnum(str, Enum):
     failed = "failed"
 
 
+class FulfillmentStatusEnum(str, Enum):
+    pending_pickup = "pending_pickup"
+    ready_for_pickup = "ready_for_pickup"
+    collected = "collected"
+    expired = "expired"
+    cancelled = "cancelled"
+
+
 class CashCheckoutCreate(BaseModel):
     cash_reference: str | None = None
 
@@ -60,6 +68,10 @@ class OrderRead(BaseModel):
     payment_status: PaymentStatusEnum
     stripe_payment_intent_id: str | None = None
     cash_reference: str | None = None
+    pickup_branch_id: UUID | None = None
+    pickup_expires_at: datetime | None = None
+    pickup_code: str | None = None
+    fulfillment_status: FulfillmentStatusEnum | None = None
     subtotal: Decimal
     discount_amount: Decimal
     total_amount: Decimal

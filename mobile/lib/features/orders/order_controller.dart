@@ -23,6 +23,7 @@ class OrderController extends ChangeNotifier {
 
   OrderControllerStatus status = OrderControllerStatus.idle;
   List<Order> orders = const [];
+  List<PickupBranch> pickupBranches = const [];
   Order? selectedOrder;
   String? errorMessage;
   String? feedbackMessage;
@@ -33,8 +34,13 @@ class OrderController extends ChangeNotifier {
     feedbackMessage = null;
     notifyListeners();
     try {
-      final result = await _api.getMine();
+      final results = await Future.wait([
+        _api.getMine(),
+        _api.getPublicBranches(),
+      ]);
+      final result = results.first as OrderListResult;
       orders = result.orders;
+      pickupBranches = results.last as List<PickupBranch>;
       feedbackMessage = result.message;
       status = OrderControllerStatus.ready;
     } catch (error) {
@@ -60,13 +66,13 @@ class OrderController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> checkoutCash({String? cashReference}) async {
+  Future<void> checkoutCash({required String pickupBranchId}) async {
     status = OrderControllerStatus.saving;
     errorMessage = null;
     feedbackMessage = null;
     notifyListeners();
     try {
-      final result = await _api.checkoutCash(cashReference: cashReference);
+      final result = await _api.checkoutCash(pickupBranchId: pickupBranchId);
       orders = [result.order, ...orders];
       selectedOrder = result.order;
       feedbackMessage = result.message;
@@ -76,6 +82,27 @@ class OrderController extends ChangeNotifier {
       errorMessage = _messageFor(error);
     }
     notifyListeners();
+  }
+
+  Future<StripeCheckoutResult?> checkoutStripe({
+    required String pickupBranchId,
+  }) async {
+    status = OrderControllerStatus.saving;
+    errorMessage = null;
+    feedbackMessage = null;
+    notifyListeners();
+    try {
+      final result = await _api.checkoutStripe(pickupBranchId: pickupBranchId);
+      feedbackMessage = result.message;
+      status = OrderControllerStatus.ready;
+      notifyListeners();
+      return result;
+    } catch (error) {
+      status = OrderControllerStatus.error;
+      errorMessage = _messageFor(error);
+      notifyListeners();
+      return null;
+    }
   }
 
   static String _messageFor(Object error) {

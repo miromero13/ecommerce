@@ -1,43 +1,64 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, ElementRef, ViewChild, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
+import { Stripe, StripeElements, StripePaymentElement, loadStripe } from '@stripe/stripe-js';
 
 import { toast } from '@spartan-ng/brain/sonner';
 
 import { HlmBadgeImports } from '../../../components/badge/src';
 import { HlmButton } from '../../../components/button/src';
 import { HlmCardImports } from '../../../components/card/src';
+import { HlmInputImports } from '../../../components/input/src';
 import { HlmTable } from '../../../components/table/src';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
 import { requestWithToast } from '../../../core/utils/request-toast.util';
 import { Cart } from '../../shared/models/cart.model';
+import { CatalogBranch } from '../../shared/models/catalog.model';
 import { CartApiService } from '../../shared/services/cart-api.service';
+import { CatalogApiService } from '../../shared/services/catalog-api.service';
 import { Order } from '../../shared/models/order.model';
 import { CheckoutApiService } from '../../shared/services/checkout-api.service';
+import { environment } from '../../../../environments/environment';
+
+type StripeCheckout = {
+  orderId: string;
+  pickupExpiresAt: string;
+};
 
 @Component({
   selector: 'app-cart-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, HlmButton, HlmTable, ...HlmBadgeImports, ...HlmCardImports],
+  imports: [CommonModule, RouterLink, HlmButton, HlmTable, ...HlmBadgeImports, ...HlmCardImports, ...HlmInputImports],
   templateUrl: './cart-page.component.html',
 })
 export class CartPageComponent {
   private readonly cartApi = inject(CartApiService);
+  private readonly catalogApi = inject(CatalogApiService);
   private readonly checkoutApi = inject(CheckoutApiService);
+  private stripe: Stripe | null = null;
+  private stripeElements: StripeElements | null = null;
+  private stripePaymentElement: StripePaymentElement | null = null;
+
+  @ViewChild('paymentElement')
+  private set paymentElementHost(host: ElementRef<HTMLDivElement> | undefined) {
+    if (host && this.stripePaymentElement) this.stripePaymentElement.mount(host.nativeElement);
+  }
 
   protected readonly cart = signal<Cart | null>(null);
+  protected readonly branches = signal<CatalogBranch[]>([]);
   protected readonly lastOrder = signal<Order | null>(null);
-  protected readonly stripeClientSecret = signal<string | null>(null);
+  protected readonly stripeCheckout = signal<StripeCheckout | null>(null);
+  protected readonly stripePaymentStatus = signal<string | null>(null);
   protected readonly loading = signal(false);
   protected readonly updatingItemId = signal<string | null>(null);
   protected readonly checkoutMethod = signal<'cash' | 'stripe'>('cash');
-  protected readonly cashReference = signal('');
-  protected readonly stripeCurrency = signal('usd');
+  protected readonly pickupBranchId = signal('');
   protected readonly checkingOut = signal(false);
 
   constructor() {
     void this.loadCart();
+    void this.loadBranches();
   }
 
   protected get itemCount(): number {
@@ -100,23 +121,23 @@ export class CartPageComponent {
       toast.warning('Tu carrito está vacío.');
       return;
     }
+    const pickupBranchId = this.pickupBranchId();
+    if (!pickupBranchId) {
+      toast.warning('Selecciona una sucursal para el retiro.');
+      return;
+    }
 
     this.checkingOut.set(true);
     try {
       if (this.checkoutMethod() === 'cash') {
         const response = await requestWithToast(
-          this.checkoutApi.checkoutCash({ cash_reference: this.cashReference() || null }),
-          { loading: 'Procesando pago...', success: 'Pago procesado correctamente.', error: 'No se pudo procesar el pago.' },
+          this.checkoutApi.checkoutCash({ pickup_branch_id: pickupBranchId }),
+          { loading: 'Creando pedido...', success: 'Pedido para retiro creado.', error: 'No se pudo crear el pedido.' },
         );
         this.lastOrder.set(response.data ?? null);
-        this.stripeClientSecret.set(null);
+        this.clearStripeCheckout();
       } else {
-        const response = await requestWithToast(
-          this.checkoutApi.checkoutStripe({ currency: this.stripeCurrency() || 'usd' }),
-          { loading: 'Iniciando Stripe...', success: 'Pago con Stripe iniciado.', error: 'No se pudo iniciar Stripe.' },
-        );
-        this.lastOrder.set(response.data?.order ?? null);
-        this.stripeClientSecret.set(response.data?.client_secret ?? null);
+        await this.startStripeCheckout(pickupBranchId);
       }
       await this.loadCart();
     } catch {
@@ -138,6 +159,55 @@ export class CartPageComponent {
     this.checkoutMethod.set(method);
   }
 
+  protected branchLabel(branchId: string | null | undefined): string {
+    const branch = this.branches().find((item) => item.id === branchId);
+    return branch ? `${branch.name} - ${branch.city}` : 'Sin sucursal';
+  }
+
+  protected async confirmStripePayment(): Promise<void> {
+    if (!this.stripe || !this.stripeElements) {
+      toast.warning('Primero inicia el pago con Stripe.');
+      return;
+    }
+
+    this.checkingOut.set(true);
+    try {
+      const { error, paymentIntent } = await this.stripe.confirmPayment({
+        elements: this.stripeElements,
+        confirmParams: { return_url: window.location.href },
+        redirect: 'if_required',
+      });
+      if (error) {
+        this.stripePaymentStatus.set('error');
+        toast.error(error.message ?? 'No se pudo confirmar el pago.');
+      } else if (paymentIntent?.status === 'succeeded') {
+        const orderId = this.stripeCheckout()?.orderId;
+        if (!orderId) return;
+        const response = await firstValueFrom(this.checkoutApi.getOrder(orderId));
+        const order = response.data ?? null;
+        this.lastOrder.set(order);
+        if (order?.payment_status === 'paid') {
+          this.stripePaymentStatus.set('paid');
+          toast.success('Pago confirmado. Tu pedido queda pendiente de retiro.');
+        } else {
+          this.stripePaymentStatus.set('pending');
+          toast.info('Pago enviado. Esperando confirmación del servidor.');
+        }
+      } else if (paymentIntent?.status === 'canceled') {
+        this.stripePaymentStatus.set('cancelled');
+        toast.warning('El pago fue cancelado.');
+      } else {
+        this.stripePaymentStatus.set('pending');
+        toast.info('El pago está pendiente de confirmación.');
+      }
+    } catch {
+      this.stripePaymentStatus.set('error');
+      toast.error('No se pudo confirmar el pago.');
+    } finally {
+      this.checkingOut.set(false);
+    }
+  }
+
   private async loadCart(): Promise<void> {
     this.loading.set(true);
     try {
@@ -149,6 +219,52 @@ export class CartPageComponent {
     } finally {
       this.loading.set(false);
     }
+  }
+
+  private async loadBranches(): Promise<void> {
+    try {
+      const response = await firstValueFrom(this.catalogApi.listPublicBranches());
+      this.branches.set(response.data ?? []);
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'No se pudieron cargar las sucursales.'));
+    }
+  }
+
+  private async startStripeCheckout(pickupBranchId: string): Promise<void> {
+    if (!environment.stripePublishableKey) {
+      toast.error('Stripe no está configurado para esta aplicación.');
+      return;
+    }
+    try {
+      this.stripe = await loadStripe(environment.stripePublishableKey);
+    } catch {
+      toast.error('No se pudo cargar Stripe.');
+      return;
+    }
+    if (!this.stripe) {
+      toast.error('No se pudo cargar Stripe.');
+      return;
+    }
+    const response = await requestWithToast(
+      this.checkoutApi.checkoutStripe({ pickup_branch_id: pickupBranchId }),
+      { loading: 'Iniciando Stripe...', success: 'Completa los datos de tu tarjeta.', error: 'No se pudo iniciar Stripe.' },
+    );
+    const checkout = response.data;
+    if (!checkout) return;
+
+    this.clearStripeCheckout();
+    this.stripeElements = this.stripe.elements({ clientSecret: checkout.client_secret });
+    this.stripePaymentElement = this.stripeElements.create('payment');
+    this.stripeCheckout.set({ orderId: checkout.order_id, pickupExpiresAt: checkout.pickup_expires_at });
+    this.stripePaymentStatus.set('ready');
+  }
+
+  private clearStripeCheckout(): void {
+    this.stripePaymentElement?.destroy();
+    this.stripePaymentElement = null;
+    this.stripeElements = null;
+    this.stripeCheckout.set(null);
+    this.stripePaymentStatus.set(null);
   }
 
   private async updateQuantity(itemId: string, quantity: number): Promise<void> {

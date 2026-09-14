@@ -12,6 +12,9 @@ void main() {
       'payment_status': 'paid',
       'stripe_payment_intent_id': null,
       'cash_reference': 'CASH-001',
+      'pickup_branch_id': 'branch-id',
+      'pickup_expires_at': '2026-09-02T10:00:00Z',
+      'pickup_code': 'PICKUP-001',
       'subtotal': '125.50',
       'discount_amount': '5.50',
       'total_amount': '120.00',
@@ -45,6 +48,21 @@ void main() {
     expect(order.totalAmount, 120);
     expect(order.items.single.productName, 'Blusa demo');
     expect(order.items.single.sizeName, 'M');
+    expect(order.pickupCode, 'PICKUP-001');
+    expect(order.pickupExpiresAt, DateTime.utc(2026, 9, 2, 10));
+  });
+
+  test('parsea sucursal pública', () {
+    final branch = PickupBranch.fromJson({
+      'id': 'branch-id',
+      'name': 'Sucursal Central',
+      'city': 'La Paz',
+      'is_default': true,
+      'is_active': true,
+    });
+
+    expect(branch.name, 'Sucursal Central');
+    expect(branch.isActive, isTrue);
   });
 
   test('rechaza estados desconocidos', () {

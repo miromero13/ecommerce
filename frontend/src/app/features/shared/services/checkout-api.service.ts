@@ -8,11 +8,15 @@ import { Order } from '../models/order.model';
 export class CheckoutApiService {
   private readonly api = inject(ApiService);
 
-  checkoutCash(payload: { cash_reference?: string | null }) {
+  checkoutCash(payload: { pickup_branch_id: string }) {
     return this.api.post<ApiResponse<Order>>('/payments/cash/checkout', payload);
   }
 
-  checkoutStripe(payload: { currency?: string | null }) {
-    return this.api.post<ApiResponse<{ order_id: string; client_secret: string; payment_intent_id: string; order?: Order }>>('/payments/stripe/checkout', payload);
+  checkoutStripe(payload: { pickup_branch_id: string }) {
+    return this.api.post<ApiResponse<{ order_id: string; client_secret: string; payment_intent_id: string; pickup_expires_at: string }>>('/payments/stripe/checkout', payload);
+  }
+
+  getOrder(orderId: string) {
+    return this.api.get<ApiResponse<Order>>(`/orders/${orderId}`);
   }
 }

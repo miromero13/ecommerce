@@ -23,7 +23,7 @@ def _available_quantity(db: Session, variant_id: UUID) -> int:
 
 
 def _get_active_cart(db: Session, user_id: UUID) -> Cart:
-    cart = db.query(Cart).filter(Cart.user_id == user_id, Cart.status == CartStatusEnum.active).first()
+    cart = db.query(Cart).filter(Cart.user_id == user_id).first()
     if cart:
         return cart
 
@@ -37,6 +37,13 @@ def _get_active_cart(db: Session, user_id: UUID) -> Cart:
     db.add(cart)
     db.commit()
     db.refresh(cart)
+    return cart
+
+
+def _get_mutable_cart(db: Session, user_id: UUID) -> Cart:
+    cart = _get_active_cart(db, user_id)
+    if cart.status == CartStatusEnum.checkout_pending:
+        raise ValueError("El carrito tiene un checkout pendiente")
     return cart
 
 
@@ -104,7 +111,7 @@ def get_current_cart(db: Session, user_id: UUID) -> CartRead:
 
 
 def add_cart_item(db: Session, user_id: UUID, payload: CartItemCreate) -> CartRead:
-    cart = _get_active_cart(db, user_id)
+    cart = _get_mutable_cart(db, user_id)
     available = _available_quantity(db, payload.variant_id)
     existing = db.query(CartItem).filter(CartItem.cart_id == cart.id, CartItem.variant_id == payload.variant_id).first()
     next_quantity = payload.quantity + (existing.quantity if existing else 0)
@@ -127,7 +134,7 @@ def add_cart_item(db: Session, user_id: UUID, payload: CartItemCreate) -> CartRe
 
 
 def update_cart_item(db: Session, user_id: UUID, item_id: UUID, payload: CartItemUpdate) -> CartRead:
-    cart = _get_active_cart(db, user_id)
+    cart = _get_mutable_cart(db, user_id)
     item = db.query(CartItem).filter(CartItem.id == item_id, CartItem.cart_id == cart.id).first()
     if not item:
         raise ValueError("Item de carrito no encontrado")
@@ -154,7 +161,7 @@ def update_cart_item(db: Session, user_id: UUID, item_id: UUID, payload: CartIte
 
 
 def remove_cart_item(db: Session, user_id: UUID, item_id: UUID) -> CartRead:
-    cart = _get_active_cart(db, user_id)
+    cart = _get_mutable_cart(db, user_id)
     item = db.query(CartItem).filter(CartItem.id == item_id, CartItem.cart_id == cart.id).first()
     if not item:
         raise ValueError("Item de carrito no encontrado")
@@ -166,7 +173,7 @@ def remove_cart_item(db: Session, user_id: UUID, item_id: UUID) -> CartRead:
 
 
 def clear_cart(db: Session, user_id: UUID) -> CartRead:
-    cart = _get_active_cart(db, user_id)
+    cart = _get_mutable_cart(db, user_id)
     db.query(CartItem).filter(CartItem.cart_id == cart.id).delete(synchronize_session=False)
     db.commit()
     db.refresh(cart)

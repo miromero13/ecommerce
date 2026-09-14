@@ -12,7 +12,7 @@ void main() {
     expect(controller.status, OrderControllerStatus.ready);
     expect(controller.orders, hasLength(1));
 
-    await controller.checkoutCash();
+    await controller.checkoutCash(pickupBranchId: 'branch-id');
     expect(controller.orders, hasLength(2));
     expect(controller.selectedOrder?.id, 'created-order');
 
@@ -33,7 +33,20 @@ class _FakeOrderApi extends OrderApi {
   }
 
   @override
-  Future<OrderResult> checkoutCash({String? cashReference}) async {
+  Future<List<PickupBranch>> getPublicBranches() async {
+    return const [
+      PickupBranch(
+        id: 'branch-id',
+        name: 'Sucursal Central',
+        city: 'La Paz',
+        isDefault: true,
+        isActive: true,
+      ),
+    ];
+  }
+
+  @override
+  Future<OrderResult> checkoutCash({required String pickupBranchId}) async {
     return OrderResult(
       order: _order('created-order'),
       message: 'Pago en efectivo procesado exitosamente',

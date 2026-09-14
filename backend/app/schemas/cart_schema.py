@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 class CartStatusEnum(str, Enum):
     active = "active"
+    checkout_pending = "checkout_pending"
     checked_out = "checked_out"
     cancelled = "cancelled"
 

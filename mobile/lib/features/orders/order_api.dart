@@ -25,19 +25,29 @@ class OrderApi {
     return _orderResult(response.data, response.message);
   }
 
-  Future<OrderResult> checkoutCash({String? cashReference}) async {
+  Future<List<PickupBranch>> getPublicBranches() async {
+    final response = await _client.get<List<PickupBranch>>(
+      'branches/public',
+      parser: (value) => _parseList(value, PickupBranch.fromJson),
+    );
+    return response.data ?? const [];
+  }
+
+  Future<OrderResult> checkoutCash({required String pickupBranchId}) async {
     final response = await _client.post<Order>(
       'payments/cash/checkout',
-      data: {'cash_reference': cashReference},
+      data: {'pickup_branch_id': pickupBranchId},
       parser: _parseOrder,
     );
     return _orderResult(response.data, response.message);
   }
 
-  Future<StripeCheckoutResult> checkoutStripe({String? currency}) async {
+  Future<StripeCheckoutResult> checkoutStripe({
+    required String pickupBranchId,
+  }) async {
     final response = await _client.post<StripeCheckout>(
       'payments/stripe/checkout',
-      data: {'currency': currency},
+      data: {'pickup_branch_id': pickupBranchId},
       parser: _parseStripeCheckout,
     );
     final checkout = response.data;

@@ -111,6 +111,9 @@ class Order {
     required this.items,
     this.stripePaymentIntentId,
     this.cashReference,
+    this.pickupBranchId,
+    this.pickupExpiresAt,
+    this.pickupCode,
     this.updatedAt,
   });
 
@@ -127,6 +130,9 @@ class Order {
   final DateTime? updatedAt;
   final String? stripePaymentIntentId;
   final String? cashReference;
+  final String? pickupBranchId;
+  final DateTime? pickupExpiresAt;
+  final String? pickupCode;
   final List<OrderItem> items;
 
   factory Order.fromJson(Map<String, dynamic> json) {
@@ -149,6 +155,9 @@ class Order {
       updatedAt: _optionalDateTime(json, 'updated_at'),
       stripePaymentIntentId: _optionalString(json, 'stripe_payment_intent_id'),
       cashReference: _optionalString(json, 'cash_reference'),
+      pickupBranchId: _optionalString(json, 'pickup_branch_id'),
+      pickupExpiresAt: _optionalDateTime(json, 'pickup_expires_at'),
+      pickupCode: _optionalString(json, 'pickup_code'),
       items: rawItems
           .map((item) {
             if (item is! Map) {
@@ -157,6 +166,32 @@ class Order {
             return OrderItem.fromJson(Map<String, dynamic>.from(item));
           })
           .toList(growable: false),
+    );
+  }
+}
+
+class PickupBranch {
+  const PickupBranch({
+    required this.id,
+    required this.name,
+    required this.city,
+    required this.isDefault,
+    required this.isActive,
+  });
+
+  final String id;
+  final String name;
+  final String city;
+  final bool isDefault;
+  final bool isActive;
+
+  factory PickupBranch.fromJson(Map<String, dynamic> json) {
+    return PickupBranch(
+      id: _requiredString(json, 'id'),
+      name: _requiredString(json, 'name'),
+      city: _requiredString(json, 'city'),
+      isDefault: json['is_default'] == true,
+      isActive: json['is_active'] == true,
     );
   }
 }
