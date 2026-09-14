@@ -1,5 +1,6 @@
 export type PaymentMethodEnum = 'cash' | 'stripe';
 export type PaymentStatusEnum = 'pending' | 'paid' | 'failed';
+export type FulfillmentStatusEnum = 'pending_pickup' | 'collected' | 'expired' | 'cancelled';
 
 export interface OrderItem {
   id: string;
@@ -27,6 +28,10 @@ export interface Order {
   payment_status: PaymentStatusEnum;
   stripe_payment_intent_id: string | null;
   cash_reference: string | null;
+  pickup_branch_id: string | null;
+  pickup_expires_at: string | null;
+  pickup_code: string | null;
+  fulfillment_status: FulfillmentStatusEnum;
   subtotal: string;
   discount_amount: string;
   total_amount: string;

@@ -95,19 +95,21 @@
             <button hlmBtn type="button" [variant]="checkoutMethod() === 'stripe' ? 'default' : 'outline'" (click)="selectCheckoutMethod('stripe')">Stripe</button>
           </div>
 
+          <div class="space-y-2">
+            <label class="text-xs font-medium text-slate-600" for="pickup-branch">Sucursal de retiro</label>
+            <select id="pickup-branch" class="flex h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm" [value]="pickupBranchId()" (change)="pickupBranchId.set($any($event.target).value)">
+              <option value="">Selecciona una sucursal</option>
+              @for (branch of branches(); track branch.id) {
+                <option [value]="branch.id">{{ branch.name }} - {{ branch.city }}</option>
+              }
+            </select>
+          </div>
+
           @if (checkoutMethod() === 'cash') {
-            <div class="space-y-2">
-              <label class="text-xs font-medium text-slate-600">Referencia de caja</label>
-              <input hlmInput type="text" [value]="cashReference()" (input)="cashReference.set($any($event.target).value)" placeholder="Referencia opcional" />
-            </div>
-          } @else {
-            <div class="space-y-2">
-              <label class="text-xs font-medium text-slate-600">Moneda Stripe</label>
-              <input hlmInput type="text" [value]="stripeCurrency()" (input)="stripeCurrency.set($any($event.target).value)" placeholder="usd" />
-            </div>
+            <p class="text-xs text-slate-500">Pagarás al retirar el pedido en la sucursal seleccionada.</p>
           }
 
-          <button hlmBtn type="button" class="w-full" (click)="checkout()" [disabled]="checkingOut() || !(cart()?.items?.length)">
+          <button hlmBtn type="button" class="w-full" (click)="checkout()" [disabled]="checkingOut() || !(cart()?.items?.length) || !!stripeCheckout()">
             {{ checkingOut() ? 'Procesando...' : (checkoutMethod() === 'cash' ? 'Pagar en efectivo' : 'Iniciar Stripe') }}
           </button>
         </div>
@@ -117,13 +119,24 @@
             <p class="font-semibold text-emerald-700">{{ orderLabel() }}</p>
             <p>Estado: {{ lastOrder()?.payment_status }}</p>
             <p>Total: {{ lastOrder()?.total_amount }}</p>
-            @if (stripeClientSecret()) {
-              <p class="mt-2 break-all text-xs text-slate-600">Client secret: {{ stripeClientSecret() }}</p>
-            }
+            <p>Sucursal: {{ branchLabel(lastOrder()?.pickup_branch_id) }}</p>
+            <p>Código de retiro: {{ lastOrder()?.pickup_code }}</p>
+            <p>Vence: {{ lastOrder()?.pickup_expires_at | date:'medium' }}</p>
           </div>
         }
 
-        <p class="text-xs text-slate-500">La confirmación de pago se mantiene dentro del flujo actual de checkout.</p>
+        @if (stripeCheckout()) {
+          <div class="space-y-3 rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm">
+            <p class="font-semibold text-sky-800">Pedido #{{ stripeCheckout()?.orderId }}</p>
+            <p>Sucursal: {{ branchLabel(pickupBranchId()) }}</p>
+            <p>Vence: {{ stripeCheckout()?.pickupExpiresAt | date:'medium' }}</p>
+            <div #paymentElement class="rounded-lg bg-white p-3"></div>
+            <p class="text-slate-600">Estado: {{ stripePaymentStatus() === 'paid' ? 'Pago confirmado' : stripePaymentStatus() === 'cancelled' ? 'Pago cancelado' : stripePaymentStatus() === 'pending' ? 'Pago pendiente' : stripePaymentStatus() === 'error' ? 'Revisa los datos de pago' : 'Listo para pagar' }}</p>
+            <button hlmBtn type="button" class="w-full" (click)="confirmStripePayment()" [disabled]="checkingOut() || stripePaymentStatus() === 'paid' || stripePaymentStatus() === 'cancelled'">
+              {{ checkingOut() ? 'Confirmando...' : 'Confirmar pago' }}
+            </button>
+          </div>
+        }
       </div>
     </section>
   </aside>

@@ -49,7 +49,6 @@ export class SalesPageComponent {
   protected readonly loadingProducts = signal(false);
   protected readonly loadingReservation = signal(false);
   protected readonly submitting = signal(false);
-  protected readonly paymentMethod = signal<'cash' | 'stripe'>('cash');
   protected readonly cashReference = signal('');
 
   protected readonly branchId = computed(() => this.session.user()?.branch_id ?? null);
@@ -188,7 +187,7 @@ export class SalesPageComponent {
       const payload: CreateSaleRequest = {
         branch_id: branchId,
         reservation_id: this.selectedReservation()?.id ?? null,
-        payment_method: this.paymentMethod(),
+        payment_method: 'cash',
         cash_reference: this.cashReference() || null,
         items: this.selectedReservation()
           ? []

@@ -143,19 +143,11 @@
           </div>
 
           <div class="space-y-3 rounded-xl border border-slate-200 p-4">
-            <div class="flex gap-2">
-              <button hlmBtn type="button" [variant]="paymentMethod() === 'cash' ? 'default' : 'outline'" (click)="paymentMethod.set('cash')">Efectivo</button>
-              <button hlmBtn type="button" [variant]="paymentMethod() === 'stripe' ? 'default' : 'outline'" (click)="paymentMethod.set('stripe')">Stripe</button>
+            <p class="text-sm font-medium text-slate-700">Pago en efectivo</p>
+            <div class="space-y-2">
+              <label class="text-xs font-medium uppercase tracking-wide text-slate-500">Referencia de caja</label>
+              <input hlmInput type="text" [value]="cashReference()" (input)="cashReference.set($any($event.target).value)" placeholder="Opcional" />
             </div>
-
-            @if (paymentMethod() === 'cash') {
-              <div class="space-y-2">
-                <label class="text-xs font-medium uppercase tracking-wide text-slate-500">Referencia de caja</label>
-                <input hlmInput type="text" [value]="cashReference()" (input)="cashReference.set($any($event.target).value)" placeholder="Opcional" />
-              </div>
-            } @else {
-              <div class="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Stripe en caja queda registrado como medio de pago de la venta.</div>
-            }
 
             <button hlmBtn type="button" class="w-full" (click)="submitSale()" [disabled]="submitting() || (!selectedReservation() && !selectedItems().length)">
               {{ submitting() ? 'Procesando...' : 'Confirmar venta' }}
