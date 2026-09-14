@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 from decimal import Decimal
+from pathlib import Path
 
 import pandas as pd
 from sqlalchemy import inspect, select
@@ -184,6 +185,51 @@ def _enum_value(value) -> str:
     return value.value if hasattr(value, "value") else str(value)
 
 
+def _load_myntra_products() -> pd.DataFrame:
+    try:
+        directory = Path(__file__).resolve().parent
+        styles = pd.read_csv(directory / "styles.csv", on_bad_lines="skip")
+        images = pd.read_csv(directory / "images.csv")
+        images["id"] = pd.to_numeric(images["filename"].str.removesuffix(".jpg"), errors="coerce")
+    except (KeyError, OSError, pd.errors.ParserError):
+        raise RuntimeError("No se pudieron cargar los catalogos de Myntra")
+
+    category_by_type = {
+        "Tshirts": "Tops",
+        "Tops": "Tops",
+        "Shirts": "Blusas",
+        "Tunics": "Blusas",
+        "Kurtas": "Blusas",
+        "Dresses": "Vestidos",
+    }
+    color_by_base = {
+        "Negro": "Black",
+        "Blanco": "White",
+        "Azul Marino": "Navy Blue",
+        "Rojo": "Red",
+        "Verde Oliva": "Olive",
+        "Beige": "Beige",
+        "Gris": "Grey",
+        "Rosa": "Pink",
+        "Marrón": "Brown",
+    }
+    products = styles.merge(images[["id", "link"]], on="id")
+    products = products[
+        products["gender"].eq("Women")
+        & products["masterCategory"].eq("Apparel")
+        & products["articleType"].isin(category_by_type)
+        & products["baseColour"].isin(color_by_base.values())
+    ].dropna(subset=["link", "productDisplayName"])
+    products = products.assign(
+        category_name=products["articleType"].map(category_by_type),
+        color_name=products["baseColour"].map({value: key for key, value in color_by_base.items()}),
+        image_url=products["link"].str.replace("http://", "https://", regex=False),
+    ).drop_duplicates(subset=["productDisplayName"])
+    if len(products) < 60:
+        raise RuntimeError("No hay suficientes prendas de mujer con imagen en los catalogos de Myntra")
+    return products.head(60)
+
+
 def _verify_seed(
     session,
     branches: list[Branch],
@@ -258,10 +304,10 @@ def _verify_seed(
     if variants_frame.duplicated(subset=["product_id", "size_id", "color_id"]).any():
         raise RuntimeError("Existen combinaciones repetidas de variante")
     variant_counts = variants_frame.groupby("product_id").size()
-    if (variant_counts < 1).any() or (variant_counts > 3).any():
-        raise RuntimeError("Cada producto debe tener entre 1 y 3 variantes")
-    if variants_frame["image_url"].notna().any() or variants_frame["image_public_id"].notna().any():
-        raise RuntimeError("El seed no debe generar imagenes externas")
+    if (variant_counts < 1).any() or (variant_counts > 4).any():
+        raise RuntimeError("Cada producto debe tener entre 1 y 4 variantes")
+    if variants_frame["image_url"].isna().any() or variants_frame["image_public_id"].notna().any():
+        raise RuntimeError("Cada variante debe tener una imagen externa sin identificador de Cloudinary")
 
     inventory_frame = frames["inventory"]
     expected_inventory = len(variants_frame) * len(branches)
@@ -541,110 +587,63 @@ def _seed_products(
     collections: list[Collection],
     providers: list[Provider],
 ) -> list[tuple[Product, ProductVariant]]:
-    category_styles = {
-        "Blusas": ["Básica", "Satinada", "Manga Larga", "Volante", "Crop", "Lino", "Oversize", "Ajustada", "Tela Ligera"],
-        "Vestidos": ["Casual", "Midi", "Fluido", "Noche", "Lino", "Camiseros", "Manga Corta", "Escote V", "Tirantes"],
-        "Faldas": ["Mini", "Midi", "Plisada", "Recta", "A-line", "Corte Alto", "Denim", "Lino"],
-        "Pantalones": ["Recto", "Palazzo", "Wide Leg", "Slim", "Tiro Alto", "Jogger", "Cropped", "Sastre"],
-        "Chaquetas": ["Blazer", "Denim", "Biker", "Larga", "Ligera", "Acolchada", "Crop", "Estructurada"],
-        "Tops": ["Rib", "Básico", "Escote Redondo", "Asimétrico", "Fitness", "Corto", "Satinado", "Sin Mangas"],
-    }
-
+    myntra_products = _load_myntra_products()
+    categories_by_name = {category.name: category for category in categories}
+    colors_by_name = {color.name: color for color in colors}
     all_products: list[tuple[Product, ProductVariant]] = []
-    sku_counter = 1001
-    singular_names = {
-        "Blusas": "Blusa",
-        "Vestidos": "Vestido",
-        "Faldas": "Falda",
-        "Pantalones": "Pantalón",
-        "Chaquetas": "Chaqueta",
-        "Tops": "Top",
-    }
-
-    for category in categories:
-        styles = category_styles[category.name]
-        for index, style in enumerate(styles, start=1):
-            status_cycle = [
-                ProductStatusEnum.active,
-                ProductStatusEnum.pending,
-                ProductStatusEnum.active,
-                ProductStatusEnum.inactive,
-                ProductStatusEnum.active,
-            ]
-            status = status_cycle[(sku_counter + index) % len(status_cycle)]
-            provider = None
-            if (sku_counter + index) % 3 == 0:
-                provider = providers[0]
-            elif (sku_counter + index) % 4 == 0:
-                provider = providers[1]
-
-            variant_count = 1 + ((sku_counter + index) % 3)
-            season = seasons[(sku_counter + index) % len(seasons)]
-            collection = collections[(sku_counter + index) % len(collections)]
-
-            price = Decimal(str(79 + ((sku_counter + index) % 7) * 15 + (index * 2)))
-            product_name = f"{singular_names[category.name]} {style}"
-
+    products_by_number: dict[int, Product] = {}
+    for index, row in enumerate(myntra_products.itertuples(index=False), start=1):
+        color = colors_by_name[row.color_name]
+        product_number = (index + 1) // 2 if index <= 20 else index - 10
+        product = products_by_number.get(product_number)
+        if product is None:
+            category = categories_by_name[row.category_name]
+            season = seasons[0] if row.season in {"Spring", "Summer"} else seasons[1]
+            collection = collections[(product_number - 1) % len(collections)]
+            price = Decimal(str(79 + (product_number % 7) * 15))
             product, _ = _get_or_create(
                 session,
                 Product,
-                {"name": product_name},
+                {"name": row.productDisplayName},
                 {
-                    "name": product_name,
-                    "description": f"{product_name} de FashionStore, pensado para la demo del MVP.",
+                    "description": f"{row.articleType} para mujer en color {row.baseColour}.",
                     "price": price,
-                    "provider_id": provider.id if provider else None,
+                    "provider_id": providers[0].id if product_number % 3 == 0 else None,
                     "category_id": category.id,
                     "season_id": season.id,
                     "collection_id": collection.id,
                 },
             )
-
-            product.name = product_name
-            product.description = f"{product_name} de FashionStore, pensado para la demo del MVP."
+            product.description = f"{row.articleType} para mujer en color {row.baseColour}."
             product.price = price
-            product.provider_id = provider.id if provider else None
+            product.provider_id = providers[0].id if product_number % 3 == 0 else None
             product.category_id = category.id
             product.season_id = season.id
             product.collection_id = collection.id
+            products_by_number[product_number] = product
 
-            size_palette = sizes[:5]
-            combo_pool = [(size_item, color_item) for size_item in size_palette for color_item in colors]
-            combo_offset = (sku_counter + index) % len(combo_pool)
-
-            for variant_index in range(variant_count):
-                sku = f"FS-{sku_counter}-{variant_index + 1}"
-                size, color = combo_pool[(combo_offset + variant_index) % len(combo_pool)]
-                variant_status = status_cycle[(sku_counter + index + variant_index) % len(status_cycle)]
-
-                variant, _ = _get_or_create(
-                    session,
-                    ProductVariant,
-                    {"sku": sku},
-                    {
-                        "product_id": product.id,
-                        "price": price,
-                        "size_id": size.id,
-                        "color_id": color.id,
-                        "status": variant_status,
-                        "image_url": None,
-                        "image_public_id": None,
-                    },
-                )
-                variant.product_id = product.id
-                variant.price = price
-                variant.size_id = size.id
-                variant.color_id = color.id
-                variant.status = variant_status
-                variant.image_url = None
-                variant.image_public_id = None
-
-                all_products.append((product, variant))
-
-            sku_counter += 1
-
-            if sku_counter > 1050:
-                return all_products
+        variant, _ = _get_or_create(
+            session,
+            ProductVariant,
+            {"sku": f"MYN-{row.id}"},
+            {
+                "product_id": product.id,
+                "price": product.price,
+                "size_id": sizes[(index - 1) % 5].id,
+                "color_id": color.id,
+                "status": ProductStatusEnum.active,
+                "image_url": row.image_url,
+                "image_public_id": None,
+            },
+        )
+        variant.product_id = product.id
+        variant.price = product.price
+        variant.size_id = sizes[(index - 1) % 5].id
+        variant.color_id = color.id
+        variant.status = ProductStatusEnum.active
+        variant.image_url = row.image_url
+        variant.image_public_id = None
+        all_products.append((product, variant))
 
     return all_products
 
@@ -768,7 +767,7 @@ def _product_variant_snapshot(product: Product, variant: ProductVariant) -> dict
         "variant_sku": variant.sku,
         "size_id": variant.size_id,
         "color_id": variant.color_id,
-        "image_url": None,
+        "image_url": variant.image_url,
         "image_public_id": None,
     }
 
@@ -965,7 +964,7 @@ def _seed_orders(session, clients: list[User], product_variants: list[tuple[Prod
             item.variant_sku = variant.sku
             item.size_id = variant.size_id
             item.color_id = variant.color_id
-            item.image_url = None
+            item.image_url = variant.image_url
             item.image_public_id = None
 
         discount = _money(subtotal * Decimal("0.03")) if index == 2 and subtotal > 0 else Decimal("0.00")
@@ -1050,7 +1049,7 @@ def _seed_sales(
             sale_item.variant_sku = variant.sku
             sale_item.size_id = variant.size_id
             sale_item.color_id = variant.color_id
-            sale_item.image_url = None
+            sale_item.image_url = variant.image_url
             sale_item.image_public_id = None
 
             inventory.reserved_quantity = max(0, inventory.reserved_quantity - quantity)

@@ -34,6 +34,14 @@ uvicorn main:app --reload
 
 La API quedará disponible normalmente en `http://127.0.0.1:8000`.
 
+Para consumirla desde un Android Emulator, expón el servidor en todas las interfaces:
+
+```bash
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+En Flutter usa `http://10.0.2.2:8000` como `BACKEND_URL`; `10.0.2.2` apunta al host desde el emulador Android.
+
 ## Swagger / Docs
 
 Sí, hay Swagger por defecto.
