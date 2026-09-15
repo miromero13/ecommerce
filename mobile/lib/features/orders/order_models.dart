@@ -49,6 +49,25 @@ enum PaymentStatus {
   }
 }
 
+enum FulfillmentStatus {
+  pendingPickup('pending_pickup'),
+  readyForPickup('ready_for_pickup'),
+  collected('collected'),
+  expired('expired'),
+  cancelled('cancelled');
+
+  const FulfillmentStatus(this.value);
+
+  final String value;
+
+  static FulfillmentStatus fromJson(Object? value) {
+    return values.firstWhere(
+      (status) => status.value == value?.toString(),
+      orElse: () => FulfillmentStatus.pendingPickup,
+    );
+  }
+}
+
 class OrderItem {
   const OrderItem({
     required this.id,
@@ -103,6 +122,7 @@ class Order {
     required this.status,
     required this.paymentMethod,
     required this.paymentStatus,
+    this.fulfillmentStatus = FulfillmentStatus.pendingPickup,
     required this.subtotal,
     required this.discountAmount,
     required this.totalAmount,
@@ -122,6 +142,7 @@ class Order {
   final OrderStatus status;
   final PaymentMethod paymentMethod;
   final PaymentStatus paymentStatus;
+  final FulfillmentStatus fulfillmentStatus;
   final double subtotal;
   final double discountAmount;
   final double totalAmount;
@@ -147,6 +168,7 @@ class Order {
       status: OrderStatus.fromJson(json['status']),
       paymentMethod: PaymentMethod.fromJson(json['payment_method']),
       paymentStatus: PaymentStatus.fromJson(json['payment_status']),
+      fulfillmentStatus: FulfillmentStatus.fromJson(json['fulfillment_status']),
       subtotal: _requiredDouble(json, 'subtotal'),
       discountAmount: _requiredDouble(json, 'discount_amount'),
       totalAmount: _requiredDouble(json, 'total_amount'),
