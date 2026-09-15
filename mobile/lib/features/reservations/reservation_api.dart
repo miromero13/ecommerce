@@ -1,5 +1,6 @@
 import '../../core/network/api_client.dart';
 import 'reservation_models.dart';
+import '../cart/cart_models.dart';
 
 class ReservationApi {
   ReservationApi({ApiClient? client}) : _client = client ?? ApiClient();
@@ -48,6 +49,28 @@ class ReservationApi {
       parser: _parseReservation,
     );
     return _result(response.data, response.message);
+  }
+
+  Future<ReservationResult> decide({
+    required String reservationId,
+    required bool purchase,
+  }) async {
+    final response = await _client.patch<Reservation>(
+      'reservations/$reservationId/decision',
+      data: {'purchase': purchase},
+      parser: _parseReservation,
+    );
+    return _result(response.data, response.message);
+  }
+
+  Future<CartOperationResult> transferToCart({required String reservationId}) async {
+    final response = await _client.post<Cart>(
+      'reservations/$reservationId/to-cart',
+      parser: (value) => Cart.fromJson(Map<String, dynamic>.from(value as Map)),
+    );
+    final cart = response.data;
+    if (cart == null) throw const FormatException('La respuesta no contiene un carrito');
+    return CartOperationResult(cart: cart, message: response.message);
   }
 
   static Reservation _parseReservation(dynamic value) {
