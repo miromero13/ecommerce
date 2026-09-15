@@ -11,6 +11,7 @@ class ProductCard extends StatelessWidget {
     super.key,
     required this.name,
     required this.price,
+    this.originalPrice,
     this.imageUrl,
     this.variantImageUrls = const [],
     this.badge,
@@ -20,6 +21,7 @@ class ProductCard extends StatelessWidget {
 
   final String name;
   final num price;
+  final num? originalPrice;
   final String? imageUrl;
   final List<String> variantImageUrls;
   final String? badge;
@@ -72,7 +74,7 @@ class ProductCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 6),
-                      ProductPrice(price: price),
+                       ProductPrice(price: price, originalPrice: originalPrice),
                     ],
                   ),
                 ),

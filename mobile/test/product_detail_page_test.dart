@@ -13,7 +13,6 @@ void main() {
         id: 'product-id',
         name: 'Blusa Demo',
         description: 'Descripción de prueba',
-        price: 110,
         categoryId: 'category-id',
         variants: [
           ProductVariant(

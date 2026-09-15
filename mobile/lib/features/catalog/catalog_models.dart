@@ -21,7 +21,9 @@ class ProductVariant {
     required this.id,
     required this.productId,
     required this.sku,
-    required this.price,
+      required this.price,
+      this.originalPrice,
+      this.discountAmount,
     required this.status,
     this.sizeId,
     this.colorId,
@@ -33,6 +35,8 @@ class ProductVariant {
   final String productId;
   final String sku;
   final double price;
+  final double? originalPrice;
+  final double? discountAmount;
   final String? sizeId;
   final String? colorId;
   final String? imageUrl;
@@ -45,6 +49,8 @@ class ProductVariant {
       productId: _requiredString(json, 'product_id'),
       sku: _requiredString(json, 'sku'),
       price: _requiredDouble(json, 'price'),
+      originalPrice: _optionalDouble(json, 'original_price'),
+      discountAmount: _optionalDouble(json, 'discount_amount'),
       sizeId: _optionalString(json, 'size_id'),
       colorId: _optionalString(json, 'color_id'),
       imageUrl: _optionalString(json, 'image_url'),
@@ -58,11 +64,11 @@ class Product {
   const Product({
     required this.id,
     required this.name,
-    required this.price,
+      this.discountType,
+      this.discountValue,
     required this.categoryId,
     this.description,
     this.providerId,
-    this.seasonId,
     this.collectionId,
     this.sku,
     this.imageUrl,
@@ -76,10 +82,10 @@ class Product {
   final String id;
   final String name;
   final String? description;
-  final double price;
+  final String? discountType;
+  final double? discountValue;
   final String? providerId;
   final String categoryId;
-  final String? seasonId;
   final String? collectionId;
   final String? sku;
   final String? imageUrl;
@@ -95,10 +101,10 @@ class Product {
       id: _requiredString(json, 'id'),
       name: _requiredString(json, 'name'),
       description: _optionalString(json, 'description'),
-      price: _requiredDouble(json, 'price'),
+      discountType: _optionalString(json, 'discount_type'),
+      discountValue: _optionalDouble(json, 'discount_value'),
       providerId: _optionalString(json, 'provider_id'),
       categoryId: _requiredString(json, 'category_id'),
-      seasonId: _optionalString(json, 'season_id'),
       collectionId: _optionalString(json, 'collection_id'),
       sku: _optionalString(json, 'sku'),
       imageUrl: _optionalString(json, 'image_url'),
@@ -252,6 +258,13 @@ double _requiredDouble(Map<String, dynamic> json, String key) {
     throw FormatException('$key inválido');
   }
   return parsed;
+}
+
+double? _optionalDouble(Map<String, dynamic> json, String key) {
+  final value = json[key];
+  if (value == null) return null;
+  if (value is num) return value.toDouble();
+  return double.tryParse(value.toString());
 }
 
 int? _optionalInt(Map<String, dynamic> json, String key) {

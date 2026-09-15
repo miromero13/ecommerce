@@ -257,6 +257,8 @@ class _CatalogPageState extends State<CatalogPage> {
       itemCount: _controller.products.length,
       itemBuilder: (context, index) {
         final product = _controller.products[index];
+        final variants = product.variants ?? const <ProductVariant>[];
+        final primaryVariant = variants.isEmpty ? null : variants.first;
         final imageUrls = (product.variants ?? const <ProductVariant>[])
             .where(
               (variant) =>
@@ -273,7 +275,8 @@ class _CatalogPageState extends State<CatalogPage> {
 
         return ProductCard(
           name: product.name,
-          price: product.price,
+           price: primaryVariant?.price ?? 0,
+           originalPrice: primaryVariant?.originalPrice,
           imageUrl: imageUrls.isEmpty ? product.imageUrl : null,
           variantImageUrls: imageUrls,
           badge: badge,

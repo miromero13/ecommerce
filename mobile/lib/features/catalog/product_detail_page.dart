@@ -79,7 +79,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     final variant = _selectedVariant;
     final imageUrl =
         variant?.imageUrl ?? (_variants.isEmpty ? product.imageUrl : null);
-    final price = variant?.price ?? product.price;
+    final price = variant?.price ?? 0;
     final status = variant?.status ?? product.status;
     final quantity = variant?.branchQuantity ?? product.branchQuantity;
     final branch = _branchName(widget.arguments!);
@@ -106,7 +106,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             subtitle: product.sku ?? 'Producto FashionStore',
           ),
           const SizedBox(height: 12),
-          ProductPrice(price: price),
+           ProductPrice(price: price, originalPrice: variant?.originalPrice),
           if (product.description != null &&
               product.description!.isNotEmpty) ...[
             const SizedBox(height: 16),
