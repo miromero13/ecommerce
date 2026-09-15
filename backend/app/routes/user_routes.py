@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, status, Query, HTTPException
 from sqlalchemy.orm import Session
 from uuid import UUID
 
-from app.schemas.user_schema import UserCreate, UserRead, UsersPaginatedResponse, UserUpdateRol, UserUpdateBranch, UserUpdate, UserActiveUpdate, UserProfileUpdate
-from app.services.user_service import create_user, get_user, get_users, get_users_count, update_user_rol, update_user_branch, update_user_full, delete_user, set_user_active, update_user_profile
+from app.schemas.user_schema import AdminUserCreate, UserCreate, UserRead, UsersPaginatedResponse, UserUpdateRol, UserUpdateBranch, UserUpdate, UserActiveUpdate, UserProfileUpdate
+from app.services.user_service import create_admin_user, create_user, get_user, get_users, get_users_count, update_user_rol, update_user_branch, update_user_full, delete_user, set_user_active, update_user_profile
 from app.core.database import get_db
 from app.utils.response import response
 from app.auth.dependencies import get_current_user, get_current_branch_id, require_roles
@@ -25,6 +25,24 @@ async def create_user_route(user: UserCreate, db: Session = Depends(get_db)):
         status_code=201,
         message="Usuario creado exitosamente",
         data=user_data
+    )
+
+
+@router.post("/admin", status_code=status.HTTP_201_CREATED)
+async def create_admin_user_route(
+    user: AdminUserCreate,
+    db: Session = Depends(get_db),
+    _: dict = Depends(require_roles(RolEnum.administrador)),
+):
+    try:
+        db_user = create_admin_user(db, user)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    return response(
+        status_code=status.HTTP_201_CREATED,
+        message="Usuario creado exitosamente",
+        data=UserRead.model_validate(db_user).model_dump(),
     )
 
 # ✅ GET /users/me → DEBE IR ANTES que /{user_id}

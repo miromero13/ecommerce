@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from typing import List
 from uuid import UUID
 from app.schemas.enums import RolEnum, GenderEnum
@@ -10,6 +10,16 @@ class UserCreate(BaseModel):
     password: str
     gender: GenderEnum
     branch_id: UUID | None = None
+
+
+class AdminUserCreate(BaseModel):
+    name: str
+    email: EmailStr
+    password: str = Field(min_length=8)
+    gender: GenderEnum
+    rol: RolEnum
+    branch_id: UUID | None = None
+    is_active: bool = True
 
 #  Para login
 class UserLogin(BaseModel):

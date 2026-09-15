@@ -4,7 +4,8 @@ from sqlalchemy import select, func, or_
 from app.models.user import User
 from app.models.provider import Provider
 from app.models.product import Product
-from app.schemas.user_schema import UserCreate, UserUpdateRol, UserUpdateBranch, UserProfileUpdate
+from app.models.branch import Branch
+from app.schemas.user_schema import AdminUserCreate, UserCreate, UserUpdateRol, UserUpdateBranch, UserProfileUpdate
 from app.schemas.enums import RolEnum
 from uuid import UUID  
 from passlib.context import CryptContext
@@ -46,6 +47,40 @@ def create_user(db: Session, user: UserCreate) -> User:
         is_active=True,
     )
     
+    db.add(db_user)
+    try:
+        db.commit()
+        db.refresh(db_user)
+        return db_user
+    except IntegrityError:
+        db.rollback()
+        raise ValueError("El correo ya está registrado")
+
+
+def create_admin_user(db: Session, user: AdminUserCreate) -> User:
+    scoped_roles = {RolEnum.encargado, RolEnum.cajero, RolEnum.delivery}
+    if user.rol == RolEnum.administrador:
+        branch_id = None
+    elif user.rol in scoped_roles:
+        if user.branch_id is None:
+            raise ValueError("Este rol debe tener una sucursal asignada")
+        branch = db.query(Branch).filter(Branch.id == user.branch_id, Branch.is_active.is_(True)).first()
+        if branch is None:
+            raise ValueError("La sucursal no existe o está inactiva")
+        branch_id = user.branch_id
+    else:
+        raise ValueError("Este formulario solo permite crear usuarios internos")
+
+    ensure_email_available(db, user.email)
+    db_user = User(
+        name=user.name,
+        email=normalize_email(user.email),
+        gender=user.gender,
+        rol=user.rol,
+        hashed_password=pwd_context.hash(user.password),
+        branch_id=branch_id,
+        is_active=user.is_active,
+    )
     db.add(db_user)
     try:
         db.commit()
