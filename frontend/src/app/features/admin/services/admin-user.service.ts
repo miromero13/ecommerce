@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 
 import { ApiResponse } from '../../../core/models/api.model';
-import { AdminUsuario, ListResponse, UpdateUsuarioActiveRequest, UpdateUsuarioRequest } from '../models/admin-user.model';
+import { AdminUsuario, CreateUsuarioRequest, ListResponse, UpdateUsuarioActiveRequest, UpdateUsuarioRequest } from '../models/admin-user.model';
 import { ApiService } from '../../../core/services/api.service';
 
 @Injectable({ providedIn: 'root' })
@@ -10,6 +10,10 @@ export class AdminUserService {
 
   listUsuarios(skip = 0, limit = 100) {
     return this.api.get<ListResponse<AdminUsuario>>(`/users/?skip=${skip}&limit=${limit}`);
+  }
+
+  createUsuario(payload: CreateUsuarioRequest) {
+    return this.api.post<ApiResponse<AdminUsuario>>('/users/admin', payload);
   }
 
   updateUsuarioRol(userId: string, rol: AdminUsuario['rol']) {

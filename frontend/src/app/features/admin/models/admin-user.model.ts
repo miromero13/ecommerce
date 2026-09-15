@@ -19,6 +19,16 @@ export interface UpdateUsuarioRequest {
   is_active: boolean;
 }
 
+export interface CreateUsuarioRequest {
+  name: string;
+  email: string;
+  password: string;
+  gender: GeneroUsuario;
+  rol: Exclude<RolUsuario, 'cliente' | 'proveedor'>;
+  branch_id?: string | null;
+  is_active: boolean;
+}
+
 export interface UpdateUsuarioActiveRequest {
   is_active: boolean;
 }
