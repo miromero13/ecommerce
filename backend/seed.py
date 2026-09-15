@@ -598,7 +598,6 @@ def _seed_products(
         product = products_by_number.get(product_number)
         if product is None:
             category = categories_by_name[row.category_name]
-            season = seasons[0] if row.season in {"Spring", "Summer"} else seasons[1]
             collection = collections[(product_number - 1) % len(collections)]
             price = Decimal(str(79 + (product_number % 7) * 15))
             product, _ = _get_or_create(
@@ -607,18 +606,14 @@ def _seed_products(
                 {"name": row.productDisplayName},
                 {
                     "description": f"{row.articleType} para mujer en color {row.baseColour}.",
-                    "price": price,
                     "provider_id": providers[0].id if product_number % 3 == 0 else None,
                     "category_id": category.id,
-                    "season_id": season.id,
                     "collection_id": collection.id,
                 },
             )
             product.description = f"{row.articleType} para mujer en color {row.baseColour}."
-            product.price = price
             product.provider_id = providers[0].id if product_number % 3 == 0 else None
             product.category_id = category.id
-            product.season_id = season.id
             product.collection_id = collection.id
             products_by_number[product_number] = product
 
@@ -628,7 +623,7 @@ def _seed_products(
             {"sku": f"MYN-{row.id}"},
             {
                 "product_id": product.id,
-                "price": product.price,
+                "price": price,
                 "size_id": sizes[(index - 1) % 5].id,
                 "color_id": color.id,
                 "status": ProductStatusEnum.active,
@@ -637,7 +632,7 @@ def _seed_products(
             },
         )
         variant.product_id = product.id
-        variant.price = product.price
+        variant.price = price
         variant.size_id = sizes[(index - 1) % 5].id
         variant.color_id = color.id
         variant.status = ProductStatusEnum.active
