@@ -62,6 +62,11 @@ export const routes: Routes = [
           import('./features/cliente/pages/cart-page.component').then((m) => m.CartPageComponent),
       },
       {
+        path: 'cliente/orders',
+        canActivate: [roleGuard(['cliente'])],
+        loadComponent: () => import('./features/cliente/pages/orders-page.component').then((m) => m.OrdersPageComponent),
+      },
+      {
         path: 'proveedor',
         loadComponent: () =>
           import('./features/proveedor/pages/proveedor-home-page.component').then(
@@ -79,6 +84,22 @@ export const routes: Routes = [
         path: 'encargado/reservations',
         loadComponent: () =>
           import('./features/encargado/pages/reservations-page.component').then((m) => m.ReservationsPageComponent),
+      },
+      {
+        path: 'encargado/inventory',
+        canActivate: [roleGuard(['encargado'])],
+        loadComponent: () =>
+          import('./features/admin/pages/admin-inventory-page.component').then((m) => m.AdminInventoryPageComponent),
+      },
+      {
+        path: 'encargado/orders',
+        canActivate: [roleGuard(['encargado'])],
+        loadComponent: () => import('./features/encargado/pages/orders-page.component').then((m) => m.EncargadoOrdersPageComponent),
+      },
+      {
+        path: 'encargado/promotions',
+        canActivate: [roleGuard(['encargado'])],
+        loadComponent: () => import('./features/shared/pages/promotions-page.component').then((m) => m.PromotionsPageComponent),
       },
       {
         path: 'cajero',
@@ -114,6 +135,10 @@ export const routes: Routes = [
               import('./features/admin/pages/admin-catalog-page.component').then(
                 (m) => m.AdminCatalogPageComponent,
               ),
+          },
+          {
+            path: 'promotions',
+            loadComponent: () => import('./features/shared/pages/promotions-page.component').then((m) => m.PromotionsPageComponent),
           },
           {
             path: 'inventory',
