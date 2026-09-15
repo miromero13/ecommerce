@@ -66,7 +66,7 @@ export class ReservationsPageComponent {
 
   protected branchName(branchId: string | null | undefined): string {
     if (!branchId) return 'Sin sucursal';
-    return this.branches().find((branch) => branch.id === branchId)?.name ?? branchId;
+    return this.branches().find((branch) => branch.id === branchId)?.name ?? 'Sucursal';
   }
 
   protected reservationStatusLabel(status: Reservation['status']): string {
@@ -74,6 +74,9 @@ export class ReservationsPageComponent {
       case 'pending': return 'Pendiente';
       case 'confirmed': return 'Confirmada';
       case 'attended': return 'Atendida';
+      case 'purchase_pending': return 'Compra pendiente';
+      case 'sold': return 'Vendida';
+      case 'not_sold': return 'No comprada';
       case 'cancelled': return 'Cancelada';
       case 'expired': return 'Vencida';
       default: return status;
@@ -85,6 +88,9 @@ export class ReservationsPageComponent {
       case 'pending': return 'bg-amber-100 text-amber-700';
       case 'confirmed': return 'bg-sky-100 text-sky-700';
       case 'attended': return 'bg-emerald-100 text-emerald-700';
+      case 'purchase_pending': return 'bg-violet-100 text-violet-700';
+      case 'sold': return 'bg-emerald-100 text-emerald-700';
+      case 'not_sold': return 'bg-slate-100 text-slate-700';
       case 'cancelled': return 'bg-rose-100 text-rose-700';
       case 'expired': return 'bg-slate-100 text-slate-700';
       default: return 'bg-slate-100 text-slate-700';
@@ -97,6 +103,10 @@ export class ReservationsPageComponent {
 
   protected selectReservation(reservation: Reservation): void {
     this.selectedReservationId.set(reservation.id);
+  }
+
+  protected closeReservationModal(): void {
+    this.selectedReservationId.set(null);
   }
 
   protected async confirmArrival(reservation: Reservation): Promise<void> {

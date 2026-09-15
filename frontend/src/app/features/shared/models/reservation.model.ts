@@ -1,6 +1,6 @@
 import { ApiResponse } from '../../../core/models/api.model';
 
-export type ReservationStatus = 'pending' | 'confirmed' | 'attended' | 'cancelled' | 'expired';
+export type ReservationStatus = 'pending' | 'confirmed' | 'attended' | 'purchase_pending' | 'sold' | 'not_sold' | 'cancelled' | 'expired';
 
 export interface ReservationItem {
   id: string;
@@ -25,6 +25,8 @@ export interface Reservation {
   branch_id: string;
   branch_name: string;
   user_id: string;
+  user_name: string;
+  cart_id?: string | null;
   visit_date: string;
   expires_at: string;
   status: ReservationStatus;

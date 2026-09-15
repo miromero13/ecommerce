@@ -6,6 +6,8 @@ export interface CartItem {
   variant_id: string;
   quantity: number;
   unit_price: string;
+  original_unit_price?: string | null;
+  discount_amount?: string;
   line_total: string;
   product_id: string;
   product_name: string;
@@ -24,6 +26,8 @@ export interface Cart {
   status: 'active' | 'checked_out' | 'cancelled';
   subtotal: string;
   discount_amount: string;
+  promotion_code_id?: string | null;
+  promotion_code?: string | null;
   total_amount: string;
   item_count: number;
   created_at: string;
