@@ -25,6 +25,8 @@ import {
   ProductStatus,
 } from '../../shared/models/catalog.model';
 import { CatalogApiService } from '../../shared/services/catalog-api.service';
+import { AdminProvider } from '../models/admin-provider.model';
+import { AdminProviderService } from '../services/admin-provider.service';
 
 type CatalogTab = 'categories' | 'sizes' | 'colors' | 'seasons' | 'collections' | 'products';
 
@@ -73,6 +75,7 @@ const CATALOG_CREATE_LABELS: Record<CatalogTab, string> = {
 export class AdminCatalogPageComponent {
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(CatalogApiService);
+  private readonly providerApi = inject(AdminProviderService);
   private readonly initialDataLoad = this.loadData();
 
   protected readonly categories = signal<CatalogNameItem[]>([]);
@@ -81,6 +84,7 @@ export class AdminCatalogPageComponent {
   protected readonly seasons = signal<CatalogNameItem[]>([]);
   protected readonly collections = signal<CatalogCollectionItem[]>([]);
   protected readonly products = signal<CatalogProduct[]>([]);
+  protected readonly providers = signal<AdminProvider[]>([]);
   protected readonly loading = signal(false);
   protected readonly activeTab = signal<CatalogTab>('products');
   protected readonly modalOpen = signal(false);
@@ -155,6 +159,8 @@ export class AdminCatalogPageComponent {
     collection_id: [''],
     discount_type: [''],
     discount_value: [''],
+    provider_id: [''],
+    minimum_stock: [0, [Validators.min(0)]],
     variants: this.fb.array([this.createVariantGroup()]),
   });
 
@@ -174,7 +180,7 @@ export class AdminCatalogPageComponent {
     this.editingProductId.set(null);
     if (tab === 'products') {
       this.resetVariantImageStates();
-      this.productForm.reset({ name: '', description: '', category_id: '', collection_id: '', discount_type: '', discount_value: '' });
+      this.productForm.reset({ name: '', description: '', category_id: '', collection_id: '', discount_type: '', discount_value: '', provider_id: '', minimum_stock: 0 });
       this.variantsArray().clear();
       this.variantsArray().push(this.createVariantGroup());
       this.editingVariantIds = [null];
@@ -222,6 +228,8 @@ export class AdminCatalogPageComponent {
       collection_id: product.collection_id ?? '',
       discount_type: product.discount_type ?? '',
       discount_value: product.discount_value ?? '',
+      provider_id: product.provider_id ?? '',
+      minimum_stock: product.minimum_stock ?? 0,
     });
     this.variantsArray().clear();
 
@@ -353,7 +361,10 @@ export class AdminCatalogPageComponent {
         collection_id: payload.collection_id || null,
         discount_type: discountType,
         discount_value: payload.discount_type ? payload.discount_value : null,
+        provider_id: payload.provider_id || null,
+        minimum_stock: payload.minimum_stock,
         variants: variants.map((variant, index) => ({
+          id: this.editingVariantIds[index] ?? undefined,
           sku: variant.sku,
           price: variant.price,
           size_id: variant.size_id || null,
@@ -378,7 +389,7 @@ export class AdminCatalogPageComponent {
         savedProduct = response.data ?? null;
       }
       await this.syncVariantImages(savedProduct);
-      this.productForm.reset({ name: '', description: '', category_id: '', collection_id: '', discount_type: '', discount_value: '' });
+      this.productForm.reset({ name: '', description: '', category_id: '', collection_id: '', discount_type: '', discount_value: '', provider_id: '', minimum_stock: 0 });
       this.variantsArray().clear();
       this.variantsArray().push(this.createVariantGroup());
       this.editingVariantIds = [null];
@@ -664,6 +675,12 @@ export class AdminCatalogPageComponent {
     return this.lookupName(this.collections(), collectionId, 'Sin colección');
   }
 
+  protected readonly providerLabel = (providerId: string | null | undefined): string => {
+    if (!providerId) return 'Sin proveedor';
+    const provider = this.providers().find((item) => item.id === providerId);
+    return provider ? `${provider.business_name} · ${provider.contact_name} · ${provider.email}${provider.phone ? ` · ${provider.phone}` : ''}` : providerId;
+  };
+
   private createEmptyVariantImageState(): VariantImageState {
     return {
       currentUrl: null,
@@ -729,14 +746,15 @@ export class AdminCatalogPageComponent {
         continue;
       }
 
-      const variantId = savedVariants[index]?.id;
+      const editingVariantId = this.editingVariantIds[index];
+      const variantId = editingVariantId ?? savedVariants.find((variant) => variant.sku === this.variantForms().at(index).getRawValue().sku)?.id;
       if (!variantId) {
         continue;
       }
 
       const response = await firstValueFrom(this.api.updateVariantImage(variantId, state.selectedFile));
       const updatedProduct = response.data;
-      const updatedVariant = updatedProduct?.variants?.[index];
+      const updatedVariant = updatedProduct?.variants?.find((variant) => variant.id === variantId);
       this.variantImageStates[index] = {
         currentUrl: updatedVariant?.image_url ?? state.previewUrl,
         currentPublicId: updatedVariant?.image_public_id ?? state.currentPublicId,
@@ -779,13 +797,14 @@ export class AdminCatalogPageComponent {
 
   private async loadData(): Promise<void> {
     try {
-      const [categories, sizes, colors, seasons, collections, products] = await Promise.all([
+      const [categories, sizes, colors, seasons, collections, products, providers] = await Promise.all([
         firstValueFrom(this.api.listCategories()),
         firstValueFrom(this.api.listSizes()),
         firstValueFrom(this.api.listColors()),
         firstValueFrom(this.api.listSeasons()),
         firstValueFrom(this.api.listCollections()),
         firstValueFrom(this.api.listProducts()),
+        firstValueFrom(this.providerApi.listProviders()),
       ]);
 
       this.categories.set(categories.data ?? []);
@@ -794,6 +813,7 @@ export class AdminCatalogPageComponent {
       this.seasons.set(seasons.data ?? []);
       this.collections.set(collections.data ?? []);
       this.products.set(products.data ?? []);
+      this.providers.set(providers.data ?? []);
     } catch (error) {
       toast.error(getErrorMessage(error, 'No se pudo cargar el catálogo.'));
     }

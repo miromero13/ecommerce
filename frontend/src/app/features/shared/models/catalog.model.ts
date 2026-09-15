@@ -45,6 +45,7 @@ export interface CatalogProduct {
   discount_type?: DiscountType | null;
   discount_value?: string | null;
   provider_id?: string | null;
+  minimum_stock: number;
   category_id: string;
   collection_id: string | null;
   sku?: string | null;
@@ -72,6 +73,7 @@ export interface CreateCollectionRequest {
 }
 
 export interface CreateProductVariantRequest {
+  id?: string;
   sku: string;
   price: string;
   size_id?: string | null;
@@ -86,6 +88,7 @@ export interface CreateProductRequest {
   description?: string | null;
   category_id: string;
   provider_id?: string | null;
+  minimum_stock?: number;
   collection_id?: string | null;
   discount_type?: DiscountType | null;
   discount_value?: string | null;
@@ -112,6 +115,7 @@ export interface UpdateProductRequest {
   description?: string | null;
   category_id: string;
   provider_id?: string | null;
+  minimum_stock?: number;
   collection_id?: string | null;
   discount_type?: DiscountType | null;
   discount_value?: string | null;

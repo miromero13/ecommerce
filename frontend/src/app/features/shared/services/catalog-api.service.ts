@@ -119,6 +119,14 @@ export class CatalogApiService {
     return this.api.get<ListResponse<CatalogProduct>>('/catalog/products/pending');
   }
 
+  listMyProviderProducts() {
+    return this.api.get<ListResponse<CatalogProduct>>('/providers/me/products');
+  }
+
+  listProviderProducts(providerId: string) {
+    return this.api.get<ListResponse<CatalogProduct>>(`/providers/${providerId}/products`);
+  }
+
   createProduct(payload: CreateProductRequest) {
     return this.api.post<ApiResponse<CatalogProduct>>('/catalog/products', payload);
   }

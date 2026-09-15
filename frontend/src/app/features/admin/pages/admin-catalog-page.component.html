@@ -193,6 +193,8 @@
             <th class="px-4 py-3">Nombre</th>
             <th class="px-4 py-3">Categoría</th>
             <th class="px-4 py-3">Descripción</th>
+            <th class="px-4 py-3">Proveedor</th>
+            <th class="px-4 py-3">Stock mínimo</th>
             <th class="px-4 py-3">Estado</th>
             <th class="px-4 py-3 text-right">Acciones</th>
           </tr>
@@ -203,6 +205,8 @@
               <td class="px-4 py-3 font-medium">{{ product.name }}</td>
               <td class="px-4 py-3 text-sm">{{ categoryName(product.category_id) }}</td>
               <td class="px-4 py-3 text-sm">{{ product.description }}</td>
+              <td class="px-4 py-3 text-sm">{{ providerLabel(product.provider_id) }}</td>
+              <td class="px-4 py-3 text-sm">{{ product.minimum_stock }}</td>
               <td class="px-4 py-3 text-sm">{{ statusLabel(product.status) }}</td>
               <td class="px-4 py-3 text-right">
                 <app-admin-action-menu
@@ -216,7 +220,7 @@
             </tr>
           } @empty {
             <tr>
-              <td class="px-4 py-8 text-center text-sm text-slate-500" colspan="5">No hay productos registrados.</td>
+              <td class="px-4 py-8 text-center text-sm text-slate-500" colspan="7">No hay productos registrados.</td>
             </tr>
           }
         </tbody>
@@ -370,6 +374,24 @@
                       }
                     </hlm-select-content>
                   </div>
+                </div>
+                <div hlmField>
+                  <label hlmFieldLabel for="product-provider">Proveedor</label>
+                  <div hlmSelect formControlName="provider_id" [itemToString]="providerLabel">
+                    <hlm-select-trigger buttonId="product-provider">
+                      <span hlmSelectValue placeholder="Sin proveedor"></span>
+                    </hlm-select-trigger>
+                    <hlm-select-content>
+                      <hlm-select-item value="">Sin proveedor</hlm-select-item>
+                      @for (provider of providers(); track provider.id) {
+                        <hlm-select-item [value]="provider.id">{{ provider.business_name }} · {{ provider.contact_name }} · {{ provider.email }}{{ provider.phone ? ' · ' + provider.phone : '' }}</hlm-select-item>
+                      }
+                    </hlm-select-content>
+                  </div>
+                </div>
+                <div hlmField>
+                  <label hlmFieldLabel for="product-minimum-stock">Stock mínimo</label>
+                  <input id="product-minimum-stock" hlmInput type="number" min="0" class="w-full" formControlName="minimum_stock" />
                 </div>
                 <div hlmField>
                   <label hlmFieldLabel for="product-collection">Colección</label>

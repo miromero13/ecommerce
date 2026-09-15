@@ -74,6 +74,11 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'proveedor/products',
+        canActivate: [roleGuard(['proveedor'])],
+        loadComponent: () => import('./features/proveedor/pages/provider-products-page.component').then((m) => m.ProviderProductsPageComponent),
+      },
+      {
         path: 'encargado',
         loadComponent: () =>
           import('./features/encargado/pages/encargado-home-page.component').then(
@@ -167,6 +172,10 @@ export const routes: Routes = [
               import('./features/admin/pages/admin-provider-page.component').then(
                 (m) => m.AdminProviderPageComponent,
               ),
+          },
+          {
+            path: 'provider/:providerId/products',
+            loadComponent: () => import('./features/proveedor/pages/provider-products-page.component').then((m) => m.ProviderProductsPageComponent),
           },
           {
             path: 'reports',

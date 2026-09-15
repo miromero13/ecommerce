@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 
@@ -28,6 +29,7 @@ export class AdminProviderPageComponent {
   private readonly fb = inject(FormBuilder);
   private readonly providerApi = inject(AdminProviderService);
   private readonly branchApi = inject(AdminBranchService);
+  private readonly router = inject(Router);
 
   protected readonly providers = signal<AdminProvider[]>([]);
   protected readonly branches = signal<AdminBranch[]>([]);
@@ -221,6 +223,11 @@ export class AdminProviderPageComponent {
   protected async toggleStatus(provider: AdminProvider): Promise<void> {
     this.closeMenu();
     await this.updateStatus(provider, provider.status === 'active' ? 'suspended' : 'active');
+  }
+
+  protected viewProducts(provider: AdminProvider): void {
+    this.closeMenu();
+    void this.router.navigate(['/app/admin/provider', provider.id, 'products']);
   }
 
   protected branchName(branchId: string | null): string {

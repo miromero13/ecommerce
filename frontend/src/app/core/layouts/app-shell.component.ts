@@ -179,6 +179,7 @@ export class AppShellComponent {
             title: 'Operación',
             items: [
               this.homeItem(),
+              { label: 'Productos', route: '/app/proveedor/products', icon: 'lucidePackageSearch' },
               { label: 'Reservas', route: '/app/encargado/reservations', icon: 'lucideCalendarDays' },
               { label: 'Inventario', route: '/app/encargado/inventory', icon: 'lucidePackageSearch' },
               { label: 'Pedidos', route: '/app/encargado/orders', icon: 'lucideClipboardList' },
