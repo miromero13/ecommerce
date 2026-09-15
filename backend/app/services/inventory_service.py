@@ -10,6 +10,7 @@ from app.models.product import Product
 from app.models.product_variant import ProductVariant
 from app.models.size import Size
 from app.models.color import Color
+from app.schemas.catalog_enums import ProductStatusEnum
 from app.schemas.inventory_schema import (
     InventoryMovementCreate,
     InventoryMovementRead,
@@ -26,6 +27,7 @@ def _get_inventory(db: Session, variant_id, branch_id) -> Inventory | None:
     return (
         db.query(Inventory)
         .filter(Inventory.variant_id == variant_id, Inventory.branch_id == branch_id)
+        .with_for_update()
         .first()
     )
 
@@ -39,6 +41,13 @@ def _get_or_create_inventory(db: Session, variant_id, branch_id) -> Inventory:
     db.add(inventory)
     db.flush()
     return inventory
+
+
+def _require_active_variant(db: Session, variant_id) -> ProductVariant:
+    variant = db.query(ProductVariant).filter(ProductVariant.id == variant_id).first()
+    if not variant or variant.status != ProductStatusEnum.active:
+        raise ValueError("La variante no existe o no está activa")
+    return variant
 
 
 def _movement_to_read(movement: InventoryMovement) -> InventoryMovementRead:
@@ -196,79 +205,94 @@ def list_movements(db: Session, variant_id=None, branch_id=None, movement_type: 
 
 
 def register_income(db: Session, payload: InventoryMovementCreate, created_by=None):
-    inventory = _get_or_create_inventory(db, payload.variant_id, payload.branch_id)
-    inventory.quantity += payload.quantity
-    movement = InventoryMovement(
-        variant_id=payload.variant_id,
-        branch_id=payload.branch_id,
-        movement_type=InventoryMovementTypeEnum.income,
-        quantity=payload.quantity,
-        note=payload.note,
-        created_by=created_by,
-    )
-    db.add(movement)
-    db.commit()
-    db.refresh(inventory)
-    db.refresh(movement)
-    return movement, inventory
+    try:
+        _require_active_variant(db, payload.variant_id)
+        inventory = _get_or_create_inventory(db, payload.variant_id, payload.branch_id)
+        inventory.quantity += payload.quantity
+        movement = InventoryMovement(
+            variant_id=payload.variant_id,
+            branch_id=payload.branch_id,
+            movement_type=InventoryMovementTypeEnum.income,
+            quantity=payload.quantity,
+            note=payload.note,
+            created_by=created_by,
+        )
+        db.add(movement)
+        db.commit()
+        db.refresh(inventory)
+        db.refresh(movement)
+        return movement, inventory
+    except Exception:
+        db.rollback()
+        raise
 
 
 def register_outcome(db: Session, payload: InventoryMovementCreate, created_by=None):
-    inventory = _get_or_create_inventory(db, payload.variant_id, payload.branch_id)
-    if _inventory_available(inventory) < payload.quantity:
-        raise ValueError("No hay stock disponible suficiente")
+    try:
+        _require_active_variant(db, payload.variant_id)
+        inventory = _get_or_create_inventory(db, payload.variant_id, payload.branch_id)
+        if _inventory_available(inventory) < payload.quantity:
+            raise ValueError("No hay stock disponible suficiente")
 
-    inventory.quantity -= payload.quantity
-    movement = InventoryMovement(
-        variant_id=payload.variant_id,
-        branch_id=payload.branch_id,
-        movement_type=InventoryMovementTypeEnum.outcome,
-        quantity=payload.quantity,
-        note=payload.note,
-        created_by=created_by,
-    )
-    db.add(movement)
-    db.commit()
-    db.refresh(inventory)
-    db.refresh(movement)
-    return movement, inventory
+        inventory.quantity -= payload.quantity
+        movement = InventoryMovement(
+            variant_id=payload.variant_id,
+            branch_id=payload.branch_id,
+            movement_type=InventoryMovementTypeEnum.outcome,
+            quantity=payload.quantity,
+            note=payload.note,
+            created_by=created_by,
+        )
+        db.add(movement)
+        db.commit()
+        db.refresh(inventory)
+        db.refresh(movement)
+        return movement, inventory
+    except Exception:
+        db.rollback()
+        raise
 
 
 def register_transfer(db: Session, payload: InventoryTransferCreate, created_by=None):
-    if payload.from_branch_id == payload.to_branch_id:
-        raise ValueError("La sucursal origen y destino no pueden ser iguales")
+    try:
+        if payload.from_branch_id == payload.to_branch_id:
+            raise ValueError("La sucursal origen y destino no pueden ser iguales")
 
-    source_inventory = _get_or_create_inventory(db, payload.variant_id, payload.from_branch_id)
-    if _inventory_available(source_inventory) < payload.quantity:
-        raise ValueError("No hay stock disponible suficiente en la sucursal origen")
+        _require_active_variant(db, payload.variant_id)
+        source_inventory = _get_or_create_inventory(db, payload.variant_id, payload.from_branch_id)
+        if _inventory_available(source_inventory) < payload.quantity:
+            raise ValueError("No hay stock disponible suficiente en la sucursal origen")
 
-    destination_inventory = _get_or_create_inventory(db, payload.variant_id, payload.to_branch_id)
-    source_inventory.quantity -= payload.quantity
-    destination_inventory.quantity += payload.quantity
+        destination_inventory = _get_or_create_inventory(db, payload.variant_id, payload.to_branch_id)
+        source_inventory.quantity -= payload.quantity
+        destination_inventory.quantity += payload.quantity
 
-    out_movement = InventoryMovement(
-        variant_id=payload.variant_id,
-        branch_id=payload.from_branch_id,
-        movement_type=InventoryMovementTypeEnum.transfer_out,
-        quantity=payload.quantity,
-        reference_branch_id=payload.to_branch_id,
-        note=payload.note,
-        created_by=created_by,
-    )
-    in_movement = InventoryMovement(
-        variant_id=payload.variant_id,
-        branch_id=payload.to_branch_id,
-        movement_type=InventoryMovementTypeEnum.transfer_in,
-        quantity=payload.quantity,
-        reference_branch_id=payload.from_branch_id,
-        note=payload.note,
-        created_by=created_by,
-    )
-    db.add(out_movement)
-    db.add(in_movement)
-    db.commit()
-    db.refresh(source_inventory)
-    db.refresh(destination_inventory)
-    db.refresh(out_movement)
-    db.refresh(in_movement)
-    return [out_movement, in_movement], [source_inventory, destination_inventory]
+        out_movement = InventoryMovement(
+            variant_id=payload.variant_id,
+            branch_id=payload.from_branch_id,
+            movement_type=InventoryMovementTypeEnum.transfer_out,
+            quantity=payload.quantity,
+            reference_branch_id=payload.to_branch_id,
+            note=payload.note,
+            created_by=created_by,
+        )
+        in_movement = InventoryMovement(
+            variant_id=payload.variant_id,
+            branch_id=payload.to_branch_id,
+            movement_type=InventoryMovementTypeEnum.transfer_in,
+            quantity=payload.quantity,
+            reference_branch_id=payload.from_branch_id,
+            note=payload.note,
+            created_by=created_by,
+        )
+        db.add(out_movement)
+        db.add(in_movement)
+        db.commit()
+        db.refresh(source_inventory)
+        db.refresh(destination_inventory)
+        db.refresh(out_movement)
+        db.refresh(in_movement)
+        return [out_movement, in_movement], [source_inventory, destination_inventory]
+    except Exception:
+        db.rollback()
+        raise

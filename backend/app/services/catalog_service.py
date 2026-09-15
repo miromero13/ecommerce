@@ -1,6 +1,7 @@
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from sqlalchemy.orm import selectinload
+from decimal import Decimal
 
 from app.models.category import Category
 from app.models.color import Color
@@ -20,6 +21,8 @@ from app.schemas.catalog_schema import (
     ProductVariantRead,
 )
 from app.schemas.catalog_enums import ProductStatusEnum
+from app.schemas.catalog_schema import DiscountTypeEnum
+from app.services.pricing_service import discounted_price, discount_amount
 
 
 def create_name_item(db: Session, model, payload: NameCreate):
@@ -47,36 +50,18 @@ def create_collection(db: Session, payload: CollectionCreate):
 
 
 def _normalized_variants(payload: ProductCreate, default_status: ProductStatusEnum) -> list[dict]:
-    variants = payload.variants or []
-    if not variants:
-        if not payload.sku:
-            raise ValueError("El producto debe incluir al menos una variante con SKU")
-        variants = [
-            {
-                "sku": payload.sku,
-                "price": payload.price,
-                "size_id": payload.size_id,
-                "color_id": payload.color_id,
-                "image_url": payload.image_url,
-                "image_public_id": payload.image_public_id,
-                "status": payload.status or default_status,
-            }
-        ]
-
-    normalized = []
-    for variant in variants:
-        normalized.append(
-            {
-                "sku": variant.sku,
-                "price": variant.price if variant.price is not None else payload.price,
-                "size_id": variant.size_id,
-                "color_id": variant.color_id,
-                "image_url": variant.image_url,
-                "image_public_id": variant.image_public_id,
-                "status": variant.status or default_status,
-            }
-        )
-    return normalized
+    return [
+        {
+            "sku": variant.sku,
+            "price": variant.price,
+            "size_id": variant.size_id,
+            "color_id": variant.color_id,
+            "image_url": variant.image_url,
+            "image_public_id": variant.image_public_id,
+            "status": variant.status or default_status,
+        }
+        for variant in payload.variants
+    ]
 
 
 def _validate_variant_payload(variants: list[dict]) -> None:
@@ -96,6 +81,22 @@ def _validate_variant_payload(variants: list[dict]) -> None:
         combo_set.add(combo)
 
 
+def _validate_discount(payload: ProductCreate, variants: list[dict]) -> None:
+    if payload.discount_type is None:
+        if payload.discount_value not in (None, 0):
+            raise ValueError("El valor de descuento requiere un tipo")
+        return
+
+    value = Decimal(str(payload.discount_value or 0))
+    if value <= 0:
+        raise ValueError("El descuento debe ser mayor que cero")
+    if payload.discount_type == DiscountTypeEnum.percentage and value > 100:
+        raise ValueError("El descuento porcentual no puede superar el 100%")
+    if payload.discount_type == DiscountTypeEnum.fixed:
+        if any(value > Decimal(str(variant["price"])) for variant in variants):
+            raise ValueError("El descuento fijo no puede superar el precio de una variante")
+
+
 def create_product(
     db: Session,
     payload: ProductCreate,
@@ -105,16 +106,17 @@ def create_product(
     try:
         normalized_variants = _normalized_variants(payload, status)
         _validate_variant_payload(normalized_variants)
+        _validate_discount(payload, normalized_variants)
 
         with db.begin_nested():
             product = Product(
                 name=payload.name,
                 description=payload.description,
-                price=payload.price,
                 provider_id=provider_id,
                 category_id=payload.category_id,
-                season_id=payload.season_id,
                 collection_id=payload.collection_id,
+                discount_type=payload.discount_type.value if payload.discount_type else None,
+                discount_value=payload.discount_value if payload.discount_type else None,
             )
             db.add(product)
             db.flush()
@@ -133,9 +135,6 @@ def create_product(
                 )
                 db.add(variant)
                 variants.append(variant)
-
-            if variants:
-                product.price = variants[0].price
 
         db.refresh(product)
         for variant in variants:
@@ -220,8 +219,6 @@ def delete_season(db: Session, season_id) -> bool:
     if not season:
         return False
 
-    if db.query(Product).filter(Product.season_id == season_id).first():
-        raise ValueError("No se puede eliminar una temporada con productos asociados")
     if db.query(Collection).filter(Collection.season_id == season_id).first():
         raise ValueError("No se puede eliminar una temporada con colecciones asociadas")
 
@@ -252,6 +249,7 @@ def update_product(db: Session, product_id, payload: ProductCreate) -> Product |
         variant_ids = [variant.id for variant in product.variants]
         normalized_variants = _normalized_variants(payload, payload.status or ProductStatusEnum.active)
         _validate_variant_payload(normalized_variants)
+        _validate_discount(payload, normalized_variants)
 
         with db.begin_nested():
             if variant_ids:
@@ -260,11 +258,11 @@ def update_product(db: Session, product_id, payload: ProductCreate) -> Product |
 
             product.name = payload.name
             product.description = payload.description
-            product.price = payload.price
             product.provider_id = payload.provider_id
             product.category_id = payload.category_id
-            product.season_id = payload.season_id
             product.collection_id = payload.collection_id
+            product.discount_type = payload.discount_type.value if payload.discount_type else None
+            product.discount_value = payload.discount_value if payload.discount_type else None
 
             variants = []
             for variant_data in normalized_variants:
@@ -280,9 +278,6 @@ def update_product(db: Session, product_id, payload: ProductCreate) -> Product |
                 )
                 db.add(variant)
                 variants.append(variant)
-
-            if variants:
-                product.price = variants[0].price
 
         return db.query(Product).options(selectinload(Product.variants)).filter(Product.id == product_id).first()
     except (IntegrityError, ValueError):
@@ -314,6 +309,10 @@ def delete_product(db: Session, product_id) -> bool:
         raise ValueError("No se pudo eliminar el producto")
 
 
+def available_quantity(quantity: int | None, reserved_quantity: int | None = 0) -> int:
+    return max(int(quantity or 0) - int(reserved_quantity or 0), 0)
+
+
 def _product_to_read(product: Product, variants: list[ProductVariant], branch_quantity_map: dict | None = None):
     variant_reads = []
     total_quantity = 0
@@ -329,7 +328,9 @@ def _product_to_read(product: Product, variants: list[ProductVariant], branch_qu
                 "id": variant.id,
                 "product_id": product.id,
                 "sku": variant.sku,
-                "price": variant.price,
+                "price": discounted_price(variant.price, product.discount_type, product.discount_value),
+                "original_price": variant.price,
+                "discount_amount": discount_amount(variant.price, product.discount_type, product.discount_value),
                 "size_id": variant.size_id,
                 "color_id": variant.color_id,
                 "image_url": variant.image_url,
@@ -350,13 +351,12 @@ def _product_to_read(product: Product, variants: list[ProductVariant], branch_qu
             "id": product.id,
             "name": product.name,
             "description": product.description,
-            "price": product.price,
             "provider_id": product.provider_id,
             "category_id": product.category_id,
-            "season_id": product.season_id,
             "collection_id": product.collection_id,
             "sku": primary["sku"],
-            "price": primary["price"],
+            "discount_type": product.discount_type,
+            "discount_value": product.discount_value,
             "image_url": primary["image_url"],
             "image_public_id": primary["image_public_id"],
             "status": primary["status"],
@@ -389,7 +389,7 @@ def list_public_products(
     if category_id:
         query = query.filter(Product.category_id == category_id)
     if season_id:
-        query = query.filter(Product.season_id == season_id)
+        query = query.join(Collection, Product.collection_id == Collection.id).filter(Collection.season_id == season_id)
     if collection_id:
         query = query.filter(Product.collection_id == collection_id)
     if q:
@@ -412,7 +412,10 @@ def list_public_products(
                 Inventory.variant_id.in_([variant.id for variant in variants]),
                 Inventory.branch_id == branch_id,
             ).all()
-            branch_quantity_map = {inventory.variant_id: inventory.quantity for inventory in inventories}
+            branch_quantity_map = {
+                inventory.variant_id: available_quantity(inventory.quantity, inventory.reserved_quantity)
+                for inventory in inventories
+            }
 
         result.append(_product_to_read(product, variants, branch_quantity_map))
     return result
@@ -444,8 +447,17 @@ def list_pending_products(db: Session):
 
 
 def get_branch_quantity(db: Session, variant_id, branch_id):
-    inv = db.query(Inventory).filter(Inventory.variant_id == variant_id, Inventory.branch_id == branch_id).first()
-    return inv.quantity if inv else 0
+    inv = (
+        db.query(Inventory)
+        .join(ProductVariant, ProductVariant.id == Inventory.variant_id)
+        .filter(
+            Inventory.variant_id == variant_id,
+            Inventory.branch_id == branch_id,
+            ProductVariant.status == ProductStatusEnum.active,
+        )
+        .first()
+    )
+    return available_quantity(inv.quantity, inv.reserved_quantity) if inv else 0
 
 
 def create_or_update_inventory(db: Session, variant_id, branch_id, quantity: int):

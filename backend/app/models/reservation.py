@@ -15,6 +15,7 @@ class Reservation(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     branch_id = Column(UUID(as_uuid=True), ForeignKey("branches.id"), nullable=False, index=True)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    cart_id = Column(UUID(as_uuid=True), ForeignKey("carts.id"), nullable=True, unique=True, index=True)
     visit_date = Column(Date, nullable=False, index=True)
     expires_at = Column(Date, nullable=False, index=True)
     status = Column(SQLAlchemyEnum(ReservationStatusEnum, name="reservationstatusenum"), nullable=False, default=ReservationStatusEnum.pending)

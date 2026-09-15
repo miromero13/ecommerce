@@ -1,23 +1,56 @@
 from collections import defaultdict
 from datetime import date, timedelta
 from decimal import Decimal
+import logging
 from uuid import UUID
 
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.branch import Branch
+from app.models.cart import Cart
+from app.models.cart_item import CartItem
 from app.models.inventory import Inventory
 from app.models.product import Product
 from app.models.product_variant import ProductVariant
 from app.models.reservation import Reservation
 from app.models.reservation_item import ReservationItem
+from app.models.order import Order
+from app.models.order_item import OrderItem
 from app.models.size import Size
 from app.models.color import Color
+from app.models.user import User
 from app.schemas.catalog_enums import ProductStatusEnum
 from app.schemas.reservation_schema import ReservationCreate, ReservationItemRead, ReservationRead, ReservationStatusEnum
+from app.schemas.cart_schema import CartStatusEnum
+from app.services.cart_service import _serialize_cart, refresh_cart_totals
 
 
 ACTIVE_RESERVATION_STATUSES = {ReservationStatusEnum.pending, ReservationStatusEnum.confirmed}
+logger = logging.getLogger(__name__)
+VALID_RESERVATION_TRANSITIONS = {
+    ReservationStatusEnum.pending: {
+        ReservationStatusEnum.confirmed,
+        ReservationStatusEnum.cancelled,
+        ReservationStatusEnum.expired,
+    },
+    ReservationStatusEnum.confirmed: {
+        ReservationStatusEnum.attended,
+        ReservationStatusEnum.cancelled,
+        ReservationStatusEnum.expired,
+    },
+    ReservationStatusEnum.attended: {
+        ReservationStatusEnum.purchase_pending,
+        ReservationStatusEnum.not_sold,
+    },
+    ReservationStatusEnum.purchase_pending: {ReservationStatusEnum.sold},
+}
+
+
+def transition_reservation(reservation: Reservation, target: ReservationStatusEnum) -> None:
+    allowed = VALID_RESERVATION_TRANSITIONS.get(reservation.status, set())
+    if target not in allowed:
+        raise ValueError(f"Transición de reserva no permitida: {reservation.status.value} -> {target.value}")
+    reservation.status = target
 
 
 def _get_inventory_for_update(db: Session, variant_id, branch_id) -> Inventory | None:
@@ -83,7 +116,8 @@ def _serialize_reservation(db: Session, reservation: Reservation) -> Reservation
             ).model_dump()
         )
 
-    branch_name = db.query(Branch.name).filter(Branch.id == reservation.branch_id).scalar() or str(reservation.branch_id)
+    branch_name = db.query(Branch.name).filter(Branch.id == reservation.branch_id).scalar() or 'Sucursal'
+    user_name = db.query(User.name).filter(User.id == reservation.user_id).scalar() or 'Cliente'
 
     return ReservationRead.model_validate(
         {
@@ -91,6 +125,8 @@ def _serialize_reservation(db: Session, reservation: Reservation) -> Reservation
             "branch_id": reservation.branch_id,
             "branch_name": branch_name,
             "user_id": reservation.user_id,
+            "user_name": user_name,
+            "cart_id": reservation.cart_id,
             "visit_date": reservation.visit_date,
             "expires_at": reservation.expires_at,
             "status": reservation.status,
@@ -117,7 +153,10 @@ def expire_due_reservations(db: Session):
     reservations = (
         db.query(Reservation)
         .options(joinedload(Reservation.items))
-        .filter(Reservation.status.in_(ACTIVE_RESERVATION_STATUSES), Reservation.expires_at <= today)
+        .filter(
+            Reservation.status.in_((*ACTIVE_RESERVATION_STATUSES, ReservationStatusEnum.attended)),
+            Reservation.expires_at <= today,
+        )
         .all()
     )
 
@@ -126,14 +165,54 @@ def expire_due_reservations(db: Session):
 
     expired = []
     for reservation in reservations:
+        try:
+            for item in reservation.items:
+                inventory = _get_inventory_for_update(db, item.variant_id, reservation.branch_id)
+                if inventory:
+                    inventory.reserved_quantity = max((inventory.reserved_quantity or 0) - item.quantity, 0)
+            target = ReservationStatusEnum.not_sold if reservation.status == ReservationStatusEnum.attended else ReservationStatusEnum.expired
+            transition_reservation(reservation, target)
+            expired.append(reservation)
+        except Exception:
+            db.rollback()
+            logger.exception("No se pudo expirar la reserva %s", reservation.id)
+
+    db.commit()
+    return expired
+
+
+def expire_transferred_reservations(db: Session):
+    reservations = (
+        db.query(Reservation)
+        .options(joinedload(Reservation.items))
+        .filter(Reservation.status == ReservationStatusEnum.purchase_pending, Reservation.cart_id.isnot(None))
+        .with_for_update(skip_locked=True)
+        .all()
+    )
+    expired = []
+    for reservation in reservations:
+        active_order = (
+            db.query(OrderItem.id)
+            .join(Order, Order.id == OrderItem.order_id)
+            .filter(
+                OrderItem.reservation_id == reservation.id,
+                Order.payment_status == "pending",
+                Order.fulfillment_status == "pending_pickup",
+            )
+            .first()
+        )
+        if active_order:
+            continue
         for item in reservation.items:
             inventory = _get_inventory_for_update(db, item.variant_id, reservation.branch_id)
             if inventory:
                 inventory.reserved_quantity = max((inventory.reserved_quantity or 0) - item.quantity, 0)
-        reservation.status = ReservationStatusEnum.expired
+        db.query(CartItem).filter(CartItem.cart_id == reservation.cart_id, CartItem.reservation_id == reservation.id).delete(synchronize_session=False)
+        reservation.cart_id = None
+        transition_reservation(reservation, ReservationStatusEnum.not_sold)
         expired.append(reservation)
-
-    db.commit()
+    if expired:
+        db.commit()
     return expired
 
 
@@ -234,15 +313,12 @@ def cancel_reservation(db: Session, user_id: UUID, reservation_id: UUID):
     reservation = _get_reservation_for_user(db, reservation_id, user_id)
     if not reservation:
         return None
-    if reservation.status in {ReservationStatusEnum.cancelled, ReservationStatusEnum.expired, ReservationStatusEnum.attended}:
-        raise ValueError("La reserva no se puede cancelar")
-
     with db.begin_nested():
         for item in reservation.items:
             inventory = _get_inventory_for_update(db, item.variant_id, reservation.branch_id)
             if inventory:
                 inventory.reserved_quantity = max((inventory.reserved_quantity or 0) - item.quantity, 0)
-        reservation.status = ReservationStatusEnum.cancelled
+        transition_reservation(reservation, ReservationStatusEnum.cancelled)
 
     db.commit()
 
@@ -264,10 +340,7 @@ def confirm_reservation_arrival(db: Session, reservation_id: UUID, branch_id: UU
     reservation = _get_branch_reservation(db, reservation_id, branch_id)
     if not reservation:
         return None
-    if reservation.status in {ReservationStatusEnum.cancelled, ReservationStatusEnum.expired, ReservationStatusEnum.attended}:
-        raise ValueError("La reserva no puede confirmarse")
-
-    reservation.status = ReservationStatusEnum.confirmed
+    transition_reservation(reservation, ReservationStatusEnum.confirmed)
     db.commit()
     db.refresh(reservation)
     return _serialize_reservation(db, reservation).model_dump()
@@ -278,20 +351,88 @@ def attend_reservation(db: Session, reservation_id: UUID, branch_id: UUID):
     reservation = _get_branch_reservation(db, reservation_id, branch_id)
     if not reservation:
         return None
-    if reservation.status in {ReservationStatusEnum.cancelled, ReservationStatusEnum.expired, ReservationStatusEnum.attended}:
-        raise ValueError("La reserva no puede atenderse")
+    transition_reservation(reservation, ReservationStatusEnum.attended)
 
     try:
         for item in reservation.items:
             inventory = _get_inventory_for_update(db, item.variant_id, reservation.branch_id)
             if not inventory:
                 raise ValueError("No existe inventario para la variante reservada")
-            inventory.reserved_quantity = max((inventory.reserved_quantity or 0) - item.quantity, 0)
-            inventory.quantity = max((inventory.quantity or 0) - item.quantity, 0)
-        reservation.status = ReservationStatusEnum.attended
         db.commit()
         db.refresh(reservation)
         return _serialize_reservation(db, reservation).model_dump()
+    except Exception:
+        db.rollback()
+        raise
+
+
+def decide_reservation(db: Session, user_id: UUID, reservation_id: UUID, purchase: bool):
+    expire_due_reservations(db)
+    reservation = _get_reservation_for_user(db, reservation_id, user_id)
+    if not reservation:
+        return None
+
+    target = ReservationStatusEnum.purchase_pending if purchase else ReservationStatusEnum.not_sold
+    try:
+        transition_reservation(reservation, target)
+        if not purchase:
+            for item in reservation.items:
+                inventory = _get_inventory_for_update(db, item.variant_id, reservation.branch_id)
+                if inventory:
+                    inventory.reserved_quantity = max((inventory.reserved_quantity or 0) - item.quantity, 0)
+        db.commit()
+        db.refresh(reservation)
+        return _serialize_reservation(db, reservation).model_dump()
+    except Exception:
+        db.rollback()
+        raise
+
+
+def transfer_reservation_to_cart(db: Session, user_id: UUID, reservation_id: UUID):
+    expire_due_reservations(db)
+    reservation = (
+        db.query(Reservation)
+        .options(joinedload(Reservation.items))
+        .filter(Reservation.id == reservation_id, Reservation.user_id == user_id)
+        .with_for_update()
+        .first()
+    )
+    if not reservation:
+        return None
+    if reservation.status != ReservationStatusEnum.purchase_pending:
+        raise ValueError("Solo una reserva pendiente de compra puede pasar al carrito")
+
+    cart = db.query(Cart).filter(Cart.user_id == user_id).with_for_update().first()
+    if not cart:
+        cart = Cart(user_id=user_id, status=CartStatusEnum.active)
+        db.add(cart)
+        db.flush()
+    if cart.status == CartStatusEnum.checkout_pending:
+        raise ValueError("El carrito tiene un checkout pendiente")
+    if reservation.cart_id:
+        if reservation.cart_id == cart.id:
+            return _serialize_cart(db, cart)
+        raise ValueError("La reserva ya fue transferida a otro carrito")
+
+    try:
+        for item in reservation.items:
+            if db.query(CartItem).filter(CartItem.cart_id == cart.id, CartItem.variant_id == item.variant_id).first():
+                raise ValueError("El carrito ya contiene una línea de una variante reservada")
+            inventory = _get_inventory_for_update(db, item.variant_id, reservation.branch_id)
+            if not inventory or (inventory.reserved_quantity or 0) < item.quantity:
+                raise ValueError("La reserva ya no conserva stock suficiente")
+            db.add(CartItem(
+                cart_id=cart.id,
+                variant_id=item.variant_id,
+                reservation_id=reservation.id,
+                quantity=item.quantity,
+                unit_price=item.unit_price,
+            ))
+        reservation.cart_id = cart.id
+        refresh_cart_totals(db, cart)
+        db.commit()
+        db.refresh(cart)
+        return _serialize_cart(db, cart)
     except Exception:
         db.rollback()
         raise
@@ -302,15 +443,12 @@ def cancel_branch_reservation(db: Session, reservation_id: UUID, branch_id: UUID
     reservation = _get_branch_reservation(db, reservation_id, branch_id)
     if not reservation:
         return None
-    if reservation.status in {ReservationStatusEnum.cancelled, ReservationStatusEnum.expired, ReservationStatusEnum.attended}:
-        raise ValueError("La reserva no se puede cancelar")
-
     try:
         for item in reservation.items:
             inventory = _get_inventory_for_update(db, item.variant_id, reservation.branch_id)
             if inventory:
                 inventory.reserved_quantity = max((inventory.reserved_quantity or 0) - item.quantity, 0)
-        reservation.status = ReservationStatusEnum.cancelled
+        transition_reservation(reservation, ReservationStatusEnum.cancelled)
         db.commit()
         db.refresh(reservation)
         return _serialize_reservation(db, reservation).model_dump()

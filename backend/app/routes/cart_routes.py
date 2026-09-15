@@ -6,8 +6,9 @@ from sqlalchemy.orm import Session
 from app.auth.dependencies import require_roles
 from app.core.database import get_db
 from app.schemas.cart_schema import CartItemCreate, CartItemUpdate
+from app.schemas.promotion_schema import PromotionCodeApply
 from app.schemas.enums import RolEnum
-from app.services.cart_service import add_cart_item, clear_cart, get_current_cart, remove_cart_item, update_cart_item
+from app.services.cart_service import add_cart_item, apply_coupon, clear_cart, get_current_cart, remove_coupon, remove_cart_item, update_cart_item
 from app.utils.response import response
 
 
@@ -73,3 +74,28 @@ async def clear_cart_route(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return response(status_code=200, message="Carrito vaciado exitosamente", data=cart.model_dump())
+
+
+@router.post("/coupon")
+async def apply_coupon_route(
+    payload: PromotionCodeApply,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_roles(RolEnum.cliente)),
+):
+    try:
+        cart = apply_coupon(db, UUID(current_user["sub"]), payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return response(status_code=200, message="Cupón aplicado al carrito", data=cart.model_dump())
+
+
+@router.delete("/coupon")
+async def remove_coupon_route(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_roles(RolEnum.cliente)),
+):
+    try:
+        cart = remove_coupon(db, UUID(current_user["sub"]))
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return response(status_code=200, message="Cupón retirado del carrito", data=cart.model_dump())

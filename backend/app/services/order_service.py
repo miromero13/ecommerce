@@ -16,12 +16,19 @@ from app.models.order_item import OrderItem
 from app.models.payment_attempt import PaymentAttempt
 from app.models.product import Product
 from app.models.product_variant import ProductVariant
+from app.models.promotion_code import PromotionCode
+from app.models.reservation import Reservation
 from app.models.size import Size
 from app.models.color import Color
 from app.models.stripe_event import StripeEvent
 from app.schemas.cart_schema import CartStatusEnum
 from app.schemas.inventory_schema import InventoryMovementTypeEnum
 from app.schemas.order_schema import FulfillmentStatusEnum, OrderItemRead, OrderRead, OrderStatusEnum, PaymentMethodEnum, PaymentStatusEnum
+from app.schemas.reservation_schema import ReservationStatusEnum
+from app.services.pricing_service import discounted_price, discount_amount
+from app.services.cart_service import refresh_cart_totals
+from app.services.promotion_service import add_usage, validate_for_user
+from app.services.reservation_service import transition_reservation
 
 
 STRIPE_RESERVATION_MINUTES = 30
@@ -30,11 +37,16 @@ CASH_RESERVATION_HOURS = 24
 
 def _cart_rows(db: Session, cart_id: UUID):
     return db.query(
-        CartItem.variant_id.label("variant_id"), CartItem.quantity.label("quantity"), CartItem.unit_price.label("unit_price"),
+        CartItem.variant_id.label("variant_id"), CartItem.quantity.label("quantity"), CartItem.reservation_id.label("reservation_id"), ProductVariant.price.label("original_unit_price"),
+        Product.discount_type.label("discount_type"), Product.discount_value.label("discount_value"),
         Product.id.label("product_id"), Product.name.label("product_name"), ProductVariant.sku.label("variant_sku"),
         ProductVariant.size_id.label("size_id"), ProductVariant.color_id.label("color_id"), ProductVariant.image_url.label("image_url"),
         ProductVariant.image_public_id.label("image_public_id"),
     ).join(ProductVariant, ProductVariant.id == CartItem.variant_id).join(Product, Product.id == ProductVariant.product_id).filter(CartItem.cart_id == cart_id).all()
+
+
+def _row_unit_price(row) -> Decimal:
+    return discounted_price(row.original_unit_price, row.discount_type, row.discount_value)
 
 
 def _serialize_order(db: Session, order: Order) -> OrderRead:
@@ -52,7 +64,8 @@ def _serialize_order(db: Session, order: Order) -> OrderRead:
         "cash_reference": order.cash_reference, "pickup_branch_id": order.pickup_branch_id,
         "pickup_expires_at": order.pickup_expires_at, "pickup_code": order.pickup_code,
         "fulfillment_status": order.fulfillment_status, "subtotal": order.subtotal,
-        "discount_amount": order.discount_amount, "total_amount": order.total_amount, "currency": order.currency,
+        "discount_amount": order.discount_amount, "promotion_code_id": order.promotion_code_id,
+        "total_amount": order.total_amount, "currency": order.currency,
         "created_at": order.created_at, "updated_at": order.updated_at, "items": items,
     })
 
@@ -62,10 +75,30 @@ def list_orders(db: Session, user_id: UUID):
     return [_serialize_order(db, order).model_dump() for order in db.query(Order).filter(Order.user_id == user_id).order_by(Order.created_at.desc()).all()]
 
 
+def list_orders_by_branch(db: Session, branch_id: UUID):
+    expire_due_orders(db)
+    orders = db.query(Order).filter(Order.pickup_branch_id == branch_id).order_by(Order.created_at.desc()).all()
+    return [_serialize_order(db, order).model_dump() for order in orders]
+
+
 def get_order(db: Session, user_id: UUID, order_id: UUID):
     expire_due_orders(db)
     order = db.query(Order).filter(Order.id == order_id, Order.user_id == user_id).first()
     return _serialize_order(db, order).model_dump() if order else None
+
+
+def mark_order_ready(db: Session, order_id: UUID, branch_id: UUID):
+    order = db.query(Order).filter(Order.id == order_id, Order.pickup_branch_id == branch_id).with_for_update().first()
+    if not order:
+        return None
+    if order.payment_status != PaymentStatusEnum.paid:
+        raise ValueError("El pedido debe estar pagado antes de marcarlo como listo")
+    if order.fulfillment_status != FulfillmentStatusEnum.pending_pickup:
+        raise ValueError("El pedido no está en preparación")
+    order.fulfillment_status = FulfillmentStatusEnum.ready_for_pickup
+    db.commit()
+    db.refresh(order)
+    return _serialize_order(db, order).model_dump()
 
 
 def _locked_cart(db: Session, user_id: UUID) -> Cart:
@@ -75,32 +108,50 @@ def _locked_cart(db: Session, user_id: UUID) -> Cart:
     return cart
 
 
-def _reserve_inventory(db: Session, rows, branch_id: UUID) -> None:
+def _reserve_inventory(db: Session, rows, branch_id: UUID, user_id: UUID) -> None:
     for row in rows:
         inventory = db.query(Inventory).filter(Inventory.variant_id == row.variant_id, Inventory.branch_id == branch_id).with_for_update().first()
-        if not inventory or inventory.quantity - inventory.reserved_quantity < row.quantity:
+        if not inventory:
             raise ValueError("No hay stock suficiente en la sucursal seleccionada")
-        inventory.reserved_quantity += row.quantity
+        if row.reservation_id:
+            reservation = db.query(Reservation).filter(Reservation.id == row.reservation_id, Reservation.user_id == user_id).with_for_update().first()
+            if not reservation or reservation.status != ReservationStatusEnum.purchase_pending or reservation.branch_id != branch_id:
+                raise ValueError("La reserva ya no está disponible para este checkout")
+            if (inventory.reserved_quantity or 0) < row.quantity:
+                raise ValueError("La reserva ya no tiene stock suficiente")
+        else:
+            if inventory.quantity - inventory.reserved_quantity < row.quantity:
+                raise ValueError("No hay stock suficiente en la sucursal seleccionada")
+            inventory.reserved_quantity += row.quantity
 
 
 def _new_order(db: Session, cart: Cart, user_id: UUID, branch_id: UUID, method: PaymentMethodEnum) -> Order:
+    if cart.promotion_code_id:
+        code = db.query(PromotionCode).filter(PromotionCode.id == cart.promotion_code_id).first()
+        if not code:
+            raise ValueError("El código promocional ya no existe")
+        validate_for_user(db, code.code, user_id, branch_id)
+    refresh_cart_totals(db, cart)
     rows = _cart_rows(db, cart.id)
     if not rows:
         raise ValueError("El carrito está vacío")
-    _reserve_inventory(db, rows, branch_id)
-    subtotal = sum(Decimal(str(row.unit_price)) * row.quantity for row in rows)
+    _reserve_inventory(db, rows, branch_id, user_id)
+    subtotal = sum(Decimal(str(row.original_unit_price)) * row.quantity for row in rows)
     discount = Decimal(str(cart.discount_amount or 0))
     expires = datetime.now(timezone.utc) + timedelta(minutes=STRIPE_RESERVATION_MINUTES if method == PaymentMethodEnum.stripe else CASH_RESERVATION_HOURS * 60)
     order = Order(user_id=user_id, status=OrderStatusEnum.pending, payment_method=method,
-                  payment_status=PaymentStatusEnum.pending, pickup_branch_id=branch_id, pickup_expires_at=expires,
+                   payment_status=PaymentStatusEnum.pending, pickup_branch_id=branch_id, pickup_expires_at=expires,
+                   promotion_code_id=cart.promotion_code_id,
                   pickup_code=secrets.token_urlsafe(9), fulfillment_status=FulfillmentStatusEnum.pending_pickup,
                   subtotal=subtotal, discount_amount=discount, total_amount=max(subtotal - discount, Decimal("0.00")),
                   currency=settings.stripe_currency.lower())
     db.add(order)
     db.flush()
     for row in rows:
-        db.add(OrderItem(order_id=order.id, variant_id=row.variant_id, quantity=row.quantity, unit_price=row.unit_price,
-                         line_total=Decimal(str(row.unit_price)) * row.quantity, product_id=row.product_id,
+        unit_price = _row_unit_price(row)
+        db.add(OrderItem(order_id=order.id, variant_id=row.variant_id, quantity=row.quantity, unit_price=unit_price,
+                         reservation_id=row.reservation_id,
+                         line_total=unit_price * row.quantity, product_id=row.product_id,
                          product_name=row.product_name, variant_sku=row.variant_sku, size_id=row.size_id, color_id=row.color_id,
                          image_url=row.image_url, image_public_id=row.image_public_id))
     cart.status = CartStatusEnum.checkout_pending
@@ -161,13 +212,21 @@ def create_stripe_payment(db: Session, user_id: UUID, pickup_branch_id: UUID):
 
 
 def _release_order(db: Session, order: Order, payment_status: PaymentStatusEnum, fulfillment_status: FulfillmentStatusEnum) -> None:
+    reservation_ids = {item.reservation_id for item in order.items if item.reservation_id}
     for item in order.items:
         inventory = db.query(Inventory).filter(Inventory.variant_id == item.variant_id, Inventory.branch_id == order.pickup_branch_id).with_for_update().one()
         inventory.reserved_quantity -= item.quantity
+    cart = db.query(Cart).filter(Cart.user_id == order.user_id).with_for_update().first()
+    for reservation_id in reservation_ids:
+        reservation = db.query(Reservation).filter(Reservation.id == reservation_id).with_for_update().first()
+        if reservation and reservation.status == ReservationStatusEnum.purchase_pending:
+            transition_reservation(reservation, ReservationStatusEnum.not_sold)
+            reservation.cart_id = None
+        if cart:
+            db.query(CartItem).filter(CartItem.cart_id == cart.id, CartItem.reservation_id == reservation_id).delete(synchronize_session=False)
     order.payment_status = payment_status
     order.status = OrderStatusEnum.failed if payment_status == PaymentStatusEnum.failed else OrderStatusEnum.cancelled
     order.fulfillment_status = fulfillment_status
-    cart = db.query(Cart).filter(Cart.user_id == order.user_id).with_for_update().first()
     if cart:
         cart.status = CartStatusEnum.active
     attempt = db.query(PaymentAttempt).filter(PaymentAttempt.order_id == order.id).first()
@@ -206,6 +265,7 @@ def expire_due_orders(db: Session) -> None:
 
 
 def _consume_order(db: Session, order: Order, collected_by: UUID | None = None) -> None:
+    reservation_ids = {item.reservation_id for item in order.items if item.reservation_id}
     for item in order.items:
         inventory = db.query(Inventory).filter(Inventory.variant_id == item.variant_id, Inventory.branch_id == order.pickup_branch_id).with_for_update().one()
         inventory.quantity -= item.quantity
@@ -215,15 +275,23 @@ def _consume_order(db: Session, order: Order, collected_by: UUID | None = None) 
                note=f"Pedido {order.id}"))
     order.payment_status = PaymentStatusEnum.paid
     order.status = OrderStatusEnum.paid
-    order.fulfillment_status = FulfillmentStatusEnum.collected if order.payment_method == PaymentMethodEnum.cash else FulfillmentStatusEnum.ready_for_pickup
+    order.fulfillment_status = FulfillmentStatusEnum.collected if collected_by else FulfillmentStatusEnum.pending_pickup
+    for reservation_id in reservation_ids:
+        reservation = db.query(Reservation).filter(Reservation.id == reservation_id).with_for_update().first()
+        if reservation and reservation.status == ReservationStatusEnum.purchase_pending:
+            transition_reservation(reservation, ReservationStatusEnum.sold)
+            reservation.cart_id = None
     cart = db.query(Cart).filter(Cart.user_id == order.user_id).with_for_update().first()
     if cart:
         db.query(CartItem).filter(CartItem.cart_id == cart.id).delete(synchronize_session=False)
         cart.status = CartStatusEnum.active
+        cart.promotion_code_id = None
         cart.subtotal = cart.discount_amount = cart.total_amount = Decimal("0.00")
     attempt = db.query(PaymentAttempt).filter(PaymentAttempt.order_id == order.id).first()
     if attempt:
         attempt.status = "succeeded"
+    if order.promotion_code_id:
+        add_usage(db, order.promotion_code_id, order.user_id)
 
 
 def cancel_order(db: Session, user_id: UUID, order_id: UUID):

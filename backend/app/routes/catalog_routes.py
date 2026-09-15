@@ -42,6 +42,7 @@ from app.services.catalog_service import (
     list_public_products,
     create_or_update_inventory,
     get_branch_quantity,
+    available_quantity,
     list_pending_products as list_pending_products_service,
     get_variant_by_id,
     serialize_product,
@@ -407,9 +408,9 @@ async def get_availability(product_id: UUID | None = None, variant_id: UUID | No
         product = db.query(Product).options(selectinload(Product.variants)).filter(Product.id == product_id).first()
         if not product:
             raise HTTPException(status_code=404, detail=f"Producto con id {product_id} no encontrado")
-        variant_ids = [variant.id for variant in product.variants]
+        variant_ids = [variant.id for variant in product.variants if variant.status == ProductStatusEnum.active]
         inventories = db.query(Inventory).filter(Inventory.variant_id.in_(variant_ids), Inventory.branch_id == branch_id).all()
-        quantity = sum(inventory.quantity for inventory in inventories)
+        quantity = sum(available_quantity(inventory.quantity, inventory.reserved_quantity) for inventory in inventories)
         return response(status_code=200, message="Disponibilidad obtenida exitosamente", data={"product_id": product_id, "branch_id": branch_id, "quantity": quantity})
 
     raise HTTPException(status_code=422, detail="Debes enviar product_id o variant_id")

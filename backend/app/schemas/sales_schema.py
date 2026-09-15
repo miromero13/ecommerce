@@ -27,8 +27,12 @@ class SaleCreate(BaseModel):
 
     @model_validator(mode="after")
     def validate_items_or_reservation(self):
-        if not self.reservation_id and not self.items:
-            raise ValueError("Debes enviar items o una reserva asociada")
+        if self.reservation_id:
+            raise ValueError("CU18 no permite ventas asociadas a reservas")
+        if self.payment_method != PaymentMethodEnum.cash:
+            raise ValueError("Las ventas directas solo aceptan efectivo")
+        if not self.items:
+            raise ValueError("La venta no tiene items")
         return self
 
 
@@ -38,6 +42,8 @@ class SaleItemRead(BaseModel):
     variant_id: UUID
     quantity: int
     unit_price: Decimal
+    original_unit_price: Decimal | None = None
+    discount_amount: Decimal = Decimal("0.00")
     line_total: Decimal
     product_id: UUID
     product_name: str
