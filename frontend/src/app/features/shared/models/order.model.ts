@@ -1,11 +1,12 @@
 export type PaymentMethodEnum = 'cash' | 'stripe';
 export type PaymentStatusEnum = 'pending' | 'paid' | 'failed';
-export type FulfillmentStatusEnum = 'pending_pickup' | 'collected' | 'expired' | 'cancelled';
+export type FulfillmentStatusEnum = 'pending_pickup' | 'ready_for_pickup' | 'collected' | 'expired' | 'cancelled';
 
 export interface OrderItem {
   id: string;
   order_id: string;
   variant_id: string;
+  reservation_id?: string | null;
   quantity: number;
   unit_price: string;
   line_total: string;
@@ -34,6 +35,7 @@ export interface Order {
   fulfillment_status: FulfillmentStatusEnum;
   subtotal: string;
   discount_amount: string;
+  promotion_code_id?: string | null;
   total_amount: string;
   currency: string;
   created_at: string;

@@ -19,4 +19,16 @@ export class CheckoutApiService {
   getOrder(orderId: string) {
     return this.api.get<ApiResponse<Order>>(`/orders/${orderId}`);
   }
+
+  listOrders() {
+    return this.api.get<ApiResponse<Order[]>>('/orders/me');
+  }
+
+  listBranchOrders() {
+    return this.api.get<ApiResponse<Order[]>>('/orders/branch');
+  }
+
+  markReady(orderId: string) {
+    return this.api.post<ApiResponse<Order>>(`/orders/${orderId}/ready`, {});
+  }
 }
