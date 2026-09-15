@@ -31,6 +31,7 @@ class _CartPageState extends State<CartPage> {
   late final CartController _controller;
   late final bool _ownsController;
   String? _loadedToken;
+  final _couponController = TextEditingController();
 
   @override
   void initState() {
@@ -52,6 +53,7 @@ class _CartPageState extends State<CartPage> {
   void dispose() {
     widget.authController.removeListener(_handleAuthChanged);
     if (_ownsController) _controller.dispose();
+    _couponController.dispose();
     super.dispose();
   }
 
@@ -141,9 +143,16 @@ class _CartPageState extends State<CartPage> {
             ),
             const SizedBox(height: 12),
           ],
-          const SizedBox(height: 4),
-          _SummaryCard(cart: cart),
-          const SizedBox(height: 16),
+           const SizedBox(height: 4),
+           _SummaryCard(cart: cart),
+           const SizedBox(height: 12),
+           _CouponCard(
+             cart: cart,
+             controller: _couponController,
+             onApply: () => _runMutation(() => _controller.applyCoupon(_couponController.text)),
+             onRemove: () => _runMutation(_controller.removeCoupon),
+           ),
+           const SizedBox(height: 16),
           AppButton(
             label: 'Continuar',
             icon: Icon(Icons.arrow_forward),
@@ -249,7 +258,12 @@ class _CartItemCard extends StatelessWidget {
                         ),
                       ],
                       const SizedBox(height: 8),
-                      ProductPrice(price: item.lineTotal),
+                       ProductPrice(
+                         price: item.lineTotal,
+                         originalPrice: item.originalUnitPrice == null
+                             ? null
+                             : item.originalUnitPrice! * item.quantity,
+                       ),
                       Text(
                         'Bs ${item.unitPrice.toStringAsFixed(2)} c/u',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -314,6 +328,31 @@ class _SummaryCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _CouponCard extends StatelessWidget {
+  const _CouponCard({required this.cart, required this.controller, required this.onApply, required this.onRemove});
+
+  final Cart cart;
+  final TextEditingController controller;
+  final VoidCallback onApply;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      child: cart.promotionCode != null
+          ? Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              Text('Cupón: ${cart.promotionCode}'),
+              TextButton(onPressed: onRemove, child: const Text('Retirar')),
+            ])
+          : Row(children: [
+              Expanded(child: TextField(controller: controller, textCapitalization: TextCapitalization.characters, decoration: const InputDecoration(labelText: 'Código promocional'))),
+              const SizedBox(width: 10),
+              TextButton(onPressed: onApply, child: const Text('Aplicar')),
+            ]),
     );
   }
 }

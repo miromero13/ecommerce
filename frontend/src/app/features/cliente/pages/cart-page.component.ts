@@ -55,6 +55,7 @@ export class CartPageComponent {
   protected readonly checkoutMethod = signal<'cash' | 'stripe'>('cash');
   protected readonly pickupBranchId = signal('');
   protected readonly checkingOut = signal(false);
+  protected readonly couponCode = signal('');
 
   constructor() {
     void this.loadCart();
@@ -109,6 +110,35 @@ export class CartPageComponent {
       const response = await requestWithToast(
         this.cartApi.clearCart(),
         { loading: 'Vaciando carrito...', success: 'Carrito vaciado.', error: 'No se pudo vaciar el carrito.' },
+      );
+      this.cart.set(response.data ?? null);
+    } catch {
+      // toast handled by requestWithToast
+    }
+  }
+
+  protected async applyCoupon(): Promise<void> {
+    const code = this.couponCode().trim();
+    if (!code) {
+      toast.warning('Ingresa un código promocional.');
+      return;
+    }
+    try {
+      const response = await requestWithToast(
+        this.cartApi.applyCoupon(code),
+        { loading: 'Aplicando cupón...', success: 'Cupón aplicado.', error: 'No se pudo aplicar el cupón.' },
+      );
+      this.cart.set(response.data ?? null);
+    } catch {
+      // toast handled by requestWithToast
+    }
+  }
+
+  protected async removeCoupon(): Promise<void> {
+    try {
+      const response = await requestWithToast(
+        this.cartApi.removeCoupon(),
+        { loading: 'Retirando cupón...', success: 'Cupón retirado.', error: 'No se pudo retirar el cupón.' },
       );
       this.cart.set(response.data ?? null);
     } catch {

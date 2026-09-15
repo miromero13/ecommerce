@@ -20,6 +20,8 @@ from app.schemas.sales_schema import SaleCreate, SaleItemRead, SaleRead, SaleSta
 from app.schemas.catalog_enums import ProductStatusEnum
 from app.schemas.inventory_schema import InventoryMovementTypeEnum
 from app.schemas.reservation_schema import ReservationStatusEnum
+from app.services.reservation_service import transition_reservation
+from app.services.pricing_service import discounted_price, discount_amount
 
 
 def _get_inventory_for_update(db: Session, variant_id, branch_id) -> Inventory | None:
@@ -52,6 +54,9 @@ def _sale_items_query(db: Session, sale_id: UUID):
             SaleItem.variant_id.label("variant_id"),
             SaleItem.quantity.label("quantity"),
             SaleItem.unit_price.label("unit_price"),
+            ProductVariant.price.label("original_unit_price"),
+            Product.discount_type.label("discount_type"),
+            Product.discount_value.label("discount_value"),
             Product.id.label("product_id"),
             Product.name.label("product_name"),
             ProductVariant.sku.label("variant_sku"),
@@ -78,10 +83,13 @@ def _serialize_sale(db: Session, sale: Sale) -> SaleRead:
     for row in item_rows:
         data = row._mapping
         line_total = Decimal(str(data["unit_price"])) * int(data["quantity"])
+        original_price = Decimal(str(data["original_unit_price"]))
+        line_discount = discount_amount(original_price, data["discount_type"], data["discount_value"])
         items.append(
             SaleItemRead.model_validate(
                 {
                     **data,
+                    "discount_amount": line_discount,
                     "line_total": line_total,
                 }
             ).model_dump()
@@ -165,6 +173,7 @@ def _create_sale_from_items(
     db.flush()
 
     subtotal = Decimal("0.00")
+    discount_total = Decimal("0.00")
     for variant_id, quantity in normalized_items.items():
         inventory = _get_inventory_for_update(db, variant_id, branch_id)
         if not inventory:
@@ -193,14 +202,17 @@ def _create_sale_from_items(
             inventory.quantity = (inventory.quantity or 0) - quantity
             movement_note = "Venta presencial"
 
-        line_total = Decimal(str(variant.price)) * quantity
-        subtotal += line_total
+        original_price = Decimal(str(variant.price))
+        unit_price = discounted_price(original_price, variant.product.discount_type, variant.product.discount_value)
+        discount_total += discount_amount(original_price, variant.product.discount_type, variant.product.discount_value) * quantity
+        line_total = unit_price * quantity
+        subtotal += original_price * quantity
         db.add(
             SaleItem(
                 sale_id=sale.id,
                 variant_id=variant_id,
                 quantity=quantity,
-                unit_price=variant.price,
+                unit_price=unit_price,
                 line_total=line_total,
                 product_id=variant.product_id,
                 product_name=variant.product.name if variant.product else str(variant.product_id),
@@ -224,14 +236,12 @@ def _create_sale_from_items(
             )
 
     sale.subtotal = subtotal
-    sale.discount_amount = Decimal("0.00")
-    sale.total_amount = subtotal
+    sale.discount_amount = discount_total
+    sale.total_amount = max(subtotal - discount_total, Decimal("0.00"))
 
     if reservation:
         if reservation.status in {ReservationStatusEnum.pending, ReservationStatusEnum.confirmed}:
-            reservation.status = ReservationStatusEnum.attended
-        elif reservation.status == ReservationStatusEnum.attended:
-            reservation.status = ReservationStatusEnum.attended
+            transition_reservation(reservation, ReservationStatusEnum.attended)
 
     return sale
 

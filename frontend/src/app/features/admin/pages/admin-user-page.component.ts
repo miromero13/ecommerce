@@ -40,8 +40,9 @@ export class AdminUserPageComponent {
   protected readonly currentUserId = signal(this.session.user()?.id ?? '');
   protected readonly openMenuId = signal<string | null>(null);
   protected readonly modalOpen = signal(false);
-  protected readonly modalMode = signal<'edit'>('edit');
+  protected readonly modalMode = signal<'create' | 'edit'>('edit');
   protected readonly editingUserId = signal<string | null>(null);
+  protected readonly editingUser = signal<AdminUsuario | null>(null);
   protected readonly deleteConfirmOpen = signal(false);
   protected readonly deletingUser = signal<AdminUsuario | null>(null);
 
@@ -49,6 +50,8 @@ export class AdminUserPageComponent {
     if (!gender) return 'Género';
     return this.labelGenero(gender as AdminUsuario['gender']);
   };
+
+  protected readonly roleSelectLabel = (role: string | null | undefined): string => this.labelRol(role as AdminUsuario['rol']);
 
   protected readonly branchSelectLabel = (branchId: string | null | undefined): string => {
     if (!branchId) return 'Sin sucursal';
@@ -61,7 +64,9 @@ export class AdminUserPageComponent {
   protected readonly userForm = this.fb.nonNullable.group({
     name: ['', [Validators.required]],
     email: ['', [Validators.required, Validators.email]],
+    password: [''],
     gender: ['masculino', [Validators.required]],
+    rol: ['administrador' as Exclude<AdminUsuario['rol'], 'cliente' | 'proveedor'>, [Validators.required]],
     branch_id: [''],
     is_active: [true],
   });
@@ -87,17 +92,38 @@ export class AdminUserPageComponent {
     this.setFiltro(tab === 'todos' ? '' : (tab as AdminUsuario['rol']));
   }
 
+  protected openCreateModal(): void {
+    this.closeMenu();
+    this.modalMode.set('create');
+    this.editingUserId.set(null);
+    this.editingUser.set(null);
+    this.userForm.reset({
+      name: '',
+      email: '',
+      password: '',
+      gender: 'masculino',
+      rol: 'administrador',
+      branch_id: '',
+      is_active: true,
+    });
+    this.modalOpen.set(true);
+  }
+
   protected openEditModal(user: AdminUsuario): void {
     if (this.currentUserId() === user.id) {
       return;
     }
     this.closeMenu();
+    this.modalMode.set('edit');
     this.editingUserId.set(user.id);
+    this.editingUser.set(user);
     this.userForm.reset({
       name: user.name,
       email: user.email,
+      password: '',
       gender: user.gender,
-      branch_id: user.branch_id || '',
+      rol: user.rol as Exclude<AdminUsuario['rol'], 'cliente' | 'proveedor'>,
+      branch_id: user.rol === 'administrador' ? '' : (user.branch_id || ''),
       is_active: user.is_active,
     });
     this.modalOpen.set(true);
@@ -105,6 +131,8 @@ export class AdminUserPageComponent {
 
   protected closeModal(): void {
     this.modalOpen.set(false);
+    this.editingUser.set(null);
+    this.modalMode.set('edit');
   }
 
   protected closeMenu(): void {
@@ -162,23 +190,43 @@ export class AdminUserPageComponent {
   }
 
   protected async submitUser(): Promise<void> {
-    if (this.userForm.invalid || !this.editingUserId()) {
+    if (this.userForm.invalid || (!this.isCreateMode() && !this.editingUserId())) {
       this.userForm.markAllAsTouched();
       return;
     }
 
     try {
       const payload = this.userForm.getRawValue();
-      await requestWithToast(
-        this.api.updateUsuario(this.editingUserId()!, {
-          name: payload.name,
-          email: payload.email.trim().toLowerCase(),
-          gender: payload.gender as AdminUsuario['gender'],
-          branch_id: payload.branch_id || null,
-          is_active: payload.is_active,
-        }),
-        { loading: 'Guardando usuario...', success: 'Usuario actualizado correctamente.', error: 'No se pudo actualizar el usuario.' },
-      );
+      if (this.modalMode() === 'create') {
+        if (payload.password.length < 8) {
+          toast.error('La contraseña debe tener al menos 8 caracteres.');
+          return;
+        }
+
+        await requestWithToast(
+          this.api.createUsuario({
+            name: payload.name,
+            email: payload.email.trim().toLowerCase(),
+            password: payload.password,
+            gender: payload.gender as AdminUsuario['gender'],
+            rol: payload.rol,
+            branch_id: this.roleRequiresBranch() ? (payload.branch_id || null) : null,
+            is_active: payload.is_active,
+          }),
+          { loading: 'Creando usuario...', success: 'Usuario creado correctamente.', error: 'No se pudo crear el usuario.' },
+        );
+      } else {
+        await requestWithToast(
+          this.api.updateUsuario(this.editingUserId()!, {
+            name: payload.name,
+            email: payload.email.trim().toLowerCase(),
+            gender: payload.gender as AdminUsuario['gender'],
+            branch_id: payload.branch_id || null,
+            is_active: payload.is_active,
+          }),
+          { loading: 'Guardando usuario...', success: 'Usuario actualizado correctamente.', error: 'No se pudo actualizar el usuario.' },
+        );
+      }
       await this.loadData();
       this.closeModal();
     } catch {
@@ -186,7 +234,19 @@ export class AdminUserPageComponent {
     }
   }
 
-  protected branchName(branchId: string | null): string {
+  protected isCreateMode(): boolean {
+    return this.modalMode() === 'create';
+  }
+
+  protected roleRequiresBranch(): boolean {
+    return ['encargado', 'cajero', 'delivery'].includes(this.userForm.controls.rol.value);
+  }
+
+  protected branchName(branchId: string | null, role?: AdminUsuario['rol']): string {
+    if (role === 'administrador') {
+      return 'Global';
+    }
+
     if (!branchId) {
       return 'Sin sucursal';
     }

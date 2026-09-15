@@ -9,6 +9,8 @@ export interface SaleItem {
   variant_id: string;
   quantity: number;
   unit_price: string;
+  original_unit_price: string | null;
+  discount_amount: string;
   line_total: string;
   product_id: string;
   product_name: string;

@@ -4,7 +4,8 @@ from sqlalchemy import select, func, or_
 from app.models.user import User
 from app.models.provider import Provider
 from app.models.product import Product
-from app.schemas.user_schema import UserCreate, UserUpdateRol, UserUpdateBranch, UserProfileUpdate
+from app.models.branch import Branch
+from app.schemas.user_schema import AdminUserCreate, UserCreate, UserUpdateRol, UserUpdateBranch, UserProfileUpdate
 from app.schemas.enums import RolEnum
 from uuid import UUID  
 from passlib.context import CryptContext
@@ -55,6 +56,40 @@ def create_user(db: Session, user: UserCreate) -> User:
         db.rollback()
         raise ValueError("El correo ya está registrado")
 
+
+def create_admin_user(db: Session, user: AdminUserCreate) -> User:
+    scoped_roles = {RolEnum.encargado, RolEnum.cajero, RolEnum.delivery}
+    if user.rol == RolEnum.administrador:
+        branch_id = None
+    elif user.rol in scoped_roles:
+        if user.branch_id is None:
+            raise ValueError("Este rol debe tener una sucursal asignada")
+        branch = db.query(Branch).filter(Branch.id == user.branch_id, Branch.is_active.is_(True)).first()
+        if branch is None:
+            raise ValueError("La sucursal no existe o está inactiva")
+        branch_id = user.branch_id
+    else:
+        raise ValueError("Este formulario solo permite crear usuarios internos")
+
+    ensure_email_available(db, user.email)
+    db_user = User(
+        name=user.name,
+        email=normalize_email(user.email),
+        gender=user.gender,
+        rol=user.rol,
+        hashed_password=pwd_context.hash(user.password),
+        branch_id=branch_id,
+        is_active=user.is_active,
+    )
+    db.add(db_user)
+    try:
+        db.commit()
+        db.refresh(db_user)
+        return db_user
+    except IntegrityError:
+        db.rollback()
+        raise ValueError("El correo ya está registrado")
+
 def get_user(db: Session, user_id: UUID) -> User | None:  # 👈 Cambia int → UUID
     result = db.execute(select(User).where(User.id == user_id))
     return result.scalars().first()
@@ -77,6 +112,14 @@ def update_user_rol(db: Session, user_id: UUID, update_data: UserUpdateRol) -> U
     if not user:
         return None
 
+    if update_data.rol == RolEnum.administrador:
+        user.branch_id = None
+    elif update_data.rol in {RolEnum.encargado, RolEnum.cajero, RolEnum.delivery}:
+        branch_id = update_data.branch_id or user.branch_id
+        if branch_id is None:
+            raise ValueError("El usuario necesita una sucursal antes de dejar de ser administrador")
+        user.branch_id = branch_id
+
     user.rol = update_data.rol
     db.commit()
     db.refresh(user)
@@ -88,8 +131,11 @@ def update_user_branch(db: Session, user_id: UUID, update_data: UserUpdateBranch
     if not user:
         return None
 
-    if user.rol not in {RolEnum.administrador, RolEnum.encargado, RolEnum.cajero}:
+    if user.rol not in {RolEnum.encargado, RolEnum.cajero, RolEnum.delivery}:
         raise ValueError("Solo los usuarios internos pueden tener sucursal asignada")
+
+    if update_data.branch_id is None:
+        raise ValueError("Este usuario debe tener una sucursal asignada")
 
     user.branch_id = update_data.branch_id
     db.commit()
@@ -106,7 +152,12 @@ def update_user_full(db: Session, user_id: UUID, update_data) -> User | None:
     user.name = update_data.name
     user.email = normalize_email(update_data.email)
     user.gender = update_data.gender
-    user.branch_id = update_data.branch_id
+    if user.rol == RolEnum.administrador:
+        user.branch_id = None
+    elif user.rol in {RolEnum.encargado, RolEnum.cajero, RolEnum.delivery} and update_data.branch_id is None:
+        raise ValueError("Este usuario debe tener una sucursal asignada")
+    else:
+        user.branch_id = update_data.branch_id
     user.is_active = update_data.is_active
 
     try:

@@ -27,4 +27,12 @@ export class CartApiService {
   clearCart() {
     return this.api.delete<CartResponse>('/cart/current');
   }
+
+  applyCoupon(code: string) {
+    return this.api.post<CartResponse>('/cart/coupon', { code });
+  }
+
+  removeCoupon() {
+    return this.api.delete<CartResponse>('/cart/coupon');
+  }
 }

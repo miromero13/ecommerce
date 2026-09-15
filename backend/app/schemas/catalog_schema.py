@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from uuid import UUID
 from decimal import Decimal
+from enum import Enum
 
 from app.schemas.catalog_enums import ProductStatusEnum
 
@@ -19,7 +20,13 @@ class CollectionCreate(BaseModel):
     season_id: UUID | None = None
 
 
+class DiscountTypeEnum(str, Enum):
+    percentage = "percentage"
+    fixed = "fixed"
+
+
 class ProductVariantCreate(BaseModel):
+    id: UUID | None = None
     sku: str
     price: Decimal
     size_id: UUID | None = None
@@ -32,18 +39,14 @@ class ProductVariantCreate(BaseModel):
 class ProductCreate(BaseModel):
     name: str
     description: str | None = None
-    price: Decimal
     category_id: UUID
-    season_id: UUID | None = None
     collection_id: UUID | None = None
+    discount_type: DiscountTypeEnum | None = None
+    discount_value: Decimal | None = Field(default=None, ge=0)
     provider_id: UUID | None = None
-    sku: str | None = None
-    size_id: UUID | None = None
-    color_id: UUID | None = None
-    image_url: str | None = None
-    image_public_id: str | None = None
+    minimum_stock: int = Field(default=0, ge=0)
     status: ProductStatusEnum | None = None
-    variants: list[ProductVariantCreate] | None = None
+    variants: list[ProductVariantCreate] = Field(min_length=1)
 
 
 class ProductVariantStatusUpdate(BaseModel):
@@ -55,6 +58,8 @@ class ProductVariantRead(BaseModel):
     product_id: UUID
     sku: str
     price: Decimal
+    original_price: Decimal | None = None
+    discount_amount: Decimal = Decimal("0.00")
     size_id: UUID | None = None
     color_id: UUID | None = None
     image_url: str | None = None
@@ -71,10 +76,11 @@ class ProductRead(BaseModel):
     id: UUID
     name: str
     description: str | None = None
-    price: Decimal
+    discount_type: DiscountTypeEnum | None = None
+    discount_value: Decimal | None = None
     provider_id: UUID | None = None
+    minimum_stock: int = 0
     category_id: UUID
-    season_id: UUID | None = None
     collection_id: UUID | None = None
     sku: str | None = None
     image_url: str | None = None

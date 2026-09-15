@@ -6,6 +6,9 @@ import {
   InventoryBranchStock,
   InventoryConsolidatedStock,
   InventoryMovement,
+  InventoryMovementRequest,
+  InventoryMutationResponse,
+  InventoryTransferRequest,
 } from '../models/inventory.model';
 
 @Injectable({ providedIn: 'root' })
@@ -25,5 +28,17 @@ export class InventoryApiService {
       ? '?' + Object.entries(params).filter(([, value]) => value !== undefined && value !== '').map(([key, value]) => `${key}=${encodeURIComponent(String(value))}`).join('&')
       : '';
     return this.api.get<ApiResponse<InventoryMovement[]>>(`/inventory/movements${query}`);
+  }
+
+  registerIncome(payload: InventoryMovementRequest) {
+    return this.api.post<ApiResponse<InventoryMutationResponse>>('/inventory/movements/income', payload);
+  }
+
+  registerOutcome(payload: InventoryMovementRequest) {
+    return this.api.post<ApiResponse<InventoryMutationResponse>>('/inventory/movements/outcome', payload);
+  }
+
+  registerTransfer(payload: InventoryTransferRequest) {
+    return this.api.post<ApiResponse<InventoryMutationResponse>>('/inventory/movements/transfer', payload);
   }
 }

@@ -12,7 +12,6 @@ import { HlmInputImports } from '../../../components/input/src';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
 import { requestWithToast } from '../../../core/utils/request-toast.util';
 import { CatalogProduct, CatalogProductVariant } from '../../shared/models/catalog.model';
-import { Reservation } from '../../shared/models/reservation.model';
 import { CreateSaleRequest, Sale } from '../../shared/models/sale.model';
 import { CatalogApiService } from '../../shared/services/catalog-api.service';
 import { SalesApiService } from '../../shared/services/sales-api.service';
@@ -25,6 +24,7 @@ type SelectedSaleItem = {
   size_name: string | null;
   color_name: string | null;
   unit_price: string;
+  original_unit_price: string;
   quantity: number;
   image_url: string | null;
 };
@@ -41,24 +41,25 @@ export class SalesPageComponent {
   private readonly session = inject(SessionService);
 
   protected readonly searchTerm = signal('');
-  protected readonly reservationQuery = signal('');
   protected readonly products = signal<CatalogProduct[]>([]);
-  protected readonly selectedReservation = signal<Reservation | null>(null);
   protected readonly selectedItems = signal<SelectedSaleItem[]>([]);
   protected readonly lastSale = signal<Sale | null>(null);
   protected readonly loadingProducts = signal(false);
-  protected readonly loadingReservation = signal(false);
   protected readonly submitting = signal(false);
   protected readonly cashReference = signal('');
+  protected readonly salesHistory = signal<Sale[]>([]);
 
   protected readonly branchId = computed(() => this.session.user()?.branch_id ?? null);
   protected readonly branchLabel = computed(() => this.session.user()?.branch_id ?? 'Sin sucursal');
 
   protected readonly itemCount = computed(() => this.selectedItems().reduce((sum, item) => sum + item.quantity, 0));
-  protected readonly subtotal = computed(() => this.selectedItems().reduce((sum, item) => sum + Number(item.unit_price) * item.quantity, 0).toFixed(2));
+  protected readonly subtotal = computed(() => this.selectedItems().reduce((sum, item) => sum + Number(item.original_unit_price) * item.quantity, 0).toFixed(2));
+  protected readonly discount = computed(() => this.selectedItems().reduce((sum, item) => sum + (Number(item.original_unit_price) - Number(item.unit_price)) * item.quantity, 0).toFixed(2));
+  protected readonly total = computed(() => (Number(this.subtotal()) - Number(this.discount())).toFixed(2));
 
   constructor() {
     void this.searchProducts();
+    void this.loadHistory();
   }
 
   protected async searchProducts(): Promise<void> {
@@ -75,57 +76,7 @@ export class SalesPageComponent {
     }
   }
 
-  protected async loadReservation(): Promise<void> {
-    const reservationId = this.reservationQuery().trim();
-    if (!reservationId) {
-      toast.warning('Ingresa un id de reserva.');
-      return;
-    }
-
-    const branchId = this.branchId();
-    if (!branchId) {
-      toast.error('No tienes una sucursal asignada.');
-      return;
-    }
-
-    this.loadingReservation.set(true);
-    try {
-      const response = await firstValueFrom(this.salesApi.searchReservation(reservationId, branchId));
-      const reservation = response.data ?? null;
-      if (!reservation) {
-        toast.warning('Reserva no encontrada.');
-        this.selectedReservation.set(null);
-        return;
-      }
-
-      this.selectedReservation.set(reservation);
-      this.selectedItems.set(
-        reservation.items.map((item) => ({
-          variant_id: item.variant_id,
-          product_name: item.product_name,
-          variant_sku: item.variant_sku,
-          size_name: item.size_name,
-          color_name: item.color_name,
-          unit_price: item.unit_price,
-          quantity: item.quantity,
-          image_url: item.image_url,
-        })),
-      );
-      toast.success('Reserva cargada para la venta.');
-    } catch (error) {
-      toast.error(getErrorMessage(error, 'No se pudo cargar la reserva.'));
-      this.selectedReservation.set(null);
-    } finally {
-      this.loadingReservation.set(false);
-    }
-  }
-
   protected addVariant(product: CatalogProduct, variant: CatalogProductVariant): void {
-    if (this.selectedReservation()) {
-      toast.warning('La venta ya está asociada a una reserva.');
-      return;
-    }
-
     const items = [...this.selectedItems()];
     const existing = items.find((item) => item.variant_id === variant.id);
     if (existing) {
@@ -141,6 +92,7 @@ export class SalesPageComponent {
       size_name: null,
       color_name: null,
       unit_price: variant.price,
+      original_unit_price: variant.original_price ?? variant.price,
       quantity: 1,
       image_url: variant.image_url ?? product.image_url ?? null,
     });
@@ -165,7 +117,6 @@ export class SalesPageComponent {
 
   protected clearSale(): void {
     this.selectedItems.set([]);
-    this.selectedReservation.set(null);
     this.lastSale.set(null);
     this.cashReference.set('');
   }
@@ -177,8 +128,8 @@ export class SalesPageComponent {
       return;
     }
 
-    if (!this.selectedReservation() && !this.selectedItems().length) {
-      toast.warning('Agrega items o carga una reserva.');
+    if (!this.selectedItems().length) {
+      toast.warning('Agrega items a la venta.');
       return;
     }
 
@@ -186,12 +137,9 @@ export class SalesPageComponent {
     try {
       const payload: CreateSaleRequest = {
         branch_id: branchId,
-        reservation_id: this.selectedReservation()?.id ?? null,
         payment_method: 'cash',
         cash_reference: this.cashReference() || null,
-        items: this.selectedReservation()
-          ? []
-          : this.selectedItems().map((item) => ({ variant_id: item.variant_id, quantity: item.quantity })),
+        items: this.selectedItems().map((item) => ({ variant_id: item.variant_id, quantity: item.quantity })),
       };
 
       const response = await requestWithToast(
@@ -200,9 +148,9 @@ export class SalesPageComponent {
       );
       this.lastSale.set(response.data ?? null);
       this.selectedItems.set([]);
-      this.selectedReservation.set(null);
       this.cashReference.set('');
       await this.searchProducts();
+      await this.loadHistory();
     } catch {
       // toast handled by requestWithToast
     } finally {
@@ -218,12 +166,23 @@ export class SalesPageComponent {
     return this.lastSale()?.payment_status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700';
   }
 
-  protected saleTotal(): string {
-    return this.selectedItems().reduce((sum, item) => sum + Number(item.unit_price) * item.quantity, 0).toFixed(2);
+  protected printReceipt(): void {
+    window.print();
   }
 
   protected lineTotal(item: SelectedSaleItem): string {
     return (Number(item.unit_price) * item.quantity).toFixed(2);
+  }
+
+  private async loadHistory(): Promise<void> {
+    const branchId = this.branchId();
+    if (!branchId) return;
+    try {
+      const response = await firstValueFrom(this.salesApi.listBranchSales(branchId));
+      this.salesHistory.set(response.data ?? []);
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'No se pudo cargar el historial de ventas.'));
+    }
   }
 
 }

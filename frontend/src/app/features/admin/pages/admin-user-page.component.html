@@ -1,7 +1,12 @@
 <section class="space-y-5">
   <header>
-    <h1 class="text-2xl font-semibold">Usuarios y roles</h1>
-    <p class="text-sm text-slate-500">Administra administradores, clientes y delivery.</p>
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-semibold">Usuarios y roles</h1>
+        <p class="text-sm text-slate-500">Administra usuarios internos y sus permisos.</p>
+      </div>
+      <button hlmBtn type="button" (click)="openCreateModal()">Crear usuario</button>
+    </div>
   </header>
 
   <hlm-tabs [tab]="filtroRol() || 'todos'" class="w-full" (tabActivated)="selectFiltro($event)">
@@ -23,7 +28,7 @@
           <th class="px-4 py-3">Usuario</th>
           <th class="px-4 py-3">Correo</th>
           <th class="px-4 py-3">Rol</th>
-          <th class="px-4 py-3">Sucursal</th>
+          <th class="px-4 py-3">Alcance</th>
           <th class="px-4 py-3">Estado</th>
           <th class="px-4 py-3 text-right">Acciones</th>
         </tr>
@@ -41,7 +46,7 @@
               {{ labelRol(user.rol) }}
             </td>
             <td class="px-4 py-3 text-sm text-black">
-              {{ branchName(user.branch_id) }}
+              {{ branchName(user.branch_id, user.rol) }}
             </td>
             <td class="px-4 py-3 text-sm text-black">{{ activeLabel(user) }}</td>
             <td class="px-4 py-3 text-right">
@@ -70,10 +75,10 @@
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6" (click)="closeModal()">
       <section hlmCard class="w-full max-w-2xl bg-white shadow-xl" (click)="$event.stopPropagation()">
         <div hlmCardHeader class="space-y-1 border-b border-slate-200 pb-4">
-          <h2 hlmCardTitle class="text-xl">Editar usuario</h2>
+           <h2 hlmCardTitle class="text-xl">{{ isCreateMode() ? 'Crear usuario' : 'Editar usuario' }}</h2>
         </div>
 
-        <form class="grid gap-3 p-6 md:grid-cols-2" [formGroup]="userForm" (ngSubmit)="submitUser()">
+        <form class="grid gap-3 px-6 md:grid-cols-2" [formGroup]="userForm" (ngSubmit)="submitUser()">
           <div hlmField>
             <label hlmFieldLabel for="user-name">Nombre</label>
             <input id="user-name" hlmInput class="w-full" formControlName="name" />
@@ -82,6 +87,12 @@
             <label hlmFieldLabel for="user-email">Correo</label>
             <input id="user-email" hlmInput class="w-full" type="email" autocomplete="email" autocapitalize="none" autocorrect="off" spellcheck="false" formControlName="email" (input)="normalizeEmailInput($event)" />
           </div>
+          @if (isCreateMode()) {
+            <div hlmField>
+              <label hlmFieldLabel for="user-password">Contraseña</label>
+              <input id="user-password" hlmInput class="w-full" type="password" autocomplete="new-password" formControlName="password" />
+            </div>
+          }
           <div hlmField>
             <label hlmFieldLabel for="user-gender">Género</label>
               <div hlmSelect formControlName="gender" [itemToString]="genderSelectLabel">
@@ -94,20 +105,43 @@
               </hlm-select-content>
             </div>
           </div>
-          <div hlmField>
-            <label hlmFieldLabel for="user-branch">Sucursal</label>
-              <div hlmSelect formControlName="branch_id" [itemToString]="branchSelectLabel">
-              <hlm-select-trigger buttonId="user-branch">
-                <span hlmSelectValue placeholder="Sin sucursal"></span>
-              </hlm-select-trigger>
-              <hlm-select-content>
-                <hlm-select-item value="">Sin sucursal</hlm-select-item>
-                @for (branch of branches(); track branch.id) {
-                  <hlm-select-item [value]="branch.id">{{ branch.name }} - {{ branch.city }}</hlm-select-item>
-                }
-              </hlm-select-content>
+          @if (isCreateMode()) {
+            <div hlmField>
+              <label hlmFieldLabel for="user-role">Rol</label>
+              <div hlmSelect formControlName="rol" [itemToString]="roleSelectLabel">
+                <hlm-select-trigger buttonId="user-role">
+                  <span hlmSelectValue placeholder="Rol"></span>
+                </hlm-select-trigger>
+                <hlm-select-content>
+                  <hlm-select-item value="administrador">Administrador</hlm-select-item>
+                  <hlm-select-item value="encargado">Encargado</hlm-select-item>
+                  <hlm-select-item value="cajero">Cajero</hlm-select-item>
+                  <hlm-select-item value="delivery">Delivery</hlm-select-item>
+                </hlm-select-content>
+              </div>
             </div>
-          </div>
+          }
+          @if (roleRequiresBranch()) {
+            <div hlmField>
+              <label hlmFieldLabel for="user-branch">Sucursal</label>
+              <div hlmSelect formControlName="branch_id" [itemToString]="branchSelectLabel">
+                <hlm-select-trigger buttonId="user-branch">
+                  <span hlmSelectValue placeholder="Sin sucursal"></span>
+                </hlm-select-trigger>
+                <hlm-select-content>
+                  <hlm-select-item value="">Sin sucursal</hlm-select-item>
+                  @for (branch of branches(); track branch.id) {
+                    <hlm-select-item [value]="branch.id">{{ branch.name }} - {{ branch.city }}</hlm-select-item>
+                  }
+                </hlm-select-content>
+              </div>
+            </div>
+          } @else if (isCreateMode()) {
+            <div hlmField>
+              <label hlmFieldLabel for="user-scope">Alcance</label>
+              <input id="user-scope" hlmInput class="w-full" value="Global" disabled />
+            </div>
+          }
           <div hlmField>
             <label hlmFieldLabel for="user-active">Estado</label>
               <div hlmSelect formControlName="is_active" [itemToString]="activeSelectLabel">
@@ -122,7 +156,7 @@
           </div>
           <div class="md:col-span-2 flex justify-end gap-2 pt-2">
             <button hlmBtn variant="outline" type="button" (click)="closeModal()">Cancelar</button>
-            <button hlmBtn type="submit">Guardar cambios</button>
+            <button hlmBtn type="submit">{{ isCreateMode() ? 'Crear usuario' : 'Guardar cambios' }}</button>
           </div>
         </form>
       </section>

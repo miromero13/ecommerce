@@ -63,3 +63,28 @@ export interface InventoryMovement {
   created_by: string | null;
   created_at: string;
 }
+
+export interface InventoryMovementRequest {
+  variant_id: string;
+  branch_id: string;
+  quantity: number;
+  note?: string;
+}
+
+export interface InventoryTransferRequest {
+  variant_id: string;
+  from_branch_id: string;
+  to_branch_id: string;
+  quantity: number;
+  note?: string;
+}
+
+export interface InventoryMutationResponse {
+  movement?: string;
+  movements?: string[];
+  variant_id: string;
+  branch_id?: string;
+  from_branch_id?: string;
+  to_branch_id?: string;
+  quantity?: number;
+}

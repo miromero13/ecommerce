@@ -21,12 +21,15 @@ export interface CatalogCollectionItem extends CatalogNameItem {
 }
 
 export type ProductStatus = 'pending' | 'active' | 'inactive';
+export type DiscountType = 'percentage' | 'fixed';
 
 export interface CatalogProductVariant {
   id: string;
   product_id: string;
   sku: string;
   price: string;
+  original_price?: string | null;
+  discount_amount?: string;
   size_id: string | null;
   color_id: string | null;
   image_url?: string | null;
@@ -39,10 +42,11 @@ export interface CatalogProduct {
   id: string;
   name: string;
   description: string | null;
-  price: string;
+  discount_type?: DiscountType | null;
+  discount_value?: string | null;
   provider_id?: string | null;
+  minimum_stock: number;
   category_id: string;
-  season_id: string | null;
   collection_id: string | null;
   sku?: string | null;
   image_url?: string | null;
@@ -69,6 +73,7 @@ export interface CreateCollectionRequest {
 }
 
 export interface CreateProductVariantRequest {
+  id?: string;
   sku: string;
   price: string;
   size_id?: string | null;
@@ -81,16 +86,14 @@ export interface CreateProductVariantRequest {
 export interface CreateProductRequest {
   name: string;
   description?: string | null;
-  price: string;
   category_id: string;
   provider_id?: string | null;
-  size_id?: string | null;
-  color_id?: string | null;
-  season_id?: string | null;
+  minimum_stock?: number;
   collection_id?: string | null;
+  discount_type?: DiscountType | null;
+  discount_value?: string | null;
   status?: ProductStatus;
-  sku?: string;
-  variants?: CreateProductVariantRequest[];
+  variants: CreateProductVariantRequest[];
 }
 
 export interface UpdateNameItemRequest {
@@ -110,14 +113,15 @@ export interface UpdateCollectionRequest {
 export interface UpdateProductRequest {
   name: string;
   description?: string | null;
-  price: string;
   category_id: string;
   provider_id?: string | null;
-  season_id?: string | null;
+  minimum_stock?: number;
   collection_id?: string | null;
+  discount_type?: DiscountType | null;
+  discount_value?: string | null;
   status?: ProductStatus;
   sku?: string;
-  variants?: CreateProductVariantRequest[];
+  variants: CreateProductVariantRequest[];
 }
 
 export type ListResponse<T> = ApiResponse<T[]>;

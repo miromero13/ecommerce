@@ -51,9 +51,184 @@
     </article>
   </section>
 
+  @if (isAdmin() || isManager()) {
+    <section class="space-y-4">
+      <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h2 class="text-lg font-semibold">Operaciones de inventario</h2>
+          <p class="text-sm text-slate-500">Registra movimientos sobre variantes activas y stock disponible.</p>
+        </div>
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div class="flex gap-2">
+            <button hlmBtn type="button" (click)="openMovementModal()">Registrar movimiento</button>
+            @if (isAdmin()) {
+              <button hlmBtn type="button" (click)="openTransferModal()">Registrar traspaso</button>
+            }
+          </div>
+        </div>
+      </div>
+    </section>
+  }
+
+  @if (movementModalOpen()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6" (click)="closeMovementModal()">
+      <section hlmCard class="w-full max-w-xl bg-white text-slate-700 shadow-xl" role="dialog" aria-modal="true" aria-labelledby="movement-modal-title" (click)="$event.stopPropagation()">
+        <div hlmCardHeader class="space-y-1 border-b border-slate-200 pb-4">
+          <h2 id="movement-modal-title" hlmCardTitle class="text-xl">Registrar movimiento</h2>
+        </div>
+
+        <div class="space-y-4 px-6">
+          <div>
+            <label class="mb-1 block text-sm font-medium text-slate-700">Tipo de movimiento</label>
+            <div hlmSelect [value]="movementType()" [itemToString]="movementTypeSelectLabel" (valueChange)="selectMovementType($event)">
+              <hlm-select-trigger buttonId="inventory-movement-type">
+                <span hlmSelectValue placeholder="Tipo de movimiento"></span>
+              </hlm-select-trigger>
+              <hlm-select-content>
+                <hlm-select-item value="income">Ingreso</hlm-select-item>
+                <hlm-select-item value="outcome">Salida</hlm-select-item>
+              </hlm-select-content>
+            </div>
+          </div>
+
+          @if (movementType() === 'income') {
+           <form class="space-y-3" [formGroup]="incomeForm" (ngSubmit)="submitMovementModal()">
+              @if (isAdmin()) {
+                <div hlmSelect formControlName="branch_id" [itemToString]="branchSelectLabel" (valueChange)="selectBranch($event)">
+                  <hlm-select-trigger buttonId="inventory-income-branch">
+                    <span hlmSelectValue placeholder="Sucursal de operación"></span>
+                  </hlm-select-trigger>
+                  <hlm-select-content>
+                    <hlm-select-item value="">Sucursal de operación</hlm-select-item>
+                    @for (branch of branches(); track branch.id) {
+                      <hlm-select-item [value]="branch.id">{{ branch.name }} - {{ branch.city }}</hlm-select-item>
+                    }
+                  </hlm-select-content>
+                </div>
+              }
+              <div hlmSelect formControlName="variant_id" [itemToString]="variantSelectLabel">
+                <hlm-select-trigger buttonId="inventory-income-variant">
+                  <span hlmSelectValue placeholder="Selecciona una variante activa"></span>
+                </hlm-select-trigger>
+                <hlm-select-content>
+                  @for (item of activeBranchStock(); track item.variant_id) {
+                    <hlm-select-item [value]="item.variant_id">{{ item.product_name }} · {{ item.variant_sku }}</hlm-select-item>
+                  }
+                </hlm-select-content>
+              </div>
+              <input class="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm" type="number" min="1" formControlName="quantity" placeholder="Cantidad" />
+              <input class="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm" formControlName="note" placeholder="Nota (opcional)" />
+              @if (incomeForm.invalid && incomeForm.touched) {
+                <p class="text-xs text-rose-600">Selecciona una variante e indica una cantidad mayor que cero.</p>
+              }
+              <div class="flex justify-end gap-2 pt-2">
+                <button hlmBtn variant="outline" type="button" (click)="closeMovementModal()">Cancelar</button>
+                <button hlmBtn type="submit" [disabled]="submitting()">Registrar ingreso</button>
+              </div>
+            </form>
+          } @else {
+            <form class="space-y-3" [formGroup]="outcomeForm" (ngSubmit)="submitMovementModal()">
+              @if (isAdmin()) {
+                <div hlmSelect formControlName="branch_id" [itemToString]="branchSelectLabel" (valueChange)="selectBranch($event)">
+                  <hlm-select-trigger buttonId="inventory-outcome-branch">
+                    <span hlmSelectValue placeholder="Sucursal de operación"></span>
+                  </hlm-select-trigger>
+                  <hlm-select-content>
+                    <hlm-select-item value="">Sucursal de operación</hlm-select-item>
+                    @for (branch of branches(); track branch.id) {
+                      <hlm-select-item [value]="branch.id">{{ branch.name }} - {{ branch.city }}</hlm-select-item>
+                    }
+                  </hlm-select-content>
+                </div>
+              }
+              <div hlmSelect formControlName="variant_id" [itemToString]="variantSelectLabel">
+                <hlm-select-trigger buttonId="inventory-outcome-variant">
+                  <span hlmSelectValue placeholder="Selecciona una variante activa"></span>
+                </hlm-select-trigger>
+                <hlm-select-content>
+                  @for (item of activeBranchStock(); track item.variant_id) {
+                    <hlm-select-item [value]="item.variant_id">{{ item.product_name }} · {{ item.variant_sku }} · disp. {{ item.available_quantity }}</hlm-select-item>
+                  }
+                </hlm-select-content>
+              </div>
+              <input class="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm" type="number" min="1" formControlName="quantity" placeholder="Cantidad" />
+              <input class="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm" formControlName="note" placeholder="Nota (opcional)" />
+              @if (outcomeForm.invalid && outcomeForm.touched) {
+                <p class="text-xs text-rose-600">Selecciona una variante e indica una cantidad mayor que cero.</p>
+              }
+              <div class="flex justify-end gap-2 pt-2">
+                <button hlmBtn variant="outline" type="button" (click)="closeMovementModal()">Cancelar</button>
+                <button hlmBtn type="submit" [disabled]="submitting()">Registrar salida</button>
+              </div>
+            </form>
+          }
+        </div>
+      </section>
+    </div>
+  }
+
+  @if (transferModalOpen()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6" (click)="closeTransferModal()">
+      <section hlmCard class="w-full max-w-xl bg-white text-slate-700 shadow-xl" role="dialog" aria-modal="true" aria-labelledby="transfer-modal-title" (click)="$event.stopPropagation()">
+        <div hlmCardHeader class="space-y-1 border-b border-slate-200 pb-4">
+          <h2 id="transfer-modal-title" hlmCardTitle class="text-xl">Registrar traspaso</h2>
+          <p class="text-sm text-slate-500">El origen usa la sucursal seleccionada y el destino debe ser diferente.</p>
+        </div>
+
+        <form class="space-y-3 px-6 pb-6" [formGroup]="transferForm" (ngSubmit)="registerTransfer()">
+          @if (isAdmin()) {
+            <div hlmSelect formControlName="from_branch_id" [itemToString]="branchSelectLabel" (valueChange)="selectBranch($event)">
+              <hlm-select-trigger buttonId="inventory-transfer-from-branch">
+                <span hlmSelectValue placeholder="Sucursal de origen"></span>
+              </hlm-select-trigger>
+              <hlm-select-content>
+                <hlm-select-item value="">Sucursal de origen</hlm-select-item>
+                @for (branch of branches(); track branch.id) {
+                  <hlm-select-item [value]="branch.id">{{ branch.name }} - {{ branch.city }}</hlm-select-item>
+                }
+              </hlm-select-content>
+            </div>
+          }
+          <div hlmSelect formControlName="variant_id" [itemToString]="variantSelectLabel">
+            <hlm-select-trigger buttonId="inventory-transfer-variant">
+              <span hlmSelectValue placeholder="Variante activa"></span>
+            </hlm-select-trigger>
+            <hlm-select-content>
+              @for (item of activeBranchStock(); track item.variant_id) {
+                <hlm-select-item [value]="item.variant_id">{{ item.product_name }} · {{ item.variant_sku }} · disp. {{ item.available_quantity }}</hlm-select-item>
+              }
+            </hlm-select-content>
+          </div>
+          <div hlmSelect formControlName="to_branch_id" [itemToString]="branchSelectLabel">
+            <hlm-select-trigger buttonId="inventory-transfer-to-branch">
+              <span hlmSelectValue placeholder="Sucursal destino"></span>
+            </hlm-select-trigger>
+            <hlm-select-content>
+              <hlm-select-item value="">Sucursal destino</hlm-select-item>
+              @for (branch of branches(); track branch.id) {
+                @if (branch.id !== transferForm.controls.from_branch_id.value) {
+                  <hlm-select-item [value]="branch.id">{{ branch.name }} - {{ branch.city }}</hlm-select-item>
+                }
+              }
+            </hlm-select-content>
+          </div>
+          <input class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm" type="number" min="1" formControlName="quantity" placeholder="Cantidad" />
+          <input class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm" formControlName="note" placeholder="Nota (opcional)" />
+          @if (transferForm.invalid && transferForm.touched) {
+            <p class="text-xs text-rose-600">Selecciona una variante, una sucursal destino y una cantidad mayor que cero.</p>
+          }
+          <div class="flex justify-end gap-2 pt-2">
+            <button hlmBtn variant="outline" type="button" (click)="closeTransferModal()">Cancelar</button>
+            <button hlmBtn type="submit" [disabled]="submitting()">Registrar traspaso</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  }
+
   <hlm-tabs [tab]="activeTab()" class="space-y-4 w-full" (tabActivated)="selectTab($event)">
     <hlm-tabs-list aria-label="Inventario" class="!flex !w-fit !flex-wrap !gap-2 !border-0 !bg-transparent !p-0 !rounded-md">
-      @for (tab of tabs; track tab) {
+      @for (tab of tabs(); track tab) {
         <button [hlmTabsTrigger]="tab" type="button" class="!w-fit !min-h-8 !rounded-md !px-2 !py-0.5 text-[11px]">
           <span>
             @if (tab === 'consolidated') {
@@ -68,7 +243,7 @@
       }
     </hlm-tabs-list>
 
-    @if (activeTab() === 'consolidated') {
+    @if (activeTab() === 'consolidated' && isAdmin()) {
       <article hlmCard class="bg-white shadow-sm">
         <div hlmCardContent class="space-y-4 p-4">
           <div>
@@ -126,15 +301,22 @@
               <p class="text-sm text-slate-500">Selecciona una sucursal para revisar el detalle operativo.</p>
             </div>
 
-            <div class="min-w-[260px]">
-              <label class="mb-1 block text-xs font-medium text-slate-600">Sucursal</label>
-              <select class="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm" [value]="selectedBranchId()" (change)="selectBranch($any($event.target).value)">
-                <option value="">Sucursal</option>
-                @for (branch of branches(); track branch.id) {
-                  <option [value]="branch.id">{{ branch.name }} - {{ branch.city }}</option>
-                }
-              </select>
-            </div>
+            @if (isAdmin()) {
+              <div class="min-w-[260px]">
+                <label class="mb-1 block text-xs font-medium text-slate-600">Sucursal</label>
+                <div hlmSelect [value]="selectedBranchId()" [itemToString]="branchSelectLabel" (valueChange)="selectBranch($event)">
+                  <hlm-select-trigger buttonId="inventory-branch-filter">
+                    <span hlmSelectValue placeholder="Sucursal"></span>
+                  </hlm-select-trigger>
+                  <hlm-select-content>
+                    <hlm-select-item value="">Sucursal</hlm-select-item>
+                    @for (branch of branches(); track branch.id) {
+                      <hlm-select-item [value]="branch.id">{{ branch.name }} - {{ branch.city }}</hlm-select-item>
+                    }
+                  </hlm-select-content>
+                </div>
+              </div>
+            }
           </div>
 
           <div class="overflow-hidden rounded-xl border border-slate-200">
@@ -192,7 +374,7 @@
                   </div>
                   <span hlmBadge class="rounded-full px-2 py-1 text-[11px]" [ngClass]="movementTypeClass(movement.movement_type)">{{ movement.quantity }}</span>
                 </div>
-                <p class="mt-2 text-xs text-slate-500">{{ movement.created_at }}</p>
+                <p class="mt-2 text-xs text-slate-500">{{ formatDateTime(movement.created_at) }}</p>
                 @if (movement.note) {
                   <p class="mt-2 text-sm text-slate-700">{{ movement.note }}</p>
                 }

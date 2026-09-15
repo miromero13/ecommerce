@@ -48,7 +48,7 @@
             <div class="text-xs text-slate-500">
               <p>Categoría: {{ categoryName(product.category_id) }}</p>
               <p>Colección: {{ collectionName(product.collection_id) }}</p>
-              <p>Temporada: {{ seasonName(product.season_id) }}</p>
+              <p>Temporada: {{ collectionSeasonName(product.collection_id) }}</p>
             </div>
 
             <div hlmSelect class="w-full" [value]="selectedVariant(product)?.id" [itemToString]="variantSelectLabel(product)" (valueChange)="setSelectedVariant(product.id, $event)">
@@ -85,8 +85,18 @@
                   </div>
                   <p class="text-xs text-slate-500">Visita: {{ reservation.visit_date }} · Vence: {{ reservation.expires_at }}</p>
                 </div>
-                <button hlmBtn type="button" variant="outline" (click)="cancelReservation(reservation.id)" [disabled]="reservation.status === 'cancelled' || reservation.status === 'expired' || reservation.status === 'attended'">Cancelar</button>
+                <button hlmBtn type="button" variant="outline" (click)="cancelReservation(reservation.id)" [disabled]="reservation.status !== 'pending' && reservation.status !== 'confirmed'">Cancelar</button>
               </div>
+
+              @if (reservation.status === 'attended') {
+                <div class="mt-3 flex flex-wrap gap-2">
+                  <button hlmBtn type="button" (click)="decideReservation(reservation.id, true)">Comprar prendas</button>
+                  <button hlmBtn type="button" variant="outline" (click)="decideReservation(reservation.id, false)">No comprar</button>
+                </div>
+              }
+              @if (reservation.status === 'purchase_pending' && !reservation.cart_id) {
+                <div class="mt-3"><button hlmBtn type="button" (click)="transferToCart(reservation.id)">Pasar al carrito</button></div>
+              }
 
               <div class="mt-3 text-sm text-slate-700">
                 <p>Items: {{ reservation.item_count }}</p>

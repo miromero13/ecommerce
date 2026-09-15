@@ -42,6 +42,7 @@ from app.services.catalog_service import (
     list_public_products,
     create_or_update_inventory,
     get_branch_quantity,
+    available_quantity,
     list_pending_products as list_pending_products_service,
     get_variant_by_id,
     serialize_product,
@@ -53,6 +54,17 @@ from app.utils.response import response
 
 
 router = APIRouter(prefix="/catalog", tags=["Catalog"])
+
+
+def _validate_product_provider_scope(db: Session, provider_id: UUID | None, current_user: dict) -> None:
+    if provider_id is None:
+        return
+    provider = db.query(Provider).filter(Provider.id == provider_id).first()
+    if not provider:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El proveedor no existe")
+    branch_id = current_user.get("branch_id")
+    if branch_id and provider.branch_id != UUID(branch_id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No puedes asignar un proveedor de otra sucursal")
 
 
 def _resolve_legacy_variant(db: Session, product_id: UUID):
@@ -259,9 +271,10 @@ async def list_pending_products(db: Session = Depends(get_db), current_user: Use
 
 
 @router.post("/products", status_code=status.HTTP_201_CREATED)
-async def create_product_route(payload: ProductCreate, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
+async def create_product_route(payload: ProductCreate, db: Session = Depends(get_db), current_user: dict = Depends(require_roles(RolEnum.administrador))):
+    _validate_product_provider_scope(db, payload.provider_id, current_user)
     try:
-        product = create_product(db, payload, status=ProductStatusEnum.active)
+        product = create_product(db, payload, provider_id=payload.provider_id, status=ProductStatusEnum.active)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     serialized = serialize_product(db, product.id)
@@ -269,7 +282,8 @@ async def create_product_route(payload: ProductCreate, db: Session = Depends(get
 
 
 @router.put("/products/{product_id}")
-async def update_product_route(product_id: UUID, payload: ProductCreate, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
+async def update_product_route(product_id: UUID, payload: ProductCreate, db: Session = Depends(get_db), current_user: dict = Depends(require_roles(RolEnum.administrador))):
+    _validate_product_provider_scope(db, payload.provider_id, current_user)
     try:
         product = update_product(db, product_id, payload)
     except ValueError as exc:
@@ -407,9 +421,9 @@ async def get_availability(product_id: UUID | None = None, variant_id: UUID | No
         product = db.query(Product).options(selectinload(Product.variants)).filter(Product.id == product_id).first()
         if not product:
             raise HTTPException(status_code=404, detail=f"Producto con id {product_id} no encontrado")
-        variant_ids = [variant.id for variant in product.variants]
+        variant_ids = [variant.id for variant in product.variants if variant.status == ProductStatusEnum.active]
         inventories = db.query(Inventory).filter(Inventory.variant_id.in_(variant_ids), Inventory.branch_id == branch_id).all()
-        quantity = sum(inventory.quantity for inventory in inventories)
+        quantity = sum(available_quantity(inventory.quantity, inventory.reserved_quantity) for inventory in inventories)
         return response(status_code=200, message="Disponibilidad obtenida exitosamente", data={"product_id": product_id, "branch_id": branch_id, "quantity": quantity})
 
     raise HTTPException(status_code=422, detail="Debes enviar product_id o variant_id")

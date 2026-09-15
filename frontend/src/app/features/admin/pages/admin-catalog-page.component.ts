@@ -21,9 +21,12 @@ import {
   CatalogNameItem,
   CatalogProduct,
   CatalogProductVariant,
+  DiscountType,
   ProductStatus,
 } from '../../shared/models/catalog.model';
 import { CatalogApiService } from '../../shared/services/catalog-api.service';
+import { AdminProvider } from '../models/admin-provider.model';
+import { AdminProviderService } from '../services/admin-provider.service';
 
 type CatalogTab = 'categories' | 'sizes' | 'colors' | 'seasons' | 'collections' | 'products';
 
@@ -72,6 +75,7 @@ const CATALOG_CREATE_LABELS: Record<CatalogTab, string> = {
 export class AdminCatalogPageComponent {
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(CatalogApiService);
+  private readonly providerApi = inject(AdminProviderService);
   private readonly initialDataLoad = this.loadData();
 
   protected readonly categories = signal<CatalogNameItem[]>([]);
@@ -80,6 +84,7 @@ export class AdminCatalogPageComponent {
   protected readonly seasons = signal<CatalogNameItem[]>([]);
   protected readonly collections = signal<CatalogCollectionItem[]>([]);
   protected readonly products = signal<CatalogProduct[]>([]);
+  protected readonly providers = signal<AdminProvider[]>([]);
   protected readonly loading = signal(false);
   protected readonly activeTab = signal<CatalogTab>('products');
   protected readonly modalOpen = signal(false);
@@ -102,16 +107,27 @@ export class AdminCatalogPageComponent {
     return this.categoryName(categoryId);
   };
 
-  protected readonly productSeasonSelectLabel = (seasonId: string | null | undefined): string => {
-    if (!seasonId) return 'Temporada';
-    return this.seasonName(seasonId);
-  };
-
   protected readonly productCollectionSelectLabel = (collectionId: string | null | undefined): string => {
     if (!collectionId) return 'Colección';
     const collection = this.collections().find((item) => item.id === collectionId);
     return collection ? `${collection.name} - ${this.seasonName(collection.season_id)}` : collectionId;
   };
+
+  protected readonly discountTypeSelectLabel = (type: DiscountType | null | undefined): string => {
+    if (type === 'percentage') return 'Porcentaje';
+    if (type === 'fixed') return 'Monto fijo';
+    return 'Sin descuento';
+  };
+
+  protected discountValueLabel(): string {
+    const type = this.productForm.controls.discount_type.value;
+    return type === 'percentage' ? 'Valor (%)' : type === 'fixed' ? 'Valor (BOB)' : 'Valor';
+  }
+
+  protected discountValuePlaceholder(): string {
+    const type = this.productForm.controls.discount_type.value;
+    return type === 'percentage' ? 'Ej. 10 para 10%' : type === 'fixed' ? 'Ej. 50 para 50 BOB' : 'Selecciona un tipo de descuento';
+  }
 
   protected readonly variantSizeSelectLabel = (sizeId: string | null | undefined): string => {
     if (!sizeId) return 'Talla';
@@ -140,8 +156,11 @@ export class AdminCatalogPageComponent {
     name: ['', [Validators.required]],
     description: [''],
     category_id: ['', [Validators.required]],
-    season_id: [''],
     collection_id: [''],
+    discount_type: [''],
+    discount_value: [''],
+    provider_id: [''],
+    minimum_stock: [0, [Validators.min(0)]],
     variants: this.fb.array([this.createVariantGroup()]),
   });
 
@@ -161,7 +180,7 @@ export class AdminCatalogPageComponent {
     this.editingProductId.set(null);
     if (tab === 'products') {
       this.resetVariantImageStates();
-      this.productForm.reset({ name: '', description: '', category_id: '', season_id: '', collection_id: '' });
+      this.productForm.reset({ name: '', description: '', category_id: '', collection_id: '', discount_type: '', discount_value: '', provider_id: '', minimum_stock: 0 });
       this.variantsArray().clear();
       this.variantsArray().push(this.createVariantGroup());
       this.editingVariantIds = [null];
@@ -206,14 +225,15 @@ export class AdminCatalogPageComponent {
       name: product.name,
       description: product.description ?? '',
       category_id: product.category_id,
-      season_id: product.season_id ?? '',
       collection_id: product.collection_id ?? '',
+      discount_type: product.discount_type ?? '',
+      discount_value: product.discount_value ?? '',
+      provider_id: product.provider_id ?? '',
+      minimum_stock: product.minimum_stock ?? 0,
     });
     this.variantsArray().clear();
 
-    const variants = product.variants?.length
-      ? product.variants
-      : [{ id: '', sku: product.sku ?? '', price: product.price, size_id: product.size_id ?? '', color_id: product.color_id ?? '', image_url: product.image_url ?? null, image_public_id: product.image_public_id ?? null, status: product.status ?? 'active' }];
+    const variants = product.variants ?? [];
     this.editingVariantIds = [];
     this.variantImageStates = [];
     variants.forEach((variant) => {
@@ -332,15 +352,19 @@ export class AdminCatalogPageComponent {
     this.loading.set(true);
     try {
       const payload = this.productForm.getRawValue();
+      const discountType = payload.discount_type ? (payload.discount_type as DiscountType) : null;
       let savedProduct: CatalogProduct | null = null;
       const request = {
         name: payload.name,
         description: payload.description || null,
-        price: firstVariant.price,
         category_id: payload.category_id,
-        season_id: payload.season_id || null,
         collection_id: payload.collection_id || null,
+        discount_type: discountType,
+        discount_value: payload.discount_type ? payload.discount_value : null,
+        provider_id: payload.provider_id || null,
+        minimum_stock: payload.minimum_stock,
         variants: variants.map((variant, index) => ({
+          id: this.editingVariantIds[index] ?? undefined,
           sku: variant.sku,
           price: variant.price,
           size_id: variant.size_id || null,
@@ -365,7 +389,7 @@ export class AdminCatalogPageComponent {
         savedProduct = response.data ?? null;
       }
       await this.syncVariantImages(savedProduct);
-      this.productForm.reset({ name: '', description: '', category_id: '', season_id: '', collection_id: '' });
+      this.productForm.reset({ name: '', description: '', category_id: '', collection_id: '', discount_type: '', discount_value: '', provider_id: '', minimum_stock: 0 });
       this.variantsArray().clear();
       this.variantsArray().push(this.createVariantGroup());
       this.editingVariantIds = [null];
@@ -651,6 +675,12 @@ export class AdminCatalogPageComponent {
     return this.lookupName(this.collections(), collectionId, 'Sin colección');
   }
 
+  protected readonly providerLabel = (providerId: string | null | undefined): string => {
+    if (!providerId) return 'Sin proveedor';
+    const provider = this.providers().find((item) => item.id === providerId);
+    return provider ? `${provider.business_name} · ${provider.contact_name} · ${provider.email}${provider.phone ? ` · ${provider.phone}` : ''}` : providerId;
+  };
+
   private createEmptyVariantImageState(): VariantImageState {
     return {
       currentUrl: null,
@@ -716,14 +746,15 @@ export class AdminCatalogPageComponent {
         continue;
       }
 
-      const variantId = savedVariants[index]?.id;
+      const editingVariantId = this.editingVariantIds[index];
+      const variantId = editingVariantId ?? savedVariants.find((variant) => variant.sku === this.variantForms().at(index).getRawValue().sku)?.id;
       if (!variantId) {
         continue;
       }
 
       const response = await firstValueFrom(this.api.updateVariantImage(variantId, state.selectedFile));
       const updatedProduct = response.data;
-      const updatedVariant = updatedProduct?.variants?.[index];
+      const updatedVariant = updatedProduct?.variants?.find((variant) => variant.id === variantId);
       this.variantImageStates[index] = {
         currentUrl: updatedVariant?.image_url ?? state.previewUrl,
         currentPublicId: updatedVariant?.image_public_id ?? state.currentPublicId,
@@ -766,13 +797,14 @@ export class AdminCatalogPageComponent {
 
   private async loadData(): Promise<void> {
     try {
-      const [categories, sizes, colors, seasons, collections, products] = await Promise.all([
+      const [categories, sizes, colors, seasons, collections, products, providers] = await Promise.all([
         firstValueFrom(this.api.listCategories()),
         firstValueFrom(this.api.listSizes()),
         firstValueFrom(this.api.listColors()),
         firstValueFrom(this.api.listSeasons()),
         firstValueFrom(this.api.listCollections()),
         firstValueFrom(this.api.listProducts()),
+        firstValueFrom(this.providerApi.listProviders()),
       ]);
 
       this.categories.set(categories.data ?? []);
@@ -781,6 +813,7 @@ export class AdminCatalogPageComponent {
       this.seasons.set(seasons.data ?? []);
       this.collections.set(collections.data ?? []);
       this.products.set(products.data ?? []);
+      this.providers.set(providers.data ?? []);
     } catch (error) {
       toast.error(getErrorMessage(error, 'No se pudo cargar el catálogo.'));
     }

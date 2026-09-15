@@ -48,7 +48,7 @@ void main() {
       ],
     });
 
-    expect(product.price, 110.50);
+    expect(product.variants!.first.price, 110.50);
     expect(product.status, ProductStatus.active);
     expect(product.variants, hasLength(2));
     expect(product.variants![0].id, 'variant-2');

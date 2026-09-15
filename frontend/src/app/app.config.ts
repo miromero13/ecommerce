@@ -1,6 +1,7 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
+import { provideNativeDateAdapter } from '@spartan-ng/brain/date-time';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './features/shared/interceptors/auth.interceptor';
@@ -10,5 +11,6 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
     provideHttpClient(withInterceptors([authInterceptor])),
+    provideNativeDateAdapter(),
   ],
 };

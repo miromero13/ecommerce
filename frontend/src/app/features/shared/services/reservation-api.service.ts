@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { ApiResponse } from '../../../core/models/api.model';
 import { ApiService } from '../../../core/services/api.service';
 import { CreateReservationRequest, Reservation, ReservationListResponse, ReservationResponse } from '../models/reservation.model';
+import { CartResponse } from '../models/cart.model';
 
 @Injectable({ providedIn: 'root' })
 export class ReservationApiService {
@@ -23,6 +24,14 @@ export class ReservationApiService {
 
   cancelReservation(reservationId: string) {
     return this.api.patch<ReservationResponse>(`/reservations/${reservationId}/cancel`, {});
+  }
+
+  decideReservation(reservationId: string, purchase: boolean) {
+    return this.api.patch<ReservationResponse>(`/reservations/${reservationId}/decision`, { purchase });
+  }
+
+  transferToCart(reservationId: string) {
+    return this.api.post<CartResponse>(`/reservations/${reservationId}/to-cart`, {});
   }
 
   confirmArrival(reservationId: string, branchId?: string) {

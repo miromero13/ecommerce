@@ -29,6 +29,8 @@ from app.models.sale_item import SaleItem
 from app.models.season import Season
 from app.models.size import Size
 from app.models.user import User
+from app.models.promotion_code import PromotionCode
+from app.models.promotion_code_usage import PromotionCodeUsage
 from app.schemas.catalog_enums import ProductStatusEnum
 from app.schemas.cart_schema import CartStatusEnum
 from app.schemas.inventory_schema import InventoryMovementTypeEnum
@@ -284,8 +286,8 @@ def _verify_seed(
     users_frame = frames["users"]
     if users_frame["email"].duplicated().any():
         raise RuntimeError("Existen emails duplicados en users")
-    internal_roles = {RolEnum.administrador.value, RolEnum.encargado.value, RolEnum.cajero.value, RolEnum.delivery.value, RolEnum.proveedor.value}
-    internal_users = users_frame[users_frame["rol"].map(_enum_value).isin(internal_roles)]
+    branch_scoped_roles = {RolEnum.encargado.value, RolEnum.cajero.value, RolEnum.delivery.value, RolEnum.proveedor.value}
+    internal_users = users_frame[users_frame["rol"].map(_enum_value).isin(branch_scoped_roles)]
     branch_ids = {str(branch.id) for branch in branches}
     if internal_users["branch_id"].isna().any() or not internal_users["branch_id"].map(str).isin(branch_ids).all():
         raise RuntimeError("Hay usuarios internos sin una sucursal valida")
@@ -379,10 +381,10 @@ def _seed_users(session, branches: list[Branch]) -> list[User]:
     password = _hash_password()
 
     users_payload = [
-        {"name": "Admin Global", "email": "admin.global@fashionstore.bo", "gender": GenderEnum.masculino, "rol": RolEnum.administrador, "branch_id": branches[0].id},
-        {"name": "Admin La Paz", "email": "admin.lp@fashionstore.bo", "gender": GenderEnum.femenino, "rol": RolEnum.administrador, "branch_id": branches[0].id},
-        {"name": "Admin Santa Cruz", "email": "admin.sc@fashionstore.bo", "gender": GenderEnum.masculino, "rol": RolEnum.administrador, "branch_id": branches[1].id},
-        {"name": "Admin Cochabamba", "email": "admin.cbba@fashionstore.bo", "gender": GenderEnum.femenino, "rol": RolEnum.administrador, "branch_id": branches[2].id},
+        {"name": "Admin Global", "email": "admin.global@fashionstore.bo", "gender": GenderEnum.masculino, "rol": RolEnum.administrador, "branch_id": None},
+        {"name": "Admin La Paz", "email": "admin.lp@fashionstore.bo", "gender": GenderEnum.femenino, "rol": RolEnum.administrador, "branch_id": None},
+        {"name": "Admin Santa Cruz", "email": "admin.sc@fashionstore.bo", "gender": GenderEnum.masculino, "rol": RolEnum.administrador, "branch_id": None},
+        {"name": "Admin Cochabamba", "email": "admin.cbba@fashionstore.bo", "gender": GenderEnum.femenino, "rol": RolEnum.administrador, "branch_id": None},
         {"name": "Encargada La Paz", "email": "encargada.lp@fashionstore.bo", "gender": GenderEnum.femenino, "rol": RolEnum.encargado, "branch_id": branches[0].id},
         {"name": "Encargado Santa Cruz", "email": "encargado.sc@fashionstore.bo", "gender": GenderEnum.masculino, "rol": RolEnum.encargado, "branch_id": branches[1].id},
         {"name": "Encargado Cochabamba", "email": "encargado.cbba@fashionstore.bo", "gender": GenderEnum.masculino, "rol": RolEnum.encargado, "branch_id": branches[2].id},
@@ -406,6 +408,8 @@ def _seed_users(session, branches: list[Branch]) -> list[User]:
                 "hashed_password": password,
             },
         )
+        if payload["rol"] == RolEnum.administrador:
+            user.branch_id = None
         users.append(user)
 
     clients_payload = [
@@ -598,7 +602,6 @@ def _seed_products(
         product = products_by_number.get(product_number)
         if product is None:
             category = categories_by_name[row.category_name]
-            season = seasons[0] if row.season in {"Spring", "Summer"} else seasons[1]
             collection = collections[(product_number - 1) % len(collections)]
             price = Decimal(str(79 + (product_number % 7) * 15))
             product, _ = _get_or_create(
@@ -607,18 +610,14 @@ def _seed_products(
                 {"name": row.productDisplayName},
                 {
                     "description": f"{row.articleType} para mujer en color {row.baseColour}.",
-                    "price": price,
                     "provider_id": providers[0].id if product_number % 3 == 0 else None,
                     "category_id": category.id,
-                    "season_id": season.id,
                     "collection_id": collection.id,
                 },
             )
             product.description = f"{row.articleType} para mujer en color {row.baseColour}."
-            product.price = price
             product.provider_id = providers[0].id if product_number % 3 == 0 else None
             product.category_id = category.id
-            product.season_id = season.id
             product.collection_id = collection.id
             products_by_number[product_number] = product
 
@@ -628,7 +627,7 @@ def _seed_products(
             {"sku": f"MYN-{row.id}"},
             {
                 "product_id": product.id,
-                "price": product.price,
+                "price": price,
                 "size_id": sizes[(index - 1) % 5].id,
                 "color_id": color.id,
                 "status": ProductStatusEnum.active,
@@ -637,7 +636,7 @@ def _seed_products(
             },
         )
         variant.product_id = product.id
-        variant.price = product.price
+        variant.price = price
         variant.size_id = sizes[(index - 1) % 5].id
         variant.color_id = color.id
         variant.status = ProductStatusEnum.active

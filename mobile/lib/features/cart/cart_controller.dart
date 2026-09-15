@@ -32,6 +32,10 @@ class CartController extends ChangeNotifier {
 
   Future<void> clear() => _run(_api.clear);
 
+  Future<void> applyCoupon(String code) => _run(() => _api.applyCoupon(code: code));
+
+  Future<void> removeCoupon() => _run(_api.removeCoupon);
+
   Future<void> _run(Future<CartOperationResult> Function() operation) async {
     status = CartControllerStatus.loading;
     errorMessage = null;

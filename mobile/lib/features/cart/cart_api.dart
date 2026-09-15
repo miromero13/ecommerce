@@ -63,6 +63,23 @@ class CartApi {
     return _result(response.data, response.message);
   }
 
+  Future<CartOperationResult> applyCoupon({required String code}) async {
+    final response = await _client.post<Cart>(
+      'cart/coupon',
+      data: {'code': code},
+      parser: _parseCart,
+    );
+    return _result(response.data, response.message);
+  }
+
+  Future<CartOperationResult> removeCoupon() async {
+    final response = await _client.delete<Cart>(
+      'cart/coupon',
+      parser: _parseCart,
+    );
+    return _result(response.data, response.message);
+  }
+
   static Cart _parseCart(dynamic value) {
     if (value is! Map) {
       throw const FormatException('La respuesta del carrito es inválida');

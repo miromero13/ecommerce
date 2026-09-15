@@ -3,7 +3,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideCalendarDays, lucideLayoutDashboard, lucideLogOut, lucidePackageSearch, lucideShoppingCart, lucideUserRound, lucideUsers } from '@ng-icons/lucide';
+import { lucideCalendarDays, lucideClipboardList, lucideLayoutDashboard, lucideLogOut, lucidePackageSearch, lucideShoppingCart, lucideTicket, lucideUserRound, lucideUsers } from '@ng-icons/lucide';
 
 import {
   HlmSidebar,
@@ -58,8 +58,10 @@ type SidebarSection = {
       lucideLayoutDashboard,
       lucideLogOut,
       lucideCalendarDays,
+      lucideClipboardList,
       lucidePackageSearch,
       lucideShoppingCart,
+      lucideTicket,
       lucideUserRound,
       lucideUsers,
     }),
@@ -103,6 +105,10 @@ export class AppShellComponent {
   });
 
   protected readonly userBranchLabel = computed(() => {
+    if (this.userRole() === 'administrador') {
+      return 'Acceso global';
+    }
+
     const branchId = this.session.user()?.branch_id;
     if (!branchId) {
       return '';
@@ -146,6 +152,7 @@ export class AppShellComponent {
             items: [
               { label: 'Dashboard', route: '/app/admin', icon: 'lucideLayoutDashboard', exact: true },
               { label: 'Catálogo', route: '/app/admin/catalog', icon: 'lucideLayoutDashboard' },
+              { label: 'Promociones', route: '/app/admin/promotions', icon: 'lucideTicket' },
               { label: 'Inventario', route: '/app/admin/inventory', icon: 'lucidePackageSearch' },
               { label: 'Usuarios', route: '/app/admin/user', icon: 'lucideUsers' },
               { label: 'Sucursales', route: '/app/admin/branch', icon: 'lucideLayoutDashboard' },
@@ -162,6 +169,7 @@ export class AppShellComponent {
               { label: 'Catálogo', route: '/app/cliente/catalog', icon: 'lucideLayoutDashboard', exact: true },
               { label: 'Reservas', route: '/app/cliente/reservations', icon: 'lucideCalendarDays' },
               { label: 'Carrito', route: '/app/cliente/cart', icon: 'lucideShoppingCart' },
+              { label: 'Pedidos', route: '/app/cliente/orders', icon: 'lucideClipboardList' },
             ],
           },
         ];
@@ -171,7 +179,11 @@ export class AppShellComponent {
             title: 'Operación',
             items: [
               this.homeItem(),
+              { label: 'Productos', route: '/app/proveedor/products', icon: 'lucidePackageSearch' },
               { label: 'Reservas', route: '/app/encargado/reservations', icon: 'lucideCalendarDays' },
+              { label: 'Inventario', route: '/app/encargado/inventory', icon: 'lucidePackageSearch' },
+              { label: 'Pedidos', route: '/app/encargado/orders', icon: 'lucideClipboardList' },
+              { label: 'Promociones', route: '/app/encargado/promotions', icon: 'lucideTicket' },
             ],
           },
         ];

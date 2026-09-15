@@ -2,6 +2,9 @@ enum ReservationStatus {
   pending('pending'),
   confirmed('confirmed'),
   attended('attended'),
+  purchasePending('purchase_pending'),
+  sold('sold'),
+  notSold('not_sold'),
   cancelled('cancelled'),
   expired('expired');
 
@@ -84,6 +87,7 @@ class Reservation {
     required this.createdAt,
     required this.items,
     this.updatedAt,
+    this.cartId,
   });
 
   final String id;
@@ -97,6 +101,7 @@ class Reservation {
   final int itemCount;
   final DateTime createdAt;
   final DateTime? updatedAt;
+  final String? cartId;
   final List<ReservationItem> items;
 
   bool get canCancel =>
@@ -121,6 +126,7 @@ class Reservation {
       itemCount: _requiredInt(json, 'item_count'),
       createdAt: _requiredDateTime(json, 'created_at'),
       updatedAt: _optionalDateTime(json, 'updated_at'),
+      cartId: _optionalString(json, 'cart_id'),
       items: rawItems
           .map((item) {
             if (item is! Map) {

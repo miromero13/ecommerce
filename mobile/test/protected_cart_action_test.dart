@@ -131,7 +131,6 @@ class _FakeAuthApi extends AuthApi {
 const _product = Product(
   id: 'product-id',
   name: 'Producto demo',
-  price: 100,
   categoryId: 'category-id',
   variants: [
     ProductVariant(

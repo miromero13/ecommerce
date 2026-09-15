@@ -10,6 +10,9 @@ class ReservationStatusEnum(str, Enum):
     pending = "pending"
     confirmed = "confirmed"
     attended = "attended"
+    purchase_pending = "purchase_pending"
+    sold = "sold"
+    not_sold = "not_sold"
     cancelled = "cancelled"
     expired = "expired"
 
@@ -23,6 +26,10 @@ class ReservationCreate(BaseModel):
     branch_id: UUID
     visit_date: date
     items: list[ReservationItemCreate] = Field(min_length=1)
+
+
+class ReservationDecisionRequest(BaseModel):
+    purchase: bool
 
 
 class ReservationItemRead(BaseModel):
@@ -50,6 +57,8 @@ class ReservationRead(BaseModel):
     branch_id: UUID
     branch_name: str
     user_id: UUID
+    user_name: str
+    cart_id: UUID | None = None
     visit_date: date
     expires_at: date
     status: ReservationStatusEnum

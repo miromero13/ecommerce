@@ -83,6 +83,34 @@ class ReservationController extends ChangeNotifier {
     );
   }
 
+  Future<void> decide(String reservationId, {required bool purchase}) {
+    return _runSave(
+      () => _api.decide(reservationId: reservationId, purchase: purchase),
+      onSuccess: (reservation) {
+        reservations = [
+          for (final item in reservations)
+            item.id == reservation.id ? reservation : item,
+        ];
+      },
+    );
+  }
+
+  Future<void> transferToCart(String reservationId) async {
+    status = ReservationControllerStatus.saving;
+    errorMessage = null;
+    feedbackMessage = null;
+    notifyListeners();
+    try {
+      final result = await _api.transferToCart(reservationId: reservationId);
+      feedbackMessage = result.message;
+      status = ReservationControllerStatus.ready;
+    } catch (error) {
+      status = ReservationControllerStatus.error;
+      errorMessage = _messageFor(error);
+    }
+    notifyListeners();
+  }
+
   Future<void> loadDetail(String reservationId) async {
     status = ReservationControllerStatus.loading;
     errorMessage = null;

@@ -166,6 +166,15 @@ class _ReservationsPageState extends State<ReservationsPage> {
                 onCancel: reservation.canCancel
                     ? () => _cancel(reservation)
                     : null,
+                onPurchase: reservation.status == ReservationStatus.attended
+                    ? () => _decide(reservation, purchase: true)
+                    : null,
+                onNotPurchase: reservation.status == ReservationStatus.attended
+                    ? () => _decide(reservation, purchase: false)
+                    : null,
+                onTransfer: reservation.status == ReservationStatus.purchasePending && reservation.cartId == null
+                    ? () => _transfer(reservation)
+                    : null,
               ),
               const SizedBox(height: 12),
             ],
@@ -364,6 +373,21 @@ class _ReservationsPageState extends State<ReservationsPage> {
         : _controller.feedbackMessage;
     if (message != null) AppSnackBar.show(context, message, tone: tone);
   }
+
+  Future<void> _decide(Reservation reservation, {required bool purchase}) async {
+    await _controller.decide(reservation.id, purchase: purchase);
+    if (mounted) _showFeedback(AppSnackBarTone.success);
+  }
+
+  Future<void> _transfer(Reservation reservation) async {
+    await _controller.transferToCart(reservation.id);
+    if (!mounted) return;
+    if (_controller.status == ReservationControllerStatus.error) {
+      AppSnackBar.show(context, _controller.errorMessage ?? 'No se pudo transferir la reserva.', tone: AppSnackBarTone.error);
+      return;
+    }
+    Navigator.of(context).pushReplacementNamed('/cart');
+  }
 }
 
 class _DraftItemRow extends StatelessWidget {
@@ -394,11 +418,17 @@ class _ReservationCard extends StatelessWidget {
     required this.reservation,
     required this.onTap,
     this.onCancel,
+    this.onPurchase,
+    this.onNotPurchase,
+    this.onTransfer,
   });
 
   final Reservation reservation;
   final VoidCallback onTap;
   final VoidCallback? onCancel;
+  final VoidCallback? onPurchase;
+  final VoidCallback? onNotPurchase;
+  final VoidCallback? onTransfer;
 
   @override
   Widget build(BuildContext context) {
@@ -440,6 +470,22 @@ class _ReservationCard extends StatelessWidget {
               ),
             ),
           ],
+          if (onPurchase != null || onNotPurchase != null) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: [
+                if (onPurchase != null)
+                  FilledButton(onPressed: onPurchase, child: const Text('Comprar prendas')),
+                if (onNotPurchase != null)
+                  OutlinedButton(onPressed: onNotPurchase, child: const Text('No comprar')),
+              ],
+            ),
+          ],
+          if (onTransfer != null) ...[
+            const SizedBox(height: 8),
+            Align(alignment: Alignment.centerRight, child: FilledButton(onPressed: onTransfer, child: const Text('Pasar al carrito'))),
+          ],
         ],
       ),
     );
@@ -450,6 +496,9 @@ class _ReservationCard extends StatelessWidget {
       ReservationStatus.pending => 'Pendiente',
       ReservationStatus.confirmed => 'Confirmada',
       ReservationStatus.attended => 'Atendida',
+      ReservationStatus.purchasePending => 'Compra pendiente',
+      ReservationStatus.sold => 'Vendida',
+      ReservationStatus.notSold => 'No comprada',
       ReservationStatus.cancelled => 'Cancelada',
       ReservationStatus.expired => 'Expirada',
     };
@@ -461,7 +510,10 @@ class _ReservationCard extends StatelessWidget {
       ReservationStatus.confirmed => const Color(0xFFDDF3E6),
       ReservationStatus.attended => Theme.of(
         context,
-      ).colorScheme.surfaceContainerHighest,
+        ).colorScheme.surfaceContainerHighest,
+      ReservationStatus.purchasePending => const Color(0xFFE9D5FF),
+      ReservationStatus.sold => const Color(0xFFDDF3E6),
+      ReservationStatus.notSold => Theme.of(context).colorScheme.surfaceContainerHighest,
       ReservationStatus.cancelled ||
       ReservationStatus.expired => Theme.of(context).colorScheme.errorContainer,
     };

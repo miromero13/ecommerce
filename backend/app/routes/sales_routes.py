@@ -62,7 +62,7 @@ async def create_sale_route(
     payload: SaleCreate,
     db: Session = Depends(get_db),
     current_branch_id: UUID | None = Depends(get_current_branch_id),
-    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado, RolEnum.cajero)),
+    current_user: dict = Depends(require_roles(RolEnum.cajero)),
 ):
     resolved_branch_id = payload.branch_id or current_branch_id
     if resolved_branch_id is None:

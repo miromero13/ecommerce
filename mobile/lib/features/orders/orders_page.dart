@@ -372,7 +372,7 @@ class _OrdersPageState extends State<OrdersPage> {
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
-            Text('Estado: ${_statusLabel(order.status)}'),
+             Text('Estado: ${_fulfillmentLabel(order.fulfillmentStatus)}'),
             Text('Pago: ${_paymentStatusLabel(order.paymentStatus)}'),
             if (order.paymentMethod == PaymentMethod.cash) ...[
               Text('Código de retiro: ${order.pickupCode ?? 'No disponible'}'),
@@ -450,7 +450,7 @@ class _OrderCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${_statusLabel(order.status)} · ${order.items.length} ítems',
+                   '${_fulfillmentLabel(order.fulfillmentStatus)} · ${order.items.length} ítems',
                 ),
                 Text(_displayDate(order.createdAt)),
               ],
@@ -466,12 +466,13 @@ class _OrderCard extends StatelessWidget {
   }
 }
 
-String _statusLabel(OrderStatus status) {
+String _fulfillmentLabel(FulfillmentStatus status) {
   return switch (status) {
-    OrderStatus.pending => 'Pendiente',
-    OrderStatus.paid => 'Pagado',
-    OrderStatus.failed => 'Fallido',
-    OrderStatus.cancelled => 'Cancelado',
+    FulfillmentStatus.pendingPickup => 'En preparación',
+    FulfillmentStatus.readyForPickup => 'Listo',
+    FulfillmentStatus.collected => 'Cobrado',
+    FulfillmentStatus.expired => 'Expirado',
+    FulfillmentStatus.cancelled => 'Cancelado',
   };
 }
 

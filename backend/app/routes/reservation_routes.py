@@ -6,16 +6,18 @@ from sqlalchemy.orm import Session
 from app.auth.dependencies import get_current_branch_id, require_roles
 from app.core.database import get_db
 from app.schemas.enums import RolEnum
-from app.schemas.reservation_schema import ReservationCreate
+from app.schemas.reservation_schema import ReservationCreate, ReservationDecisionRequest
 from app.services.reservation_service import (
     attend_reservation,
     cancel_branch_reservation,
     cancel_reservation,
     create_reservation,
+    decide_reservation,
     confirm_reservation_arrival,
     get_reservation,
     list_reservations,
     list_reservations_by_branch,
+    transfer_reservation_to_cart as transfer_reservation_service,
 )
 from app.utils.response import response
 
@@ -110,6 +112,38 @@ async def cancel_reservation_route(
     if not reservation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Reserva con id {reservation_id} no encontrada")
     return response(status_code=200, message="Reserva cancelada exitosamente", data=reservation)
+
+
+@router.patch("/{reservation_id}/decision")
+async def decide_reservation_route(
+    reservation_id: UUID,
+    payload: ReservationDecisionRequest,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_roles(RolEnum.cliente)),
+):
+    try:
+        reservation = decide_reservation(db, UUID(current_user["sub"]), reservation_id, payload.purchase)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    if not reservation:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Reserva con id {reservation_id} no encontrada")
+    message = "Compra de reserva confirmada." if payload.purchase else "Reserva cerrada sin compra."
+    return response(status_code=200, message=message, data=reservation)
+
+
+@router.post("/{reservation_id}/to-cart")
+async def transfer_reservation_to_cart_route(
+    reservation_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_roles(RolEnum.cliente)),
+):
+    try:
+        cart = transfer_reservation_service(db, UUID(current_user["sub"]), reservation_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    if not cart:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Reserva con id {reservation_id} no encontrada")
+    return response(status_code=200, message="Reserva transferida al carrito", data=cart.model_dump())
 
 
 @router.patch("/{reservation_id}/arrival")

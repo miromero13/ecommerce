@@ -33,7 +33,12 @@
                     <div class="text-xs text-slate-500">SKU: {{ item.variant_sku }}</div>
                   </td>
                   <td class="px-4 py-3 text-sm">{{ item.size_name ?? 'Sin talla' }} / {{ item.color_name ?? 'Sin color' }}</td>
-                  <td class="px-4 py-3 text-right">{{ item.unit_price }}</td>
+                   <td class="px-4 py-3 text-right">
+                     @if (item.original_unit_price && item.original_unit_price !== item.unit_price) {
+                       <s class="mr-2 text-slate-400">{{ item.original_unit_price }}</s>
+                     }
+                     <span>{{ item.unit_price }}</span>
+                   </td>
                   <td class="px-4 py-3 text-right">
                     <div class="inline-flex items-center gap-2 rounded-full border border-slate-200 px-2 py-1">
                       <button type="button" hlmBtn variant="ghost" class="h-7 w-7 rounded-full p-0" (click)="decrease(item.id, item.quantity)" [disabled]="updatingItemId() === item.id">-</button>
@@ -66,7 +71,7 @@
           <p class="text-sm text-slate-500">Totales actuales del carrito.</p>
         </div>
 
-        <div class="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm">
+         <div class="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm">
           <div class="flex items-center justify-between">
             <span>Items</span>
             <span class="font-medium">{{ itemCount }}</span>
@@ -79,11 +84,26 @@
             <span>Descuento</span>
             <span class="font-medium">{{ discount }}</span>
           </div>
-          <div class="flex items-center justify-between border-t border-slate-200 pt-2 text-base font-semibold">
+           <div class="flex items-center justify-between border-t border-slate-200 pt-2 text-base font-semibold">
             <span>Total</span>
             <span>{{ total }}</span>
-          </div>
-        </div>
+           </div>
+         </div>
+
+         <div class="space-y-2 rounded-xl border border-slate-200 p-4">
+           @if (cart()?.promotion_code) {
+             <div class="flex items-center justify-between text-sm">
+               <span>Cupón aplicado: <strong>{{ cart()?.promotion_code }}</strong></span>
+               <button hlmBtn type="button" variant="outline" (click)="removeCoupon()">Retirar</button>
+             </div>
+           } @else {
+             <label class="text-xs font-medium text-slate-600" for="coupon-code">Código promocional</label>
+             <div class="flex gap-2">
+               <input id="coupon-code" hlmInput class="min-w-0 flex-1" [value]="couponCode()" (input)="couponCode.set($any($event.target).value)" placeholder="Ej. VERANO10" />
+               <button hlmBtn type="button" variant="outline" (click)="applyCoupon()">Aplicar</button>
+             </div>
+           }
+         </div>
 
         <div class="flex gap-2">
           <button hlmBtn type="button" class="flex-1" (click)="clear()" [disabled]="!(cart()?.items?.length)">Vaciar carrito</button>

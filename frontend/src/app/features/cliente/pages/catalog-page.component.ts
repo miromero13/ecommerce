@@ -198,6 +198,12 @@ export class CatalogPageComponent {
     return this.collections().find((collection) => collection.id === collectionId)?.name ?? collectionId;
   }
 
+  protected collectionSeasonName(collectionId: string | null | undefined): string {
+    if (!collectionId) return 'Sin temporada';
+    const collection = this.collections().find((item) => item.id === collectionId);
+    return this.seasonName(collection?.season_id);
+  }
+
   protected productVariants(product: CatalogProduct): CatalogProductVariant[] {
     return product.variants ?? [];
   }

@@ -31,9 +31,11 @@
               <app-admin-action-menu
                 [isOpen]="openMenuId() === provider.id"
                 [activeLabel]="provider.status === 'active' ? 'Desactivar' : 'Activar'"
+                [showProducts]="true"
                 (toggleMenu)="toggleMenu(provider.id)"
                 (edit)="editProvider(provider)"
                 (toggleActive)="toggleStatus(provider)"
+                (viewProducts)="viewProducts(provider)"
                 (delete)="askDelete(provider)"
               />
             </td>

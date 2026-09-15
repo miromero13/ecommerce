@@ -15,6 +15,7 @@ class CartStatusEnum(str, Enum):
 
 class CartItemCreate(BaseModel):
     variant_id: UUID
+    reservation_id: UUID | None = None
     quantity: int = Field(gt=0)
 
 
@@ -28,6 +29,8 @@ class CartItemRead(BaseModel):
     variant_id: UUID
     quantity: int
     unit_price: Decimal
+    original_unit_price: Decimal | None = None
+    discount_amount: Decimal = Decimal("0.00")
     line_total: Decimal
     product_id: UUID
     product_name: str
@@ -48,6 +51,8 @@ class CartRead(BaseModel):
     status: CartStatusEnum
     subtotal: Decimal
     discount_amount: Decimal
+    promotion_code_id: UUID | None = None
+    promotion_code: str | None = None
     total_amount: Decimal
     item_count: int
     created_at: datetime

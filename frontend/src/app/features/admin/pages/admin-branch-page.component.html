@@ -48,7 +48,7 @@
           <h2 hlmCardTitle class="text-xl">{{ modalMode() === 'edit' ? 'Editar sucursal' : 'Crear sucursal' }}</h2>
         </div>
 
-        <form class="grid gap-3 p-6 sm:grid-cols-3" [formGroup]="form" (ngSubmit)="submit()">
+        <form class="grid gap-3 px-6 sm:grid-cols-3" [formGroup]="form" (ngSubmit)="submit()">
           <div hlmField>
             <label hlmFieldLabel for="branch-name">Nombre</label>
             <input id="branch-name" hlmInput placeholder="Nombre" formControlName="name" />

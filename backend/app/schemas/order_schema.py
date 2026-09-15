@@ -44,8 +44,11 @@ class OrderItemRead(BaseModel):
     id: UUID
     order_id: UUID
     variant_id: UUID
+    reservation_id: UUID | None = None
     quantity: int
     unit_price: Decimal
+    original_unit_price: Decimal | None = None
+    discount_amount: Decimal = Decimal("0.00")
     line_total: Decimal
     product_id: UUID
     product_name: str
@@ -74,6 +77,7 @@ class OrderRead(BaseModel):
     fulfillment_status: FulfillmentStatusEnum | None = None
     subtotal: Decimal
     discount_amount: Decimal
+    promotion_code_id: UUID | None = None
     total_amount: Decimal
     currency: str
     created_at: datetime
