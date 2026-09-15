@@ -21,7 +21,9 @@ class CartItem {
     required this.cartId,
     required this.variantId,
     required this.quantity,
-    required this.unitPrice,
+      required this.unitPrice,
+      this.originalUnitPrice,
+      this.discountAmount,
     required this.lineTotal,
     required this.productId,
     required this.productName,
@@ -38,6 +40,8 @@ class CartItem {
   final String variantId;
   final int quantity;
   final double unitPrice;
+  final double? originalUnitPrice;
+  final double? discountAmount;
   final double lineTotal;
   final String productId;
   final String productName;
@@ -55,6 +59,8 @@ class CartItem {
       variantId: _requiredString(json, 'variant_id'),
       quantity: _requiredInt(json, 'quantity'),
       unitPrice: _requiredDouble(json, 'unit_price'),
+      originalUnitPrice: _optionalDouble(json, 'original_unit_price'),
+      discountAmount: _optionalDouble(json, 'discount_amount'),
       lineTotal: _requiredDouble(json, 'line_total'),
       productId: _requiredString(json, 'product_id'),
       productName: _requiredString(json, 'product_name'),
@@ -79,6 +85,8 @@ class Cart {
     required this.itemCount,
     required this.createdAt,
     required this.items,
+    this.promotionCodeId,
+    this.promotionCode,
     this.updatedAt,
   });
 
@@ -92,6 +100,8 @@ class Cart {
   final DateTime createdAt;
   final DateTime? updatedAt;
   final List<CartItem> items;
+  final String? promotionCodeId;
+  final String? promotionCode;
 
   factory Cart.fromJson(Map<String, dynamic> json) {
     final rawItems = json['items'];
@@ -109,6 +119,8 @@ class Cart {
       itemCount: _requiredInt(json, 'item_count'),
       createdAt: _requiredDateTime(json, 'created_at'),
       updatedAt: _optionalDateTime(json, 'updated_at'),
+      promotionCodeId: _optionalString(json, 'promotion_code_id'),
+      promotionCode: _optionalString(json, 'promotion_code'),
       items: rawItems
           .map((item) {
             if (item is! Map) {
@@ -154,6 +166,13 @@ double _requiredDouble(Map<String, dynamic> json, String key) {
   final parsed = double.tryParse(value?.toString() ?? '');
   if (parsed == null) throw FormatException('$key inválido');
   return parsed;
+}
+
+double? _optionalDouble(Map<String, dynamic> json, String key) {
+  final value = json[key];
+  if (value == null) return null;
+  if (value is num) return value.toDouble();
+  return double.tryParse(value.toString());
 }
 
 DateTime _requiredDateTime(Map<String, dynamic> json, String key) {
