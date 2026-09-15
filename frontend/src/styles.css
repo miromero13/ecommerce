@@ -5,6 +5,12 @@
 @import "tailwindcss/utilities.css" layer(utilities);
 @import "@spartan-ng/brain/hlm-tailwind-preset.css";
 
+@media print {
+  body * { visibility: hidden; }
+  .receipt-print, .receipt-print * { visibility: visible; }
+  .receipt-print { position: absolute; inset: 0; padding: 1rem; }
+}
+
 :root {
 	color-scheme: light;
 	--font-sans: "Geist Sans", sans-serif;
