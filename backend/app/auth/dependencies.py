@@ -97,6 +97,9 @@ def require_roles(*allowed_roles: RolEnum) -> Callable:
 
 
 def get_current_branch_id(payload: dict = Depends(get_current_payload)) -> UUID | None:
+    if payload.get("rol") == RolEnum.administrador.value:
+        return None
+
     branch_id = payload.get("branch_id")
     if not branch_id:
         return None

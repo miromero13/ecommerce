@@ -77,6 +77,14 @@ def update_user_rol(db: Session, user_id: UUID, update_data: UserUpdateRol) -> U
     if not user:
         return None
 
+    if update_data.rol == RolEnum.administrador:
+        user.branch_id = None
+    elif update_data.rol in {RolEnum.encargado, RolEnum.cajero, RolEnum.delivery}:
+        branch_id = update_data.branch_id or user.branch_id
+        if branch_id is None:
+            raise ValueError("El usuario necesita una sucursal antes de dejar de ser administrador")
+        user.branch_id = branch_id
+
     user.rol = update_data.rol
     db.commit()
     db.refresh(user)
@@ -88,8 +96,11 @@ def update_user_branch(db: Session, user_id: UUID, update_data: UserUpdateBranch
     if not user:
         return None
 
-    if user.rol not in {RolEnum.administrador, RolEnum.encargado, RolEnum.cajero}:
+    if user.rol not in {RolEnum.encargado, RolEnum.cajero, RolEnum.delivery}:
         raise ValueError("Solo los usuarios internos pueden tener sucursal asignada")
+
+    if update_data.branch_id is None:
+        raise ValueError("Este usuario debe tener una sucursal asignada")
 
     user.branch_id = update_data.branch_id
     db.commit()
@@ -106,7 +117,12 @@ def update_user_full(db: Session, user_id: UUID, update_data) -> User | None:
     user.name = update_data.name
     user.email = normalize_email(update_data.email)
     user.gender = update_data.gender
-    user.branch_id = update_data.branch_id
+    if user.rol == RolEnum.administrador:
+        user.branch_id = None
+    elif user.rol in {RolEnum.encargado, RolEnum.cajero, RolEnum.delivery} and update_data.branch_id is None:
+        raise ValueError("Este usuario debe tener una sucursal asignada")
+    else:
+        user.branch_id = update_data.branch_id
     user.is_active = update_data.is_active
 
     try:

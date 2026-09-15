@@ -110,7 +110,10 @@ async def update_user_rol_route(
     if current_branch_id is not None and target_user.rol != RolEnum.cliente and target_user.branch_id != current_branch_id:
         raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
 
-    db_user = update_user_rol(db, user_id, update_data)
+    try:
+        db_user = update_user_rol(db, user_id, update_data)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     if not db_user:
         raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
 

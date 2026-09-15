@@ -51,6 +51,7 @@ class UsersPaginatedResponse(BaseModel):
     
 class UserUpdateRol(BaseModel):
     rol: RolEnum
+    branch_id: UUID | None = None
 
 
 class UserUpdateBranch(BaseModel):

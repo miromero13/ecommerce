@@ -284,8 +284,8 @@ def _verify_seed(
     users_frame = frames["users"]
     if users_frame["email"].duplicated().any():
         raise RuntimeError("Existen emails duplicados en users")
-    internal_roles = {RolEnum.administrador.value, RolEnum.encargado.value, RolEnum.cajero.value, RolEnum.delivery.value, RolEnum.proveedor.value}
-    internal_users = users_frame[users_frame["rol"].map(_enum_value).isin(internal_roles)]
+    branch_scoped_roles = {RolEnum.encargado.value, RolEnum.cajero.value, RolEnum.delivery.value, RolEnum.proveedor.value}
+    internal_users = users_frame[users_frame["rol"].map(_enum_value).isin(branch_scoped_roles)]
     branch_ids = {str(branch.id) for branch in branches}
     if internal_users["branch_id"].isna().any() or not internal_users["branch_id"].map(str).isin(branch_ids).all():
         raise RuntimeError("Hay usuarios internos sin una sucursal valida")
@@ -379,10 +379,10 @@ def _seed_users(session, branches: list[Branch]) -> list[User]:
     password = _hash_password()
 
     users_payload = [
-        {"name": "Admin Global", "email": "admin.global@fashionstore.bo", "gender": GenderEnum.masculino, "rol": RolEnum.administrador, "branch_id": branches[0].id},
-        {"name": "Admin La Paz", "email": "admin.lp@fashionstore.bo", "gender": GenderEnum.femenino, "rol": RolEnum.administrador, "branch_id": branches[0].id},
-        {"name": "Admin Santa Cruz", "email": "admin.sc@fashionstore.bo", "gender": GenderEnum.masculino, "rol": RolEnum.administrador, "branch_id": branches[1].id},
-        {"name": "Admin Cochabamba", "email": "admin.cbba@fashionstore.bo", "gender": GenderEnum.femenino, "rol": RolEnum.administrador, "branch_id": branches[2].id},
+        {"name": "Admin Global", "email": "admin.global@fashionstore.bo", "gender": GenderEnum.masculino, "rol": RolEnum.administrador, "branch_id": None},
+        {"name": "Admin La Paz", "email": "admin.lp@fashionstore.bo", "gender": GenderEnum.femenino, "rol": RolEnum.administrador, "branch_id": None},
+        {"name": "Admin Santa Cruz", "email": "admin.sc@fashionstore.bo", "gender": GenderEnum.masculino, "rol": RolEnum.administrador, "branch_id": None},
+        {"name": "Admin Cochabamba", "email": "admin.cbba@fashionstore.bo", "gender": GenderEnum.femenino, "rol": RolEnum.administrador, "branch_id": None},
         {"name": "Encargada La Paz", "email": "encargada.lp@fashionstore.bo", "gender": GenderEnum.femenino, "rol": RolEnum.encargado, "branch_id": branches[0].id},
         {"name": "Encargado Santa Cruz", "email": "encargado.sc@fashionstore.bo", "gender": GenderEnum.masculino, "rol": RolEnum.encargado, "branch_id": branches[1].id},
         {"name": "Encargado Cochabamba", "email": "encargado.cbba@fashionstore.bo", "gender": GenderEnum.masculino, "rol": RolEnum.encargado, "branch_id": branches[2].id},
@@ -406,6 +406,8 @@ def _seed_users(session, branches: list[Branch]) -> list[User]:
                 "hashed_password": password,
             },
         )
+        if payload["rol"] == RolEnum.administrador:
+            user.branch_id = None
         users.append(user)
 
     clients_payload = [
