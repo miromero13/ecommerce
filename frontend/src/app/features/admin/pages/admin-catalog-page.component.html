@@ -236,7 +236,7 @@
       hlmCard
       class="relative w-full bg-white shadow-xl"
       [class.max-w-3xl]="activeTab() !== 'products'"
-      [class.max-w-6xl]="activeTab() === 'products'"
+       [class.max-w-4xl]="activeTab() === 'products'"
       (click)="$event.stopPropagation()"
     >
         <div hlmCardHeader class="space-y-1 border-b border-slate-200 pb-4">
@@ -323,18 +323,39 @@
             </form>
           } @else {
             <form class="space-y-4" [formGroup]="productForm" (ngSubmit)="submitProduct()">
-              <div class="grid gap-4 md:grid-cols-3">
-                <div hlmField class="md:col-span-3">
+              <div class="grid gap-4 md:grid-cols-2">
+                <div hlmField class="md:col-span-2">
                   <label hlmFieldLabel for="product-name">Nombre</label>
                   <input id="product-name" hlmInput class="w-full" placeholder="Nombre" formControlName="name" />
                 </div>
-                <div hlmField class="md:col-span-3">
+                <div hlmField class="md:col-span-2">
                   <label hlmFieldLabel for="product-description">Descripción</label>
                   <input id="product-description" hlmInput class="w-full" placeholder="Descripción" formControlName="description" />
                 </div>
                 <div hlmField>
-                  <label hlmFieldLabel for="product-price">Precio</label>
-                  <input id="product-price" hlmInput class="w-full" placeholder="Precio" formControlName="price" />
+                  <label hlmFieldLabel for="product-discount-type">Descuento</label>
+                  <div hlmSelect formControlName="discount_type" [itemToString]="discountTypeSelectLabel">
+                    <hlm-select-trigger buttonId="product-discount-type">
+                      <span hlmSelectValue placeholder="Sin descuento"></span>
+                    </hlm-select-trigger>
+                    <hlm-select-content>
+                      <hlm-select-item value="">Sin descuento</hlm-select-item>
+                      <hlm-select-item value="percentage">Porcentaje</hlm-select-item>
+                      <hlm-select-item value="fixed">Monto fijo</hlm-select-item>
+                    </hlm-select-content>
+                  </div>
+                </div>
+                <div hlmField>
+                  <label hlmFieldLabel for="product-discount-value">{{ discountValueLabel() }}</label>
+                  <input
+                    id="product-discount-value"
+                    hlmInput
+                    type="number"
+                    min="0"
+                    class="w-full"
+                    [placeholder]="discountValuePlaceholder()"
+                    formControlName="discount_value"
+                  />
                 </div>
                 <div hlmField>
                   <label hlmFieldLabel for="product-category">Categoría</label>
@@ -351,20 +372,6 @@
                   </div>
                 </div>
                 <div hlmField>
-                  <label hlmFieldLabel for="product-season">Temporada</label>
-                    <div hlmSelect formControlName="season_id" [itemToString]="productSeasonSelectLabel">
-                    <hlm-select-trigger buttonId="product-season">
-                      <span hlmSelectValue placeholder="Temporada"></span>
-                    </hlm-select-trigger>
-                    <hlm-select-content>
-                      <hlm-select-item value="">Temporada</hlm-select-item>
-                      @for (season of seasons(); track season.id) {
-                        <hlm-select-item [value]="season.id">{{ season.name }}</hlm-select-item>
-                      }
-                    </hlm-select-content>
-                  </div>
-                </div>
-                <div hlmField class="md:col-span-2">
                   <label hlmFieldLabel for="product-collection">Colección</label>
                     <div hlmSelect formControlName="collection_id" [itemToString]="productCollectionSelectLabel">
                     <hlm-select-trigger buttonId="product-collection">
@@ -399,41 +406,43 @@
                         <button hlmBtn type="button" variant="ghost" [disabled]="variantControls().length === 1" (click)="removeVariant(i)">Quitar</button>
                       </div>
 
-                      <div class="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_160px] lg:items-start">
-                        <div hlmField>
-                          <label hlmFieldLabel [for]="'variant-sku-' + i">SKU</label>
-                          <input [id]="'variant-sku-' + i" hlmInput class="w-full" placeholder="SKU" formControlName="sku" />
-                        </div>
-                        <div hlmField>
-                          <label hlmFieldLabel [for]="'variant-price-' + i">Precio</label>
-                          <input [id]="'variant-price-' + i" hlmInput class="w-full" placeholder="Precio" formControlName="price" />
-                        </div>
-                        <div hlmField>
-                          <label hlmFieldLabel [for]="'variant-size-' + i">Talla</label>
-                          <div hlmSelect formControlName="size_id" [itemToString]="variantSizeSelectLabel">
-                            <hlm-select-trigger [buttonId]="'variant-size-' + i">
-                              <span hlmSelectValue placeholder="Talla"></span>
-                            </hlm-select-trigger>
-                            <hlm-select-content>
-                              <hlm-select-item value="">Talla</hlm-select-item>
-                              @for (size of sizes(); track size.id) {
-                                <hlm-select-item [value]="size.id">{{ size.name }}</hlm-select-item>
-                              }
-                            </hlm-select-content>
+                      <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px] lg:items-start">
+                        <div class="grid gap-4 md:grid-cols-2">
+                          <div hlmField>
+                            <label hlmFieldLabel [for]="'variant-sku-' + i">SKU</label>
+                            <input [id]="'variant-sku-' + i" hlmInput class="w-full" placeholder="SKU" formControlName="sku" />
                           </div>
-                        </div>
-                        <div hlmField>
-                          <label hlmFieldLabel [for]="'variant-color-' + i">Color</label>
-                          <div hlmSelect formControlName="color_id" [itemToString]="variantColorSelectLabel">
-                            <hlm-select-trigger [buttonId]="'variant-color-' + i">
-                              <span hlmSelectValue placeholder="Color"></span>
-                            </hlm-select-trigger>
-                            <hlm-select-content>
-                              <hlm-select-item value="">Color</hlm-select-item>
-                              @for (color of colors(); track color.id) {
-                                <hlm-select-item [value]="color.id">{{ color.name }}</hlm-select-item>
-                              }
-                            </hlm-select-content>
+                          <div hlmField>
+                            <label hlmFieldLabel [for]="'variant-price-' + i">Precio</label>
+                            <input [id]="'variant-price-' + i" hlmInput class="w-full" placeholder="Precio" formControlName="price" />
+                          </div>
+                          <div hlmField>
+                            <label hlmFieldLabel [for]="'variant-size-' + i">Talla</label>
+                            <div hlmSelect formControlName="size_id" [itemToString]="variantSizeSelectLabel">
+                              <hlm-select-trigger [buttonId]="'variant-size-' + i">
+                                <span hlmSelectValue placeholder="Talla"></span>
+                              </hlm-select-trigger>
+                              <hlm-select-content>
+                                <hlm-select-item value="">Talla</hlm-select-item>
+                                @for (size of sizes(); track size.id) {
+                                  <hlm-select-item [value]="size.id">{{ size.name }}</hlm-select-item>
+                                }
+                              </hlm-select-content>
+                            </div>
+                          </div>
+                          <div hlmField>
+                            <label hlmFieldLabel [for]="'variant-color-' + i">Color</label>
+                            <div hlmSelect formControlName="color_id" [itemToString]="variantColorSelectLabel">
+                              <hlm-select-trigger [buttonId]="'variant-color-' + i">
+                                <span hlmSelectValue placeholder="Color"></span>
+                              </hlm-select-trigger>
+                              <hlm-select-content>
+                                <hlm-select-item value="">Color</hlm-select-item>
+                                @for (color of colors(); track color.id) {
+                                  <hlm-select-item [value]="color.id">{{ color.name }}</hlm-select-item>
+                                }
+                              </hlm-select-content>
+                            </div>
                           </div>
                         </div>
 

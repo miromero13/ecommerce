@@ -21,6 +21,7 @@ import {
   CatalogNameItem,
   CatalogProduct,
   CatalogProductVariant,
+  DiscountType,
   ProductStatus,
 } from '../../shared/models/catalog.model';
 import { CatalogApiService } from '../../shared/services/catalog-api.service';
@@ -102,16 +103,27 @@ export class AdminCatalogPageComponent {
     return this.categoryName(categoryId);
   };
 
-  protected readonly productSeasonSelectLabel = (seasonId: string | null | undefined): string => {
-    if (!seasonId) return 'Temporada';
-    return this.seasonName(seasonId);
-  };
-
   protected readonly productCollectionSelectLabel = (collectionId: string | null | undefined): string => {
     if (!collectionId) return 'Colección';
     const collection = this.collections().find((item) => item.id === collectionId);
     return collection ? `${collection.name} - ${this.seasonName(collection.season_id)}` : collectionId;
   };
+
+  protected readonly discountTypeSelectLabel = (type: DiscountType | null | undefined): string => {
+    if (type === 'percentage') return 'Porcentaje';
+    if (type === 'fixed') return 'Monto fijo';
+    return 'Sin descuento';
+  };
+
+  protected discountValueLabel(): string {
+    const type = this.productForm.controls.discount_type.value;
+    return type === 'percentage' ? 'Valor (%)' : type === 'fixed' ? 'Valor (BOB)' : 'Valor';
+  }
+
+  protected discountValuePlaceholder(): string {
+    const type = this.productForm.controls.discount_type.value;
+    return type === 'percentage' ? 'Ej. 10 para 10%' : type === 'fixed' ? 'Ej. 50 para 50 BOB' : 'Selecciona un tipo de descuento';
+  }
 
   protected readonly variantSizeSelectLabel = (sizeId: string | null | undefined): string => {
     if (!sizeId) return 'Talla';
@@ -140,8 +152,9 @@ export class AdminCatalogPageComponent {
     name: ['', [Validators.required]],
     description: [''],
     category_id: ['', [Validators.required]],
-    season_id: [''],
     collection_id: [''],
+    discount_type: [''],
+    discount_value: [''],
     variants: this.fb.array([this.createVariantGroup()]),
   });
 
@@ -161,7 +174,7 @@ export class AdminCatalogPageComponent {
     this.editingProductId.set(null);
     if (tab === 'products') {
       this.resetVariantImageStates();
-      this.productForm.reset({ name: '', description: '', category_id: '', season_id: '', collection_id: '' });
+      this.productForm.reset({ name: '', description: '', category_id: '', collection_id: '', discount_type: '', discount_value: '' });
       this.variantsArray().clear();
       this.variantsArray().push(this.createVariantGroup());
       this.editingVariantIds = [null];
@@ -206,14 +219,13 @@ export class AdminCatalogPageComponent {
       name: product.name,
       description: product.description ?? '',
       category_id: product.category_id,
-      season_id: product.season_id ?? '',
       collection_id: product.collection_id ?? '',
+      discount_type: product.discount_type ?? '',
+      discount_value: product.discount_value ?? '',
     });
     this.variantsArray().clear();
 
-    const variants = product.variants?.length
-      ? product.variants
-      : [{ id: '', sku: product.sku ?? '', price: product.price, size_id: product.size_id ?? '', color_id: product.color_id ?? '', image_url: product.image_url ?? null, image_public_id: product.image_public_id ?? null, status: product.status ?? 'active' }];
+    const variants = product.variants ?? [];
     this.editingVariantIds = [];
     this.variantImageStates = [];
     variants.forEach((variant) => {
@@ -332,14 +344,15 @@ export class AdminCatalogPageComponent {
     this.loading.set(true);
     try {
       const payload = this.productForm.getRawValue();
+      const discountType = payload.discount_type ? (payload.discount_type as DiscountType) : null;
       let savedProduct: CatalogProduct | null = null;
       const request = {
         name: payload.name,
         description: payload.description || null,
-        price: firstVariant.price,
         category_id: payload.category_id,
-        season_id: payload.season_id || null,
         collection_id: payload.collection_id || null,
+        discount_type: discountType,
+        discount_value: payload.discount_type ? payload.discount_value : null,
         variants: variants.map((variant, index) => ({
           sku: variant.sku,
           price: variant.price,
@@ -365,7 +378,7 @@ export class AdminCatalogPageComponent {
         savedProduct = response.data ?? null;
       }
       await this.syncVariantImages(savedProduct);
-      this.productForm.reset({ name: '', description: '', category_id: '', season_id: '', collection_id: '' });
+      this.productForm.reset({ name: '', description: '', category_id: '', collection_id: '', discount_type: '', discount_value: '' });
       this.variantsArray().clear();
       this.variantsArray().push(this.createVariantGroup());
       this.editingVariantIds = [null];

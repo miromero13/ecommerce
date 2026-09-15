@@ -109,11 +109,19 @@
             <div class="grid gap-2 md:grid-cols-2">
               <p class="text-xs text-slate-500">Categoría: {{ categoryName(product.category_id) }}</p>
               <p class="text-xs text-slate-500">Colección: {{ collectionName(product.collection_id) }}</p>
-              <p class="text-xs text-slate-500">Temporada: {{ seasonName(product.season_id) }}</p>
+              <p class="text-xs text-slate-500">Temporada: {{ collectionSeasonName(product.collection_id) }}</p>
             </div>
             <div class="flex items-center justify-between text-sm">
-              <span class="font-medium text-slate-900">{{ selectedVariant(product)?.price ?? product.price }}</span>
-              <span hlmBadge class="bg-slate-900 text-white">{{ selectedVariant(product)?.status ?? product.status ?? 'active' }}</span>
+               @if (selectedVariant(product); as variant) {
+                 @if (variant.original_price; as originalPrice) {
+                   <span class="space-x-2"><s class="text-slate-400">{{ originalPrice }}</s><span class="font-medium text-emerald-700">{{ variant.price }}</span></span>
+                 } @else {
+                   <span class="font-medium text-slate-900">{{ variant.price }}</span>
+                 }
+               } @else {
+                 <span class="font-medium text-slate-500">Sin precio</span>
+               }
+              <span hlmBadge class="bg-slate-900 text-white">{{ selectedVariant(product)?.status ?? 'active' }}</span>
             </div>
           </div>
 
