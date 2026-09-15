@@ -105,6 +105,10 @@ export class AppShellComponent {
   });
 
   protected readonly userBranchLabel = computed(() => {
+    if (this.userRole() === 'administrador') {
+      return 'Acceso global';
+    }
+
     const branchId = this.session.user()?.branch_id;
     if (!branchId) {
       return '';

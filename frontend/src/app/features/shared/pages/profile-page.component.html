@@ -28,7 +28,7 @@
 
         <div hlmField>
           <label hlmFieldLabel for="profile-branch">Sucursal</label>
-          <input id="profile-branch" hlmInput class="w-full" [value]="currentUser.branch_id || 'Sin sucursal'" disabled />
+          <input id="profile-branch" hlmInput class="w-full" [value]="currentUser.rol === 'administrador' ? 'Acceso global' : (currentUser.branch_id || 'Sin sucursal')" disabled />
         </div>
 
         <div hlmField>

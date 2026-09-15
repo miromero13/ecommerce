@@ -23,7 +23,7 @@
           <th class="px-4 py-3">Usuario</th>
           <th class="px-4 py-3">Correo</th>
           <th class="px-4 py-3">Rol</th>
-          <th class="px-4 py-3">Sucursal</th>
+          <th class="px-4 py-3">Alcance</th>
           <th class="px-4 py-3">Estado</th>
           <th class="px-4 py-3 text-right">Acciones</th>
         </tr>
@@ -41,7 +41,7 @@
               {{ labelRol(user.rol) }}
             </td>
             <td class="px-4 py-3 text-sm text-black">
-              {{ branchName(user.branch_id) }}
+              {{ branchName(user.branch_id, user.rol) }}
             </td>
             <td class="px-4 py-3 text-sm text-black">{{ activeLabel(user) }}</td>
             <td class="px-4 py-3 text-right">
@@ -94,20 +94,27 @@
               </hlm-select-content>
             </div>
           </div>
-          <div hlmField>
-            <label hlmFieldLabel for="user-branch">Sucursal</label>
+          @if (editingUser()?.rol !== 'administrador') {
+            <div hlmField>
+              <label hlmFieldLabel for="user-branch">Sucursal</label>
               <div hlmSelect formControlName="branch_id" [itemToString]="branchSelectLabel">
-              <hlm-select-trigger buttonId="user-branch">
-                <span hlmSelectValue placeholder="Sin sucursal"></span>
-              </hlm-select-trigger>
-              <hlm-select-content>
-                <hlm-select-item value="">Sin sucursal</hlm-select-item>
-                @for (branch of branches(); track branch.id) {
-                  <hlm-select-item [value]="branch.id">{{ branch.name }} - {{ branch.city }}</hlm-select-item>
-                }
-              </hlm-select-content>
+                <hlm-select-trigger buttonId="user-branch">
+                  <span hlmSelectValue placeholder="Sin sucursal"></span>
+                </hlm-select-trigger>
+                <hlm-select-content>
+                  <hlm-select-item value="">Sin sucursal</hlm-select-item>
+                  @for (branch of branches(); track branch.id) {
+                    <hlm-select-item [value]="branch.id">{{ branch.name }} - {{ branch.city }}</hlm-select-item>
+                  }
+                </hlm-select-content>
+              </div>
             </div>
-          </div>
+          } @else {
+            <div hlmField>
+              <label hlmFieldLabel for="user-scope">Alcance</label>
+              <input id="user-scope" hlmInput class="w-full" value="Global" disabled />
+            </div>
+          }
           <div hlmField>
             <label hlmFieldLabel for="user-active">Estado</label>
               <div hlmSelect formControlName="is_active" [itemToString]="activeSelectLabel">

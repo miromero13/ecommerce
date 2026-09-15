@@ -42,6 +42,7 @@ export class AdminUserPageComponent {
   protected readonly modalOpen = signal(false);
   protected readonly modalMode = signal<'edit'>('edit');
   protected readonly editingUserId = signal<string | null>(null);
+  protected readonly editingUser = signal<AdminUsuario | null>(null);
   protected readonly deleteConfirmOpen = signal(false);
   protected readonly deletingUser = signal<AdminUsuario | null>(null);
 
@@ -93,11 +94,12 @@ export class AdminUserPageComponent {
     }
     this.closeMenu();
     this.editingUserId.set(user.id);
+    this.editingUser.set(user);
     this.userForm.reset({
       name: user.name,
       email: user.email,
       gender: user.gender,
-      branch_id: user.branch_id || '',
+      branch_id: user.rol === 'administrador' ? '' : (user.branch_id || ''),
       is_active: user.is_active,
     });
     this.modalOpen.set(true);
@@ -105,6 +107,7 @@ export class AdminUserPageComponent {
 
   protected closeModal(): void {
     this.modalOpen.set(false);
+    this.editingUser.set(null);
   }
 
   protected closeMenu(): void {
@@ -186,7 +189,11 @@ export class AdminUserPageComponent {
     }
   }
 
-  protected branchName(branchId: string | null): string {
+  protected branchName(branchId: string | null, role?: AdminUsuario['rol']): string {
+    if (role === 'administrador') {
+      return 'Global';
+    }
+
     if (!branchId) {
       return 'Sin sucursal';
     }
