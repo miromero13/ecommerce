@@ -9,6 +9,9 @@ from app.models.user import User  # noqa: F401 - registers SQLAlchemy relationsh
 from app.schemas.order_schema import PaymentMethodEnum
 from app.schemas.reservation_schema import ReservationStatusEnum
 from app.schemas.sales_schema import SaleCreate
+from app.schemas.catalog_schema import ProductCreate, ProductVariantCreate
+from app.schemas.catalog_enums import ProductStatusEnum
+from app.services.catalog_service import _normalized_variants
 from app.services.inventory_service import _inventory_available, get_consolidated_stock
 from app.services.pricing_service import discounted_price
 from app.services.reservation_service import transition_reservation
@@ -61,3 +64,14 @@ def test_direct_sale_requires_cash_and_items():
 
     with pytest.raises(ValidationError):
         SaleCreate(branch_id=uuid4(), reservation_id=uuid4(), items=payload.items)
+
+
+def test_product_variant_update_payload_preserves_variant_id():
+    variant_id = uuid4()
+    payload = ProductCreate(
+        name="Product",
+        category_id=uuid4(),
+        variants=[ProductVariantCreate(id=variant_id, sku="SKU-1", price="10.00")],
+    )
+
+    assert _normalized_variants(payload, ProductStatusEnum.active)[0]["id"] == variant_id

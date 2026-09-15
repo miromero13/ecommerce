@@ -52,6 +52,7 @@ def create_collection(db: Session, payload: CollectionCreate):
 def _normalized_variants(payload: ProductCreate, default_status: ProductStatusEnum) -> list[dict]:
     return [
         {
+            "id": variant.id,
             "sku": variant.sku,
             "price": variant.price,
             "size_id": variant.size_id,
@@ -115,6 +116,7 @@ def create_product(
                 provider_id=provider_id,
                 category_id=payload.category_id,
                 collection_id=payload.collection_id,
+                minimum_stock=payload.minimum_stock,
                 discount_type=payload.discount_type.value if payload.discount_type else None,
                 discount_value=payload.discount_value if payload.discount_type else None,
             )
@@ -246,38 +248,41 @@ def update_product(db: Session, product_id, payload: ProductCreate) -> Product |
         return None
 
     try:
-        variant_ids = [variant.id for variant in product.variants]
         normalized_variants = _normalized_variants(payload, payload.status or ProductStatusEnum.active)
         _validate_variant_payload(normalized_variants)
         _validate_discount(payload, normalized_variants)
 
         with db.begin_nested():
-            if variant_ids:
-                db.query(Inventory).filter(Inventory.variant_id.in_(variant_ids)).delete(synchronize_session=False)
-                db.query(ProductVariant).filter(ProductVariant.id.in_(variant_ids)).delete(synchronize_session=False)
-
             product.name = payload.name
             product.description = payload.description
             product.provider_id = payload.provider_id
+            product.minimum_stock = payload.minimum_stock
             product.category_id = payload.category_id
             product.collection_id = payload.collection_id
             product.discount_type = payload.discount_type.value if payload.discount_type else None
             product.discount_value = payload.discount_value if payload.discount_type else None
 
-            variants = []
+            existing_variants = {variant.id: variant for variant in product.variants}
+            submitted_variant_ids = set()
             for variant_data in normalized_variants:
-                variant = ProductVariant(
-                    product_id=product.id,
-                    sku=variant_data["sku"],
-                    price=variant_data["price"],
-                    size_id=variant_data["size_id"],
-                    color_id=variant_data["color_id"],
-                    image_url=variant_data["image_url"],
-                    image_public_id=variant_data["image_public_id"],
-                    status=variant_data["status"],
-                )
-                db.add(variant)
-                variants.append(variant)
+                variant_id = variant_data["id"]
+                if variant_id is not None:
+                    if variant_id in submitted_variant_ids:
+                        raise ValueError("No se puede repetir una variante dentro del producto")
+                    variant = existing_variants.get(variant_id)
+                    if variant is None:
+                        raise ValueError("La variante no pertenece al producto")
+                    submitted_variant_ids.add(variant_id)
+                else:
+                    variant = ProductVariant(product_id=product.id)
+                    db.add(variant)
+
+                for field in ("sku", "price", "size_id", "color_id", "image_url", "image_public_id", "status"):
+                    setattr(variant, field, variant_data[field])
+
+            for variant_id, variant in existing_variants.items():
+                if variant_id not in submitted_variant_ids:
+                    variant.status = ProductStatusEnum.inactive
 
         return db.query(Product).options(selectinload(Product.variants)).filter(Product.id == product_id).first()
     except (IntegrityError, ValueError):
@@ -352,6 +357,7 @@ def _product_to_read(product: Product, variants: list[ProductVariant], branch_qu
             "name": product.name,
             "description": product.description,
             "provider_id": product.provider_id,
+            "minimum_stock": product.minimum_stock,
             "category_id": product.category_id,
             "collection_id": product.collection_id,
             "sku": primary["sku"],

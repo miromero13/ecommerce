@@ -1,6 +1,7 @@
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from app.models.product import Product
 from app.models.provider import Provider
@@ -118,3 +119,13 @@ def delete_provider(db: Session, provider_id) -> bool:
     except IntegrityError:
         db.rollback()
         raise ValueError("No se pudo eliminar el proveedor")
+
+
+def list_provider_products(db: Session, provider_id):
+    return (
+        db.query(Product)
+        .options(selectinload(Product.variants))
+        .filter(Product.provider_id == provider_id)
+        .order_by(Product.name.asc())
+        .all()
+    )

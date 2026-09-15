@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, Numeric, ForeignKey
+from sqlalchemy import Column, String, Text, Numeric, ForeignKey, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -17,5 +17,6 @@ class Product(Base):
     collection_id = Column(UUID(as_uuid=True), ForeignKey("collections.id"), nullable=True, index=True)
     discount_type = Column(String(20), nullable=True)
     discount_value = Column(Numeric(10, 2), nullable=True)
+    minimum_stock = Column(Integer, nullable=False, default=0)
 
     variants = relationship("ProductVariant", back_populates="product", cascade="all, delete-orphan")
