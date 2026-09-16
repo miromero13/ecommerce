@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, ElementRef, HostListener, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 
@@ -60,6 +60,7 @@ export class AdminInventoryPageComponent {
   private readonly catalogApi = inject(CatalogApiService);
   private readonly inventoryApi = inject(InventoryApiService);
   private readonly fb = inject(FormBuilder);
+  private readonly element = inject(ElementRef<HTMLElement>);
   private readonly session = inject(SessionService);
   private readonly reportsApi = inject(ReportsApiService);
 
@@ -222,6 +223,13 @@ export class AdminInventoryPageComponent {
     this.reportMenuOpen.update((open) => !open);
   }
 
+  @HostListener('document:pointerdown', ['$event'])
+  protected closeReportMenuOnOutsideClick(event: PointerEvent): void {
+    if (this.reportMenuOpen() && !(event.target instanceof Node && this.element.nativeElement.contains(event.target))) {
+      this.reportMenuOpen.set(false);
+    }
+  }
+
   protected openReportModal(type: InventoryReportType): void {
     this.reportMenuOpen.set(false);
     this.reportType.set(type);
@@ -238,7 +246,9 @@ export class AdminInventoryPageComponent {
     this.reportModalOpen.set(false);
   }
 
-  protected setReportBranch(value: string | null | undefined): void { this.reportBranchId.set(value ?? ''); }
+  protected setReportBranch(value: string | null | undefined): void {
+    if (this.isAdmin()) this.reportBranchId.set(value ?? '');
+  }
   protected setReportProduct(value: string | null | undefined): void { this.reportProductId.set(value ?? ''); }
   protected setReportFormat(value: ReportFormat | null | undefined): void {
     if (value === 'pdf' || value === 'html' || value === 'csv') this.reportFormat.set(value);
@@ -439,9 +449,9 @@ export class AdminInventoryPageComponent {
       const branches = await firstValueFrom(this.catalogApi.listPublicBranches());
 
       this.branches.set(branches.data ?? []);
-      if (this.isAdmin()) {
+      if (this.isAdmin() || this.isManager()) {
         try {
-          const products = await firstValueFrom(this.catalogApi.listAdminProducts());
+          const products = await firstValueFrom(this.isAdmin() ? this.catalogApi.listAdminProducts() : this.catalogApi.listProducts());
           this.reportProducts.set(products.data ?? []);
         } catch (error) {
           toast.error(getErrorMessage(error, 'No se pudieron cargar los productos para el reporte.'));

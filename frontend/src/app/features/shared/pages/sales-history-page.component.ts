@@ -58,6 +58,7 @@ export class SalesHistoryPageComponent {
   protected readonly reportProducts = signal<CatalogProduct[]>([]);
   protected readonly reportLoading = signal(false);
   protected readonly isAdmin = () => this.session.user()?.rol === 'administrador';
+  protected readonly isManager = () => this.session.user()?.rol === 'encargado';
   protected readonly branchSelectLabel = (branchId: string | null | undefined): string => {
     if (!branchId) return 'Todas las sucursales';
     return this.branches().find((branch) => branch.id === branchId)?.name ?? branchId;
@@ -65,13 +66,14 @@ export class SalesHistoryPageComponent {
 
   constructor() {
     if (this.isAdmin()) void this.loadBranches();
+    if (this.isManager()) this.selectedBranchId.set(this.session.user()?.branch_id ?? '');
     void this.loadSales();
   }
 
   protected async loadSales(): Promise<void> {
     this.loading.set(true);
     try {
-      const branchId = this.isAdmin() ? this.selectedBranchId() || undefined : undefined;
+      const branchId = this.isAdmin() || this.isManager() ? this.selectedBranchId() || undefined : undefined;
       const response = await firstValueFrom(this.salesApi.listBranchSales(branchId));
       this.sales.set(response.data ?? []);
     } catch (error) {
@@ -102,7 +104,7 @@ export class SalesHistoryPageComponent {
   }[format ?? 'pdf']);
 
   protected openReportModal(): void {
-    this.reportBranchId.set('');
+    this.reportBranchId.set(this.isManager() ? this.selectedBranchId() : '');
     this.reportProductId.set('');
     this.reportFromDate.set('');
     this.reportToDate.set('');
@@ -113,7 +115,9 @@ export class SalesHistoryPageComponent {
   }
 
   protected closeReportModal(): void { this.reportModalOpen.set(false); }
-  protected setReportBranch(value: string | null | undefined): void { this.reportBranchId.set(value ?? ''); }
+  protected setReportBranch(value: string | null | undefined): void {
+    if (this.isAdmin()) this.reportBranchId.set(value ?? '');
+  }
   protected setReportProduct(value: string | null | undefined): void { this.reportProductId.set(value ?? ''); }
   protected setReportFormat(value: ReportFormat | null | undefined): void {
     if (value === 'pdf' || value === 'html' || value === 'csv') this.reportFormat.set(value);

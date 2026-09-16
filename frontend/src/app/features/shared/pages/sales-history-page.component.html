@@ -13,8 +13,9 @@
             <hlm-select-content><hlm-select-item value="">Todas las sucursales</hlm-select-item>@for (branch of branches(); track branch.id) { <hlm-select-item [value]="branch.id">{{ branch.name }}</hlm-select-item> }</hlm-select-content>
           </div>
         </div>
-        <button hlmBtn type="button" variant="outline" (click)="openReportModal()">Generar reporte</button>
+        <button hlmBtn type="button" (click)="openReportModal()">Generar reporte</button>
       }
+      @if (isManager()) { <button hlmBtn type="button" (click)="openReportModal()">Generar reporte</button> }
     </div>
   </header>
 
@@ -26,12 +27,12 @@
           <p class="text-sm text-slate-500">Elige los filtros, formato y columnas del reporte.</p>
         </div>
         <div class="grid gap-4 p-6 sm:grid-cols-2">
-          <label class="space-y-1 text-sm font-medium"><span>Sucursal</span>
+          @if (isAdmin()) { <label class="space-y-1 text-sm font-medium"><span>Sucursal</span>
             <div hlmSelect [value]="reportBranchId()" [itemToString]="reportBranchSelectLabel" (valueChange)="setReportBranch($event)">
               <hlm-select-trigger class="h-9 w-full" buttonId="sales-report-branch"><span hlmSelectValue placeholder="Todas las sucursales"></span></hlm-select-trigger>
               <hlm-select-content><hlm-select-item value="">Todas las sucursales</hlm-select-item>@for (branch of branches(); track branch.id) {<hlm-select-item [value]="branch.id">{{ branch.name }}</hlm-select-item>}</hlm-select-content>
             </div>
-          </label>
+          </label> } @else { <div class="space-y-1 text-sm font-medium"><span>Sucursal</span><p class="h-9 rounded-md border border-slate-300 bg-slate-50 px-3 py-2">{{ branchSelectLabel(reportBranchId()) }}</p></div> }
           <label class="space-y-1 text-sm font-medium"><span>Producto</span>
             <div hlmSelect [value]="reportProductId()" [itemToString]="reportProductSelectLabel" (valueChange)="setReportProduct($event)">
               <hlm-select-trigger class="h-9 w-full" buttonId="sales-report-product"><span hlmSelectValue placeholder="Todos los productos"></span></hlm-select-trigger>
