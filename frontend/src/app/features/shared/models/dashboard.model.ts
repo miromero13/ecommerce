@@ -59,6 +59,15 @@ export interface DashboardMovementPoint {
   transfer_out: number;
 }
 
+export interface DashboardBranchMovementPoint {
+  branch_id: string;
+  branch_name: string;
+  income: number;
+  outcome: number;
+  transfer_in: number;
+  transfer_out: number;
+}
+
 export interface DashboardInventoryPoint {
   branch_name: string;
   product_name: string;
@@ -73,6 +82,7 @@ export interface DashboardData {
   summary: DashboardSummary;
   sales_series: DashboardSeriesPoint[];
   movement_series: DashboardMovementPoint[];
+  movement_by_branch: DashboardBranchMovementPoint[];
   branch_kpis: DashboardBranchKpi[];
   top_products: DashboardProductKpi[];
   low_stock: DashboardInventoryPoint[];

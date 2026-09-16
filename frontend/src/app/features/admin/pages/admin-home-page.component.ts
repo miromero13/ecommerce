@@ -9,16 +9,21 @@ import { HlmButton } from '../../../components/button/src';
 import { HlmCardImports } from '../../../components/card/src';
 import { HlmInputImports } from '../../../components/input/src';
 import { HlmSelectImports } from '../../../components/select/src';
+import { OnBrowserDirective } from '@spartan-ng/helm/utils';
+import { AreaChartComponent, BarChartComponent, DonutChartComponent } from 'angular-chrts';
+import type { BulletLegendItemInterface } from '@unovis/ts';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
 import { CatalogBranch } from '../../shared/models/catalog.model';
-import { DashboardBranchKpi, DashboardData, DashboardMovementPoint, DashboardPeriod, DashboardProductKpi, DashboardQuery, DashboardSeriesPoint } from '../../shared/models/dashboard.model';
+import { DashboardData, DashboardPeriod, DashboardQuery } from '../../shared/models/dashboard.model';
 import { CatalogApiService } from '../../shared/services/catalog-api.service';
 import { DashboardApiService } from '../../shared/services/dashboard-api.service';
+
+type MovementTab = 'income' | 'outcome' | 'transfers';
 
 @Component({
   selector: 'app-admin-home-page',
   standalone: true,
-  imports: [CommonModule, HlmButton, ...HlmBadgeImports, ...HlmCardImports, ...HlmInputImports, ...HlmSelectImports],
+  imports: [CommonModule, HlmButton, OnBrowserDirective, AreaChartComponent, BarChartComponent, DonutChartComponent, ...HlmBadgeImports, ...HlmCardImports, ...HlmInputImports, ...HlmSelectImports],
   templateUrl: './admin-home-page.component.html',
 })
 export class AdminHomePageComponent {
@@ -30,6 +35,12 @@ export class AdminHomePageComponent {
   protected readonly fromDate = signal('');
   protected readonly toDate = signal('');
   protected readonly period = signal<DashboardPeriod>('day');
+  protected readonly activeMovementTab = signal<MovementTab>('income');
+  protected readonly movementTabs: Array<{ key: MovementTab; label: string }> = [
+    { key: 'income', label: 'Entradas' },
+    { key: 'outcome', label: 'Salidas' },
+    { key: 'transfers', label: 'Traspasos' },
+  ];
   protected readonly loading = signal(false);
   protected readonly dashboard = signal<DashboardData>({
     filters: {},
@@ -49,6 +60,7 @@ export class AdminHomePageComponent {
     },
     sales_series: [],
     movement_series: [],
+    movement_by_branch: [],
     branch_kpis: [],
     top_products: [],
     low_stock: [],
@@ -60,20 +72,27 @@ export class AdminHomePageComponent {
     return this.branches().find((branch) => branch.id === branchId)?.name ?? branchId;
   });
 
-  protected readonly maxSalesPoint = computed(() => {
-    const values = this.dashboard().sales_series.map((point) => Number(point.sales || 0));
-    return Math.max(...values, 1);
+  protected readonly salesCategories: Record<string, BulletLegendItemInterface> = { sales: { name: 'Ventas', color: '#10b981' } };
+  protected readonly salesChartData = computed(() => this.dashboard().sales_series.map((point) => ({ ...point, sales: Number(point.sales || 0) })));
+  protected readonly topProductsChartData = computed(() => this.dashboard().top_products.map((product) => ({ label: product.product_name, sales: Number(product.total_sales || 0) })));
+  protected readonly branchPerformanceChartData = computed(() => this.dashboard().branch_kpis.map((branch) => ({ label: branch.branch_name, sales: Number(branch.total_sales || 0) })));
+  protected readonly movementDistribution = computed(() => {
+    const totals = new Map<string, { name: string; value: number }>();
+    for (const point of this.dashboard().movement_by_branch) {
+      const tab = this.activeMovementTab();
+      const rawValue = tab === 'transfers' ? Number(point.transfer_in || 0) + Number(point.transfer_out || 0) : Number(point[tab] || 0);
+      const value = Number.isFinite(rawValue) ? Math.max(rawValue, 0) : 0;
+      const key = point.branch_id || point.branch_name;
+      if (!key || value === 0) continue;
+      const current = totals.get(key);
+      if (current) current.value += value;
+      else totals.set(key, { name: point.branch_name || key, value });
+    }
+    return [...totals.entries()].map(([key, item]) => ({ key, ...item }));
   });
-
-  protected readonly maxMovementPoint = computed(() => {
-    const values = this.dashboard().movement_series.map((point) => point.income + point.outcome + point.transfer_in + point.transfer_out);
-    return Math.max(...values, 1);
-  });
-
-  protected readonly maxProductSales = computed(() => {
-    const values = this.dashboard().top_products.map((product) => Number(product.total_sales || 0));
-    return Math.max(...values, 1);
-  });
+  protected readonly movementDonutData = computed(() => this.movementDistribution().map((item) => item.value));
+  protected readonly movementDonutCategories = computed<Record<string, BulletLegendItemInterface>>(() =>
+    Object.fromEntries(this.movementDistribution().map((item, index) => [item.key, { name: item.name, color: ['#10b981', '#f43f5e', '#0ea5e9', '#8b5cf6', '#f59e0b'][index % 5] }])));
 
   constructor() {
     void this.loadData();
@@ -101,6 +120,10 @@ export class AdminHomePageComponent {
     this.selectedBranchId.set((event.target as HTMLSelectElement).value);
   }
 
+  protected setActiveMovementTab(tab: MovementTab): void {
+    this.activeMovementTab.set(tab);
+  }
+
   protected onPeriodChange(event: Event): void {
     this.period.set((event.target as HTMLSelectElement).value as DashboardPeriod);
   }
@@ -125,26 +148,6 @@ export class AdminHomePageComponent {
       { label: 'Bajo stock', value: summary.low_stock_items, tone: 'text-rose-600' },
       { label: 'Reservas', value: summary.total_reservations, tone: 'text-cyan-600' },
     ];
-  }
-
-  protected progressWidth(value: number, max: number): string {
-    return `${Math.min((value / max) * 100, 100)}%`;
-  }
-
-  protected salesPointWidth(point: DashboardSeriesPoint): string {
-    return this.progressWidth(Number(point.sales || 0), this.maxSalesPoint());
-  }
-
-  protected productWidth(product: DashboardProductKpi): string {
-    return this.progressWidth(Number(product.total_sales || 0), this.maxProductSales());
-  }
-
-  protected movementTotal(point: DashboardMovementPoint): number {
-    return point.income + point.outcome + point.transfer_in + point.transfer_out;
-  }
-
-  protected branchSalesLabel(branch: DashboardBranchKpi): string {
-    return `${branch.total_sales} · ${branch.total_orders} órdenes`;
   }
 
   private async loadData(): Promise<void> {

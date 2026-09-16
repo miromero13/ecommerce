@@ -1,14 +1,14 @@
-<section class="space-y-5">
+<section class="space-y-3">
   <header>
     <h1 class="text-2xl font-semibold">Inicio de cajero</h1>
-    <p class="text-sm text-slate-500">Base de fase 0 para el rol cajero.</p>
+    <p class="text-sm text-slate-500">Resumen de ventas de tu sucursal.</p>
   </header>
 
   <section hlmCard class="bg-white shadow-sm">
-  <div hlmCardContent class="grid gap-4 sm:grid-cols-3">
+  <div hlmCardContent class="grid gap-2 sm:grid-cols-3">
     <article class="rounded-xl border border-slate-200 p-4">
       <p class="text-xs uppercase tracking-wide text-slate-500">Ventas</p>
-      <p class="mt-2 text-2xl font-semibold text-slate-900">-</p>
+      <p class="mt-2 text-2xl font-semibold text-emerald-600">{{ total() }}</p>
     </article>
     <article class="rounded-xl border border-slate-200 p-4">
       <p class="text-xs uppercase tracking-wide text-slate-500">Caja</p>
@@ -16,11 +16,12 @@
     </article>
     <article class="rounded-xl border border-slate-200 p-4">
       <p class="text-xs uppercase tracking-wide text-slate-500">Comprobantes</p>
-      <p class="mt-2 text-2xl font-semibold text-slate-900">-</p>
+      <p class="mt-2 text-2xl font-semibold text-slate-900">{{ sales().length }}</p>
     </article>
   </div>
   </section>
 
+  @if (chartData().length) {<section hlmCard class="bg-white shadow-sm"><div hlmCardContent class="p-3"><h2 class="mb-1 font-semibold">Historial de ventas</h2><div hlmOnBrowser><ngx-area-chart [data]="chartData()" [categories]="categories" [height]="180" [hideLegend]="true" [yGridLine]="true" /></div></div></section>}
   <section class="flex gap-2">
     <a hlmBtn routerLink="/app/cajero/sales">Abrir caja</a>
   </section>

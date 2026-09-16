@@ -1,0 +1,12 @@
+<section class="space-y-5">
+  <header><h1 class="text-2xl font-semibold">Solicitudes de reposición</h1><p class="text-sm text-slate-500">Seguimiento de abastecimiento entre proveedores y sucursales.</p></header>
+  <div class="space-y-3">
+    @for (request of requests(); track request.id) {
+      <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-3"><div><h2 class="font-semibold">Solicitud {{ request.id.slice(0, 8) }}</h2><p class="text-sm text-slate-500">Destino: {{ branchName(request.branch_id) }}</p></div><span class="rounded-full bg-slate-100 px-3 py-1 text-sm">{{ label(request.status) }}</span></div>
+        <div class="mt-4 overflow-x-auto"><table class="w-full text-left text-sm"><thead><tr class="border-b"><th class="py-2">Producto / variante</th><th class="py-2">Solicitado</th></tr></thead><tbody>@for (item of request.items; track item.variant_id) {<tr class="border-b last:border-0"><td class="py-2">{{ item.product_name }} · {{ item.sku }}<span class="block text-xs text-slate-500">{{ item.size_name || 'Sin talla' }} · {{ item.color_name || 'Sin color' }}</span></td><td class="py-2">{{ item.requested_quantity }}</td></tr>}</tbody></table></div>
+        @if (nextAction(request); as action) { <div class="mt-4 flex justify-end"><button hlmBtn type="button" (click)="transition(request)">{{ action === 'accepted' ? 'Aceptar' : action === 'preparing' ? 'Marcar preparando' : action === 'awaiting_receipt' ? 'Marcar entregada a sucursal' : 'Confirmar recepción' }}</button></div> }
+      </article>
+    } @empty { <div class="rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">No hay solicitudes.</div> }
+  </div>
+</section>

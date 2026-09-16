@@ -88,12 +88,13 @@ export class AdminCatalogPageComponent {
   protected readonly loading = signal(false);
   protected readonly activeTab = signal<CatalogTab>('products');
   protected readonly modalOpen = signal(false);
-  protected readonly modalMode = signal<'create' | 'edit'>('create');
+  protected readonly modalMode = signal<'create' | 'edit' | 'view'>('create');
   protected readonly editingItemId = signal<string | null>(null);
   protected readonly editingProductId = signal<string | null>(null);
   protected readonly openMenuId = signal<string | null>(null);
   protected readonly deleteConfirmOpen = signal(false);
   protected readonly deletingItem = signal<{ tab: CatalogTab; id: string; label: string } | null>(null);
+  protected viewProduct: CatalogProduct | null = null;
   private variantImageStates: VariantImageState[] = [];
   private editingVariantIds: Array<string | null> = [];
 
@@ -173,12 +174,15 @@ export class AdminCatalogPageComponent {
   }
 
   protected async openModal(tab: CatalogTab): Promise<void> {
+    this.closeMenu();
     await this.initialDataLoad;
     this.activeTab.set(tab);
     this.modalMode.set('create');
     this.editingItemId.set(null);
     this.editingProductId.set(null);
+    this.viewProduct = null;
     if (tab === 'products') {
+      this.productForm.enable();
       this.resetVariantImageStates();
       this.productForm.reset({ name: '', description: '', category_id: '', collection_id: '', discount_type: '', discount_value: '', provider_id: '', minimum_stock: 0 });
       this.variantsArray().clear();
@@ -192,6 +196,7 @@ export class AdminCatalogPageComponent {
   }
 
   protected async openEditModal(tab: CatalogTab, item: CatalogNameItem | CatalogColorItem | CatalogCollectionItem): Promise<void> {
+    this.closeMenu();
     await this.initialDataLoad;
     this.activeTab.set(tab);
     this.modalMode.set('edit');
@@ -214,10 +219,13 @@ export class AdminCatalogPageComponent {
   }
 
   protected async openEditProduct(product: CatalogProduct): Promise<void> {
+    this.closeMenu();
     await this.initialDataLoad;
     this.activeTab.set('products');
     this.modalMode.set('edit');
+    this.productForm.enable();
     this.editingProductId.set(product.id);
+    this.viewProduct = null;
     this.editingItemId.set(null);
     this.resetVariantImageStates();
 
@@ -251,9 +259,22 @@ export class AdminCatalogPageComponent {
     this.modalOpen.set(true);
   }
 
+  protected async openViewProduct(product: CatalogProduct): Promise<void> {
+    this.closeMenu();
+    await this.initialDataLoad;
+    this.activeTab.set('products');
+    this.editingProductId.set(null);
+    this.editingItemId.set(null);
+    this.viewProduct = product;
+    this.modalMode.set('view');
+    this.modalOpen.set(true);
+  }
+
   protected closeModal(): void {
+    this.closeMenu();
     this.resetVariantImageStates();
     this.modalOpen.set(false);
+    this.viewProduct = null;
   }
 
   protected closeMenu(): void {
@@ -519,6 +540,7 @@ export class AdminCatalogPageComponent {
 
   protected modalTitle(): string {
     const tab = this.activeTab();
+    if (this.modalMode() === 'view') return 'Ver producto';
     if (this.modalMode() === 'edit') {
       return tab === 'products' ? 'Editar producto' : `Editar ${this.tabLabel(tab).slice(0, -1).toLowerCase()}`;
     }
@@ -803,7 +825,7 @@ export class AdminCatalogPageComponent {
         firstValueFrom(this.api.listColors()),
         firstValueFrom(this.api.listSeasons()),
         firstValueFrom(this.api.listCollections()),
-        firstValueFrom(this.api.listProducts()),
+         firstValueFrom(this.api.listAdminProducts()),
         firstValueFrom(this.providerApi.listProviders()),
       ]);
 
