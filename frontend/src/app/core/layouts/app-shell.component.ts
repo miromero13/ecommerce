@@ -170,7 +170,8 @@ export class AppShellComponent {
             title: 'Navegación',
             items: [
               { label: 'Catálogo', route: '/app/cliente/catalog', icon: 'lucideLayoutDashboard', exact: true },
-              { label: 'Reservas', route: '/app/cliente/reservations', icon: 'lucideCalendarDays' },
+              { label: 'Reservas', route: '/app/cliente/reservations', icon: 'lucideTicket' },
+              { label: 'Mis reservas', route: '/app/cliente/my-reservations', icon: 'lucideCalendarDays' },
               { label: 'Carrito', route: '/app/cliente/cart', icon: 'lucideShoppingCart' },
               { label: 'Pedidos', route: '/app/cliente/orders', icon: 'lucideClipboardList' },
             ],

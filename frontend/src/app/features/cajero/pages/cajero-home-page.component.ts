@@ -16,7 +16,7 @@ import { OnBrowserDirective } from '@spartan-ng/helm/utils';
 @Component({
   selector: 'app-cajero-home-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, AreaChartComponent, OnBrowserDirective, HlmButton, ...HlmBadgeImports, ...HlmCardImports],
+  imports: [CommonModule, AreaChartComponent, OnBrowserDirective, ...HlmBadgeImports, ...HlmCardImports],
   templateUrl: './cajero-home-page.component.html',
 })
 export class CajeroHomePageComponent {

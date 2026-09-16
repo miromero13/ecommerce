@@ -21,7 +21,7 @@ import {
   CatalogProduct,
   CatalogProductVariant,
 } from '../../shared/models/catalog.model';
-import { CreateReservationRequest, Reservation } from '../../shared/models/reservation.model';
+import { CreateReservationRequest } from '../../shared/models/reservation.model';
 import { CatalogApiService } from '../../shared/services/catalog-api.service';
 import { ReservationApiService } from '../../shared/services/reservation-api.service';
 
@@ -43,14 +43,20 @@ export class ReservationsPageComponent {
   protected readonly seasons = signal<CatalogNameItem[]>([]);
   protected readonly collections = signal<CatalogCollectionItem[]>([]);
   protected readonly products = signal<CatalogProduct[]>([]);
-  protected readonly reservations = signal<Reservation[]>([]);
   protected readonly selectedVariantByProduct = signal<Record<string, string>>({});
+  protected readonly selectedImageByProduct = signal<Record<string, number>>({});
   protected readonly draftByVariant = signal<Record<string, number>>({});
   protected readonly loading = signal(false);
   protected readonly submitting = signal(false);
 
   protected readonly form = this.fb.nonNullable.group({
+    q: [''],
     branch_id: [''],
+    category_id: [''],
+    size_id: [''],
+    color_id: [''],
+    season_id: [''],
+    collection_id: [''],
     visit_date: [''],
   });
 
@@ -62,6 +68,32 @@ export class ReservationsPageComponent {
     if (!branchId) return 'Sucursal';
     const branch = this.branches().find((item) => item.id === branchId);
     return branch ? `${branch.name} - ${branch.city}` : branchId;
+  };
+
+  protected readonly categorySelectLabel = (categoryId: string | null | undefined): string => {
+    if (!categoryId) return 'Categoría';
+    return this.categories().find((category) => category.id === categoryId)?.name ?? categoryId;
+  };
+
+  protected readonly sizeSelectLabel = (sizeId: string | null | undefined): string => {
+    if (!sizeId) return 'Talla';
+    return this.sizes().find((size) => size.id === sizeId)?.name ?? sizeId;
+  };
+
+  protected readonly colorSelectLabel = (colorId: string | null | undefined): string => {
+    if (!colorId) return 'Color';
+    return this.colors().find((color) => color.id === colorId)?.name ?? colorId;
+  };
+
+  protected readonly seasonSelectLabel = (seasonId: string | null | undefined): string => {
+    if (!seasonId) return 'Temporada';
+    return this.seasons().find((season) => season.id === seasonId)?.name ?? seasonId;
+  };
+
+  protected readonly collectionSelectLabel = (collectionId: string | null | undefined): string => {
+    if (!collectionId) return 'Colección';
+    const collection = this.collections().find((item) => item.id === collectionId);
+    return collection ? `${collection.name} - ${this.seasonName(collection.season_id)}` : collectionId;
   };
 
   protected variantSelectLabel(product: CatalogProduct): (variantId: string | null | undefined) => string {
@@ -105,6 +137,35 @@ export class ReservationsPageComponent {
     this.selectedVariantByProduct.update((current) => ({ ...current, [productId]: variantId }));
   }
 
+  protected async search(): Promise<void> {
+    this.loading.set(true);
+    try {
+      const value = this.form.getRawValue();
+      const response = await requestWithToast(
+        this.catalogApi.listProducts({
+          q: value.q || undefined,
+          branch_id: value.branch_id || undefined,
+          category_id: value.category_id || undefined,
+          size_id: value.size_id || undefined,
+          color_id: value.color_id || undefined,
+          season_id: value.season_id || undefined,
+          collection_id: value.collection_id || undefined,
+        }),
+        { loading: 'Consultando catálogo...', success: 'Catálogo actualizado.', error: 'No se pudo consultar el catálogo.' },
+      );
+      this.products.set(response.data ?? []);
+      this.ensureSelectedVariants();
+    } catch {
+      // Toast handled by requestWithToast.
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  protected updateBranchAvailability(): Promise<void> {
+    return this.search();
+  }
+
   protected variantLabel(variant: CatalogProductVariant): string {
     return `${this.sizeName(variant.size_id)} / ${this.colorName(variant.color_id)}`;
   }
@@ -115,6 +176,41 @@ export class ReservationsPageComponent {
 
   protected colorName(colorId: string | null | undefined): string {
     return this.colors().find((color) => color.id === colorId)?.name ?? 'Sin color';
+  }
+
+  protected availabilityLabel(variant: CatalogProductVariant | null, branchId: string | null): string {
+    if (!branchId) return 'Selecciona una sucursal para ver stock';
+    if (!variant) return 'Sin variante seleccionada';
+    return `${variant.branch_quantity ?? 0} unidades`;
+  }
+
+  protected productImages(product: CatalogProduct): string[] {
+    const images = new Set<string>();
+    for (const variant of product.variants ?? []) {
+      if (variant.image_url) images.add(variant.image_url);
+    }
+    if (product.image_url) images.add(product.image_url);
+    return [...images];
+  }
+
+  protected currentProductImage(product: CatalogProduct): string | null {
+    const images = this.productImages(product);
+    return images[this.currentProductImageIndex(product)] ?? null;
+  }
+
+  protected currentProductImageIndex(product: CatalogProduct): number {
+    const images = this.productImages(product);
+    if (!images.length) return 0;
+    const index = this.selectedImageByProduct()[product.id] ?? 0;
+    return ((index % images.length) + images.length) % images.length;
+  }
+
+  protected previousProductImage(productId: string, total: number): void {
+    this.selectedImageByProduct.update((current) => ({ ...current, [productId]: ((current[productId] ?? 0) - 1 + total) % total }));
+  }
+
+  protected nextProductImage(productId: string, total: number): void {
+    this.selectedImageByProduct.update((current) => ({ ...current, [productId]: ((current[productId] ?? 0) + 1) % total }));
   }
 
   protected branchName(branchId: string | null | undefined): string {
@@ -201,86 +297,12 @@ export class ReservationsPageComponent {
         this.reservationApi.createReservation(payload),
         { loading: 'Creando reserva...', success: 'Reserva creada correctamente.', error: 'No se pudo crear la reserva.' },
       );
-      this.reservations.set([response.data!, ...this.reservations()]);
       this.draftByVariant.set({});
       this.form.patchValue({ visit_date: '' });
     } catch {
       // toast handled by requestWithToast
     } finally {
       this.submitting.set(false);
-    }
-  }
-
-  protected reservationStatusLabel(status: Reservation['status']): string {
-    switch (status) {
-      case 'pending': return 'Pendiente';
-      case 'confirmed': return 'Confirmada';
-      case 'attended': return 'Atendida';
-      case 'purchase_pending': return 'Compra pendiente';
-      case 'sold': return 'Vendida';
-      case 'not_sold': return 'No comprada';
-      case 'cancelled': return 'Cancelada';
-      case 'expired': return 'Vencida';
-      default: return status;
-    }
-  }
-
-  protected reservationStatusClass(status: Reservation['status']): string {
-    switch (status) {
-      case 'pending': return 'bg-amber-100 text-amber-700';
-      case 'confirmed': return 'bg-sky-100 text-sky-700';
-      case 'attended': return 'bg-emerald-100 text-emerald-700';
-      case 'purchase_pending': return 'bg-violet-100 text-violet-700';
-      case 'sold': return 'bg-emerald-100 text-emerald-700';
-      case 'not_sold': return 'bg-slate-100 text-slate-700';
-      case 'cancelled': return 'bg-rose-100 text-rose-700';
-      case 'expired': return 'bg-slate-100 text-slate-700';
-      default: return 'bg-slate-100 text-slate-700';
-    }
-  }
-
-  protected async cancelReservation(reservationId: string): Promise<void> {
-    try {
-      const response = await requestWithToast(
-        this.reservationApi.cancelReservation(reservationId),
-        { loading: 'Cancelando reserva...', success: 'Reserva cancelada.', error: 'No se pudo cancelar la reserva.' },
-      );
-      const updated = response.data;
-      if (updated) {
-        this.reservations.update((current) => current.map((item) => item.id === updated.id ? updated : item));
-      }
-    } catch {
-      // toast handled by requestWithToast
-    }
-  }
-
-  protected async decideReservation(reservationId: string, purchase: boolean): Promise<void> {
-    try {
-      const response = await requestWithToast(
-        this.reservationApi.decideReservation(reservationId, purchase),
-        {
-          loading: purchase ? 'Confirmando compra...' : 'Cerrando reserva...',
-          success: purchase ? 'Compra de reserva confirmada.' : 'Reserva cerrada sin compra.',
-          error: 'No se pudo actualizar la reserva.',
-        },
-      );
-      const updated = response.data;
-      if (updated) {
-        this.reservations.update((current) => current.map((item) => item.id === updated.id ? updated : item));
-      }
-    } catch {
-      // toast handled by requestWithToast
-    }
-  }
-
-  protected async transferToCart(reservationId: string): Promise<void> {
-    try {
-      await requestWithToast(
-        this.reservationApi.transferToCart(reservationId),
-        { loading: 'Pasando prendas al carrito...', success: 'Prendas transferidas al carrito.', error: 'No se pudo transferir la reserva.' },
-      );
-    } catch {
-      // toast handled by requestWithToast
     }
   }
 
@@ -295,7 +317,7 @@ export class ReservationsPageComponent {
   private async loadData(): Promise<void> {
     this.loading.set(true);
     try {
-      const [branches, categories, sizes, colors, seasons, collections, products, reservations] = await Promise.all([
+      const [branches, categories, sizes, colors, seasons, collections, products] = await Promise.all([
         firstValueFrom(this.catalogApi.listPublicBranches()),
         firstValueFrom(this.catalogApi.listCategories()),
         firstValueFrom(this.catalogApi.listSizes()),
@@ -303,7 +325,6 @@ export class ReservationsPageComponent {
         firstValueFrom(this.catalogApi.listSeasons()),
         firstValueFrom(this.catalogApi.listCollections()),
         firstValueFrom(this.catalogApi.listProducts()),
-        firstValueFrom(this.reservationApi.listMyReservations()),
       ]);
       this.branches.set(branches.data ?? []);
       this.categories.set(categories.data ?? []);
@@ -312,7 +333,6 @@ export class ReservationsPageComponent {
       this.seasons.set(seasons.data ?? []);
       this.collections.set(collections.data ?? []);
       this.products.set(products.data ?? []);
-      this.reservations.set(reservations.data ?? []);
       this.ensureSelectedVariants();
     } catch (error) {
       toast.error(getErrorMessage(error, 'No se pudieron cargar las reservas.'));

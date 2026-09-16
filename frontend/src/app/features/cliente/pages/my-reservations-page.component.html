@@ -1,0 +1,39 @@
+<section class="space-y-5">
+  <header>
+    <h1 class="text-2xl font-semibold">Mis reservas</h1>
+    <p class="text-sm text-slate-500">Consulta y administra tus reservas.</p>
+  </header>
+
+  <section hlmCard class="bg-white shadow-sm py-4">
+    <div hlmCardContent class="space-y-4 px-4">
+      <div class="space-y-3">
+        @for (reservation of reservations(); track reservation.id) {
+          <article class="rounded-xl border border-slate-200 p-4">
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <div class="flex items-center gap-2">
+                  <h2 class="font-semibold">{{ reservation.branch_name }}</h2>
+                  <span hlmBadge class="rounded-full px-2 py-1 text-[11px]" [ngClass]="reservationStatusClass(reservation.status)">{{ reservationStatusLabel(reservation.status) }}</span>
+                </div>
+                <p class="text-xs text-slate-500">Visita: {{ reservation.visit_date }} · Vence: {{ reservation.expires_at }}</p>
+              </div>
+              <button hlmBtn type="button" variant="outline" (click)="cancelReservation(reservation.id)" [disabled]="reservation.status !== 'pending' && reservation.status !== 'confirmed'">Cancelar</button>
+            </div>
+            @if (reservation.status === 'attended') {
+              <div class="mt-3 flex flex-wrap gap-2">
+                <button hlmBtn type="button" (click)="decideReservation(reservation.id, true)">Comprar prendas</button>
+                <button hlmBtn type="button" variant="outline" (click)="decideReservation(reservation.id, false)">No comprar</button>
+              </div>
+            }
+            @if (reservation.status === 'purchase_pending' && !reservation.cart_id) {
+              <div class="mt-3"><button hlmBtn type="button" (click)="transferToCart(reservation.id)">Pasar al carrito</button></div>
+            }
+            <div class="mt-3 text-sm text-slate-700"><p>Items: {{ reservation.item_count }}</p><p>Total: {{ reservation.total_amount }}</p></div>
+          </article>
+        } @empty {
+          <div class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">Aún no tienes reservas.</div>
+        }
+      </div>
+    </div>
+  </section>
+</section>

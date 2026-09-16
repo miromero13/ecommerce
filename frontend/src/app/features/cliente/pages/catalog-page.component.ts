@@ -3,6 +3,8 @@ import { Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideShoppingCart } from '@ng-icons/lucide';
 
 import { toast } from '@spartan-ng/brain/sonner';
 
@@ -28,7 +30,8 @@ import { CartApiService } from '../../shared/services/cart-api.service';
 @Component({
   selector: 'app-catalog-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, ReactiveFormsModule, HlmButton, HlmInput, ...HlmBadgeImports, ...HlmCardImports, ...HlmFieldImports, ...HlmSelectImports],
+  imports: [CommonModule, RouterLink, ReactiveFormsModule, NgIcon, HlmButton, HlmInput, ...HlmBadgeImports, ...HlmCardImports, ...HlmFieldImports, ...HlmSelectImports],
+  providers: [provideIcons({ lucideShoppingCart })],
   templateUrl: './catalog-page.component.html',
 })
 export class CatalogPageComponent {
