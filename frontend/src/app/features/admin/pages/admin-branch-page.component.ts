@@ -51,6 +51,7 @@ export class AdminBranchPageComponent {
   }
 
   protected openModal(): void {
+    this.closeMenu();
     this.modalMode.set('create');
     this.editingBranchId.set(null);
     this.form.reset({ name: '', city: '', is_default: false, is_active: true });
@@ -58,6 +59,7 @@ export class AdminBranchPageComponent {
   }
 
   protected editBranch(branch: AdminBranch): void {
+    this.closeMenu();
     this.modalMode.set('edit');
     this.editingBranchId.set(branch.id);
     this.form.reset({ name: branch.name, city: branch.city, is_default: branch.is_default, is_active: branch.is_active });
@@ -66,6 +68,7 @@ export class AdminBranchPageComponent {
 
   protected closeModal(): void {
     this.modalOpen.set(false);
+    this.closeMenu();
   }
 
   protected closeMenu(): void {

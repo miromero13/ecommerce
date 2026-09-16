@@ -79,6 +79,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/proveedor/pages/provider-products-page.component').then((m) => m.ProviderProductsPageComponent),
       },
       {
+        path: 'proveedor/replenishment',
+        canActivate: [roleGuard(['proveedor'])],
+        loadComponent: () => import('./features/shared/pages/replenishment-page.component').then((m) => m.ReplenishmentPageComponent),
+      },
+      {
         path: 'encargado',
         loadComponent: () =>
           import('./features/encargado/pages/encargado-home-page.component').then(
@@ -105,6 +110,11 @@ export const routes: Routes = [
         path: 'encargado/promotions',
         canActivate: [roleGuard(['encargado'])],
         loadComponent: () => import('./features/shared/pages/promotions-page.component').then((m) => m.PromotionsPageComponent),
+      },
+      {
+        path: 'encargado/replenishment',
+        canActivate: [roleGuard(['encargado'])],
+        loadComponent: () => import('./features/shared/pages/replenishment-page.component').then((m) => m.ReplenishmentPageComponent),
       },
       {
         path: 'cajero',
@@ -183,6 +193,10 @@ export const routes: Routes = [
               import('./features/admin/pages/admin-reports-page.component').then(
                 (m) => m.AdminReportsPageComponent,
               ),
+          },
+          {
+            path: 'replenishment',
+            loadComponent: () => import('./features/shared/pages/replenishment-page.component').then((m) => m.ReplenishmentPageComponent),
           },
         ],
       },

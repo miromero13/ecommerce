@@ -36,6 +36,7 @@ export interface CatalogProductVariant {
   image_public_id?: string | null;
   status: ProductStatus;
   branch_quantity?: number | null;
+  provider_quantity?: number | null;
 }
 
 export interface CatalogProduct {

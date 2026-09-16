@@ -81,6 +81,7 @@ export class AdminProviderPageComponent {
   }
 
   protected openModal(): void {
+    this.closeMenu();
     this.modalMode.set('create');
     this.editingProviderId.set(null);
     this.form.reset({
@@ -97,6 +98,7 @@ export class AdminProviderPageComponent {
   }
 
   protected editProvider(provider: AdminProvider): void {
+    this.closeMenu();
     this.modalMode.set('edit');
     this.editingProviderId.set(provider.id);
     this.form.reset({
@@ -114,6 +116,7 @@ export class AdminProviderPageComponent {
 
   protected closeModal(): void {
     this.modalOpen.set(false);
+    this.closeMenu();
   }
 
   protected closeMenu(): void {

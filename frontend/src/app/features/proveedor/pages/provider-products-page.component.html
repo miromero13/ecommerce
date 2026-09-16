@@ -6,20 +6,83 @@
   <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
     <table hlmTable class="w-full text-left text-sm">
       <thead class="bg-primary text-xs font-bold uppercase tracking-wide text-white">
-        <tr><th class="px-4 py-3">Producto</th><th class="px-4 py-3">SKU</th><th class="px-4 py-3">Stock mínimo</th><th class="px-4 py-3">Estado</th></tr>
+            <tr><th class="px-4 py-3">Producto</th><th class="px-4 py-3">Categoría</th><th class="px-4 py-3">Estado</th><th class="px-4 py-3">Descripción</th><th class="px-4 py-3 text-right">Acciones</th></tr>
       </thead>
       <tbody class="divide-y divide-slate-200 text-black">
         @for (product of products(); track product.id) {
           <tr>
             <td class="px-4 py-3 font-medium">{{ product.name }}</td>
-            <td class="px-4 py-3">{{ product.sku || product.variants?.[0]?.sku || '-' }}</td>
-            <td class="px-4 py-3">{{ product.minimum_stock }}</td>
-            <td class="px-4 py-3">{{ product.status || '-' }}</td>
+            <td class="px-4 py-3">{{ categoryName(product.category_id) }}</td>
+            <td class="px-4 py-3">{{ statusLabel(product.status) }}</td>
+            <td class="px-4 py-3">{{ product.description || '-' }}</td>
+              <td class="px-4 py-3 text-right"><app-admin-action-menu [isOpen]="openMenuId() === product.id" [showActive]="false" [showEdit]="!isAdminInspection" [showView]="isAdminInspection" [showRequest]="isAdminInspection" [showDelete]="false" editLabel="Editar producto" (toggleMenu)="toggleMenu(product.id)" (edit)="openEdit(product)" (view)="openView(product)" (request)="openRequest(product)" /></td>
           </tr>
         } @empty {
-          <tr><td class="px-4 py-8 text-center text-sm text-slate-500" colspan="4">No hay productos asignados.</td></tr>
+          <tr><td class="px-4 py-8 text-center text-sm text-slate-500" colspan="5">No hay productos asignados.</td></tr>
         }
       </tbody>
     </table>
   </div>
+
+   @if (modalOpen()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6" (click)="closeModal()">
+      <section hlmCard class="w-full max-w-2xl bg-white shadow-xl" role="dialog" aria-modal="true" aria-labelledby="provider-product-edit-title" (click)="$event.stopPropagation()">
+         <div hlmCardHeader class="border-b border-slate-200"><h2 hlmCardTitle id="provider-product-edit-title">{{ isAdminInspection ? 'Ver disponibilidad: ' : 'Editar disponibilidad: ' }}{{ editingProduct?.name }}</h2></div>
+         @if (isAdminInspection) {
+           <div class="space-y-4 p-6">
+             <p class="text-sm text-slate-600">Disponibilidad ofrecida por el proveedor.</p>
+             @for (variant of editingProduct?.variants ?? []; track variant.id) {
+               <div class="grid gap-3 rounded-xl border border-slate-200 p-4 sm:grid-cols-2 text-sm">
+                 <div><span class="text-xs font-medium text-slate-500">SKU</span><p>{{ variant.sku }}</p></div>
+                 <div><span class="text-xs font-medium text-slate-500">Precio</span><p>{{ variant.price }}</p></div>
+                 <div><span class="text-xs font-medium text-slate-500">Talla</span><p>{{ sizeName(variant.size_id) }}</p></div>
+                 <div><span class="text-xs font-medium text-slate-500">Color</span><p>{{ colorName(variant.color_id) }}</p></div>
+                 <div><span class="text-xs font-medium text-slate-500">Estado</span><p>{{ statusLabel(variant.status) }}</p></div>
+                 <div><span class="text-xs font-medium text-slate-500">Disponibilidad</span><p>{{ variant.provider_quantity ?? 0 }}</p></div>
+               </div>
+             } @empty { <p class="text-sm text-slate-500">No hay variantes.</p> }
+             <div class="flex justify-end"><button hlmBtn variant="outline" type="button" (click)="closeModal()">Cerrar</button></div>
+           </div>
+         } @else {
+         <form class="space-y-4 p-6" [formGroup]="availabilityForm" (ngSubmit)="saveAvailability()">
+          <p class="text-sm text-slate-600">Actualiza únicamente la disponibilidad que ofrece el proveedor para cada variante.</p>
+          <div class="space-y-3" formArrayName="updates">
+            @for (variant of availabilityForm.controls.updates.controls; track $index) {
+              @let productVariant = editingProduct?.variants?.[$index];
+              <div class="grid gap-4 rounded-xl border border-slate-200 p-4 md:grid-cols-[1fr_8rem]" [formGroupName]="$index">
+                <div class="grid gap-3 sm:grid-cols-2">
+                  <div><span class="text-xs font-medium text-slate-500">SKU</span><p>{{ productVariant?.sku }}</p></div>
+                  <div><span class="text-xs font-medium text-slate-500">Precio</span><p>{{ productVariant?.price }}</p></div>
+                  <div><span class="text-xs font-medium text-slate-500">Talla</span><p>{{ sizeName(productVariant?.size_id ?? null) }}</p></div>
+                  <div><span class="text-xs font-medium text-slate-500">Color</span><p>{{ colorName(productVariant?.color_id ?? null) }}</p></div>
+                  <div><span class="text-xs font-medium text-slate-500">Estado</span><p>{{ statusLabel(productVariant?.status) }}</p></div>
+                  @if (productVariant?.image_url) {
+                    <div><span class="text-xs font-medium text-slate-500">Imagen</span><img [src]="productVariant?.image_url" [alt]="'Imagen de ' + (productVariant?.sku ?? '')" class="mt-1 h-16 w-16 rounded object-cover" /></div>
+                  }
+                </div>
+                <div><label hlmFieldLabel [for]="'provider-quantity-' + $index">Disponibilidad</label>
+                <input hlmInput [id]="'provider-quantity-' + $index" type="number" min="0" step="1" formControlName="quantity" />
+                </div>
+              </div>
+            }
+          </div>
+          <div class="flex justify-end gap-2"><button hlmBtn variant="outline" type="button" (click)="closeModal()">Cancelar</button><button hlmBtn type="submit">Guardar disponibilidad</button></div>
+         </form>
+         }
+      </section>
+    </div>
+  }
+
+  @if (requestModalOpen()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6" (click)="closeRequest()">
+      <section hlmCard class="w-full max-w-3xl bg-white shadow-xl" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+        <div hlmCardHeader class="border-b border-slate-200"><h2 hlmCardTitle>Solicitar reposición: {{ editingProduct?.name }}</h2></div>
+        <form class="space-y-4 p-6" [formGroup]="requestForm" (ngSubmit)="submitRequest()">
+          <div><label hlmFieldLabel for="request-branch">Sucursal de destino</label><select id="request-branch" hlmInput class="w-full" formControlName="branch_id"><option value="">Selecciona una sucursal</option>@for (branch of branches(); track branch.id) {<option [value]="branch.id">{{ branch.name }} · {{ branch.city }}</option>}</select></div>
+          <div class="space-y-3" formArrayName="items">@for (control of requestForm.controls.items.controls; track $index) { @let variant = editingProduct?.variants?.[$index]; <div class="grid gap-3 rounded-xl border border-slate-200 p-4 md:grid-cols-[1fr_10rem]" [formGroupName]="$index"><div class="grid gap-2 text-sm sm:grid-cols-2"><div><span class="text-xs text-slate-500">SKU</span><p>{{ variant?.sku }}</p></div><div><span class="text-xs text-slate-500">Talla / color</span><p>{{ sizeName(variant?.size_id ?? null) }} · {{ colorName(variant?.color_id ?? null) }}</p></div><div><span class="text-xs text-slate-500">Disponibilidad del proveedor</span><p>{{ variant?.provider_quantity ?? 0 }}</p></div></div><div><label hlmFieldLabel [for]="'request-quantity-' + $index">Cantidad solicitada</label><input hlmInput [id]="'request-quantity-' + $index" type="number" min="0" step="1" formControlName="requested_quantity" /></div></div> }</div>
+          <div class="flex justify-end gap-2"><button hlmBtn variant="outline" type="button" (click)="closeRequest()">Cancelar</button><button hlmBtn type="submit">Crear solicitud</button></div>
+        </form>
+      </section>
+    </div>
+  }
 </section>

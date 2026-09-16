@@ -40,6 +40,7 @@ from app.services.catalog_service import (
     delete_product,
     update_product_status,
     list_public_products,
+    list_admin_products,
     create_or_update_inventory,
     get_branch_quantity,
     available_quantity,
@@ -262,6 +263,14 @@ async def list_products(
 ):
     rows = list_public_products(db, branch_id, category_id, size_id, color_id, season_id, collection_id, q)
     return response(status_code=200, message="Productos obtenidos exitosamente", data=rows)
+
+
+@router.get("/products/admin")
+async def list_admin_products_route(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(RolEnum.administrador)),
+):
+    return response(status_code=200, message="Productos administrativos obtenidos exitosamente", data=list_admin_products(db))
 
 
 @router.get("/products/pending")

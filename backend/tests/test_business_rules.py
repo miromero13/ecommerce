@@ -15,6 +15,8 @@ from app.services.catalog_service import _normalized_variants
 from app.services.inventory_service import _inventory_available, get_consolidated_stock
 from app.services.pricing_service import discounted_price
 from app.services.reservation_service import transition_reservation
+from app.schemas.replenishment_schema import ReplenishmentStatusEnum, ReplenishmentItemCreate
+from app.services.replenishment_service import validate_transition
 
 
 def test_available_quantity_never_consumes_reserved_stock():
@@ -75,3 +77,19 @@ def test_product_variant_update_payload_preserves_variant_id():
     )
 
     assert _normalized_variants(payload, ProductStatusEnum.active)[0]["id"] == variant_id
+
+
+def test_replenishment_status_transition_requires_provider_ownership_and_order():
+    validate_transition(ReplenishmentStatusEnum.requested, ReplenishmentStatusEnum.accepted, "proveedor", owns_provider=True)
+    with pytest.raises(PermissionError):
+        validate_transition(ReplenishmentStatusEnum.requested, ReplenishmentStatusEnum.accepted, "proveedor", owns_provider=False)
+    with pytest.raises(ValueError):
+        validate_transition(ReplenishmentStatusEnum.accepted, ReplenishmentStatusEnum.awaiting_receipt, "proveedor", owns_provider=True)
+
+
+def test_replenishment_receive_is_only_allowed_once_and_quantities_are_positive():
+    validate_transition(ReplenishmentStatusEnum.awaiting_receipt, ReplenishmentStatusEnum.delivered, "encargado", owns_branch=True)
+    with pytest.raises(ValueError):
+        validate_transition(ReplenishmentStatusEnum.delivered, ReplenishmentStatusEnum.delivered, "encargado", owns_branch=True)
+    with pytest.raises(ValidationError):
+        ReplenishmentItemCreate(variant_id=uuid4(), requested_quantity=0)

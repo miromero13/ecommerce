@@ -8,6 +8,7 @@ import {
   Injector,
   PLATFORM_ID,
   runInInjectionContext,
+  Directive,
 } from '@angular/core';
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -15,6 +16,9 @@ import { twMerge } from 'tailwind-merge';
 export function hlm(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
+
+@Directive({ selector: '[hlmOnBrowser]', standalone: true })
+export class OnBrowserDirective {}
 
 // Global map to track class managers per element
 const elementClassManagers = new WeakMap<HTMLElement, ElementClassManager>();

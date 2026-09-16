@@ -115,6 +115,10 @@ export class CatalogApiService {
     return this.api.get<ListResponse<CatalogProduct>>(`/catalog/products${query}`);
   }
 
+  listAdminProducts() {
+    return this.api.get<ListResponse<CatalogProduct>>('/catalog/products/admin');
+  }
+
   listPendingProducts() {
     return this.api.get<ListResponse<CatalogProduct>>('/catalog/products/pending');
   }
@@ -145,6 +149,10 @@ export class CatalogApiService {
 
   updateProductStatus(productId: string, status: ProductStatus) {
     return this.api.patch<ApiResponse<CatalogProduct>>(`/catalog/products/${productId}/status`, { status });
+  }
+
+  updateMyProviderAvailability(updates: Array<{ variant_id: string; quantity: number }>) {
+    return this.api.put<ApiResponse<Array<{ variant_id: string; quantity: number }>>>('/providers/me/availability', { updates });
   }
 
   getAvailability(productId: string, branchId: string) {

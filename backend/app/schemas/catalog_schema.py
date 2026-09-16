@@ -66,6 +66,7 @@ class ProductVariantRead(BaseModel):
     image_public_id: str | None = None
     status: ProductStatusEnum
     branch_quantity: int | None = None
+    provider_quantity: int | None = None
 
     model_config = {
         "from_attributes": True,
