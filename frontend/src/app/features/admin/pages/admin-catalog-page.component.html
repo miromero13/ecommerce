@@ -194,7 +194,6 @@
             <th class="px-4 py-3">Categoría</th>
             <th class="px-4 py-3">Descripción</th>
             <th class="px-4 py-3">Proveedor</th>
-            <th class="px-4 py-3">Stock mínimo</th>
             <th class="px-4 py-3">Estado</th>
             <th class="px-4 py-3 text-right">Acciones</th>
           </tr>
@@ -206,7 +205,6 @@
               <td class="px-4 py-3 text-sm">{{ categoryName(product.category_id) }}</td>
               <td class="px-4 py-3 text-sm">{{ product.description }}</td>
               <td class="px-4 py-3 text-sm">{{ providerLabel(product.provider_id) }}</td>
-              <td class="px-4 py-3 text-sm">{{ product.minimum_stock }}</td>
               <td class="px-4 py-3 text-sm">{{ statusLabel(product.status) }}</td>
               <td class="px-4 py-3 text-right">
                 <app-admin-action-menu
@@ -222,7 +220,7 @@
             </tr>
           } @empty {
             <tr>
-              <td class="px-4 py-8 text-center text-sm text-slate-500" colspan="7">No hay productos registrados.</td>
+              <td class="px-4 py-8 text-center text-sm text-slate-500" colspan="6">No hay productos registrados.</td>
             </tr>
           }
         </tbody>
@@ -335,7 +333,6 @@
                   <div><span class="text-xs font-medium text-slate-500">Categoría</span><p>{{ categoryName(viewProduct?.category_id ?? null) }}</p></div>
                   <div><span class="text-xs font-medium text-slate-500">Descripción</span><p>{{ viewProduct?.description || '-' }}</p></div>
                   <div><span class="text-xs font-medium text-slate-500">Proveedor</span><p>{{ providerLabel(viewProduct?.provider_id ?? null) }}</p></div>
-                  <div><span class="text-xs font-medium text-slate-500">Stock mínimo</span><p>{{ viewProduct?.minimum_stock }}</p></div>
                   <div><span class="text-xs font-medium text-slate-500">Estado</span><p>{{ statusLabel(viewProduct?.status) }}</p></div>
                 </div>
                 <section class="space-y-2">
@@ -422,10 +419,6 @@
                       }
                     </hlm-select-content>
                   </div>
-                </div>
-                <div hlmField>
-                  <label hlmFieldLabel for="product-minimum-stock">Stock mínimo</label>
-                  <input id="product-minimum-stock" hlmInput type="number" min="0" class="w-full" formControlName="minimum_stock" />
                 </div>
                 <div hlmField>
                   <label hlmFieldLabel for="product-collection">Colección</label>

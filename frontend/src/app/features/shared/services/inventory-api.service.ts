@@ -9,6 +9,7 @@ import {
   InventoryMovementRequest,
   InventoryMutationResponse,
   InventoryTransferRequest,
+  InventoryThresholdUpdate,
 } from '../models/inventory.model';
 
 @Injectable({ providedIn: 'root' })
@@ -40,5 +41,9 @@ export class InventoryApiService {
 
   registerTransfer(payload: InventoryTransferRequest) {
     return this.api.post<ApiResponse<InventoryMutationResponse>>('/inventory/movements/transfer', payload);
+  }
+
+  updateMinimumStock(payload: InventoryThresholdUpdate) {
+    return this.api.patch<ApiResponse<InventoryMutationResponse>>('/inventory/threshold', payload);
   }
 }

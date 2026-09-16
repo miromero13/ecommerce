@@ -22,6 +22,7 @@ export interface InventoryBranchStock {
   color_name: string | null;
   quantity: number;
   reserved_quantity: number;
+  minimum_stock: number;
   available_quantity: number;
 }
 
@@ -31,6 +32,7 @@ export interface InventoryConsolidatedBranch {
   quantity: number;
   reserved_quantity: number;
   available_quantity: number;
+  minimum_stock: number;
 }
 
 export interface InventoryConsolidatedStock {
@@ -79,6 +81,12 @@ export interface InventoryTransferRequest {
   note?: string;
 }
 
+export interface InventoryThresholdUpdate {
+  variant_id: string;
+  branch_id: string;
+  minimum_stock: number;
+}
+
 export interface InventoryMutationResponse {
   movement?: string;
   movements?: string[];
@@ -87,4 +95,5 @@ export interface InventoryMutationResponse {
   from_branch_id?: string;
   to_branch_id?: string;
   quantity?: number;
+  minimum_stock?: number;
 }

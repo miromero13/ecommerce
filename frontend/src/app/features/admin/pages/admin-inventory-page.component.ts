@@ -49,6 +49,8 @@ export class AdminInventoryPageComponent {
   protected readonly submitting = signal(false);
   protected readonly movementModalOpen = signal(false);
   protected readonly transferModalOpen = signal(false);
+  protected readonly thresholdModalOpen = signal(false);
+  protected readonly thresholdItem = signal<InventoryBranchStock | null>(null);
   protected readonly movementType = signal<InventoryMovementType>('income');
   protected readonly isAdmin = computed(() => this.session.user()?.rol === 'administrador');
   protected readonly isManager = computed(() => this.session.user()?.rol === 'encargado');
@@ -74,6 +76,10 @@ export class AdminInventoryPageComponent {
     to_branch_id: ['', Validators.required],
     quantity: [1, [Validators.required, Validators.min(1)]],
     note: [''],
+  });
+
+  protected readonly thresholdForm = this.fb.nonNullable.group({
+    minimum_stock: [0, [Validators.required, Validators.min(0)]],
   });
 
   constructor() {
@@ -185,6 +191,43 @@ export class AdminInventoryPageComponent {
 
   protected closeTransferModal(): void {
     this.transferModalOpen.set(false);
+  }
+
+  protected openThresholdModal(item: InventoryBranchStock): void {
+    this.thresholdItem.set(item);
+    this.thresholdForm.reset({ minimum_stock: item.minimum_stock });
+    this.thresholdModalOpen.set(true);
+  }
+
+  protected closeThresholdModal(): void {
+    this.thresholdModalOpen.set(false);
+    this.thresholdItem.set(null);
+  }
+
+  protected async updateThreshold(): Promise<void> {
+    const item = this.thresholdItem();
+    if (!item || this.thresholdForm.invalid) {
+      this.thresholdForm.markAllAsTouched();
+      return;
+    }
+    this.submitting.set(true);
+    try {
+      await requestWithToast(this.inventoryApi.updateMinimumStock({
+        variant_id: item.variant_id,
+        branch_id: item.branch_id,
+        minimum_stock: this.thresholdForm.getRawValue().minimum_stock,
+      }), {
+        loading: 'Guardando stock mínimo...',
+        success: 'Stock mínimo actualizado correctamente.',
+        error: 'No se pudo actualizar el stock mínimo.',
+      });
+      await this.refresh();
+      this.closeThresholdModal();
+    } catch {
+      // El toast de error ya se mostró.
+    } finally {
+      this.submitting.set(false);
+    }
   }
 
   protected async registerTransfer(): Promise<void> {
