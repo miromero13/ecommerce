@@ -259,13 +259,23 @@ def create_sale(db: Session, user_id: UUID, payload: SaleCreate, branch_id: UUID
         raise
 
 
-def list_sales_by_branch(db: Session, branch_id: UUID):
-    sales = db.query(Sale).filter(Sale.branch_id == branch_id).order_by(Sale.created_at.desc()).all()
+def list_sales_by_branch(db: Session, branch_id: UUID | None = None, user_id: UUID | None = None):
+    query = db.query(Sale)
+    if branch_id is not None:
+        query = query.filter(Sale.branch_id == branch_id)
+    if user_id is not None:
+        query = query.filter(Sale.user_id == user_id)
+    sales = query.order_by(Sale.created_at.desc()).all()
     return [_serialize_sale(db, sale).model_dump() for sale in sales]
 
 
-def get_sale(db: Session, branch_id: UUID, sale_id: UUID):
-    sale = _get_sale_for_branch(db, sale_id, branch_id)
+def get_sale(db: Session, branch_id: UUID | None, sale_id: UUID, user_id: UUID | None = None):
+    query = db.query(Sale).filter(Sale.id == sale_id)
+    if branch_id is not None:
+        query = query.filter(Sale.branch_id == branch_id)
+    if user_id is not None:
+        query = query.filter(Sale.user_id == user_id)
+    sale = query.first()
     if not sale:
         return None
     return _serialize_sale(db, sale).model_dump()
