@@ -57,6 +57,12 @@ export const routes: Routes = [
           import('./features/cliente/pages/reservations-page.component').then((m) => m.ReservationsPageComponent),
       },
       {
+        path: 'cliente/my-reservations',
+        canActivate: [roleGuard(['cliente'])],
+        loadComponent: () =>
+          import('./features/cliente/pages/my-reservations-page.component').then((m) => m.MyReservationsPageComponent),
+      },
+      {
         path: 'cliente/cart',
         loadComponent: () =>
           import('./features/cliente/pages/cart-page.component').then((m) => m.CartPageComponent),
@@ -117,14 +123,26 @@ export const routes: Routes = [
         loadComponent: () => import('./features/shared/pages/replenishment-page.component').then((m) => m.ReplenishmentPageComponent),
       },
       {
+        path: 'encargado/sales',
+        canActivate: [roleGuard(['encargado'])],
+        loadComponent: () => import('./features/shared/pages/sales-history-page.component').then((m) => m.SalesHistoryPageComponent),
+      },
+      {
         path: 'cajero',
+        canActivate: [roleGuard(['cajero'])],
         loadComponent: () =>
           import('./features/cajero/pages/cajero-home-page.component').then((m) => m.CajeroHomePageComponent),
       },
       {
-        path: 'cajero/sales',
+        path: 'cajero/caja',
+        canActivate: [roleGuard(['cajero'])],
         loadComponent: () =>
-          import('./features/cajero/pages/sales-page.component').then((m) => m.SalesPageComponent),
+          import('./features/cajero/pages/caja-page.component').then((m) => m.CajaPageComponent),
+      },
+      {
+        path: 'cajero/sales',
+        canActivate: [roleGuard(['cajero'])],
+        loadComponent: () => import('./features/shared/pages/sales-history-page.component').then((m) => m.SalesHistoryPageComponent),
       },
       {
         path: 'delivery',
@@ -188,11 +206,8 @@ export const routes: Routes = [
             loadComponent: () => import('./features/proveedor/pages/provider-products-page.component').then((m) => m.ProviderProductsPageComponent),
           },
           {
-            path: 'reports',
-            loadComponent: () =>
-              import('./features/admin/pages/admin-reports-page.component').then(
-                (m) => m.AdminReportsPageComponent,
-              ),
+            path: 'sales',
+            loadComponent: () => import('./features/shared/pages/sales-history-page.component').then((m) => m.SalesHistoryPageComponent),
           },
           {
             path: 'replenishment',

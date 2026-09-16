@@ -1,6 +1,5 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
 import { toast } from '@spartan-ng/brain/sonner';
@@ -30,12 +29,12 @@ type SelectedSaleItem = {
 };
 
 @Component({
-  selector: 'app-cajero-sales-page',
+  selector: 'app-cajero-caja-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, HlmButton, ...HlmBadgeImports, ...HlmCardImports, ...HlmInputImports],
-  templateUrl: './sales-page.component.html',
+  imports: [CommonModule, HlmButton, ...HlmBadgeImports, ...HlmCardImports, ...HlmInputImports],
+  templateUrl: './caja-page.component.html',
 })
-export class SalesPageComponent {
+export class CajaPageComponent {
   private readonly catalogApi = inject(CatalogApiService);
   private readonly salesApi = inject(SalesApiService);
   private readonly session = inject(SessionService);
@@ -47,19 +46,15 @@ export class SalesPageComponent {
   protected readonly loadingProducts = signal(false);
   protected readonly submitting = signal(false);
   protected readonly cashReference = signal('');
-  protected readonly salesHistory = signal<Sale[]>([]);
 
   protected readonly branchId = computed(() => this.session.user()?.branch_id ?? null);
-  protected readonly branchLabel = computed(() => this.session.user()?.branch_id ?? 'Sin sucursal');
 
-  protected readonly itemCount = computed(() => this.selectedItems().reduce((sum, item) => sum + item.quantity, 0));
   protected readonly subtotal = computed(() => this.selectedItems().reduce((sum, item) => sum + Number(item.original_unit_price) * item.quantity, 0).toFixed(2));
   protected readonly discount = computed(() => this.selectedItems().reduce((sum, item) => sum + (Number(item.original_unit_price) - Number(item.unit_price)) * item.quantity, 0).toFixed(2));
   protected readonly total = computed(() => (Number(this.subtotal()) - Number(this.discount())).toFixed(2));
 
   constructor() {
     void this.searchProducts();
-    void this.loadHistory();
   }
 
   protected async searchProducts(): Promise<void> {
@@ -150,7 +145,6 @@ export class SalesPageComponent {
       this.selectedItems.set([]);
       this.cashReference.set('');
       await this.searchProducts();
-      await this.loadHistory();
     } catch {
       // toast handled by requestWithToast
     } finally {
@@ -172,17 +166,6 @@ export class SalesPageComponent {
 
   protected lineTotal(item: SelectedSaleItem): string {
     return (Number(item.unit_price) * item.quantity).toFixed(2);
-  }
-
-  private async loadHistory(): Promise<void> {
-    const branchId = this.branchId();
-    if (!branchId) return;
-    try {
-      const response = await firstValueFrom(this.salesApi.listBranchSales(branchId));
-      this.salesHistory.set(response.data ?? []);
-    } catch (error) {
-      toast.error(getErrorMessage(error, 'No se pudo cargar el historial de ventas.'));
-    }
   }
 
 }

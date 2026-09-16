@@ -44,7 +44,6 @@ class ProductCreate(BaseModel):
     discount_type: DiscountTypeEnum | None = None
     discount_value: Decimal | None = Field(default=None, ge=0)
     provider_id: UUID | None = None
-    minimum_stock: int = Field(default=0, ge=0)
     status: ProductStatusEnum | None = None
     variants: list[ProductVariantCreate] = Field(min_length=1)
 
@@ -80,7 +79,6 @@ class ProductRead(BaseModel):
     discount_type: DiscountTypeEnum | None = None
     discount_value: Decimal | None = None
     provider_id: UUID | None = None
-    minimum_stock: int = 0
     category_id: UUID
     collection_id: UUID | None = None
     sku: str | None = None

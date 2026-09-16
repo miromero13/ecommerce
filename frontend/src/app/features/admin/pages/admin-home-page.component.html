@@ -5,8 +5,14 @@
   </header>
 
   <section hlmCard class="bg-white shadow-sm"><div hlmCardContent class="grid gap-2 p-3 sm:grid-cols-2 lg:grid-cols-5">
-    <select class="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm lg:col-span-2" [value]="selectedBranchId()" (change)="onBranchChange($event)"><option value="">Todas las sucursales</option>@for (branch of branches(); track branch.id) {<option [value]="branch.id">{{ branch.name }} - {{ branch.city }}</option>}</select>
-    <select class="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm" [value]="period()" (change)="onPeriodChange($event)"><option value="day">Día</option><option value="week">Semana</option><option value="month">Mes</option></select>
+    <div hlmSelect class="lg:col-span-2" [value]="selectedBranchId()" [itemToString]="branchSelectLabel" (valueChange)="onBranchChange($event)">
+      <hlm-select-trigger class="h-9" buttonId="dashboard-branch"><span hlmSelectValue placeholder="Todas las sucursales"></span></hlm-select-trigger>
+      <hlm-select-content><hlm-select-item value="">Todas las sucursales</hlm-select-item>@for (branch of branches(); track branch.id) {<hlm-select-item [value]="branch.id">{{ branch.name }} - {{ branch.city }}</hlm-select-item>}</hlm-select-content>
+    </div>
+    <div hlmSelect [value]="period()" [itemToString]="periodSelectLabel" (valueChange)="onPeriodChange($event)">
+      <hlm-select-trigger class="h-9" buttonId="dashboard-period"><span hlmSelectValue placeholder="Día"></span></hlm-select-trigger>
+      <hlm-select-content><hlm-select-item value="day">Día</hlm-select-item><hlm-select-item value="week">Semana</hlm-select-item><hlm-select-item value="month">Mes</hlm-select-item></hlm-select-content>
+    </div>
     <input hlmInput type="date" [value]="fromDate()" (input)="onFromDateChange($event)" /><input hlmInput type="date" [value]="toDate()" (input)="onToDateChange($event)" />
     <button hlmBtn type="button" class="sm:col-span-2 lg:col-span-1" (click)="applyFilters()" [disabled]="loading()">Aplicar</button>
   </div></section>

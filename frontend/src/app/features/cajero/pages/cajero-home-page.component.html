@@ -22,7 +22,4 @@
   </section>
 
   @if (chartData().length) {<section hlmCard class="bg-white shadow-sm"><div hlmCardContent class="p-3"><h2 class="mb-1 font-semibold">Historial de ventas</h2><div hlmOnBrowser><ngx-area-chart [data]="chartData()" [categories]="categories" [height]="180" [hideLegend]="true" [yGridLine]="true" /></div></div></section>}
-  <section class="flex gap-2">
-    <a hlmBtn routerLink="/app/cajero/sales">Abrir caja</a>
-  </section>
 </section>

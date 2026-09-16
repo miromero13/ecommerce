@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
 
@@ -20,8 +20,11 @@ from app.models.inventory_movement import InventoryMovement
 from app.models.product import Product
 from app.models.product_variant import ProductVariant
 from app.models.provider import Provider
+from app.models.provider_variant_availability import ProviderVariantAvailability
 from app.models.reservation import Reservation
 from app.models.reservation_item import ReservationItem
+from app.models.replenishment_request import ReplenishmentRequest
+from app.models.replenishment_request_item import ReplenishmentRequestItem
 from app.models.order import Order
 from app.models.order_item import OrderItem
 from app.models.sale import Sale
@@ -37,6 +40,7 @@ from app.schemas.inventory_schema import InventoryMovementTypeEnum
 from app.schemas.enums import GenderEnum, ProviderStatusEnum, RolEnum
 from app.schemas.order_schema import OrderStatusEnum, PaymentMethodEnum, PaymentStatusEnum
 from app.schemas.reservation_schema import ReservationStatusEnum
+from app.schemas.replenishment_schema import ReplenishmentStatusEnum
 from app.schemas.sales_schema import SaleStatusEnum
 
 
@@ -60,9 +64,12 @@ def main() -> None:
         _seed_inventory(session, branches, users, product_variants)
         clients = [user for user in users if user.rol == RolEnum.cliente]
         cashiers = [user for user in users if user.rol == RolEnum.cajero]
+        promotion_codes, promotion_usages = _seed_promotions(session, clients, branches, users)
+        provider_availability = _seed_provider_availability(session, providers, product_variants)
+        replenishments = _seed_replenishments(session, providers, branches, users, product_variants)
         carts = _seed_carts(session, clients, branches, product_variants)
         reservations = _seed_reservations(session, clients, branches, product_variants)
-        orders = _seed_orders(session, clients, product_variants)
+        orders = _seed_orders(session, clients, branches, product_variants)
         sales = _seed_sales(session, cashiers, branches, product_variants, reservations)
         _verify_seed(
             session,
@@ -79,6 +86,10 @@ def main() -> None:
             reservations,
             orders,
             sales,
+            provider_availability,
+            replenishments,
+            promotion_codes,
+            promotion_usages,
         )
         session.commit()
         print("Seeder demo ejecutado correctamente")
@@ -109,16 +120,21 @@ def _ensure_tables() -> None:
         "collections",
         "products",
         "product_variants",
+        "provider_variant_availability",
         "inventory",
         "inventory_movements",
         "carts",
         "cart_items",
         "reservations",
         "reservation_items",
+        "replenishment_requests",
+        "replenishment_request_items",
         "orders",
         "order_items",
         "sales",
         "sale_items",
+        "promotion_codes",
+        "promotion_code_usages",
     }
     inspector = inspect(engine)
     existing = set(inspector.get_table_names())
@@ -156,12 +172,17 @@ def _reset_demo_data(session) -> None:
     delete_order = [
         SaleItem,
         Sale,
+        PromotionCodeUsage,
         OrderItem,
         Order,
         ReservationItem,
         Reservation,
+        ReplenishmentRequestItem,
+        ReplenishmentRequest,
+        ProviderVariantAvailability,
         CartItem,
         Cart,
+        PromotionCode,
         InventoryMovement,
         Inventory,
         ProductVariant,
@@ -247,6 +268,10 @@ def _verify_seed(
     reservations: list[Reservation],
     orders: list[Order],
     sales: list[Sale],
+    provider_availability: list[ProviderVariantAvailability],
+    replenishments: list[ReplenishmentRequest],
+    promotion_codes: list[PromotionCode],
+    promotion_usages: list[PromotionCodeUsage],
 ) -> None:
     models = [
         Branch,
@@ -259,16 +284,21 @@ def _verify_seed(
         Collection,
         Product,
         ProductVariant,
+        ProviderVariantAvailability,
         Inventory,
         InventoryMovement,
         Cart,
         CartItem,
         Reservation,
         ReservationItem,
+        ReplenishmentRequest,
+        ReplenishmentRequestItem,
         Order,
         OrderItem,
         Sale,
         SaleItem,
+        PromotionCode,
+        PromotionCodeUsage,
     ]
     frames: dict[str, pd.DataFrame] = {}
     for model in models:
@@ -321,6 +351,17 @@ def _verify_seed(
     inactive_inventory = inventory_frame[inventory_frame["variant_id"].map(str).isin(inactive_ids)]
     if not inactive_inventory.empty and (inactive_inventory["quantity"] != 0).any():
         raise RuntimeError("Las variantes inactivas deben tener inventario cero")
+
+    if not provider_availability or frames["provider_variant_availability"].empty:
+        raise RuntimeError("El seed debe generar disponibilidad de proveedores")
+    if not replenishments or frames["replenishment_requests"].empty or frames["replenishment_request_items"].empty:
+        raise RuntimeError("El seed debe generar solicitudes de reposicion con items")
+    if not promotion_codes or not promotion_usages or frames["promotion_codes"].empty or frames["promotion_code_usages"].empty:
+        raise RuntimeError("El seed debe generar codigos promocionales y usos")
+    if any(sale.created_at.tzinfo is None for sale in sales):
+        raise RuntimeError("Las ventas deben tener fechas timezone-aware")
+    if len({sale.created_at for sale in sales}) != len(sales):
+        raise RuntimeError("Cada venta debe tener una fecha distinta")
 
     for table_name, frame in frames.items():
         if frame.empty and table_name in {"cart_items", "reservation_items", "order_items", "sale_items"}:
@@ -518,6 +559,99 @@ def _seed_providers(session, branches: list[Branch]) -> list[Provider]:
         providers.append(provider)
 
     return providers
+
+
+def _seed_promotions(
+    session,
+    clients: list[User],
+    branches: list[Branch],
+    users: list[User],
+) -> tuple[list[PromotionCode], list[PromotionCodeUsage]]:
+    created_by = next(user for user in users if user.rol == RolEnum.administrador)
+    start = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    codes_payload = [
+        {"code": "DEMO10", "discount_type": "percentage", "discount_value": Decimal("10.00"), "branch_id": None},
+        {"code": "NORTE15", "discount_type": "fixed", "discount_value": Decimal("15.00"), "branch_id": branches[1].id},
+    ]
+    codes: list[PromotionCode] = []
+    for payload in codes_payload:
+        defaults = {
+            **payload,
+            "created_by": created_by.id,
+            "valid_from": start,
+            "valid_until": start + timedelta(days=365),
+            "is_active": True,
+            "created_at": start,
+        }
+        code, _ = _get_or_create(session, PromotionCode, {"code": payload["code"]}, defaults)
+        for key, value in defaults.items():
+            setattr(code, key, value)
+        codes.append(code)
+
+    used_at = start + timedelta(days=14)
+    usage, _ = _get_or_create(
+        session,
+        PromotionCodeUsage,
+        {"promotion_code_id": codes[0].id, "user_id": clients[0].id},
+        {"used_at": used_at},
+    )
+    usage.used_at = used_at
+    return codes, [usage]
+
+
+def _seed_provider_availability(
+    session,
+    providers: list[Provider],
+    product_variants: list[tuple[Product, ProductVariant]],
+) -> list[ProviderVariantAvailability]:
+    availability: list[ProviderVariantAvailability] = []
+    for provider_index, provider in enumerate(providers):
+        assigned = [variant for product, variant in product_variants if product.provider_id == provider.id]
+        for variant_index, variant in enumerate(assigned[:4]):
+            row, _ = _get_or_create(
+                session,
+                ProviderVariantAvailability,
+                {"provider_id": provider.id, "variant_id": variant.id},
+                {"quantity": 12 + provider_index + variant_index},
+            )
+            row.quantity = 12 + provider_index + variant_index
+            availability.append(row)
+    return availability
+
+
+def _seed_replenishments(
+    session,
+    providers: list[Provider],
+    branches: list[Branch],
+    users: list[User],
+    product_variants: list[tuple[Product, ProductVariant]],
+) -> list[ReplenishmentRequest]:
+    provider = providers[0]
+    assigned_variants = [variant for product, variant in product_variants if product.provider_id == provider.id]
+    timestamp = datetime(2026, 1, 10, tzinfo=timezone.utc)
+    requests: list[ReplenishmentRequest] = []
+    for index, branch in enumerate(branches):
+        requester = next(user for user in users if user.rol == RolEnum.encargado and user.branch_id == branch.id)
+        request_time = timestamp + timedelta(days=index)
+        request, _ = _get_or_create(
+            session,
+            ReplenishmentRequest,
+            {"provider_id": provider.id, "branch_id": branch.id, "requested_by": requester.id},
+            {"status": ReplenishmentStatusEnum.requested, "created_at": request_time, "updated_at": request_time},
+        )
+        request.status = ReplenishmentStatusEnum.requested
+        request.created_at = request_time
+        request.updated_at = request_time
+        variant = assigned_variants[index % len(assigned_variants)]
+        item, _ = _get_or_create(
+            session,
+            ReplenishmentRequestItem,
+            {"request_id": request.id, "variant_id": variant.id},
+            {"requested_quantity": 5 + index},
+        )
+        item.requested_quantity = 5 + index
+        requests.append(request)
+    return requests
 
 
 def _seed_categories(session) -> list[Category]:
@@ -901,12 +1035,18 @@ def _seed_reservations(
     return reservations
 
 
-def _seed_orders(session, clients: list[User], product_variants: list[tuple[Product, ProductVariant]]) -> list[Order]:
+def _seed_orders(
+    session,
+    clients: list[User],
+    branches: list[Branch],
+    product_variants: list[tuple[Product, ProductVariant]],
+) -> list[Order]:
     orders: list[Order] = []
     payment_methods = [PaymentMethodEnum.cash, PaymentMethodEnum.stripe]
 
     for index, client in enumerate(clients[:4]):
         payment_method = payment_methods[index % len(payment_methods)]
+        branch = branches[index % len(branches)]
         order, _ = _get_or_create(
             session,
             Order,
@@ -915,6 +1055,7 @@ def _seed_orders(session, clients: list[User], product_variants: list[tuple[Prod
                 "status": OrderStatusEnum.paid,
                 "payment_method": payment_method,
                 "payment_status": PaymentStatusEnum.paid,
+                "pickup_branch_id": branch.id,
                 "stripe_payment_intent_id": f"pi_demo_{index + 1:03d}" if payment_method == PaymentMethodEnum.stripe else None,
                 "cash_reference": f"CASH-ORD-{index + 1:03d}" if payment_method == PaymentMethodEnum.cash else None,
                 "currency": "usd",
@@ -923,6 +1064,7 @@ def _seed_orders(session, clients: list[User], product_variants: list[tuple[Prod
         order.status = OrderStatusEnum.paid
         order.payment_method = payment_method
         order.payment_status = PaymentStatusEnum.paid
+        order.pickup_branch_id = branch.id
         order.stripe_payment_intent_id = f"pi_demo_{index + 1:03d}" if payment_method == PaymentMethodEnum.stripe else None
         order.cash_reference = f"CASH-ORD-{index + 1:03d}" if payment_method == PaymentMethodEnum.cash else None
 
@@ -1015,6 +1157,7 @@ def _seed_sales(
         sale.payment_status = PaymentStatusEnum.paid
         sale.cash_reference = reference
         sale.currency = "usd"
+        sale.created_at = datetime(2026, 2, 1, tzinfo=timezone.utc) + timedelta(days=sale_index)
 
         subtotal = Decimal("0")
         for reservation_item in reservation.items:

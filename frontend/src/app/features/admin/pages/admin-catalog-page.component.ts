@@ -161,7 +161,6 @@ export class AdminCatalogPageComponent {
     discount_type: [''],
     discount_value: [''],
     provider_id: [''],
-    minimum_stock: [0, [Validators.min(0)]],
     variants: this.fb.array([this.createVariantGroup()]),
   });
 
@@ -184,7 +183,7 @@ export class AdminCatalogPageComponent {
     if (tab === 'products') {
       this.productForm.enable();
       this.resetVariantImageStates();
-      this.productForm.reset({ name: '', description: '', category_id: '', collection_id: '', discount_type: '', discount_value: '', provider_id: '', minimum_stock: 0 });
+      this.productForm.reset({ name: '', description: '', category_id: '', collection_id: '', discount_type: '', discount_value: '', provider_id: '' });
       this.variantsArray().clear();
       this.variantsArray().push(this.createVariantGroup());
       this.editingVariantIds = [null];
@@ -237,7 +236,6 @@ export class AdminCatalogPageComponent {
       discount_type: product.discount_type ?? '',
       discount_value: product.discount_value ?? '',
       provider_id: product.provider_id ?? '',
-      minimum_stock: product.minimum_stock ?? 0,
     });
     this.variantsArray().clear();
 
@@ -383,7 +381,6 @@ export class AdminCatalogPageComponent {
         discount_type: discountType,
         discount_value: payload.discount_type ? payload.discount_value : null,
         provider_id: payload.provider_id || null,
-        minimum_stock: payload.minimum_stock,
         variants: variants.map((variant, index) => ({
           id: this.editingVariantIds[index] ?? undefined,
           sku: variant.sku,
@@ -410,7 +407,7 @@ export class AdminCatalogPageComponent {
         savedProduct = response.data ?? null;
       }
       await this.syncVariantImages(savedProduct);
-      this.productForm.reset({ name: '', description: '', category_id: '', collection_id: '', discount_type: '', discount_value: '', provider_id: '', minimum_stock: 0 });
+      this.productForm.reset({ name: '', description: '', category_id: '', collection_id: '', discount_type: '', discount_value: '', provider_id: '' });
       this.variantsArray().clear();
       this.variantsArray().push(this.createVariantGroup());
       this.editingVariantIds = [null];

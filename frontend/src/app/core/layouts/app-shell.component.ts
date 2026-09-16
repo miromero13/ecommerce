@@ -154,11 +154,11 @@ export class AppShellComponent {
               { label: 'Catálogo', route: '/app/admin/catalog', icon: 'lucideLayoutDashboard' },
               { label: 'Promociones', route: '/app/admin/promotions', icon: 'lucideTicket' },
               { label: 'Inventario', route: '/app/admin/inventory', icon: 'lucidePackageSearch' },
+              { label: 'Ventas', route: '/app/admin/sales', icon: 'lucideShoppingCart' },
               { label: 'Usuarios', route: '/app/admin/user', icon: 'lucideUsers' },
               { label: 'Sucursales', route: '/app/admin/branch', icon: 'lucideLayoutDashboard' },
                { label: 'Proveedores', route: '/app/admin/provider', icon: 'lucideUsers' },
                { label: 'Solicitudes', route: '/app/admin/replenishment', icon: 'lucideClipboardList' },
-              { label: 'Reportes', route: '/app/admin/reports', icon: 'lucidePackageSearch' },
             ],
           },
         ];
@@ -170,7 +170,8 @@ export class AppShellComponent {
             title: 'Navegación',
             items: [
               { label: 'Catálogo', route: '/app/cliente/catalog', icon: 'lucideLayoutDashboard', exact: true },
-              { label: 'Reservas', route: '/app/cliente/reservations', icon: 'lucideCalendarDays' },
+              { label: 'Reservas', route: '/app/cliente/reservations', icon: 'lucideTicket' },
+              { label: 'Mis reservas', route: '/app/cliente/my-reservations', icon: 'lucideCalendarDays' },
               { label: 'Carrito', route: '/app/cliente/cart', icon: 'lucideShoppingCart' },
               { label: 'Pedidos', route: '/app/cliente/orders', icon: 'lucideClipboardList' },
             ],
@@ -182,12 +183,12 @@ export class AppShellComponent {
             title: 'Operación',
             items: [
               this.homeItem(),
-              { label: 'Productos', route: '/app/proveedor/products', icon: 'lucidePackageSearch' },
               { label: 'Reservas', route: '/app/encargado/reservations', icon: 'lucideCalendarDays' },
               { label: 'Inventario', route: '/app/encargado/inventory', icon: 'lucidePackageSearch' },
                { label: 'Pedidos', route: '/app/encargado/orders', icon: 'lucideClipboardList' },
                { label: 'Proveedor', route: '/app/encargado/replenishment', icon: 'lucideClipboardList' },
               { label: 'Promociones', route: '/app/encargado/promotions', icon: 'lucideTicket' },
+              { label: 'Ventas', route: '/app/encargado/sales', icon: 'lucideShoppingCart' },
             ],
           },
         ];
@@ -197,6 +198,7 @@ export class AppShellComponent {
             title: 'Caja',
             items: [
               this.homeItem(),
+              { label: 'Caja', route: '/app/cajero/caja', icon: 'lucideShoppingCart' },
               { label: 'Ventas', route: '/app/cajero/sales', icon: 'lucideShoppingCart' },
             ],
           },

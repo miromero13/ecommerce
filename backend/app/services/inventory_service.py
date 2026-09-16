@@ -16,6 +16,7 @@ from app.schemas.inventory_schema import (
     InventoryMovementRead,
     InventoryMovementTypeEnum,
     InventoryTransferCreate,
+    InventoryThresholdUpdate,
 )
 
 
@@ -37,7 +38,7 @@ def _get_or_create_inventory(db: Session, variant_id, branch_id) -> Inventory:
     if inventory:
         return inventory
 
-    inventory = Inventory(variant_id=variant_id, branch_id=branch_id, quantity=0, reserved_quantity=0)
+    inventory = Inventory(variant_id=variant_id, branch_id=branch_id, quantity=0, reserved_quantity=0, minimum_stock=0)
     db.add(inventory)
     db.flush()
     return inventory
@@ -77,6 +78,7 @@ def get_branch_stock(db: Session, branch_id):
             Color.name.label("color_name"),
             Inventory.quantity.label("quantity"),
             Inventory.reserved_quantity.label("reserved_quantity"),
+            Inventory.minimum_stock.label("minimum_stock"),
         )
         .join(ProductVariant, ProductVariant.id == Inventory.variant_id)
         .join(Product, Product.id == ProductVariant.product_id)
@@ -111,6 +113,7 @@ def get_branch_stock(db: Session, branch_id):
                 "color_name": data["color_name"],
                 "quantity": quantity,
                 "reserved_quantity": reserved,
+                "minimum_stock": int(data["minimum_stock"] or 0),
                 "available_quantity": max(quantity - reserved, 0),
             }
         )
@@ -136,6 +139,7 @@ def get_consolidated_stock(db: Session):
             Branch.name.label("branch_name"),
             Inventory.quantity.label("quantity"),
             Inventory.reserved_quantity.label("reserved_quantity"),
+            Inventory.minimum_stock.label("minimum_stock"),
         )
         .join(ProductVariant, ProductVariant.id == Inventory.variant_id)
         .join(Product, Product.id == ProductVariant.product_id)
@@ -182,11 +186,22 @@ def get_consolidated_stock(db: Session):
                 "branch_name": data["branch_name"],
                 "quantity": quantity,
                 "reserved_quantity": reserved,
+                "minimum_stock": int(data["minimum_stock"] or 0),
                 "available_quantity": max(quantity - reserved, 0),
             }
         )
 
     return list(grouped.values())
+
+
+def update_minimum_stock(db: Session, payload: InventoryThresholdUpdate) -> Inventory:
+    inventory = _get_inventory(db, payload.variant_id, payload.branch_id)
+    if not inventory:
+        inventory = _get_or_create_inventory(db, payload.variant_id, payload.branch_id)
+    inventory.minimum_stock = payload.minimum_stock
+    db.commit()
+    db.refresh(inventory)
+    return inventory
 
 
 def list_movements(db: Session, variant_id=None, branch_id=None, movement_type: InventoryMovementTypeEnum | None = None, limit: int = 100):

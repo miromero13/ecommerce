@@ -15,6 +15,7 @@ from app.services.report_service import (
     get_movements_report,
     get_sales_report,
 )
+from app.utils.response import response
 
 
 router = APIRouter(prefix="/reports", tags=["Reports"])
@@ -47,26 +48,42 @@ def _csv_response(filename: str, rows: list[dict], headers: list[str]):
     )
 
 
+def _scoped_filters(filters: ReportQuery, current_user: dict) -> ReportQuery:
+    if current_user.get("rol") != RolEnum.encargado.value:
+        return filters
+
+    branch_id = current_user.get("branch_id")
+    if not branch_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="El encargado no tiene sucursal asignada")
+    try:
+        manager_branch_id = UUID(branch_id)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="La sucursal asignada no es válida")
+    return filters.model_copy(update={"branch_id": manager_branch_id})
+
+
 @router.get("/sales")
 async def sales_report_route(
     db: Session = Depends(get_db),
     filters: ReportQuery = Depends(_filters),
-    current_user: dict = Depends(require_roles(RolEnum.administrador)),
+    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
 ):
-    return get_sales_report(db, filters)
+    filters = _scoped_filters(filters, current_user)
+    return response(status_code=status.HTTP_200_OK, message="Reporte de ventas obtenido exitosamente", data=get_sales_report(db, filters))
 
 
 @router.get("/sales/export")
 async def sales_report_export_route(
     db: Session = Depends(get_db),
     filters: ReportQuery = Depends(_filters),
-    current_user: dict = Depends(require_roles(RolEnum.administrador)),
+    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
 ):
+    filters = _scoped_filters(filters, current_user)
     report = get_sales_report(db, filters)
     return _csv_response(
         "sales-report.csv",
         report["rows"],
-        ["branch_id", "branch_name", "product_id", "product_name", "variant_id", "variant_sku", "quantity_sold", "gross_sales", "payment_method", "payment_status", "sale_status"],
+        ["branch_id", "branch_name", "product_id", "product_name", "variant_id", "variant_sku", "quantity_sold", "gross_sales", "payment_method", "payment_status", "sale_status", "type"],
     )
 
 
@@ -74,17 +91,19 @@ async def sales_report_export_route(
 async def inventory_report_route(
     db: Session = Depends(get_db),
     filters: ReportQuery = Depends(_filters),
-    current_user: dict = Depends(require_roles(RolEnum.administrador)),
+    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
 ):
-    return get_inventory_report(db, filters)
+    filters = _scoped_filters(filters, current_user)
+    return response(status_code=status.HTTP_200_OK, message="Reporte de inventario obtenido exitosamente", data=get_inventory_report(db, filters))
 
 
 @router.get("/inventory/export")
 async def inventory_report_export_route(
     db: Session = Depends(get_db),
     filters: ReportQuery = Depends(_filters),
-    current_user: dict = Depends(require_roles(RolEnum.administrador)),
+    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
 ):
+    filters = _scoped_filters(filters, current_user)
     report = get_inventory_report(db, filters)
     return _csv_response(
         "inventory-report.csv",
@@ -97,17 +116,19 @@ async def inventory_report_export_route(
 async def movements_report_route(
     db: Session = Depends(get_db),
     filters: ReportQuery = Depends(_filters),
-    current_user: dict = Depends(require_roles(RolEnum.administrador)),
+    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
 ):
-    return get_movements_report(db, filters)
+    filters = _scoped_filters(filters, current_user)
+    return response(status_code=status.HTTP_200_OK, message="Reporte de movimientos obtenido exitosamente", data=get_movements_report(db, filters))
 
 
 @router.get("/movements/export")
 async def movements_report_export_route(
     db: Session = Depends(get_db),
     filters: ReportQuery = Depends(_filters),
-    current_user: dict = Depends(require_roles(RolEnum.administrador)),
+    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
 ):
+    filters = _scoped_filters(filters, current_user)
     report = get_movements_report(db, filters)
     return _csv_response(
         "movements-report.csv",

@@ -7,17 +7,20 @@ from decimal import Decimal
 from io import StringIO
 from typing import Iterable
 
-from sqlalchemy import func, or_
+from sqlalchemy import func, literal, or_
 from sqlalchemy.orm import Session
 
 from app.models.branch import Branch
 from app.models.inventory import Inventory
 from app.models.inventory_movement import InventoryMovement
+from app.models.order import Order
+from app.models.order_item import OrderItem
 from app.models.product import Product
 from app.models.product_variant import ProductVariant
 from app.models.sale import Sale
 from app.models.sale_item import SaleItem
 from app.schemas.report_schema import InventoryReportRow, MovementReportRow, ReportQuery, ReportSummary, SalesReportRow
+from app.schemas.sales_schema import SaleTypeEnum
 
 
 def _date_range(filters: ReportQuery):
@@ -41,6 +44,7 @@ def get_sales_report(db: Session, filters: ReportQuery):
             Sale.payment_method.label("payment_method"),
             Sale.payment_status.label("payment_status"),
             Sale.status.label("sale_status"),
+            literal(SaleTypeEnum.in_person.value).label("type"),
         )
         .join(SaleItem, SaleItem.sale_id == Sale.id)
         .outerjoin(Branch, Branch.id == Sale.branch_id)
@@ -73,6 +77,36 @@ def get_sales_report(db: Session, filters: ReportQuery):
     ).order_by(Branch.name.asc().nullslast(), SaleItem.product_name.asc(), SaleItem.variant_sku.asc()).all()
 
     serialized = [SalesReportRow.model_validate(row._mapping).model_dump() for row in rows]
+    online_query = (
+        db.query(
+            Order.pickup_branch_id.label("branch_id"), Branch.name.label("branch_name"),
+            OrderItem.product_id.label("product_id"), OrderItem.product_name.label("product_name"),
+            OrderItem.variant_id.label("variant_id"), OrderItem.variant_sku.label("variant_sku"),
+            func.sum(OrderItem.quantity).label("quantity_sold"), func.sum(OrderItem.line_total).label("gross_sales"),
+            Order.payment_method.label("payment_method"), Order.payment_status.label("payment_status"),
+            literal("completed").label("sale_status"), literal(SaleTypeEnum.online.value).label("type"),
+        ).join(OrderItem, OrderItem.order_id == Order.id)
+        .outerjoin(Branch, Branch.id == Order.pickup_branch_id)
+        .filter(Order.status == "paid", Order.pickup_branch_id.is_not(None))
+    )
+    if filters.branch_id:
+        online_query = online_query.filter(Order.pickup_branch_id == filters.branch_id)
+    if filters.product_id:
+        online_query = online_query.filter(OrderItem.product_id == filters.product_id)
+    if filters.variant_id:
+        online_query = online_query.filter(OrderItem.variant_id == filters.variant_id)
+    if start:
+        online_query = online_query.filter(Order.created_at >= start)
+    if end:
+        online_query = online_query.filter(Order.created_at < end)
+    if filters.q:
+        term = f"%{filters.q.strip()}%"
+        online_query = online_query.filter(or_(OrderItem.product_name.ilike(term), OrderItem.variant_sku.ilike(term), Branch.name.ilike(term)))
+    online_rows = online_query.group_by(
+        Order.pickup_branch_id, Branch.name, OrderItem.product_id, OrderItem.product_name,
+        OrderItem.variant_id, OrderItem.variant_sku, Order.payment_method, Order.payment_status,
+    ).order_by(Branch.name.asc().nullslast(), OrderItem.product_name.asc(), OrderItem.variant_sku.asc()).all()
+    serialized.extend(SalesReportRow.model_validate(row._mapping).model_dump() for row in online_rows)
     total_orders = (
         db.query(func.count(func.distinct(Sale.id)))
         .join(SaleItem, SaleItem.sale_id == Sale.id)
@@ -92,6 +126,21 @@ def get_sales_report(db: Session, filters: ReportQuery):
         term = f"%{filters.q.strip()}%"
         total_orders = total_orders.filter(or_(SaleItem.product_name.ilike(term), SaleItem.variant_sku.ilike(term), Branch.name.ilike(term)))
     total_orders_value = int(total_orders.scalar() or 0)
+    online_orders = db.query(func.count(func.distinct(Order.id))).join(OrderItem, OrderItem.order_id == Order.id).outerjoin(Branch, Branch.id == Order.pickup_branch_id).filter(Order.status == "paid", Order.pickup_branch_id.is_not(None))
+    if filters.branch_id:
+        online_orders = online_orders.filter(Order.pickup_branch_id == filters.branch_id)
+    if filters.product_id:
+        online_orders = online_orders.filter(OrderItem.product_id == filters.product_id)
+    if filters.variant_id:
+        online_orders = online_orders.filter(OrderItem.variant_id == filters.variant_id)
+    if start:
+        online_orders = online_orders.filter(Order.created_at >= start)
+    if end:
+        online_orders = online_orders.filter(Order.created_at < end)
+    if filters.q:
+        term = f"%{filters.q.strip()}%"
+        online_orders = online_orders.filter(or_(OrderItem.product_name.ilike(term), OrderItem.variant_sku.ilike(term), Branch.name.ilike(term)))
+    total_orders_value += int(online_orders.scalar() or 0)
 
     total_sales = sum(Decimal(str(row["gross_sales"])) for row in serialized)
     total_units = sum(int(row["quantity_sold"]) for row in serialized)

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, ForeignKey, UniqueConstraint
+from sqlalchemy import CheckConstraint, Column, Integer, ForeignKey, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -14,7 +14,11 @@ class Inventory(Base):
     branch_id = Column(UUID(as_uuid=True), ForeignKey("branches.id"), nullable=False, index=True)
     quantity = Column(Integer, nullable=False, default=0)
     reserved_quantity = Column(Integer, nullable=False, default=0)
+    minimum_stock = Column(Integer, nullable=False, default=0)
 
     variant = relationship("ProductVariant", back_populates="inventory")
 
-    __table_args__ = (UniqueConstraint("variant_id", "branch_id", name="uq_inventory_variant_branch"),)
+    __table_args__ = (
+        UniqueConstraint("variant_id", "branch_id", name="uq_inventory_variant_branch"),
+        CheckConstraint("minimum_stock >= 0", name="ck_inventory_minimum_stock_non_negative"),
+    )

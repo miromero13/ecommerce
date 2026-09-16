@@ -16,6 +16,7 @@ from app.services.inventory_service import _inventory_available, get_consolidate
 from app.services.pricing_service import discounted_price
 from app.services.reservation_service import transition_reservation
 from app.schemas.replenishment_schema import ReplenishmentStatusEnum, ReplenishmentItemCreate
+from app.schemas.inventory_schema import InventoryThresholdUpdate
 from app.services.replenishment_service import validate_transition
 
 
@@ -23,6 +24,11 @@ def test_available_quantity_never_consumes_reserved_stock():
     assert _inventory_available(SimpleNamespace(quantity=10, reserved_quantity=3)) == 7
     assert _inventory_available(SimpleNamespace(quantity=2, reserved_quantity=5)) == 0
     assert _inventory_available(SimpleNamespace(quantity=None, reserved_quantity=None)) == 0
+
+
+def test_inventory_minimum_stock_cannot_be_negative():
+    with pytest.raises(ValidationError):
+        InventoryThresholdUpdate(variant_id=uuid4(), branch_id=uuid4(), minimum_stock=-1)
 
 
 def test_consolidated_inventory_matches_branch_breakdown():

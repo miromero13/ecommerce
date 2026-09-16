@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.models.branch import Branch
 from app.models.inventory import Inventory
 from app.models.inventory_movement import InventoryMovement
+from app.models.order import Order
 from app.models.product import Product
 from app.models.product_variant import ProductVariant
 from app.models.reservation import Reservation
@@ -16,7 +17,7 @@ from app.models.sale_item import SaleItem
 from app.models.size import Size
 from app.models.color import Color
 from app.schemas.order_schema import PaymentMethodEnum, PaymentStatusEnum
-from app.schemas.sales_schema import SaleCreate, SaleItemRead, SaleRead, SaleStatusEnum
+from app.schemas.sales_schema import SaleCreate, SaleItemRead, SaleRead, SaleStatusEnum, SaleTypeEnum
 from app.schemas.catalog_enums import ProductStatusEnum
 from app.schemas.inventory_schema import InventoryMovementTypeEnum
 from app.schemas.reservation_schema import ReservationStatusEnum
@@ -102,6 +103,7 @@ def _serialize_sale(db: Session, sale: Sale) -> SaleRead:
             "id": sale.id,
             "branch_id": sale.branch_id,
             "branch_name": branch_name,
+            "type": SaleTypeEnum.in_person,
             "user_id": sale.user_id,
             "reservation_id": sale.reservation_id,
             "status": sale.status,
@@ -259,13 +261,57 @@ def create_sale(db: Session, user_id: UUID, payload: SaleCreate, branch_id: UUID
         raise
 
 
-def list_sales_by_branch(db: Session, branch_id: UUID):
-    sales = db.query(Sale).filter(Sale.branch_id == branch_id).order_by(Sale.created_at.desc()).all()
-    return [_serialize_sale(db, sale).model_dump() for sale in sales]
+def list_sales_by_branch(db: Session, branch_id: UUID | None = None, user_id: UUID | None = None):
+    query = db.query(Sale)
+    if branch_id is not None:
+        query = query.filter(Sale.branch_id == branch_id)
+    if user_id is not None:
+        query = query.filter(Sale.user_id == user_id)
+    sales = [_serialize_sale(db, sale).model_dump() for sale in query.order_by(Sale.created_at.desc()).all()]
+
+    orders_query = db.query(Order).filter(Order.status == "paid", Order.pickup_branch_id.is_not(None))
+    if branch_id is not None:
+        orders_query = orders_query.filter(Order.pickup_branch_id == branch_id)
+    orders = []
+    for order in orders_query.order_by(Order.created_at.desc()).all():
+        branch_name = db.query(Branch.name).filter(Branch.id == order.pickup_branch_id).scalar() or str(order.pickup_branch_id)
+        orders.append(SaleRead.model_validate({
+            "id": order.id,
+            "branch_id": order.pickup_branch_id,
+            "branch_name": branch_name,
+            "type": SaleTypeEnum.online,
+            "user_id": order.user_id,
+            "reservation_id": None,
+            "status": SaleStatusEnum.completed,
+            "payment_method": order.payment_method,
+            "payment_status": order.payment_status,
+            "cash_reference": order.cash_reference,
+            "subtotal": order.subtotal,
+            "discount_amount": order.discount_amount,
+            "total_amount": order.total_amount,
+            "currency": order.currency,
+            "created_at": order.created_at,
+            "updated_at": order.updated_at,
+            "items": [{
+                "id": item.id, "sale_id": order.id, "variant_id": item.variant_id, "quantity": item.quantity,
+                "unit_price": item.unit_price, "original_unit_price": item.unit_price, "discount_amount": Decimal("0.00"),
+                "line_total": item.line_total, "product_id": item.product_id, "product_name": item.product_name,
+                "variant_sku": item.variant_sku, "size_id": item.size_id, "color_id": item.color_id,
+                "size_name": item.size_id and db.query(Size.name).filter(Size.id == item.size_id).scalar(),
+                "color_name": item.color_id and db.query(Color.name).filter(Color.id == item.color_id).scalar(),
+                "image_url": item.image_url, "image_public_id": item.image_public_id,
+            } for item in order.items],
+        }).model_dump())
+    return sorted(sales + orders, key=lambda sale: sale["created_at"], reverse=True)
 
 
-def get_sale(db: Session, branch_id: UUID, sale_id: UUID):
-    sale = _get_sale_for_branch(db, sale_id, branch_id)
+def get_sale(db: Session, branch_id: UUID | None, sale_id: UUID, user_id: UUID | None = None):
+    query = db.query(Sale).filter(Sale.id == sale_id)
+    if branch_id is not None:
+        query = query.filter(Sale.branch_id == branch_id)
+    if user_id is not None:
+        query = query.filter(Sale.user_id == user_id)
+    sale = query.first()
     if not sale:
         return None
     return _serialize_sale(db, sale).model_dump()

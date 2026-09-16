@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from uuid import UUID
 
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models.branch import Branch
 from app.models.color import Color
@@ -91,7 +91,7 @@ def serialize_requests(db: Session, requests):
 
 
 def transition_request(db: Session, request_id: UUID, next_status: ReplenishmentStatusEnum, role: str, user_id: UUID, branch_id: UUID | None):
-    request = db.query(ReplenishmentRequest).options(joinedload(ReplenishmentRequest.items)).filter(ReplenishmentRequest.id == request_id).with_for_update().first()
+    request = db.query(ReplenishmentRequest).options(selectinload(ReplenishmentRequest.items)).filter(ReplenishmentRequest.id == request_id).with_for_update().first()
     if not request:
         raise LookupError("Solicitud no encontrada")
     if role == RolEnum.proveedor.value:
@@ -120,7 +120,7 @@ def receive_request(db: Session, request: ReplenishmentRequest, actor_id: UUID):
     for item in request.items:
         inventory = db.query(Inventory).filter(Inventory.variant_id == item.variant_id, Inventory.branch_id == request.branch_id).with_for_update().first()
         if not inventory:
-            inventory = Inventory(variant_id=item.variant_id, branch_id=request.branch_id, quantity=0, reserved_quantity=0)
+            inventory = Inventory(variant_id=item.variant_id, branch_id=request.branch_id, quantity=0, reserved_quantity=0, minimum_stock=0)
             db.add(inventory)
             db.flush()
         inventory.quantity += item.requested_quantity

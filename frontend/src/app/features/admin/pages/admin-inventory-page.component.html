@@ -12,6 +12,67 @@
     </div>
   </header>
 
+  @if (reportModalOpen()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6" (click)="closeReportModal()">
+      <section hlmCard class="max-h-[90vh] w-full max-w-2xl overflow-y-auto bg-white text-slate-700 shadow-xl" role="dialog" aria-modal="true" aria-labelledby="report-modal-title" (click)="$event.stopPropagation()">
+        <div hlmCardHeader class="space-y-1 border-b border-slate-200 pb-4">
+          <h2 id="report-modal-title" hlmCardTitle class="text-xl">{{ reportType() === 'inventory' ? 'Reporte de inventario' : 'Reporte de movimientos' }}</h2>
+          <p class="text-sm text-slate-500">Elige los filtros, formato y columnas del reporte.</p>
+        </div>
+        <div class="grid gap-4 p-6 sm:grid-cols-2">
+           @if (isAdmin()) {
+             <label class="space-y-1 text-sm font-medium">
+               <span>Sucursal</span>
+               <div hlmSelect [value]="reportBranchId()" [itemToString]="reportBranchSelectLabel" (valueChange)="setReportBranch($event)">
+                 <hlm-select-trigger class="h-9 w-full" buttonId="report-branch"><span hlmSelectValue placeholder="Todas las sucursales"></span></hlm-select-trigger>
+                 <hlm-select-content><hlm-select-item value="">Todas las sucursales</hlm-select-item>@for (branch of branches(); track branch.id) {<hlm-select-item [value]="branch.id">{{ branch.name }}</hlm-select-item>}</hlm-select-content>
+               </div>
+             </label>
+           } @else {
+             <div class="space-y-1 text-sm font-medium"><span>Sucursal</span><p class="h-9 rounded-md border border-slate-300 bg-slate-50 px-3 py-2">{{ branchLabel(reportBranchId()) }}</p></div>
+           }
+          <label class="space-y-1 text-sm font-medium">
+            <span>Producto</span>
+            <div hlmSelect [value]="reportProductId()" [itemToString]="reportProductSelectLabel" (valueChange)="setReportProduct($event)">
+              <hlm-select-trigger class="h-9 w-full" buttonId="report-product"><span hlmSelectValue placeholder="Todos los productos"></span></hlm-select-trigger>
+              <hlm-select-content><hlm-select-item value="">Todos los productos</hlm-select-item>@for (product of reportProducts(); track product.id) {<hlm-select-item [value]="product.id">{{ product.name }}</hlm-select-item>}</hlm-select-content>
+            </div>
+          </label>
+          <label class="space-y-1 text-sm font-medium">
+            <span>Desde (opcional)</span>
+            <input class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm" type="date" [value]="reportFromDate()" (change)="setReportFromDate($event)" />
+          </label>
+          <label class="space-y-1 text-sm font-medium">
+            <span>Hasta (opcional)</span>
+            <input class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm" type="date" [value]="reportToDate()" (change)="setReportToDate($event)" />
+          </label>
+          <label class="space-y-1 text-sm font-medium sm:col-span-2">
+            <span>Formato</span>
+            <div hlmSelect [value]="reportFormat()" [itemToString]="reportFormatSelectLabel" (valueChange)="setReportFormat($event)">
+              <hlm-select-trigger class="h-9 w-full" buttonId="report-format"><span hlmSelectValue placeholder="PDF (imprimir o guardar)"></span></hlm-select-trigger>
+              <hlm-select-content><hlm-select-item value="pdf">PDF (imprimir o guardar)</hlm-select-item><hlm-select-item value="html">HTML (abrir documento)</hlm-select-item><hlm-select-item value="csv">CSV (descargar)</hlm-select-item></hlm-select-content>
+            </div>
+          </label>
+          <fieldset class="space-y-2 sm:col-span-2">
+            <legend class="text-sm font-medium">Columnas a exportar</legend>
+            <div class="grid gap-2 sm:grid-cols-2">
+              @for (column of reportColumnsForType(); track column.key) {
+                <label class="flex items-center gap-2 text-sm">
+                  <input type="checkbox" [checked]="isReportColumnSelected(column.key)" (change)="toggleReportColumn(column.key, $any($event.target).checked)" />
+                  {{ column.label }}
+                </label>
+              }
+            </div>
+          </fieldset>
+          <div class="flex justify-end gap-2 sm:col-span-2">
+            <button hlmBtn variant="outline" type="button" (click)="closeReportModal()">Cancelar</button>
+            <button hlmBtn type="button" [disabled]="reportLoading()" (click)="generateReport()">{{ reportLoading() ? 'Generando...' : 'Generar' }}</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  }
+
   <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
     <article hlmCard class="bg-white shadow-sm">
       <div hlmCardContent class="p-4">
@@ -63,6 +124,17 @@
             <button hlmBtn type="button" (click)="openMovementModal()">Registrar movimiento</button>
             @if (isAdmin()) {
               <button hlmBtn type="button" (click)="openTransferModal()">Registrar traspaso</button>
+            }
+            @if (isAdmin() || isManager()) {
+              <div class="relative" (cdkObserveContent)="null" (clickOutside)="reportMenuOpen.set(false)">
+                <button hlmBtn type="button" (click)="toggleReportMenu()">Generar reporte</button>
+                @if (reportMenuOpen()) {
+                  <div class="absolute right-0 z-30 mt-2 w-64 rounded-lg border border-slate-200 bg-white p-1 text-slate-900 shadow-lg">
+                    <button class="block w-full rounded-md px-3 py-2 text-left text-sm text-slate-900 hover:bg-slate-100" type="button" (click)="openReportModal('inventory')">Reporte de inventario</button>
+                    <button class="block w-full rounded-md px-3 py-2 text-left text-sm text-slate-900 hover:bg-slate-100" type="button" (click)="openReportModal('movements')">Reporte de movimientos</button>
+                  </div>
+                }
+              </div>
             }
           </div>
         </div>
@@ -226,6 +298,27 @@
     </div>
   }
 
+  @if (thresholdModalOpen()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6" (click)="closeThresholdModal()">
+      <section hlmCard class="w-full max-w-md bg-white text-slate-700 shadow-xl" role="dialog" aria-modal="true" aria-labelledby="threshold-modal-title" (click)="$event.stopPropagation()">
+        <div hlmCardHeader class="space-y-1 border-b border-slate-200 pb-4">
+          <h2 id="threshold-modal-title" hlmCardTitle class="text-xl">Editar stock mínimo</h2>
+          <p class="text-sm text-slate-500">{{ thresholdItem()?.product_name }} · {{ thresholdItem()?.variant_sku }}</p>
+        </div>
+        <form class="space-y-4 p-6" [formGroup]="thresholdForm" (ngSubmit)="updateThreshold()">
+          <div hlmField>
+            <label hlmFieldLabel for="inventory-minimum-stock">Stock mínimo</label>
+            <input id="inventory-minimum-stock" hlmInput type="number" min="0" class="w-full" formControlName="minimum_stock" />
+          </div>
+          <div class="flex justify-end gap-2">
+            <button hlmBtn variant="outline" type="button" (click)="closeThresholdModal()">Cancelar</button>
+            <button hlmBtn type="submit" [disabled]="submitting()">Guardar</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  }
+
   <hlm-tabs [tab]="activeTab()" class="space-y-4 w-full" (tabActivated)="selectTab($event)">
     <hlm-tabs-list aria-label="Inventario" class="!flex !w-fit !flex-wrap !gap-2 !border-0 !bg-transparent !p-0 !rounded-md">
       @for (tab of tabs(); track tab) {
@@ -244,8 +337,8 @@
     </hlm-tabs-list>
 
     @if (activeTab() === 'consolidated' && isAdmin()) {
-      <article hlmCard class="bg-white shadow-sm">
-        <div hlmCardContent class="space-y-4 p-4">
+      <article hlmCard class="bg-white shadow-sm py-4">
+        <div hlmCardContent class="space-y-4 px-4">
           <div>
             <h2 class="text-lg font-semibold">Stock consolidado</h2>
             <p class="text-sm text-slate-500">Resumen de todas las sucursales por variante.</p>
@@ -293,8 +386,8 @@
     }
 
     @if (activeTab() === 'branch') {
-      <article hlmCard class="bg-white shadow-sm">
-        <div hlmCardContent class="space-y-4 p-4">
+      <article hlmCard class="bg-white shadow-sm py-2">
+        <div hlmCardContent class="space-y-4 px-4">
           <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div class="space-y-1">
               <h2 class="text-lg font-semibold">Stock por sucursal</h2>
@@ -327,8 +420,10 @@
                   <th class="px-4 py-3">Variante</th>
                   <th class="px-4 py-3">Talla/Color</th>
                   <th class="px-4 py-3 text-right">Cantidad</th>
-                  <th class="px-4 py-3 text-right">Reservado</th>
-                  <th class="px-4 py-3 text-right">Disponible</th>
+                   <th class="px-4 py-3 text-right">Reservado</th>
+                   <th class="px-4 py-3 text-right">Disponible</th>
+                   <th class="px-4 py-3 text-right">Mínimo</th>
+                   @if (isAdmin()) { <th class="px-4 py-3 text-right">Acciones</th> }
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-200 bg-white text-slate-900">
@@ -341,12 +436,14 @@
                     <td class="px-4 py-3 text-sm">{{ item.variant_sku }}</td>
                     <td class="px-4 py-3 text-sm">{{ item.size_name ?? 'Sin talla' }} / {{ item.color_name ?? 'Sin color' }}</td>
                     <td class="px-4 py-3 text-right">{{ item.quantity }}</td>
-                    <td class="px-4 py-3 text-right">{{ item.reserved_quantity }}</td>
-                    <td class="px-4 py-3 text-right font-semibold" [class.text-emerald-700]="item.available_quantity > 0" [class.text-rose-700]="item.available_quantity === 0">{{ item.available_quantity }}</td>
+                   <td class="px-4 py-3 text-right">{{ item.reserved_quantity }}</td>
+                   <td class="px-4 py-3 text-right font-semibold" [class.text-emerald-700]="item.available_quantity > 0" [class.text-rose-700]="item.available_quantity === 0">{{ item.available_quantity }}</td>
+                   <td class="px-4 py-3 text-right">{{ item.minimum_stock }}</td>
+                   @if (isAdmin()) { <td class="px-4 py-3 text-right"><button hlmBtn variant="outline" type="button" (click)="openThresholdModal(item)">Editar</button></td> }
                   </tr>
                 } @empty {
                   <tr>
-                    <td class="px-4 py-8 text-center text-slate-500" colspan="6">No hay stock para la sucursal seleccionada.</td>
+                    <td class="px-4 py-8 text-center text-slate-500" [attr.colspan]="isAdmin() ? 8 : 7">No hay stock para la sucursal seleccionada.</td>
                   </tr>
                 }
               </tbody>
@@ -357,8 +454,8 @@
     }
 
     @if (activeTab() === 'movements') {
-      <article hlmCard class="bg-white shadow-sm">
-        <div hlmCardContent class="space-y-4 p-4">
+      <article hlmCard class="bg-white shadow-sm py-2">
+        <div hlmCardContent class="space-y-4 px-4">
           <div>
             <h2 class="text-lg font-semibold">Movimientos recientes</h2>
             <p class="text-sm text-slate-500">Bitácora de ingresos, salidas y traspasos.</p>
