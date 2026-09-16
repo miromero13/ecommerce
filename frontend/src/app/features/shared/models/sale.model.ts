@@ -2,6 +2,7 @@ import { ApiResponse } from '../../../core/models/api.model';
 import { PaymentMethodEnum, PaymentStatusEnum } from './order.model';
 
 export type SaleStatus = 'completed' | 'cancelled';
+export type SaleType = 'venta presencial' | 'venta virtual';
 
 export interface SaleItem {
   id: string;
@@ -27,6 +28,7 @@ export interface Sale {
   id: string;
   branch_id: string;
   branch_name: string;
+  type: SaleType;
   user_id: string;
   reservation_id: string | null;
   status: SaleStatus;

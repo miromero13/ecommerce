@@ -25,6 +25,7 @@
         <thead class="bg-primary text-left text-xs font-bold uppercase tracking-wide text-white">
           <tr>
             <th class="px-4 py-3">Fecha</th>
+            <th class="px-4 py-3">Tipo</th>
             <th class="px-4 py-3">Sucursal</th>
             <th class="px-4 py-3">Artículos</th>
             <th class="px-4 py-3">Pago</th>
@@ -36,6 +37,7 @@
           @for (sale of sales(); track sale.id) {
             <tr class="hover:bg-slate-50">
               <td class="whitespace-nowrap px-4 py-3">{{ sale.created_at | date:'short' }}</td>
+              <td class="px-4 py-3">{{ sale.type }}</td>
               <td class="px-4 py-3">{{ sale.branch_name }}</td>
               <td class="min-w-64 px-4 py-3 text-sm text-black">{{ itemSummary(sale) }}</td>
               <td class="px-4 py-3">{{ paymentLabel(sale.payment_method) }}</td>
@@ -44,7 +46,7 @@
             </tr>
           } @empty {
             <tr>
-              <td colspan="6" class="px-4 py-8 text-center text-sm text-black">{{ loading() ? 'Cargando ventas...' : 'No hay ventas registradas.' }}</td>
+              <td colspan="7" class="px-4 py-8 text-center text-sm text-black">{{ loading() ? 'Cargando ventas...' : 'No hay ventas registradas.' }}</td>
             </tr>
           }
         </tbody>

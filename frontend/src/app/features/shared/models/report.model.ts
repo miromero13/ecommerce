@@ -27,6 +27,7 @@ export interface ReportSummary {
 export interface SalesReportRow {
   branch_id: string;
   branch_name: string;
+  type: 'venta presencial' | 'venta virtual';
   product_id: string;
   product_name: string;
   variant_id: string;
