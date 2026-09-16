@@ -18,6 +18,7 @@ from app.schemas.inventory_schema import InventoryMovementTypeEnum
 from app.schemas.reservation_schema import ReservationStatusEnum
 from app.schemas.dashboard_schema import (
     DashboardBranchKpi,
+    DashboardBranchMovementPoint,
     DashboardInventoryPoint,
     DashboardMovementPoint,
     DashboardProductKpi,
@@ -141,6 +142,22 @@ def get_dashboard(db: Session, filters: DashboardQuery) -> DashboardResponse:
     if end:
         movement_series_query = movement_series_query.filter(InventoryMovement.created_at < end)
     movement_series_rows = movement_series_query.group_by(movement_period).order_by(movement_period).all()
+
+    movement_by_branch_query = db.query(
+        InventoryMovement.branch_id.label('branch_id'),
+        Branch.name.label('branch_name'),
+        func.coalesce(func.sum(case((InventoryMovement.movement_type == InventoryMovementTypeEnum.income, InventoryMovement.quantity), else_=0)), 0).label('income'),
+        func.coalesce(func.sum(case((InventoryMovement.movement_type == InventoryMovementTypeEnum.outcome, InventoryMovement.quantity), else_=0)), 0).label('outcome'),
+        func.coalesce(func.sum(case((InventoryMovement.movement_type == InventoryMovementTypeEnum.transfer_in, InventoryMovement.quantity), else_=0)), 0).label('transfer_in'),
+        func.coalesce(func.sum(case((InventoryMovement.movement_type == InventoryMovementTypeEnum.transfer_out, InventoryMovement.quantity), else_=0)), 0).label('transfer_out'),
+    ).join(Branch, Branch.id == InventoryMovement.branch_id)
+    if filters.branch_id:
+        movement_by_branch_query = movement_by_branch_query.filter(InventoryMovement.branch_id == filters.branch_id)
+    if start:
+        movement_by_branch_query = movement_by_branch_query.filter(InventoryMovement.created_at >= start)
+    if end:
+        movement_by_branch_query = movement_by_branch_query.filter(InventoryMovement.created_at < end)
+    movement_by_branch_rows = movement_by_branch_query.group_by(InventoryMovement.branch_id, Branch.name).order_by(Branch.name.asc()).all()
 
     branch_sales_amount_rows = db.query(
         Sale.branch_id.label('branch_id'),
@@ -305,6 +322,17 @@ def get_dashboard(db: Session, filters: DashboardQuery) -> DashboardResponse:
                 transfer_out=int(row.transfer_out or 0),
             )
             for row in movement_series_rows
+        ],
+        movement_by_branch=[
+            DashboardBranchMovementPoint(
+                branch_id=row.branch_id,
+                branch_name=row.branch_name,
+                income=int(row.income or 0),
+                outcome=int(row.outcome or 0),
+                transfer_in=int(row.transfer_in or 0),
+                transfer_out=int(row.transfer_out or 0),
+            )
+            for row in movement_by_branch_rows
         ],
         branch_kpis=branch_rows,
         top_products=product_rows,

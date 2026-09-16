@@ -9,6 +9,7 @@ from app.models.collection import Collection
 from app.models.inventory import Inventory
 from app.models.product import Product
 from app.models.product_variant import ProductVariant
+from app.models.provider_variant_availability import ProviderVariantAvailability
 from app.models.season import Season
 from app.models.size import Size
 from app.schemas.catalog_schema import (
@@ -318,13 +319,14 @@ def available_quantity(quantity: int | None, reserved_quantity: int | None = 0) 
     return max(int(quantity or 0) - int(reserved_quantity or 0), 0)
 
 
-def _product_to_read(product: Product, variants: list[ProductVariant], branch_quantity_map: dict | None = None):
+def _product_to_read(product: Product, variants: list[ProductVariant], branch_quantity_map: dict | None = None, provider_quantity_map: dict | None = None):
     variant_reads = []
     total_quantity = 0
     primary = None
 
     for variant in variants:
         branch_quantity = None
+        provider_quantity = None if provider_quantity_map is None else provider_quantity_map.get(variant.id, 0)
         if branch_quantity_map is not None:
             branch_quantity = branch_quantity_map.get(variant.id, 0)
             total_quantity += branch_quantity
@@ -342,6 +344,7 @@ def _product_to_read(product: Product, variants: list[ProductVariant], branch_qu
                 "image_public_id": variant.image_public_id,
                 "status": variant.status,
                 "branch_quantity": branch_quantity,
+                "provider_quantity": provider_quantity,
             }
         ).model_dump()
         variant_reads.append(variant_data)
@@ -425,6 +428,25 @@ def list_public_products(
 
         result.append(_product_to_read(product, variants, branch_quantity_map))
     return result
+
+
+def list_admin_products(db: Session):
+    products = (
+        db.query(Product)
+        .options(selectinload(Product.variants))
+        .order_by(Product.name.asc())
+        .all()
+    )
+    provider_ids = {product.provider_id for product in products if product.provider_id}
+    availability = {
+        (row.provider_id, row.variant_id): row.quantity
+        for row in db.query(ProviderVariantAvailability).filter(ProviderVariantAvailability.provider_id.in_(provider_ids)).all()
+    } if provider_ids else {}
+    return [
+        serialized
+        for product in products
+        if (serialized := _product_to_read(product, product.variants, provider_quantity_map={variant.id: availability.get((product.provider_id, variant.id), 0) for variant in product.variants} if product.provider_id else {})) is not None
+    ]
 
 
 def list_product_variants_for_admin(db: Session, product_id):

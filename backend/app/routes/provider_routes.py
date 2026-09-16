@@ -9,7 +9,8 @@ from app.models.provider import Provider
 from app.models.user import User
 from app.schemas.enums import RolEnum
 from app.schemas.provider_schema import ProviderCreate, ProviderRead, ProviderStatusUpdate, ProviderUpdate
-from app.services.provider_service import create_provider, get_providers, update_provider_status, update_provider_full, delete_provider, list_provider_products
+from app.schemas.provider_availability_schema import ProviderAvailabilityBatchUpdate
+from app.services.provider_service import create_provider, get_providers, update_provider_status, update_provider_full, delete_provider, list_provider_products, provider_availability_map, update_provider_availability
 from app.services.catalog_service import _product_to_read
 from app.utils.response import response
 
@@ -18,7 +19,9 @@ router = APIRouter(prefix="/providers", tags=["Providers"])
 
 
 def _provider_products_response(db: Session, provider_id: UUID):
-    return [_product_to_read(product, product.variants) for product in list_provider_products(db, provider_id)]
+    products = list_provider_products(db, provider_id)
+    quantities = provider_availability_map(db, provider_id, [variant.id for product in products for variant in product.variants])
+    return [_product_to_read(product, product.variants, provider_quantity_map=quantities) for product in products]
 
 
 @router.get("/me/products")
@@ -30,6 +33,22 @@ async def list_my_products(
     if not provider:
         raise HTTPException(status_code=404, detail="Proveedor no encontrado")
     return response(status_code=200, message="Productos del proveedor obtenidos exitosamente", data=_provider_products_response(db, provider.id))
+
+
+@router.put("/me/availability")
+async def update_my_availability(
+    payload: ProviderAvailabilityBatchUpdate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_roles(RolEnum.proveedor)),
+):
+    provider = db.query(Provider).filter(Provider.user_id == UUID(current_user["sub"])).first()
+    if not provider:
+        raise HTTPException(status_code=404, detail="Proveedor no encontrado")
+    try:
+        quantities = update_provider_availability(db, provider.id, payload.updates)
+    except ValueError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    return response(status_code=200, message="Disponibilidad actualizada exitosamente", data=[{"variant_id": variant_id, "quantity": quantity} for variant_id, quantity in quantities.items()])
 
 
 @router.get("/{provider_id}/products")

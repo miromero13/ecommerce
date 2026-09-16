@@ -6,6 +6,8 @@ from sqlalchemy.orm import selectinload
 from app.models.product import Product
 from app.models.provider import Provider
 from app.models.user import User
+from app.models.provider_variant_availability import ProviderVariantAvailability
+from app.models.product_variant import ProductVariant
 from app.schemas.enums import RolEnum, ProviderStatusEnum
 from app.schemas.provider_schema import ProviderCreate, ProviderStatusUpdate
 from app.services.user_service import pwd_context, normalize_email, ensure_email_available
@@ -129,3 +131,35 @@ def list_provider_products(db: Session, provider_id):
         .order_by(Product.name.asc())
         .all()
     )
+
+
+def provider_availability_map(db: Session, provider_id, variant_ids):
+    if not variant_ids:
+        return {}
+    return {
+        row.variant_id: row.quantity
+        for row in db.query(ProviderVariantAvailability).filter(
+            ProviderVariantAvailability.provider_id == provider_id,
+            ProviderVariantAvailability.variant_id.in_(variant_ids),
+        )
+    }
+
+
+def update_provider_availability(db: Session, provider_id, updates):
+    variant_ids = [item.variant_id for item in updates]
+    variants = db.query(ProductVariant).join(Product).filter(
+        Product.provider_id == provider_id,
+        ProductVariant.id.in_(variant_ids),
+    ).all()
+    variants_by_id = {variant.id: variant for variant in variants}
+    if len(variants_by_id) != len(set(variant_ids)):
+        raise ValueError("La variante no pertenece a un producto asignado a este proveedor")
+
+    for item in updates:
+        row = db.query(ProviderVariantAvailability).filter_by(provider_id=provider_id, variant_id=item.variant_id).first()
+        if row:
+            row.quantity = item.quantity
+        else:
+            db.add(ProviderVariantAvailability(provider_id=provider_id, variant_id=item.variant_id, quantity=item.quantity))
+    db.commit()
+    return provider_availability_map(db, provider_id, variant_ids)

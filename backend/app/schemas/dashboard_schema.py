@@ -66,6 +66,15 @@ class DashboardMovementPoint(BaseModel):
     transfer_out: int = 0
 
 
+class DashboardBranchMovementPoint(BaseModel):
+    branch_id: UUID
+    branch_name: str
+    income: int = 0
+    outcome: int = 0
+    transfer_in: int = 0
+    transfer_out: int = 0
+
+
 class DashboardInventoryPoint(BaseModel):
     branch_name: str
     product_name: str
@@ -80,6 +89,7 @@ class DashboardResponse(BaseModel):
     summary: DashboardSummary
     sales_series: list[DashboardSeriesPoint]
     movement_series: list[DashboardMovementPoint]
+    movement_by_branch: list[DashboardBranchMovementPoint]
     branch_kpis: list[DashboardBranchKpi]
     top_products: list[DashboardProductKpi]
     low_stock: list[DashboardInventoryPoint]
