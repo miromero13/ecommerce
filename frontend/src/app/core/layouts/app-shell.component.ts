@@ -154,6 +154,7 @@ export class AppShellComponent {
               { label: 'Catálogo', route: '/app/admin/catalog', icon: 'lucideLayoutDashboard' },
               { label: 'Promociones', route: '/app/admin/promotions', icon: 'lucideTicket' },
               { label: 'Inventario', route: '/app/admin/inventory', icon: 'lucidePackageSearch' },
+              { label: 'Ventas', route: '/app/admin/sales', icon: 'lucideShoppingCart' },
               { label: 'Usuarios', route: '/app/admin/user', icon: 'lucideUsers' },
               { label: 'Sucursales', route: '/app/admin/branch', icon: 'lucideLayoutDashboard' },
                { label: 'Proveedores', route: '/app/admin/provider', icon: 'lucideUsers' },
@@ -187,6 +188,7 @@ export class AppShellComponent {
                { label: 'Pedidos', route: '/app/encargado/orders', icon: 'lucideClipboardList' },
                { label: 'Proveedor', route: '/app/encargado/replenishment', icon: 'lucideClipboardList' },
               { label: 'Promociones', route: '/app/encargado/promotions', icon: 'lucideTicket' },
+              { label: 'Ventas', route: '/app/encargado/sales', icon: 'lucideShoppingCart' },
             ],
           },
         ];
@@ -196,6 +198,7 @@ export class AppShellComponent {
             title: 'Caja',
             items: [
               this.homeItem(),
+              { label: 'Caja', route: '/app/cajero/caja', icon: 'lucideShoppingCart' },
               { label: 'Ventas', route: '/app/cajero/sales', icon: 'lucideShoppingCart' },
             ],
           },

@@ -117,14 +117,26 @@ export const routes: Routes = [
         loadComponent: () => import('./features/shared/pages/replenishment-page.component').then((m) => m.ReplenishmentPageComponent),
       },
       {
+        path: 'encargado/sales',
+        canActivate: [roleGuard(['encargado'])],
+        loadComponent: () => import('./features/shared/pages/sales-history-page.component').then((m) => m.SalesHistoryPageComponent),
+      },
+      {
         path: 'cajero',
+        canActivate: [roleGuard(['cajero'])],
         loadComponent: () =>
           import('./features/cajero/pages/cajero-home-page.component').then((m) => m.CajeroHomePageComponent),
       },
       {
-        path: 'cajero/sales',
+        path: 'cajero/caja',
+        canActivate: [roleGuard(['cajero'])],
         loadComponent: () =>
-          import('./features/cajero/pages/sales-page.component').then((m) => m.SalesPageComponent),
+          import('./features/cajero/pages/caja-page.component').then((m) => m.CajaPageComponent),
+      },
+      {
+        path: 'cajero/sales',
+        canActivate: [roleGuard(['cajero'])],
+        loadComponent: () => import('./features/shared/pages/sales-history-page.component').then((m) => m.SalesHistoryPageComponent),
       },
       {
         path: 'delivery',
@@ -186,6 +198,10 @@ export const routes: Routes = [
           {
             path: 'provider/:providerId/products',
             loadComponent: () => import('./features/proveedor/pages/provider-products-page.component').then((m) => m.ProviderProductsPageComponent),
+          },
+          {
+            path: 'sales',
+            loadComponent: () => import('./features/shared/pages/sales-history-page.component').then((m) => m.SalesHistoryPageComponent),
           },
           {
             path: 'replenishment',

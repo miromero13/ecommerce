@@ -1,0 +1,53 @@
+<section class="space-y-5">
+  <header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <h1 class="text-2xl font-semibold">Ventas</h1>
+      <p class="text-sm text-slate-500">Historial de ventas y detalle de artículos vendidos.</p>
+    </div>
+    @if (isAdmin()) {
+      <div class="space-y-1">
+        <label for="sales-branch" class="text-xs font-medium uppercase tracking-wide text-slate-500">Sucursal</label>
+        <div hlmSelect [value]="selectedBranchId()" [itemToString]="branchSelectLabel" (valueChange)="branchChanged($event)">
+          <hlm-select-trigger class="text-black" buttonId="sales-branch">
+            <span hlmSelectValue placeholder="Todas las sucursales"></span>
+          </hlm-select-trigger>
+          <hlm-select-content>
+            <hlm-select-item value="">Todas las sucursales</hlm-select-item>
+            @for (branch of branches(); track branch.id) { <hlm-select-item [value]="branch.id">{{ branch.name }}</hlm-select-item> }
+          </hlm-select-content>
+        </div>
+      </div>
+    }
+  </header>
+
+    <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+      <table hlmTable class="w-full text-left text-sm">
+        <thead class="bg-primary text-left text-xs font-bold uppercase tracking-wide text-white">
+          <tr>
+            <th class="px-4 py-3">Fecha</th>
+            <th class="px-4 py-3">Sucursal</th>
+            <th class="px-4 py-3">Artículos</th>
+            <th class="px-4 py-3">Pago</th>
+            <th class="px-4 py-3">Estado</th>
+            <th class="px-4 py-3 text-right">Total</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200 text-black">
+          @for (sale of sales(); track sale.id) {
+            <tr class="hover:bg-slate-50">
+              <td class="whitespace-nowrap px-4 py-3">{{ sale.created_at | date:'short' }}</td>
+              <td class="px-4 py-3">{{ sale.branch_name }}</td>
+              <td class="min-w-64 px-4 py-3 text-sm text-black">{{ itemSummary(sale) }}</td>
+              <td class="px-4 py-3">{{ paymentLabel(sale.payment_method) }}</td>
+              <td class="px-4 py-3"><span class="text-sm text-black">{{ sale.payment_status }}</span></td>
+              <td class="whitespace-nowrap px-4 py-3 text-right font-semibold">{{ sale.total_amount }} {{ sale.currency | uppercase }}</td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="6" class="px-4 py-8 text-center text-sm text-black">{{ loading() ? 'Cargando ventas...' : 'No hay ventas registradas.' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+</section>
