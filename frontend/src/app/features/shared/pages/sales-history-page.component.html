@@ -4,21 +4,56 @@
       <h1 class="text-2xl font-semibold">Ventas</h1>
       <p class="text-sm text-slate-500">Historial de ventas y detalle de artículos vendidos.</p>
     </div>
-    @if (isAdmin()) {
-      <div class="space-y-1">
-        <label for="sales-branch" class="text-xs font-medium uppercase tracking-wide text-slate-500">Sucursal</label>
-        <div hlmSelect [value]="selectedBranchId()" [itemToString]="branchSelectLabel" (valueChange)="branchChanged($event)">
-          <hlm-select-trigger class="text-black" buttonId="sales-branch">
-            <span hlmSelectValue placeholder="Todas las sucursales"></span>
-          </hlm-select-trigger>
-          <hlm-select-content>
-            <hlm-select-item value="">Todas las sucursales</hlm-select-item>
-            @for (branch of branches(); track branch.id) { <hlm-select-item [value]="branch.id">{{ branch.name }}</hlm-select-item> }
-          </hlm-select-content>
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
+      @if (isAdmin()) {
+        <div class="space-y-1">
+          <label for="sales-branch" class="text-xs font-medium uppercase tracking-wide text-slate-500">Sucursal</label>
+          <div hlmSelect [value]="selectedBranchId()" [itemToString]="branchSelectLabel" (valueChange)="branchChanged($event)">
+            <hlm-select-trigger class="text-black" buttonId="sales-branch"><span hlmSelectValue placeholder="Todas las sucursales"></span></hlm-select-trigger>
+            <hlm-select-content><hlm-select-item value="">Todas las sucursales</hlm-select-item>@for (branch of branches(); track branch.id) { <hlm-select-item [value]="branch.id">{{ branch.name }}</hlm-select-item> }</hlm-select-content>
+          </div>
         </div>
-      </div>
-    }
+        <button hlmBtn type="button" variant="outline" (click)="openReportModal()">Generar reporte</button>
+      }
+    </div>
   </header>
+
+  @if (reportModalOpen()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6" (click)="closeReportModal()">
+      <section hlmCard class="max-h-[90vh] w-full max-w-2xl overflow-y-auto bg-white text-slate-700 shadow-xl" role="dialog" aria-modal="true" aria-labelledby="sales-report-modal-title" (click)="$event.stopPropagation()">
+        <div hlmCardHeader class="space-y-1 border-b border-slate-200 pb-4">
+          <h2 id="sales-report-modal-title" hlmCardTitle class="text-xl">Reporte de ventas</h2>
+          <p class="text-sm text-slate-500">Elige los filtros, formato y columnas del reporte.</p>
+        </div>
+        <div class="grid gap-4 p-6 sm:grid-cols-2">
+          <label class="space-y-1 text-sm font-medium"><span>Sucursal</span>
+            <div hlmSelect [value]="reportBranchId()" [itemToString]="reportBranchSelectLabel" (valueChange)="setReportBranch($event)">
+              <hlm-select-trigger class="h-9 w-full" buttonId="sales-report-branch"><span hlmSelectValue placeholder="Todas las sucursales"></span></hlm-select-trigger>
+              <hlm-select-content><hlm-select-item value="">Todas las sucursales</hlm-select-item>@for (branch of branches(); track branch.id) {<hlm-select-item [value]="branch.id">{{ branch.name }}</hlm-select-item>}</hlm-select-content>
+            </div>
+          </label>
+          <label class="space-y-1 text-sm font-medium"><span>Producto</span>
+            <div hlmSelect [value]="reportProductId()" [itemToString]="reportProductSelectLabel" (valueChange)="setReportProduct($event)">
+              <hlm-select-trigger class="h-9 w-full" buttonId="sales-report-product"><span hlmSelectValue placeholder="Todos los productos"></span></hlm-select-trigger>
+              <hlm-select-content><hlm-select-item value="">Todos los productos</hlm-select-item>@for (product of reportProducts(); track product.id) {<hlm-select-item [value]="product.id">{{ product.name }}</hlm-select-item>}</hlm-select-content>
+            </div>
+          </label>
+          <label class="space-y-1 text-sm font-medium"><span>Desde (opcional)</span><input class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm" type="date" [value]="reportFromDate()" (change)="setReportFromDate($event)" /></label>
+          <label class="space-y-1 text-sm font-medium"><span>Hasta (opcional)</span><input class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm" type="date" [value]="reportToDate()" (change)="setReportToDate($event)" /></label>
+          <label class="space-y-1 text-sm font-medium sm:col-span-2"><span>Formato</span>
+            <div hlmSelect [value]="reportFormat()" [itemToString]="reportFormatSelectLabel" (valueChange)="setReportFormat($event)">
+              <hlm-select-trigger class="h-9 w-full" buttonId="sales-report-format"><span hlmSelectValue placeholder="PDF (imprimir o guardar)"></span></hlm-select-trigger>
+              <hlm-select-content><hlm-select-item value="pdf">PDF (imprimir o guardar)</hlm-select-item><hlm-select-item value="html">HTML (abrir documento)</hlm-select-item><hlm-select-item value="csv">CSV (descargar)</hlm-select-item></hlm-select-content>
+            </div>
+          </label>
+          <fieldset class="space-y-2 sm:col-span-2"><legend class="text-sm font-medium">Columnas a exportar</legend><div class="grid gap-2 sm:grid-cols-2">
+            @for (column of salesReportColumns; track column.key) {<label class="flex items-center gap-2 text-sm"><input type="checkbox" [checked]="isReportColumnSelected(column.key)" (change)="toggleReportColumn(column.key, $any($event.target).checked)" />{{ column.label }}</label>}
+          </div></fieldset>
+          <div class="flex justify-end gap-2 sm:col-span-2"><button hlmBtn variant="outline" type="button" (click)="closeReportModal()">Cancelar</button><button hlmBtn type="button" [disabled]="reportLoading()" (click)="generateReport()">{{ reportLoading() ? 'Generando...' : 'Generar' }}</button></div>
+        </div>
+      </section>
+    </div>
+  }
 
     <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
       <table hlmTable class="w-full text-left text-sm">
