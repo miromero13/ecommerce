@@ -120,7 +120,7 @@ def receive_request(db: Session, request: ReplenishmentRequest, actor_id: UUID):
     for item in request.items:
         inventory = db.query(Inventory).filter(Inventory.variant_id == item.variant_id, Inventory.branch_id == request.branch_id).with_for_update().first()
         if not inventory:
-            inventory = Inventory(variant_id=item.variant_id, branch_id=request.branch_id, quantity=0, reserved_quantity=0)
+            inventory = Inventory(variant_id=item.variant_id, branch_id=request.branch_id, quantity=0, reserved_quantity=0, minimum_stock=0)
             db.add(inventory)
             db.flush()
         inventory.quantity += item.requested_quantity

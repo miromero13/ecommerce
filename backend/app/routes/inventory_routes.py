@@ -7,7 +7,7 @@ from app.auth.dependencies import require_roles
 from app.core.database import get_db
 from app.models.user import User
 from app.schemas.enums import RolEnum
-from app.schemas.inventory_schema import InventoryMovementCreate, InventoryTransferCreate, InventoryMovementTypeEnum
+from app.schemas.inventory_schema import InventoryMovementCreate, InventoryTransferCreate, InventoryMovementTypeEnum, InventoryThresholdUpdate
 from app.services.inventory_service import (
     get_branch_stock,
     get_consolidated_stock,
@@ -15,6 +15,7 @@ from app.services.inventory_service import (
     register_income,
     register_outcome,
     register_transfer,
+    update_minimum_stock,
 )
 from app.utils.response import response
 
@@ -79,6 +80,20 @@ async def movements_route(
     branch_id = _movement_branch_filter(current_user, branch_id)
     movements = list_movements(db, variant_id=variant_id, branch_id=branch_id, movement_type=movement_type, limit=limit)
     return response(status_code=200, message="Movimientos de inventario obtenidos exitosamente", data=movements)
+
+
+@router.patch("/threshold")
+async def update_threshold_route(
+    payload: InventoryThresholdUpdate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_roles(RolEnum.administrador)),
+):
+    inventory = update_minimum_stock(db, payload)
+    return response(
+        status_code=200,
+        message="Stock mínimo actualizado exitosamente",
+        data={"variant_id": inventory.variant_id, "branch_id": inventory.branch_id, "minimum_stock": inventory.minimum_stock},
+    )
 
 
 @router.post("/movements/income", status_code=status.HTTP_201_CREATED)

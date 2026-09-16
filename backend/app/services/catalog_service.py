@@ -117,7 +117,6 @@ def create_product(
                 provider_id=provider_id,
                 category_id=payload.category_id,
                 collection_id=payload.collection_id,
-                minimum_stock=payload.minimum_stock,
                 discount_type=payload.discount_type.value if payload.discount_type else None,
                 discount_value=payload.discount_value if payload.discount_type else None,
             )
@@ -257,7 +256,6 @@ def update_product(db: Session, product_id, payload: ProductCreate) -> Product |
             product.name = payload.name
             product.description = payload.description
             product.provider_id = payload.provider_id
-            product.minimum_stock = payload.minimum_stock
             product.category_id = payload.category_id
             product.collection_id = payload.collection_id
             product.discount_type = payload.discount_type.value if payload.discount_type else None
@@ -360,7 +358,6 @@ def _product_to_read(product: Product, variants: list[ProductVariant], branch_qu
             "name": product.name,
             "description": product.description,
             "provider_id": product.provider_id,
-            "minimum_stock": product.minimum_stock,
             "category_id": product.category_id,
             "collection_id": product.collection_id,
             "sku": primary["sku"],

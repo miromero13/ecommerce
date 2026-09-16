@@ -27,6 +27,12 @@ class InventoryTransferCreate(BaseModel):
     note: str | None = None
 
 
+class InventoryThresholdUpdate(BaseModel):
+    variant_id: UUID
+    branch_id: UUID
+    minimum_stock: int = Field(ge=0)
+
+
 class InventoryMovementRead(BaseModel):
     id: UUID
     variant_id: UUID
