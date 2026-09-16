@@ -13,6 +13,11 @@ class SaleStatusEnum(str, Enum):
     cancelled = "cancelled"
 
 
+class SaleTypeEnum(str, Enum):
+    in_person = "venta presencial"
+    online = "venta virtual"
+
+
 class SaleItemCreate(BaseModel):
     variant_id: UUID
     quantity: int = Field(gt=0)
@@ -62,6 +67,7 @@ class SaleRead(BaseModel):
     id: UUID
     branch_id: UUID
     branch_name: str
+    type: SaleTypeEnum
     user_id: UUID
     reservation_id: UUID | None = None
     status: SaleStatusEnum

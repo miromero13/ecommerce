@@ -67,7 +67,7 @@ async def sales_report_export_route(
     return _csv_response(
         "sales-report.csv",
         report["rows"],
-        ["branch_id", "branch_name", "product_id", "product_name", "variant_id", "variant_sku", "quantity_sold", "gross_sales", "payment_method", "payment_status", "sale_status"],
+        ["branch_id", "branch_name", "product_id", "product_name", "variant_id", "variant_sku", "quantity_sold", "gross_sales", "payment_method", "payment_status", "sale_status", "type"],
     )
 
 

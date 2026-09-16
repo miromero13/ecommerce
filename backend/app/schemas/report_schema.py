@@ -24,6 +24,7 @@ class ReportSummary(BaseModel):
 class SalesReportRow(BaseModel):
     branch_id: UUID
     branch_name: str
+    type: str
     product_id: UUID
     product_name: str
     variant_id: UUID
