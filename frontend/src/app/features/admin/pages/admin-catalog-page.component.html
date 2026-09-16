@@ -228,14 +228,13 @@
     </div>
   }
 
-  <div
-    class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6 transition-opacity duration-150"
-    [class.opacity-0]="!modalOpen()"
-    [class.pointer-events-none]="!modalOpen()"
-    [class.opacity-100]="modalOpen()"
-    [attr.aria-hidden]="!modalOpen()"
-    (click)="closeModal()"
-  >
+  @if (modalOpen()) {
+    <div
+      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6"
+      role="dialog"
+      aria-modal="true"
+      (click)="closeModal()"
+    >
     <section
       hlmCard
       class="relative w-full bg-white shadow-xl"
@@ -564,7 +563,8 @@
           }
         </div>
       </section>
-  </div>
+    </div>
+  }
 
   @if (deleteConfirmOpen()) {
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6" (click)="cancelDelete()">

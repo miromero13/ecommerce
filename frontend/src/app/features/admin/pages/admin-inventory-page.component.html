@@ -33,17 +33,17 @@
         <div class="grid gap-4 p-6 sm:grid-cols-2">
           <label class="space-y-1 text-sm font-medium">
             <span>Sucursal</span>
-            <select class="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm" [value]="reportBranchId()" (change)="setReportBranch($event)">
-              <option value="">Todas las sucursales</option>
-              @for (branch of branches(); track branch.id) { <option [value]="branch.id">{{ branch.name }}</option> }
-            </select>
+            <div hlmSelect [value]="reportBranchId()" [itemToString]="reportBranchSelectLabel" (valueChange)="setReportBranch($event)">
+              <hlm-select-trigger class="h-9 w-full" buttonId="report-branch"><span hlmSelectValue placeholder="Todas las sucursales"></span></hlm-select-trigger>
+              <hlm-select-content><hlm-select-item value="">Todas las sucursales</hlm-select-item>@for (branch of branches(); track branch.id) {<hlm-select-item [value]="branch.id">{{ branch.name }}</hlm-select-item>}</hlm-select-content>
+            </div>
           </label>
           <label class="space-y-1 text-sm font-medium">
             <span>Producto</span>
-            <select class="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm" [value]="reportProductId()" (change)="setReportProduct($event)">
-              <option value="">Todos los productos</option>
-              @for (product of reportProducts(); track product.id) { <option [value]="product.id">{{ product.name }}</option> }
-            </select>
+            <div hlmSelect [value]="reportProductId()" [itemToString]="reportProductSelectLabel" (valueChange)="setReportProduct($event)">
+              <hlm-select-trigger class="h-9 w-full" buttonId="report-product"><span hlmSelectValue placeholder="Todos los productos"></span></hlm-select-trigger>
+              <hlm-select-content><hlm-select-item value="">Todos los productos</hlm-select-item>@for (product of reportProducts(); track product.id) {<hlm-select-item [value]="product.id">{{ product.name }}</hlm-select-item>}</hlm-select-content>
+            </div>
           </label>
           <label class="space-y-1 text-sm font-medium">
             <span>Desde (opcional)</span>
@@ -55,11 +55,10 @@
           </label>
           <label class="space-y-1 text-sm font-medium sm:col-span-2">
             <span>Formato</span>
-            <select class="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm" [value]="reportFormat()" (change)="setReportFormat($event)">
-              <option value="pdf">PDF (imprimir o guardar)</option>
-              <option value="html">HTML (abrir documento)</option>
-              <option value="csv">CSV (descargar)</option>
-            </select>
+            <div hlmSelect [value]="reportFormat()" [itemToString]="reportFormatSelectLabel" (valueChange)="setReportFormat($event)">
+              <hlm-select-trigger class="h-9 w-full" buttonId="report-format"><span hlmSelectValue placeholder="PDF (imprimir o guardar)"></span></hlm-select-trigger>
+              <hlm-select-content><hlm-select-item value="pdf">PDF (imprimir o guardar)</hlm-select-item><hlm-select-item value="html">HTML (abrir documento)</hlm-select-item><hlm-select-item value="csv">CSV (descargar)</hlm-select-item></hlm-select-content>
+            </div>
           </label>
           <fieldset class="space-y-2 sm:col-span-2">
             <legend class="text-sm font-medium">Columnas a exportar</legend>

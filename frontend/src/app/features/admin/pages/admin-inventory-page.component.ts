@@ -190,6 +190,22 @@ export class AdminInventoryPageComponent {
     return type === 'outcome' ? 'Salida' : 'Ingreso';
   };
 
+  protected readonly reportBranchSelectLabel = (branchId: string | null | undefined): string => {
+    if (!branchId) return 'Todas las sucursales';
+    return this.branches().find((branch) => branch.id === branchId)?.name ?? branchId;
+  };
+
+  protected readonly reportProductSelectLabel = (productId: string | null | undefined): string => {
+    if (!productId) return 'Todos los productos';
+    return this.reportProducts().find((product) => product.id === productId)?.name ?? productId;
+  };
+
+  protected readonly reportFormatSelectLabel = (format: ReportFormat | null | undefined): string => ({
+    pdf: 'PDF (imprimir o guardar)',
+    html: 'HTML (abrir documento)',
+    csv: 'CSV (descargar)',
+  }[format ?? 'pdf']);
+
   protected reportColumnsForType(): ReportColumn[] {
     return REPORT_COLUMNS[this.reportType()];
   }
@@ -222,9 +238,11 @@ export class AdminInventoryPageComponent {
     this.reportModalOpen.set(false);
   }
 
-  protected setReportBranch(event: Event): void { this.reportBranchId.set((event.target as HTMLSelectElement).value); }
-  protected setReportProduct(event: Event): void { this.reportProductId.set((event.target as HTMLSelectElement).value); }
-  protected setReportFormat(event: Event): void { this.reportFormat.set((event.target as HTMLSelectElement).value as ReportFormat); }
+  protected setReportBranch(value: string | null | undefined): void { this.reportBranchId.set(value ?? ''); }
+  protected setReportProduct(value: string | null | undefined): void { this.reportProductId.set(value ?? ''); }
+  protected setReportFormat(value: ReportFormat | null | undefined): void {
+    if (value === 'pdf' || value === 'html' || value === 'csv') this.reportFormat.set(value);
+  }
   protected setReportFromDate(event: Event): void { this.reportFromDate.set((event.target as HTMLInputElement).value); }
   protected setReportToDate(event: Event): void { this.reportToDate.set((event.target as HTMLInputElement).value); }
 

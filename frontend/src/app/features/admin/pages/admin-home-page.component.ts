@@ -35,6 +35,12 @@ export class AdminHomePageComponent {
   protected readonly fromDate = signal('');
   protected readonly toDate = signal('');
   protected readonly period = signal<DashboardPeriod>('day');
+  protected readonly branchSelectLabel = (branchId: string | null | undefined): string => {
+    if (!branchId) return 'Todas las sucursales';
+    const branch = this.branches().find((item) => item.id === branchId);
+    return branch ? `${branch.name} - ${branch.city}` : branchId;
+  };
+  protected readonly periodSelectLabel = (period: DashboardPeriod | null | undefined): string => ({ day: 'Día', week: 'Semana', month: 'Mes' }[period ?? 'day']);
   protected readonly activeMovementTab = signal<MovementTab>('income');
   protected readonly movementTabs: Array<{ key: MovementTab; label: string }> = [
     { key: 'income', label: 'Entradas' },
@@ -116,16 +122,16 @@ export class AdminHomePageComponent {
     }
   }
 
-  protected onBranchChange(event: Event): void {
-    this.selectedBranchId.set((event.target as HTMLSelectElement).value);
+  protected onBranchChange(value: string | null | undefined): void {
+    this.selectedBranchId.set(value ?? '');
   }
 
   protected setActiveMovementTab(tab: MovementTab): void {
     this.activeMovementTab.set(tab);
   }
 
-  protected onPeriodChange(event: Event): void {
-    this.period.set((event.target as HTMLSelectElement).value as DashboardPeriod);
+  protected onPeriodChange(value: DashboardPeriod | null | undefined): void {
+    if (value === 'day' || value === 'week' || value === 'month') this.period.set(value);
   }
 
   protected onFromDateChange(event: Event): void {
