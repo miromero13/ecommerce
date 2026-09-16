@@ -6,11 +6,80 @@
     </div>
 
     <div class="flex items-center gap-2">
+      @if (isAdmin()) {
+        <div class="relative">
+          <button hlmBtn type="button" variant="outline" (click)="toggleReportMenu()">Generar reporte</button>
+          @if (reportMenuOpen()) {
+            <div class="absolute right-0 z-30 mt-2 w-64 rounded-lg border border-slate-200 bg-white p-1 shadow-lg">
+              <button class="block w-full rounded-md px-3 py-2 text-left text-sm hover:bg-slate-100" type="button" (click)="openReportModal('inventory')">Reporte de inventario</button>
+              <button class="block w-full rounded-md px-3 py-2 text-left text-sm hover:bg-slate-100" type="button" (click)="openReportModal('movements')">Reporte de movimientos</button>
+            </div>
+          }
+        </div>
+      }
       <button hlmBtn type="button" variant="outline" (click)="refresh()" [disabled]="loading()">
         {{ loading() ? 'Actualizando...' : 'Actualizar' }}
       </button>
     </div>
   </header>
+
+  @if (reportModalOpen()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6" (click)="closeReportModal()">
+      <section hlmCard class="max-h-[90vh] w-full max-w-2xl overflow-y-auto bg-white text-slate-700 shadow-xl" role="dialog" aria-modal="true" aria-labelledby="report-modal-title" (click)="$event.stopPropagation()">
+        <div hlmCardHeader class="space-y-1 border-b border-slate-200 pb-4">
+          <h2 id="report-modal-title" hlmCardTitle class="text-xl">{{ reportType() === 'inventory' ? 'Reporte de inventario' : 'Reporte de movimientos' }}</h2>
+          <p class="text-sm text-slate-500">Elige los filtros, formato y columnas del reporte.</p>
+        </div>
+        <div class="grid gap-4 p-6 sm:grid-cols-2">
+          <label class="space-y-1 text-sm font-medium">
+            <span>Sucursal</span>
+            <select class="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm" [value]="reportBranchId()" (change)="setReportBranch($event)">
+              <option value="">Todas las sucursales</option>
+              @for (branch of branches(); track branch.id) { <option [value]="branch.id">{{ branch.name }}</option> }
+            </select>
+          </label>
+          <label class="space-y-1 text-sm font-medium">
+            <span>Producto</span>
+            <select class="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm" [value]="reportProductId()" (change)="setReportProduct($event)">
+              <option value="">Todos los productos</option>
+              @for (product of reportProducts(); track product.id) { <option [value]="product.id">{{ product.name }}</option> }
+            </select>
+          </label>
+          <label class="space-y-1 text-sm font-medium">
+            <span>Desde (opcional)</span>
+            <input class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm" type="date" [value]="reportFromDate()" (change)="setReportFromDate($event)" />
+          </label>
+          <label class="space-y-1 text-sm font-medium">
+            <span>Hasta (opcional)</span>
+            <input class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm" type="date" [value]="reportToDate()" (change)="setReportToDate($event)" />
+          </label>
+          <label class="space-y-1 text-sm font-medium sm:col-span-2">
+            <span>Formato</span>
+            <select class="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm" [value]="reportFormat()" (change)="setReportFormat($event)">
+              <option value="pdf">PDF (imprimir o guardar)</option>
+              <option value="html">HTML (abrir documento)</option>
+              <option value="csv">CSV (descargar)</option>
+            </select>
+          </label>
+          <fieldset class="space-y-2 sm:col-span-2">
+            <legend class="text-sm font-medium">Columnas a exportar</legend>
+            <div class="grid gap-2 sm:grid-cols-2">
+              @for (column of reportColumnsForType(); track column.key) {
+                <label class="flex items-center gap-2 text-sm">
+                  <input type="checkbox" [checked]="isReportColumnSelected(column.key)" (change)="toggleReportColumn(column.key, $any($event.target).checked)" />
+                  {{ column.label }}
+                </label>
+              }
+            </div>
+          </fieldset>
+          <div class="flex justify-end gap-2 sm:col-span-2">
+            <button hlmBtn variant="outline" type="button" (click)="closeReportModal()">Cancelar</button>
+            <button hlmBtn type="button" [disabled]="reportLoading()" (click)="generateReport()">{{ reportLoading() ? 'Generando...' : 'Generar' }}</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  }
 
   <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
     <article hlmCard class="bg-white shadow-sm">

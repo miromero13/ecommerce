@@ -15,6 +15,7 @@ from app.services.report_service import (
     get_movements_report,
     get_sales_report,
 )
+from app.utils.response import response
 
 
 router = APIRouter(prefix="/reports", tags=["Reports"])
@@ -53,7 +54,7 @@ async def sales_report_route(
     filters: ReportQuery = Depends(_filters),
     current_user: dict = Depends(require_roles(RolEnum.administrador)),
 ):
-    return get_sales_report(db, filters)
+    return response(status_code=status.HTTP_200_OK, message="Reporte de ventas obtenido exitosamente", data=get_sales_report(db, filters))
 
 
 @router.get("/sales/export")
@@ -76,7 +77,7 @@ async def inventory_report_route(
     filters: ReportQuery = Depends(_filters),
     current_user: dict = Depends(require_roles(RolEnum.administrador)),
 ):
-    return get_inventory_report(db, filters)
+    return response(status_code=status.HTTP_200_OK, message="Reporte de inventario obtenido exitosamente", data=get_inventory_report(db, filters))
 
 
 @router.get("/inventory/export")
@@ -99,7 +100,7 @@ async def movements_report_route(
     filters: ReportQuery = Depends(_filters),
     current_user: dict = Depends(require_roles(RolEnum.administrador)),
 ):
-    return get_movements_report(db, filters)
+    return response(status_code=status.HTTP_200_OK, message="Reporte de movimientos obtenido exitosamente", data=get_movements_report(db, filters))
 
 
 @router.get("/movements/export")

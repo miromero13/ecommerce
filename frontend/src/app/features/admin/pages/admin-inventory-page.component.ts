@@ -13,7 +13,7 @@ import { HlmSelectImports } from '../../../components/select/src';
 import { HlmTable } from '../../../components/table/src';
 import { HlmTabsImports } from '../../../components/tabs/src';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
-import { CatalogBranch } from '../../shared/models/catalog.model';
+import { CatalogBranch, CatalogProduct } from '../../shared/models/catalog.model';
 import {
   InventoryBranchStock,
   InventoryConsolidatedStock,
@@ -22,10 +22,33 @@ import {
 import { CatalogApiService } from '../../shared/services/catalog-api.service';
 import { InventoryApiService } from '../../shared/services/inventory-api.service';
 import { SessionService } from '../../shared/services/session.service';
+import { ReportsApiService } from '../../shared/services/reports-api.service';
 import { requestWithToast } from '../../../core/utils/request-toast.util';
 
 type InventoryTab = 'consolidated' | 'branch' | 'movements';
 type InventoryMovementType = 'income' | 'outcome';
+type InventoryReportType = 'inventory' | 'movements';
+type ReportFormat = 'pdf' | 'html' | 'csv';
+type ReportColumn = { key: string; label: string };
+
+const REPORT_COLUMNS: Record<InventoryReportType, ReportColumn[]> = {
+  inventory: [
+    { key: 'branch_name', label: 'Sucursal' },
+    { key: 'product_name', label: 'Producto' },
+    { key: 'variant_sku', label: 'SKU' },
+    { key: 'quantity', label: 'Cantidad' },
+    { key: 'reserved_quantity', label: 'Reservado' },
+    { key: 'available_quantity', label: 'Disponible' },
+  ],
+  movements: [
+    { key: 'branch_name', label: 'Sucursal' },
+    { key: 'product_name', label: 'Producto' },
+    { key: 'variant_sku', label: 'SKU' },
+    { key: 'movement_type', label: 'Tipo de movimiento' },
+    { key: 'quantity', label: 'Cantidad' },
+    { key: 'movements_count', label: 'Cantidad de movimientos' },
+  ],
+};
 
 @Component({
   selector: 'app-admin-inventory-page',
@@ -38,6 +61,7 @@ export class AdminInventoryPageComponent {
   private readonly inventoryApi = inject(InventoryApiService);
   private readonly fb = inject(FormBuilder);
   private readonly session = inject(SessionService);
+  private readonly reportsApi = inject(ReportsApiService);
 
   protected readonly branches = signal<CatalogBranch[]>([]);
   protected readonly consolidatedStock = signal<InventoryConsolidatedStock[]>([]);
@@ -52,6 +76,17 @@ export class AdminInventoryPageComponent {
   protected readonly thresholdModalOpen = signal(false);
   protected readonly thresholdItem = signal<InventoryBranchStock | null>(null);
   protected readonly movementType = signal<InventoryMovementType>('income');
+  protected readonly reportMenuOpen = signal(false);
+  protected readonly reportModalOpen = signal(false);
+  protected readonly reportType = signal<InventoryReportType>('inventory');
+  protected readonly reportFormat = signal<ReportFormat>('pdf');
+  protected readonly reportBranchId = signal('');
+  protected readonly reportProductId = signal('');
+  protected readonly reportFromDate = signal('');
+  protected readonly reportToDate = signal('');
+  protected readonly reportColumns = signal<string[]>(REPORT_COLUMNS.inventory.map((column) => column.key));
+  protected readonly reportProducts = signal<CatalogProduct[]>([]);
+  protected readonly reportLoading = signal(false);
   protected readonly isAdmin = computed(() => this.session.user()?.rol === 'administrador');
   protected readonly isManager = computed(() => this.session.user()?.rol === 'encargado');
   protected readonly tabs = computed<InventoryTab[]>(() => this.isAdmin() ? ['consolidated', 'branch', 'movements'] : ['branch', 'movements']);
@@ -154,6 +189,81 @@ export class AdminInventoryPageComponent {
   protected readonly movementTypeSelectLabel = (type: InventoryMovementType | null | undefined): string => {
     return type === 'outcome' ? 'Salida' : 'Ingreso';
   };
+
+  protected reportColumnsForType(): ReportColumn[] {
+    return REPORT_COLUMNS[this.reportType()];
+  }
+
+  protected isReportColumnSelected(key: string): boolean {
+    return this.reportColumns().includes(key);
+  }
+
+  protected toggleReportColumn(key: string, selected: boolean): void {
+    this.reportColumns.update((columns) => selected ? [...columns, key] : columns.filter((column) => column !== key));
+  }
+
+  protected toggleReportMenu(): void {
+    this.reportMenuOpen.update((open) => !open);
+  }
+
+  protected openReportModal(type: InventoryReportType): void {
+    this.reportMenuOpen.set(false);
+    this.reportType.set(type);
+    this.reportFormat.set('pdf');
+    this.reportBranchId.set(this.isAdmin() ? '' : this.selectedBranchId());
+    this.reportProductId.set('');
+    this.reportFromDate.set('');
+    this.reportToDate.set('');
+    this.reportColumns.set(REPORT_COLUMNS[type].map((column) => column.key));
+    this.reportModalOpen.set(true);
+  }
+
+  protected closeReportModal(): void {
+    this.reportModalOpen.set(false);
+  }
+
+  protected setReportBranch(event: Event): void { this.reportBranchId.set((event.target as HTMLSelectElement).value); }
+  protected setReportProduct(event: Event): void { this.reportProductId.set((event.target as HTMLSelectElement).value); }
+  protected setReportFormat(event: Event): void { this.reportFormat.set((event.target as HTMLSelectElement).value as ReportFormat); }
+  protected setReportFromDate(event: Event): void { this.reportFromDate.set((event.target as HTMLInputElement).value); }
+  protected setReportToDate(event: Event): void { this.reportToDate.set((event.target as HTMLInputElement).value); }
+
+  protected async generateReport(): Promise<void> {
+    const fromDate = this.reportFromDate();
+    const toDate = this.reportToDate();
+    if (fromDate && toDate && fromDate > toDate) {
+      toast.error('La fecha desde no puede ser posterior a la fecha hasta.');
+      return;
+    }
+    if (!this.reportColumns().length) {
+      toast.error('Selecciona al menos una columna para exportar.');
+      return;
+    }
+
+    this.reportLoading.set(true);
+    try {
+      const filters = {
+        branch_id: this.reportBranchId() || null,
+        product_id: this.reportProductId() || null,
+        from_date: fromDate || null,
+        to_date: toDate || null,
+      };
+      const response = this.reportType() === 'inventory'
+        ? await firstValueFrom(this.reportsApi.getInventoryReport(filters))
+        : await firstValueFrom(this.reportsApi.getMovementsReport(filters));
+      const rows = response.data?.rows ?? [];
+      const columns = this.reportColumnsForType().filter((column) => this.reportColumns().includes(column.key));
+      const reportRows = rows as unknown as Array<Record<string, unknown>>;
+      const documentHtml = this.reportDocumentHtml(columns, reportRows);
+      if (this.reportFormat() === 'csv') this.downloadReportCsv(columns, reportRows);
+      else this.openReportDocument(documentHtml, this.reportFormat() === 'pdf');
+      this.closeReportModal();
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'No se pudo generar el reporte.'));
+    } finally {
+      this.reportLoading.set(false);
+    }
+  }
 
   protected openMovementModal(): void {
     this.movementType.set('income');
@@ -312,6 +422,14 @@ export class AdminInventoryPageComponent {
 
       this.branches.set(branches.data ?? []);
       if (this.isAdmin()) {
+        try {
+          const products = await firstValueFrom(this.catalogApi.listAdminProducts());
+          this.reportProducts.set(products.data ?? []);
+        } catch (error) {
+          toast.error(getErrorMessage(error, 'No se pudieron cargar los productos para el reporte.'));
+        }
+      }
+      if (this.isAdmin()) {
         const consolidated = await firstValueFrom(this.inventoryApi.getConsolidatedStock());
         this.consolidatedStock.set(consolidated.data ?? []);
       }
@@ -399,5 +517,52 @@ export class AdminInventoryPageComponent {
     } finally {
       this.submitting.set(false);
     }
+  }
+
+  private reportDocumentHtml(columns: ReportColumn[], rows: Array<Record<string, unknown>>): string {
+    const title = this.reportType() === 'inventory' ? 'Reporte de inventario' : 'Reporte de movimientos';
+    const header = columns.map((column) => `<th>${this.escapeHtml(column.label)}</th>`).join('');
+    const body = rows.map((row) => `<tr>${columns.map((column) => `<td>${this.escapeHtml(this.reportCellValue(row[column.key]))}</td>`).join('')}</tr>`).join('');
+    return `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title><style>body{font:14px Arial,sans-serif;color:#172033;padding:24px}h1{font-size:20px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #cbd5e1;padding:8px;text-align:left}th{background:#e2e8f0}@media print{body{padding:0}}</style></head><body><h1>${title}</h1><p>Generado: ${new Date().toLocaleString('es-BO')}</p><table><thead><tr>${header}</tr></thead><tbody>${body || `<tr><td colspan="${columns.length}">No hay datos para los filtros seleccionados.</td></tr>`}</tbody></table></body></html>`;
+  }
+
+  private downloadReportCsv(columns: ReportColumn[], rows: Array<Record<string, unknown>>): void {
+    const csv = [columns.map((column) => this.csvCell(column.label)), ...rows.map((row) => columns.map((column) => this.csvCell(this.reportCellValue(row[column.key]))))]
+      .map((line) => line.join(','))
+      .join('\r\n');
+    const url = URL.createObjectURL(new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${this.reportType()}-report.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  private openReportDocument(html: string, print: boolean): void {
+    const reportWindow = window.open('', '_blank');
+    if (!reportWindow) {
+      toast.error('El navegador bloqueó la ventana del reporte. Permite las ventanas emergentes e inténtalo de nuevo.');
+      return;
+    }
+    reportWindow.document.write(html);
+    reportWindow.document.close();
+    if (print) reportWindow.setTimeout(() => reportWindow.print(), 250);
+  }
+
+  private reportCellValue(value: unknown): string {
+    if (value === null || value === undefined) return '';
+    if (value === 'income') return 'Ingreso';
+    if (value === 'outcome') return 'Salida';
+    if (value === 'transfer_in') return 'Traspaso entrada';
+    if (value === 'transfer_out') return 'Traspaso salida';
+    return String(value);
+  }
+
+  private csvCell(value: string): string {
+    return `"${value.replaceAll('"', '""')}"`;
+  }
+
+  private escapeHtml(value: string): string {
+    return value.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character] ?? character);
   }
 }
