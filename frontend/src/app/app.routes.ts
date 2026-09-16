@@ -188,13 +188,6 @@ export const routes: Routes = [
             loadComponent: () => import('./features/proveedor/pages/provider-products-page.component').then((m) => m.ProviderProductsPageComponent),
           },
           {
-            path: 'reports',
-            loadComponent: () =>
-              import('./features/admin/pages/admin-reports-page.component').then(
-                (m) => m.AdminReportsPageComponent,
-              ),
-          },
-          {
             path: 'replenishment',
             loadComponent: () => import('./features/shared/pages/replenishment-page.component').then((m) => m.ReplenishmentPageComponent),
           },
