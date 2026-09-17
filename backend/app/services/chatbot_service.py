@@ -52,12 +52,67 @@ def classify_intent(message: str, conversation: list[ConversationTurn] | None = 
     return ChatIntent.CATALOGO
 
 
+def _parse_routed_intent(raw: str) -> ChatIntent | None:
+    """Accept only one exact JSON intent response from the routing model."""
+    text = raw.strip()
+    fenced = re.fullmatch(r"```(?:json)?\s*(.*?)\s*```", text, flags=re.IGNORECASE | re.DOTALL)
+    if fenced:
+        text = fenced.group(1).strip()
+
+    def reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError("duplicate JSON key")
+            result[key] = value
+        return result
+
+    try:
+        payload = json.loads(text, object_pairs_hook=reject_duplicate_keys)
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return None
+    if not isinstance(payload, dict) or set(payload) != {"intent"} or not isinstance(payload["intent"], str):
+        return None
+    try:
+        return ChatIntent(payload["intent"])
+    except ValueError:
+        return None
+
+
+async def route_intent(message: str, history: list[ConversationTurn] | None = None) -> ChatIntent:
+    """Route with Gemini without exposing catalog, order, or static source content."""
+    if not settings.gemini_api_key:
+        return classify_intent(message, history)
+
+    prompt = json.dumps({
+        "task": "Route the current user request to exactly one destination. Prioritize current_message over history.",
+        "destinations": {
+            "CATALOGO": "Product or garment recommendations and catalog search.",
+            "PEDIDOS": "The authenticated user's orders, tracking, shipping, and active order status.",
+            "POLITICAS": "Store policies: returns, exchanges, payments, privacy, and reservations.",
+            "USO_SISTEMA": "How to use the website or account: registration, login, profile, password, and features.",
+        },
+        "history": [{"role": turn.role, "content": turn.content} for turn in history or []],
+        "current_message": {"role": "user", "content": message},
+        "output_format": '{"intent": "CATALOGO"}',
+    }, ensure_ascii=False)
+    try:
+        raw = await asyncio.wait_for(asyncio.to_thread(_generate_sync, prompt), timeout=settings.gemini_timeout_seconds)
+        return _parse_routed_intent(raw) or classify_intent(message, history)
+    except Exception:
+        return classify_intent(message, history)
+
+
 def _classify_explicit(message: str) -> ChatIntent | None:
     text = _normalize(message)
     scores = {
         ChatIntent.PEDIDOS: _contains_any(text, ("pedido", "orden", "envio", "entrega", "seguimiento", "tracking")),
         ChatIntent.POLITICAS: _contains_any(text, ("politica", "devolucion", "cambio", "pago", "privacidad", "reserva")),
-        ChatIntent.USO_SISTEMA: _contains_any(text, ("como uso", "como funciona", "cuenta", "asistente", "sistema", "perfil")),
+        ChatIntent.USO_SISTEMA: _contains_any(text, (
+            "como uso", "como funciona", "cuenta", "asistente", "sistema", "perfil",
+            "registrar", "registro", "crear cuenta", "iniciar sesion", "iniciar sesión",
+            "login", "contraseña", "contrasena", "recuperar contraseña", "recuperar contrasena",
+        )),
         ChatIntent.CATALOGO: _contains_any(text, (
             "catalogo", "producto", "productos", "prenda", "prendas", "ropa", "talla", "color",
             "vestido", "blusa", "pantalon", "polera", "poleras", "camiseta", "camisetas",
@@ -358,10 +413,7 @@ def _static_context(intent: ChatIntent, message: str) -> dict[str, Any]:
     filename = "policies.json" if intent == ChatIntent.POLITICAS else "system_info.json"
     with (DATA_DIR / filename).open(encoding="utf-8") as file:
         content = json.load(file)
-    text = _normalize(message)
-    topic_words = [word for word in re.findall(r"[a-z0-9áéíóúñ]+", text) if len(word) > 3]
-    selected = {key: value for key, value in content.items() if any(word in _normalize(key + " " + value) for word in topic_words)}
-    return {"topics": selected or content}
+    return {"knowledge": content}
 
 
 async def generate_answer(message: str, intent: ChatIntent, context: dict[str, Any], conversation: list[ConversationTurn] | None = None) -> tuple[str, bool]:
@@ -386,7 +438,8 @@ def _generate_sync(prompt: str) -> str:
     client = genai.Client(api_key=settings.gemini_api_key)
     result = client.models.generate_content(
         model=settings.gemini_model,
-        contents=("Responde en español de forma clara y breve. Usa únicamente el contexto estructurado; "
+        contents=("Responde en español de forma clara y breve. Responde únicamente lo que pregunta el usuario; "
+                  "no agregues información relacionada que no haya solicitado. Usa únicamente el contexto estructurado; "
                   "no inventes disponibilidad, estados ni políticas y no reveles secretos. "
                   "En pedidos, nunca muestres UUIDs ni valores técnicos de enums: usa display_reference "
                   "y las etiquetas en español del contexto (Pagado, Pendiente, Fallido o Cancelado).\n" + prompt),
@@ -416,7 +469,7 @@ async def handle_message(db: Session, user_id: UUID, message: str, conversation:
         persisted = get_or_create_conversation(db, user_id)
         persisted_messages = load_recent_messages(db, persisted)
         history = [ConversationTurn(role=item.role, content=item.content[:400]) for item in persisted_messages]
-        intent = classify_intent(message, history)
+        intent = await route_intent(message, history)
         updates = extract_profile_updates(message)
         pending_profile = _profile_question_pending(history)
         if pending_profile and (updates or _is_affirmative(message) or _is_negative(message)):
@@ -476,8 +529,8 @@ def _fallback(intent: ChatIntent, context: dict[str, Any]) -> str:
             f"{item['display_reference']} — {item['payment_status']}" + (f", {item['fulfillment_status']}" if item.get('fulfillment_status') else "")
             for item in orders
         ) if orders else "No encontré pedidos asociados a tu cuenta."
-    topics = context.get("topics", {})
-    return "Información disponible: " + " ".join(str(value) for value in topics.values())
+    knowledge = context.get("knowledge", context.get("topics", {}))
+    return "Información disponible: " + " ".join(str(value) for value in knowledge.values())
 
 
 def _catalog_answer(context: dict[str, Any]) -> str:
