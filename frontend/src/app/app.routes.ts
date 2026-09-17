@@ -123,6 +123,16 @@ export const routes: Routes = [
         loadComponent: () => import('./features/shared/pages/replenishment-page.component').then((m) => m.ReplenishmentPageComponent),
       },
       {
+        path: 'encargado/providers',
+        canActivate: [roleGuard(['encargado'])],
+        loadComponent: () => import('./features/admin/pages/admin-provider-page.component').then((m) => m.AdminProviderPageComponent),
+      },
+      {
+        path: 'encargado/provider/:providerId/products',
+        canActivate: [roleGuard(['encargado'])],
+        loadComponent: () => import('./features/proveedor/pages/provider-products-page.component').then((m) => m.ProviderProductsPageComponent),
+      },
+      {
         path: 'encargado/sales',
         canActivate: [roleGuard(['encargado'])],
         loadComponent: () => import('./features/shared/pages/sales-history-page.component').then((m) => m.SalesHistoryPageComponent),

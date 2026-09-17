@@ -3,7 +3,6 @@ from sqlalchemy.orm import Session
 from uuid import UUID
 
 from app.auth.dependencies import require_roles
-from app.auth.dependencies import get_current_branch_id
 from app.core.database import get_db
 from app.models.provider import Provider
 from app.models.user import User
@@ -55,13 +54,10 @@ async def update_my_availability(
 async def list_provider_products_route(
     provider_id: UUID,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_roles(RolEnum.administrador)),
+    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
 ):
     provider = db.query(Provider).filter(Provider.id == provider_id).first()
     if not provider:
-        raise HTTPException(status_code=404, detail="Proveedor no encontrado")
-    branch_id = current_user.get("branch_id")
-    if branch_id and provider.branch_id != UUID(branch_id):
         raise HTTPException(status_code=404, detail="Proveedor no encontrado")
     return response(status_code=200, message="Productos del proveedor obtenidos exitosamente", data=_provider_products_response(db, provider_id))
 
@@ -69,10 +65,9 @@ async def list_provider_products_route(
 @router.get("/")
 async def list_providers_route(
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_roles(RolEnum.administrador)),
-    current_branch_id: UUID | None = Depends(get_current_branch_id),
+    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
 ):
-    rows = get_providers(db, current_branch_id)
+    rows = get_providers(db)
     providers_data = [
         ProviderRead.model_validate(
             {
@@ -83,7 +78,6 @@ async def list_providers_route(
                 "email": user.email,
                 "gender": user.gender,
                 "phone": provider.phone,
-                "branch_id": provider.branch_id,
                 "status": provider.status,
             }
         ).model_dump()
@@ -97,14 +91,7 @@ async def create_provider_route(
     provider: ProviderCreate,
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_roles(RolEnum.administrador)),
-    current_branch_id: UUID | None = Depends(get_current_branch_id),
 ):
-    if current_branch_id is not None and provider.branch_id not in {None, current_branch_id}:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No puedes crear proveedores en otra sucursal")
-
-    if current_branch_id is not None and provider.branch_id is None:
-        provider = provider.model_copy(update={"branch_id": current_branch_id})
-
     try:
         db_provider = create_provider(db, provider)
     except ValueError as exc:
@@ -120,7 +107,6 @@ async def create_provider_route(
             "email": user.email if user else provider.email,
             "gender": user.gender if user else provider.gender,
             "phone": db_provider.phone,
-            "branch_id": db_provider.branch_id,
             "status": db_provider.status,
         }
     ).model_dump()
@@ -133,14 +119,10 @@ async def update_provider_status_route(
     update_data: ProviderStatusUpdate,
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_roles(RolEnum.administrador)),
-    current_branch_id: UUID | None = Depends(get_current_branch_id),
 ):
     target_provider = db.query(Provider).filter(Provider.id == provider_id).first()
     if not target_provider:
         raise HTTPException(status_code=404, detail=f"Proveedor con id {provider_id} no encontrado")
-    if current_branch_id is not None and target_provider.branch_id != current_branch_id:
-        raise HTTPException(status_code=404, detail=f"Proveedor con id {provider_id} no encontrado")
-
     db_provider = update_provider_status(db, provider_id, update_data)
     if not db_provider:
         raise HTTPException(status_code=404, detail=f"Proveedor con id {provider_id} no encontrado")
@@ -155,7 +137,6 @@ async def update_provider_status_route(
             "email": user.email if user else "",
             "gender": user.gender if user else "masculino",
             "phone": db_provider.phone,
-            "branch_id": db_provider.branch_id,
             "status": db_provider.status,
         }
     ).model_dump()
@@ -168,14 +149,10 @@ async def update_provider_full_route(
     update_data: ProviderUpdate,
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_roles(RolEnum.administrador)),
-    current_branch_id: UUID | None = Depends(get_current_branch_id),
 ):
     target_provider = db.query(Provider).filter(Provider.id == provider_id).first()
     if not target_provider:
         raise HTTPException(status_code=404, detail=f"Proveedor con id {provider_id} no encontrado")
-    if current_branch_id is not None and target_provider.branch_id != current_branch_id:
-        raise HTTPException(status_code=404, detail=f"Proveedor con id {provider_id} no encontrado")
-
     try:
         db_provider = update_provider_full(db, provider_id, update_data)
     except ValueError as exc:
@@ -194,7 +171,6 @@ async def update_provider_full_route(
             "email": user.email if user else "",
             "gender": user.gender if user else "masculino",
             "phone": db_provider.phone,
-            "branch_id": db_provider.branch_id,
             "status": db_provider.status,
         }
     ).model_dump()
@@ -206,14 +182,10 @@ async def delete_provider_route(
     provider_id: UUID,
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_roles(RolEnum.administrador)),
-    current_branch_id: UUID | None = Depends(get_current_branch_id),
 ):
     target_provider = db.query(Provider).filter(Provider.id == provider_id).first()
     if not target_provider:
         raise HTTPException(status_code=404, detail=f"Proveedor con id {provider_id} no encontrado")
-    if current_branch_id is not None and target_provider.branch_id != current_branch_id:
-        raise HTTPException(status_code=404, detail=f"Proveedor con id {provider_id} no encontrado")
-
     try:
         deleted = delete_provider(db, provider_id)
     except ValueError as exc:

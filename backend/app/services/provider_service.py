@@ -23,7 +23,7 @@ def create_provider(db: Session, provider: ProviderCreate) -> Provider:
         hashed_password=hashed_password,
         gender=provider.gender,
         rol=RolEnum.proveedor,
-        branch_id=provider.branch_id,
+        branch_id=None,
     )
 
     db_provider = Provider(
@@ -31,7 +31,6 @@ def create_provider(db: Session, provider: ProviderCreate) -> Provider:
         business_name=provider.business_name,
         contact_name=provider.contact_name,
         phone=provider.phone,
-        branch_id=provider.branch_id,
         status=ProviderStatusEnum.active,
     )
 
@@ -49,10 +48,8 @@ def create_provider(db: Session, provider: ProviderCreate) -> Provider:
         raise ValueError("No se pudo crear el proveedor")
 
 
-def get_providers(db: Session, branch_id=None):
+def get_providers(db: Session):
     query = select(Provider, User).join(User, User.id == Provider.user_id)
-    if branch_id is not None:
-        query = query.where(Provider.branch_id == branch_id)
     result = db.execute(query.order_by(Provider.business_name.asc()))
     return result.all()
 
@@ -86,13 +83,12 @@ def update_provider_full(db: Session, provider_id, update_data) -> Provider | No
     provider.business_name = update_data.business_name
     provider.contact_name = update_data.contact_name
     provider.phone = update_data.phone
-    provider.branch_id = update_data.branch_id
     provider.status = update_data.status
 
     user.name = update_data.contact_name
     user.email = normalize_email(update_data.email)
     user.gender = update_data.gender
-    user.branch_id = update_data.branch_id
+    user.branch_id = None
     user.is_active = update_data.status == ProviderStatusEnum.active
 
     try:

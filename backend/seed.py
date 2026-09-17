@@ -54,7 +54,7 @@ def main() -> None:
         _reset_demo_data(session)
         branches = _seed_branches(session)
         users = _seed_users(session, branches)
-        providers = _seed_providers(session, branches)
+        providers = _seed_providers(session)
         categories = _seed_categories(session)
         sizes = _seed_sizes(session)
         colors = _seed_colors(session)
@@ -316,7 +316,7 @@ def _verify_seed(
     users_frame = frames["users"]
     if users_frame["email"].duplicated().any():
         raise RuntimeError("Existen emails duplicados en users")
-    branch_scoped_roles = {RolEnum.encargado.value, RolEnum.cajero.value, RolEnum.delivery.value, RolEnum.proveedor.value}
+    branch_scoped_roles = {RolEnum.encargado.value, RolEnum.cajero.value, RolEnum.delivery.value}
     internal_users = users_frame[users_frame["rol"].map(_enum_value).isin(branch_scoped_roles)]
     branch_ids = {str(branch.id) for branch in branches}
     if internal_users["branch_id"].isna().any() or not internal_users["branch_id"].map(str).isin(branch_ids).all():
@@ -488,14 +488,13 @@ def _seed_users(session, branches: list[Branch]) -> list[User]:
     return users
 
 
-def _seed_providers(session, branches: list[Branch]) -> list[Provider]:
+def _seed_providers(session) -> list[Provider]:
     providers_payload = [
         {
             "email": "proveedor1@fashionstore.bo",
             "name": "Textiles Andinos SRL",
             "contact": "Ana Villca",
             "phone": "+59170010001",
-            "branch_id": branches[0].id,
             "gender": GenderEnum.femenino,
         },
         {
@@ -503,7 +502,6 @@ def _seed_providers(session, branches: list[Branch]) -> list[Provider]:
             "name": "Moda Urbana Bolivia",
             "contact": "Luis Teran",
             "phone": "+59170010002",
-            "branch_id": branches[1].id,
             "gender": GenderEnum.masculino,
         },
         {
@@ -511,7 +509,6 @@ def _seed_providers(session, branches: list[Branch]) -> list[Provider]:
             "name": "Atelier del Sur",
             "contact": "Mariana Roca",
             "phone": "+59170010003",
-            "branch_id": branches[2].id,
             "gender": GenderEnum.femenino,
         },
         {
@@ -519,7 +516,6 @@ def _seed_providers(session, branches: list[Branch]) -> list[Provider]:
             "name": "Linea Nova",
             "contact": "Ricardo Flores",
             "phone": "+59170010004",
-            "branch_id": branches[0].id,
             "gender": GenderEnum.masculino,
         },
     ]
@@ -534,7 +530,7 @@ def _seed_providers(session, branches: list[Branch]) -> list[Provider]:
                 "name": payload["contact"],
                 "gender": payload["gender"],
                 "rol": RolEnum.proveedor,
-                "branch_id": payload["branch_id"],
+                "branch_id": None,
                 "hashed_password": _hash_password(),
             },
         )
@@ -544,14 +540,12 @@ def _seed_providers(session, branches: list[Branch]) -> list[Provider]:
             Provider,
             {"user_id": user.id},
             {
-                "branch_id": payload["branch_id"],
                 "business_name": payload["name"],
                 "contact_name": payload["contact"],
                 "phone": payload["phone"],
                 "status": ProviderStatusEnum.active,
             },
         )
-        provider.branch_id = payload["branch_id"]
         provider.business_name = payload["name"]
         provider.contact_name = payload["contact"]
         provider.phone = payload["phone"]

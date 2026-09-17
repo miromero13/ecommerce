@@ -57,15 +57,12 @@ from app.utils.response import response
 router = APIRouter(prefix="/catalog", tags=["Catalog"])
 
 
-def _validate_product_provider_scope(db: Session, provider_id: UUID | None, current_user: dict) -> None:
+def _validate_product_provider_scope(db: Session, provider_id: UUID | None) -> None:
     if provider_id is None:
         return
     provider = db.query(Provider).filter(Provider.id == provider_id).first()
     if not provider:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El proveedor no existe")
-    branch_id = current_user.get("branch_id")
-    if branch_id and provider.branch_id != UUID(branch_id):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No puedes asignar un proveedor de otra sucursal")
 
 
 def _resolve_legacy_variant(db: Session, product_id: UUID):
@@ -281,7 +278,7 @@ async def list_pending_products(db: Session = Depends(get_db), current_user: Use
 
 @router.post("/products", status_code=status.HTTP_201_CREATED)
 async def create_product_route(payload: ProductCreate, db: Session = Depends(get_db), current_user: dict = Depends(require_roles(RolEnum.administrador))):
-    _validate_product_provider_scope(db, payload.provider_id, current_user)
+    _validate_product_provider_scope(db, payload.provider_id)
     try:
         product = create_product(db, payload, provider_id=payload.provider_id, status=ProductStatusEnum.active)
     except ValueError as exc:
@@ -292,7 +289,7 @@ async def create_product_route(payload: ProductCreate, db: Session = Depends(get
 
 @router.put("/products/{product_id}")
 async def update_product_route(product_id: UUID, payload: ProductCreate, db: Session = Depends(get_db), current_user: dict = Depends(require_roles(RolEnum.administrador))):
-    _validate_product_provider_scope(db, payload.provider_id, current_user)
+    _validate_product_provider_scope(db, payload.provider_id)
     try:
         product = update_product(db, product_id, payload)
     except ValueError as exc:

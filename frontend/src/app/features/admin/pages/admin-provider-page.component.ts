@@ -14,10 +14,9 @@ import { HlmInput } from '../../../components/input/src';
 import { HlmSelectImports } from '../../../components/select/src';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
 import { requestWithToast } from '../../../core/utils/request-toast.util';
-import { AdminBranch } from '../models/admin-branch.model';
-import { AdminBranchService } from '../services/admin-branch.service';
 import { AdminProvider, ProviderStatus } from '../models/admin-provider.model';
 import { AdminProviderService } from '../services/admin-provider.service';
+import { SessionService } from '../../shared/services/session.service';
 
 @Component({
   selector: 'app-admin-provider-page',
@@ -28,11 +27,10 @@ import { AdminProviderService } from '../services/admin-provider.service';
 export class AdminProviderPageComponent {
   private readonly fb = inject(FormBuilder);
   private readonly providerApi = inject(AdminProviderService);
-  private readonly branchApi = inject(AdminBranchService);
   private readonly router = inject(Router);
+  private readonly session = inject(SessionService);
 
   protected readonly providers = signal<AdminProvider[]>([]);
-  protected readonly branches = signal<AdminBranch[]>([]);
   protected readonly loading = signal(false);
   protected readonly modalOpen = signal(false);
   protected readonly modalMode = signal<'create' | 'edit'>('create');
@@ -40,16 +38,11 @@ export class AdminProviderPageComponent {
   protected readonly deleteConfirmOpen = signal(false);
   protected readonly deletingProvider = signal<AdminProvider | null>(null);
   protected readonly openMenuId = signal<string | null>(null);
+  protected readonly isReadOnly = this.session.user()?.rol === 'encargado';
 
   protected readonly genderSelectLabel = (gender: string | null | undefined): string => {
     if (!gender) return 'Género';
     return gender === 'masculino' ? 'Masculino' : 'Femenino';
-  };
-
-  protected readonly branchSelectLabel = (branchId: string | null | undefined): string => {
-    if (!branchId) return 'Sin sucursal';
-    const branch = this.branches().find((item) => item.id === branchId);
-    return branch ? `${branch.name} - ${branch.city}` : branchId;
   };
 
   protected readonly statusSelectLabel = (status: ProviderStatus | null | undefined): string => {
@@ -64,7 +57,6 @@ export class AdminProviderPageComponent {
     password: ['', [Validators.minLength(6)]],
     gender: ['masculino', [Validators.required]],
     phone: [''],
-    branch_id: [''],
     status: ['active', [Validators.required]],
   });
 
@@ -81,6 +73,7 @@ export class AdminProviderPageComponent {
   }
 
   protected openModal(): void {
+    if (this.isReadOnly) return;
     this.closeMenu();
     this.modalMode.set('create');
     this.editingProviderId.set(null);
@@ -91,13 +84,13 @@ export class AdminProviderPageComponent {
       password: '',
       gender: 'masculino',
       phone: '',
-      branch_id: '',
-      status: 'active',
+       status: 'active',
     });
     this.modalOpen.set(true);
   }
 
   protected editProvider(provider: AdminProvider): void {
+    if (this.isReadOnly) return;
     this.closeMenu();
     this.modalMode.set('edit');
     this.editingProviderId.set(provider.id);
@@ -108,7 +101,6 @@ export class AdminProviderPageComponent {
       password: '',
       gender: provider.gender,
       phone: provider.phone || '',
-      branch_id: provider.branch_id || '',
       status: provider.status,
     });
     this.modalOpen.set(true);
@@ -128,6 +120,7 @@ export class AdminProviderPageComponent {
   }
 
   protected askDelete(provider: AdminProvider): void {
+    if (this.isReadOnly) return;
     this.closeMenu();
     this.deletingProvider.set(provider);
     this.deleteConfirmOpen.set(true);
@@ -139,6 +132,7 @@ export class AdminProviderPageComponent {
   }
 
   protected async confirmDelete(): Promise<void> {
+    if (this.isReadOnly) return;
     const provider = this.deletingProvider();
     if (!provider) return;
 
@@ -155,6 +149,7 @@ export class AdminProviderPageComponent {
   }
 
   protected async submit(): Promise<void> {
+    if (this.isReadOnly) return;
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
@@ -169,7 +164,6 @@ export class AdminProviderPageComponent {
         email: payload.email.trim().toLowerCase(),
         gender: payload.gender as 'masculino' | 'femenino',
         phone: payload.phone || null,
-        branch_id: payload.branch_id || null,
         status: payload.status as ProviderStatus,
       };
 
@@ -191,13 +185,12 @@ export class AdminProviderPageComponent {
             password: payload.password,
             gender: request.gender,
             phone: request.phone,
-            branch_id: request.branch_id,
           }),
           { loading: 'Guardando proveedor...', success: 'Proveedor creado correctamente.', error: 'No se pudo guardar el proveedor.' },
         );
       }
 
-      this.form.reset({ business_name: '', contact_name: '', email: '', password: '', gender: 'masculino', phone: '', branch_id: '', status: 'active' });
+      this.form.reset({ business_name: '', contact_name: '', email: '', password: '', gender: 'masculino', phone: '', status: 'active' });
       await this.loadData();
       this.closeModal();
     } catch {
@@ -208,6 +201,7 @@ export class AdminProviderPageComponent {
   }
 
   protected async updateStatus(provider: AdminProvider, status: ProviderStatus): Promise<void> {
+    if (this.isReadOnly) return;
     if (provider.status === status) {
       return;
     }
@@ -230,15 +224,8 @@ export class AdminProviderPageComponent {
 
   protected viewProducts(provider: AdminProvider): void {
     this.closeMenu();
-    void this.router.navigate(['/app/admin/provider', provider.id, 'products']);
-  }
-
-  protected branchName(branchId: string | null): string {
-    if (!branchId) {
-      return 'Sin sucursal';
-    }
-
-    return this.branches().find((branch) => branch.id === branchId)?.name ?? branchId;
+    const prefix = this.isReadOnly ? '/app/encargado/provider' : '/app/admin/provider';
+    void this.router.navigate([prefix, provider.id, 'products']);
   }
 
   protected statusLabel(status: ProviderStatus): string {
@@ -247,13 +234,9 @@ export class AdminProviderPageComponent {
 
   private async loadData(): Promise<void> {
     try {
-      const [providersResponse, branchesResponse] = await Promise.all([
-        firstValueFrom(this.providerApi.listProviders()),
-        firstValueFrom(this.branchApi.listBranches()),
-      ]);
+      const providersResponse = await firstValueFrom(this.providerApi.listProviders());
 
       this.providers.set(providersResponse.data ?? []);
-      this.branches.set(branchesResponse.data ?? []);
     } catch (error) {
       toast.error(getErrorMessage(error, 'No se pudieron cargar los proveedores.'));
     }
