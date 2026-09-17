@@ -3,6 +3,8 @@ import { Component, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
 import { toast } from '@spartan-ng/brain/sonner';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideMic, lucideSquare } from '@ng-icons/lucide';
 
 import { HlmCardImports } from '../../../components/card/src';
 import { HlmButton } from '../../../components/button/src';
@@ -52,7 +54,8 @@ const SALES_REPORT_COLUMNS: ReportColumn[] = [
 @Component({
   selector: 'app-sales-history-page',
   standalone: true,
-  imports: [CommonModule, HlmButton, HlmTable, ...HlmCardImports, ...HlmSelectImports],
+  imports: [CommonModule, NgIcon, HlmButton, HlmTable, ...HlmCardImports, ...HlmSelectImports],
+  providers: [provideIcons({ lucideMic, lucideSquare })],
   templateUrl: './sales-history-page.component.html',
 })
 export class SalesHistoryPageComponent {
@@ -135,7 +138,10 @@ export class SalesHistoryPageComponent {
     void this.loadReportProducts();
   }
 
-  protected closeReportModal(): void { this.reportModalOpen.set(false); }
+  protected closeReportModal(): void {
+    this.speechRecognition?.stop();
+    this.reportModalOpen.set(false);
+  }
   protected setNaturalQuery(event: Event): void { this.naturalQuery.set((event.target as HTMLTextAreaElement).value); }
   protected setReportBranch(value: string | null | undefined): void {
     if (this.isAdmin()) this.reportBranchId.set(value ?? '');
