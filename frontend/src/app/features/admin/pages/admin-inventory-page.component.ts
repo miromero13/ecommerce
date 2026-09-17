@@ -4,6 +4,8 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 
 import { toast } from '@spartan-ng/brain/sonner';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideMic, lucideSquare } from '@ng-icons/lucide';
 
 import { HlmBadgeImports } from '../../../components/badge/src';
 import { HlmButton } from '../../../components/button/src';
@@ -32,6 +34,23 @@ type InventoryReportType = 'inventory' | 'movements';
 type ReportFormat = 'pdf' | 'html' | 'csv';
 type ReportColumn = { key: string; label: string };
 
+interface SpeechRecognitionResultLike { [index: number]: { transcript: string }; }
+interface SpeechRecognitionEventLike extends Event { results: { [index: number]: SpeechRecognitionResultLike }; }
+interface SpeechRecognitionLike {
+  lang: string;
+  interimResults: boolean;
+  continuous: boolean;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+  start(): void;
+  stop(): void;
+}
+interface SpeechRecognitionWindow extends Window {
+  SpeechRecognition?: new () => SpeechRecognitionLike;
+  webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+}
+
 const REPORT_COLUMNS: Record<InventoryReportType, ReportColumn[]> = {
   inventory: [
     { key: 'branch_name', label: 'Sucursal' },
@@ -54,7 +73,8 @@ const REPORT_COLUMNS: Record<InventoryReportType, ReportColumn[]> = {
 @Component({
   selector: 'app-admin-inventory-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, HlmButton, HlmTable, ...HlmBadgeImports, ...HlmCardImports, ...HlmFieldImports, ...HlmSelectImports, ...HlmTabsImports],
+  imports: [CommonModule, NgIcon, ReactiveFormsModule, HlmButton, HlmTable, ...HlmBadgeImports, ...HlmCardImports, ...HlmFieldImports, ...HlmSelectImports, ...HlmTabsImports],
+  providers: [provideIcons({ lucideMic, lucideSquare })],
   templateUrl: './admin-inventory-page.component.html',
 })
 export class AdminInventoryPageComponent {
@@ -64,6 +84,7 @@ export class AdminInventoryPageComponent {
   private readonly element = inject(ElementRef<HTMLElement>);
   private readonly session = inject(SessionService);
   private readonly reportsApi = inject(ReportsApiService);
+  private speechRecognition: SpeechRecognitionLike | null = null;
 
   protected readonly branches = signal<CatalogBranch[]>([]);
   protected readonly consolidatedStock = signal<InventoryConsolidatedStock[]>([]);
@@ -89,6 +110,8 @@ export class AdminInventoryPageComponent {
   protected readonly reportColumns = signal<string[]>(REPORT_COLUMNS.inventory.map((column) => column.key));
   protected readonly reportProducts = signal<CatalogProduct[]>([]);
   protected readonly reportLoading = signal(false);
+  protected readonly naturalQuery = signal('');
+  protected readonly listening = signal(false);
   protected readonly isAdmin = computed(() => this.session.user()?.rol === 'administrador');
   protected readonly isManager = computed(() => this.session.user()?.rol === 'encargado');
   protected readonly tabs = computed<InventoryTab[]>(() => this.isAdmin() ? ['consolidated', 'branch', 'movements'] : ['branch', 'movements']);
@@ -240,11 +263,79 @@ export class AdminInventoryPageComponent {
     this.reportFromDate.set('');
     this.reportToDate.set('');
     this.reportColumns.set(REPORT_COLUMNS[type].map((column) => column.key));
+    this.naturalQuery.set('');
     this.reportModalOpen.set(true);
   }
 
   protected closeReportModal(): void {
+    this.speechRecognition?.stop();
     this.reportModalOpen.set(false);
+  }
+
+  protected setNaturalQuery(event: Event): void { this.naturalQuery.set((event.target as HTMLInputElement).value); }
+
+  protected startListening(): void {
+    if (this.listening()) {
+      this.speechRecognition?.stop();
+      return;
+    }
+    const speechWindow = window as SpeechRecognitionWindow;
+    const SpeechRecognition = speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast.error('El reconocimiento de voz no está disponible en este navegador.');
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    this.speechRecognition = recognition;
+    recognition.lang = 'es-BO';
+    recognition.interimResults = false;
+    recognition.continuous = false;
+    recognition.onresult = (event) => this.naturalQuery.set(event.results[0][0].transcript);
+    recognition.onerror = () => toast.error('No se pudo reconocer la voz. Puedes escribir la solicitud.');
+    recognition.onend = () => this.listening.set(false);
+    this.listening.set(true);
+    try { recognition.start(); } catch { this.listening.set(false); }
+  }
+
+  protected async generateNaturalReport(): Promise<void> {
+    const query = this.naturalQuery().trim();
+    if (!query) {
+      toast.error('Escribe o dicta una solicitud de reporte.');
+      return;
+    }
+    this.reportLoading.set(true);
+    try {
+      const response = await firstValueFrom(this.reportsApi.queryNaturalLanguage(query));
+      const data = response.data;
+      if (!data || (data.report_type !== 'inventory' && data.report_type !== 'movements')) {
+        toast.error('Esta pantalla solo puede generar reportes de inventario o movimientos.');
+        return;
+      }
+      this.reportType.set(data.report_type);
+      const filters = data.filters;
+      this.reportBranchId.set(filters.branch_id ?? '');
+      this.reportProductId.set(filters.product_id ?? '');
+      this.reportFromDate.set(filters.from_date ?? '');
+      this.reportToDate.set(filters.to_date ?? '');
+      this.reportFormat.set(data.format === 'html' || data.format === 'csv' ? data.format : 'pdf');
+      const availableColumns = REPORT_COLUMNS[data.report_type];
+      const requestedColumns = data.columns ?? [];
+      const selectedColumns = requestedColumns.length
+        ? availableColumns.filter((column) => requestedColumns.includes(column.key))
+        : availableColumns;
+      const columns = selectedColumns.length ? selectedColumns : availableColumns;
+      this.reportColumns.set(columns.map((column) => column.key));
+      const rows = data.report.rows as unknown as Array<Record<string, unknown>>;
+      const html = this.reportDocumentHtml(columns, rows);
+      if (this.reportFormat() === 'csv') this.downloadReportCsv(columns, rows);
+      else if (this.reportFormat() === 'html') this.downloadHtmlReport(html);
+      else this.downloadReportPdf(columns, rows);
+      this.closeReportModal();
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'No se pudo interpretar el reporte.'));
+    } finally {
+      this.reportLoading.set(false);
+    }
   }
 
   protected setReportBranch(value: string | null | undefined): void {
