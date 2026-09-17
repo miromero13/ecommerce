@@ -1,0 +1,101 @@
+<button
+  type="button"
+  class="fixed bottom-5 right-5 z-40 flex min-h-14 min-w-14 items-center justify-center rounded-full bg-primary p-4 text-primary-foreground shadow-lg transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/40 sm:bottom-6 sm:right-6"
+  aria-label="Abrir asistente de compras"
+  (click)="openChat()"
+>
+  <ng-icon name="lucideMessageCircle" style="--ng-icon__size: 24px;"></ng-icon>
+</button>
+
+@if (open()) {
+   <div class="fixed inset-0 z-50 flex items-end justify-end bg-slate-950/50 p-0 sm:items-end sm:justify-end sm:p-6" (click)="closeChat()">
+    <section
+       class="flex h-[min(720px,100dvh)] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl bg-white text-slate-900 shadow-2xl sm:h-[min(720px,calc(100dvh-3rem))] sm:rounded-2xl"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="chatbot-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="flex items-center justify-between border-b border-slate-200 px-4 py-3 sm:px-6">
+        <div>
+          <h2 id="chatbot-title" class="font-semibold">Asistente de compras</h2>
+          <p class="text-sm text-slate-500">Preguntame sobre productos y pedidos.</p>
+        </div>
+        <div class="flex items-center gap-1">
+          <button type="button" class="rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label="Borrar conversación" [disabled]="resetting() || sending()" (click)="resetConversation()">
+            <ng-icon name="lucideTrash2"></ng-icon>
+          </button>
+          <button type="button" class="rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label="Cerrar asistente" [disabled]="sending() || resetting()" (click)="closeChat()">
+            <ng-icon name="lucideX"></ng-icon>
+          </button>
+        </div>
+      </header>
+
+      <div #messagesViewport class="min-h-0 flex-1 space-y-3 overflow-y-auto bg-slate-50 p-4 sm:p-6" aria-live="polite" aria-label="Mensajes de la conversación">
+        @if (loading() && !messages().length) {
+          <p class="py-8 text-center text-sm text-slate-500">Cargando conversación...</p>
+        } @else if (!messages().length && !error()) {
+          <p class="py-8 text-center text-sm text-slate-500">Todavía no hay mensajes. ¿En qué puedo ayudarte?</p>
+        }
+
+        @for (message of messages(); track message.id) {
+          <div class="flex" [class.justify-end]="message.role === 'user'">
+            <article class="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm" [class.bg-primary]="message.role === 'user' && message.state !== 'error'" [class.text-primary-foreground]="message.role === 'user' && message.state !== 'error'" [class.bg-white]="message.role === 'assistant'" [class.border]="message.role === 'assistant'" [class.border-slate-200]="message.role === 'assistant'" [class.bg-red-50]="message.state === 'error'" [class.text-red-700]="message.state === 'error'" [class.border-red-200]="message.state === 'error'">
+               <p class="whitespace-pre-wrap break-words">{{ message.content }}</p>
+               @if (message.role === 'assistant' && message.metadata?.length) {
+                 <div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2" aria-label="Productos recomendados">
+                   @for (card of message.metadata; track card.variant_id) {
+                     <article class="overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+                       <div class="relative aspect-[4/3] bg-slate-200">
+                         @if (card.image_url) {
+                           <img class="h-full w-full object-cover" [src]="card.image_url" [alt]="card.name" />
+                         } @else {
+                           <div class="flex h-full items-center justify-center text-xs text-slate-500">Sin imagen</div>
+                         }
+                         <button type="button" class="absolute right-2 top-2 rounded-full bg-white/90 p-2 text-slate-700 shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label="Ver producto (próximamente)" disabled>
+                           <ng-icon name="lucideEye" style="--ng-icon__size: 16px;"></ng-icon>
+                         </button>
+                       </div>
+                       <p class="p-2 text-sm font-medium text-slate-900">{{ card.name }}</p>
+                     </article>
+                   }
+                 </div>
+               }
+              @if (message.state === 'sending') {
+                <p class="mt-1 text-xs opacity-75">Enviando...</p>
+              } @else if (message.state === 'error') {
+                <div class="mt-1 flex items-center gap-2 text-xs">
+                  <span>No enviado</span>
+                  <button type="button" class="font-medium underline" (click)="retry(message)">Reintentar</button>
+                </div>
+              }
+            </article>
+          </div>
+        }
+        @if (error()) {
+          <p class="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert">{{ error() }}</p>
+        }
+      </div>
+
+      <form class="flex items-end gap-2 border-t border-slate-200 bg-white p-3 sm:p-4" (ngSubmit)="sendMessage()">
+        <label class="sr-only" for="chatbot-message">Escribí tu mensaje</label>
+        <textarea #messageInput id="chatbot-message" rows="1" class="min-h-10 max-h-32 min-w-0 flex-1 resize-y rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" placeholder="Escribí tu mensaje..." [value]="draft()" [disabled]="sending() || resetting()" (input)="onDraftInput($event)" (keydown)="onInputKeydown($event)"></textarea>
+        <button type="submit" class="flex min-h-10 min-w-10 items-center justify-center rounded-md bg-primary px-3 text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label="Enviar mensaje" [disabled]="sending() || resetting() || !draft().trim()">
+          @if (sending()) { <span class="text-xs">...</span> } @else { <ng-icon name="lucideSend"></ng-icon> }
+        </button>
+      </form>
+   </section>
+   @if (deleteConfirmOpen()) {
+     <div class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/40 p-4" role="presentation">
+       <section class="w-full max-w-sm rounded-xl bg-white p-5 text-slate-900 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="delete-chat-title" aria-describedby="delete-chat-description">
+         <h3 id="delete-chat-title" class="text-lg font-semibold">¿Borrar conversación?</h3>
+         <p id="delete-chat-description" class="mt-2 text-sm text-slate-600">Se eliminarán todos los mensajes de este asistente.</p>
+         <div class="mt-5 flex justify-end gap-2">
+           <button type="button" class="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" [disabled]="resetting()" (click)="cancelDelete()">Cancelar</button>
+           <button type="button" class="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:opacity-50" [disabled]="resetting()" (click)="confirmDelete()">{{ resetting() ? 'Borrando...' : 'Borrar' }}</button>
+         </div>
+       </section>
+     </div>
+   }
+ </div>
+}
