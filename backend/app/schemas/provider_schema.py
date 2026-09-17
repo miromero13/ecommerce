@@ -11,7 +11,6 @@ class ProviderCreate(BaseModel):
     password: str
     gender: GenderEnum
     phone: str | None = None
-    branch_id: UUID | None = None
 
 
 class ProviderStatusUpdate(BaseModel):
@@ -26,7 +25,6 @@ class ProviderRead(BaseModel):
     email: EmailStr
     gender: GenderEnum
     phone: str | None = None
-    branch_id: UUID | None = None
     status: ProviderStatusEnum
 
 
@@ -36,5 +34,4 @@ class ProviderUpdate(BaseModel):
     email: EmailStr
     gender: GenderEnum
     phone: str | None = None
-    branch_id: UUID | None = None
     status: ProviderStatusEnum = ProviderStatusEnum.active

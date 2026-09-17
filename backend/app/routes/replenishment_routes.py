@@ -17,7 +17,12 @@ def get_requests(db: Session = Depends(get_db), current_user: dict = Depends(ALL
     return response(200, "Solicitudes obtenidas exitosamente", serialize_requests(db, list_requests(db, current_user["rol"], UUID(current_user["sub"]), branch_id)))
 
 @router.post("/requests", status_code=status.HTTP_201_CREATED)
-def post_request(payload: ReplenishmentRequestCreate, db: Session = Depends(get_db), current_user: dict = Depends(require_roles(RolEnum.administrador))):
+def post_request(payload: ReplenishmentRequestCreate, db: Session = Depends(get_db), current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado))):
+    if current_user["rol"] == RolEnum.encargado.value:
+        branch_id = current_user.get("branch_id")
+        if not branch_id:
+            raise HTTPException(400, "El encargado no tiene una sucursal asignada")
+        payload = payload.model_copy(update={"branch_id": UUID(branch_id)})
     try:
         request = create_request(db, payload, UUID(current_user["sub"]))
         return response(201, "Solicitud creada exitosamente", serialize_requests(db, [request])[0])

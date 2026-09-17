@@ -3,7 +3,6 @@ from sqlalchemy import select
 
 from app.models.branch import Branch
 from app.models.user import User
-from app.models.provider import Provider
 from app.schemas.branch_schema import BranchCreate
 
 
@@ -44,7 +43,6 @@ def delete_branch(db: Session, branch_id) -> bool:
 
     try:
         db.query(User).filter(User.branch_id == branch.id).update({User.branch_id: None}, synchronize_session=False)
-        db.query(Provider).filter(Provider.branch_id == branch.id).update({Provider.branch_id: None}, synchronize_session=False)
         db.delete(branch)
         db.commit()
         return True

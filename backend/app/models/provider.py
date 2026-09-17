@@ -11,7 +11,6 @@ class Provider(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, unique=True, index=True)
-    branch_id = Column(UUID(as_uuid=True), ForeignKey("branches.id"), nullable=True, index=True)
     business_name = Column(String, nullable=False)
     contact_name = Column(String, nullable=False)
     phone = Column(String, nullable=True)
