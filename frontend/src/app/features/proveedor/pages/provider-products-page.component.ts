@@ -16,6 +16,7 @@ import { toast } from '@spartan-ng/brain/sonner';
 import { CatalogBranch, CatalogNameItem, CatalogProduct } from '../../shared/models/catalog.model';
 import { CatalogApiService } from '../../shared/services/catalog-api.service';
 import { ReplenishmentApiService } from '../../shared/services/replenishment-api.service';
+import { SessionService } from '../../shared/services/session.service';
 
 @Component({
   selector: 'app-provider-products-page',
@@ -28,6 +29,7 @@ export class ProviderProductsPageComponent {
   private readonly replenishmentApi = inject(ReplenishmentApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly fb = inject(FormBuilder);
+  private readonly session = inject(SessionService);
   protected readonly products = signal<CatalogProduct[]>([]);
   protected readonly categories = signal<CatalogNameItem[]>([]);
   protected readonly sizes = signal<CatalogNameItem[]>([]);
@@ -40,6 +42,7 @@ export class ProviderProductsPageComponent {
   protected readonly requestModalOpen = signal(false);
   protected editingProduct: CatalogProduct | null = null;
   protected readonly isAdminInspection = !!this.route.snapshot.paramMap.get('providerId');
+  protected readonly isEncargadoInspection = this.isAdminInspection && this.session.user()?.rol === 'encargado';
 
   constructor() {
     void this.loadProducts();
@@ -93,7 +96,12 @@ export class ProviderProductsPageComponent {
     if (!this.isAdminInspection) return;
     this.closeMenu();
     this.editingProduct = product;
-    this.requestForm.reset({ branch_id: '' });
+    this.requestForm.reset({ branch_id: this.isEncargadoInspection ? this.session.user()?.branch_id ?? '' : '' });
+    if (this.isEncargadoInspection) {
+      this.requestForm.controls.branch_id.disable();
+    } else {
+      this.requestForm.controls.branch_id.enable();
+    }
     this.requestForm.controls.items.clear();
     for (const variant of product.variants ?? []) {
       this.requestForm.controls.items.push(this.fb.group({ variant_id: [variant.id], requested_quantity: [0, [Validators.required, Validators.min(1), Validators.pattern(/^\d+$/)]] }));
@@ -104,6 +112,10 @@ export class ProviderProductsPageComponent {
   protected async submitRequest(): Promise<void> {
     if (this.requestForm.invalid || !this.editingProduct) { this.requestForm.markAllAsTouched(); return; }
     const value = this.requestForm.getRawValue();
+    if (this.isEncargadoInspection && !this.session.user()?.branch_id) {
+      toast.error('No puedes crear una solicitud sin una sucursal asignada.');
+      return;
+    }
     const items = value.items.filter((item) => Number(item['requested_quantity']) > 0).map((item) => ({ variant_id: item['variant_id']!, requested_quantity: Number(item['requested_quantity']) }));
     if (!items.length) { toast.error('Ingresa al menos una cantidad solicitada.'); return; }
     try {
@@ -113,6 +125,7 @@ export class ProviderProductsPageComponent {
   }
   protected closeModal(): void { this.modalOpen.set(false); this.editingProduct = null; this.closeMenu(); }
   protected async saveAvailability(): Promise<void> {
+    if (this.isAdminInspection) return;
     if (this.availabilityForm.invalid || !this.editingProduct) { this.availabilityForm.markAllAsTouched(); return; }
     try {
       await requestWithToast(this.api.updateMyProviderAvailability(this.availabilityForm.controls.updates.getRawValue() as Array<{ variant_id: string; quantity: number }>), { loading: 'Guardando disponibilidad...', success: 'Disponibilidad actualizada.', error: 'No se pudo guardar la disponibilidad.' });

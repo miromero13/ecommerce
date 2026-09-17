@@ -11,7 +11,6 @@ export interface AdminProvider {
   email: string;
   gender: GeneroUsuario;
   phone: string | null;
-  branch_id: string | null;
   status: ProviderStatus;
 }
 
@@ -22,7 +21,6 @@ export interface CreateProviderRequest {
   password: string;
   gender: GeneroUsuario;
   phone?: string | null;
-  branch_id?: string | null;
 }
 
 export interface UpdateProviderStatusRequest {
@@ -35,7 +33,6 @@ export interface UpdateProviderRequest {
   email: string;
   gender: GeneroUsuario;
   phone?: string | null;
-  branch_id?: string | null;
   status: ProviderStatus;
 }
 

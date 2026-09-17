@@ -1,7 +1,7 @@
 <section class="space-y-5">
   <header>
     <h1 class="text-2xl font-semibold">Productos asignados</h1>
-    <p class="text-sm text-slate-500">Productos asociados al proveedor autenticado.</p>
+       <p class="text-sm text-slate-500">{{ isAdminInspection ? 'Productos asociados al proveedor seleccionado.' : 'Productos asociados al proveedor autenticado.' }}</p>
   </header>
   <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
     <table hlmTable class="w-full text-left text-sm">
@@ -78,7 +78,7 @@
       <section hlmCard class="w-full max-w-3xl bg-white shadow-xl" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
         <div hlmCardHeader class="border-b border-slate-200"><h2 hlmCardTitle>Solicitar reposición: {{ editingProduct?.name }}</h2></div>
         <form class="space-y-4 p-6" [formGroup]="requestForm" (ngSubmit)="submitRequest()">
-          <div><label hlmFieldLabel for="request-branch">Sucursal de destino</label><select id="request-branch" hlmInput class="w-full" formControlName="branch_id"><option value="">Selecciona una sucursal</option>@for (branch of branches(); track branch.id) {<option [value]="branch.id">{{ branch.name }} · {{ branch.city }}</option>}</select></div>
+           <div><label hlmFieldLabel for="request-branch">Sucursal de destino</label><select id="request-branch" hlmInput class="w-full" formControlName="branch_id"><option value="">{{ isEncargadoInspection ? 'Sin sucursal asignada' : 'Selecciona una sucursal' }}</option>@for (branch of branches(); track branch.id) {<option [value]="branch.id">{{ branch.name }} · {{ branch.city }}</option>}</select></div>
           <div class="space-y-3" formArrayName="items">@for (control of requestForm.controls.items.controls; track $index) { @let variant = editingProduct?.variants?.[$index]; <div class="grid gap-3 rounded-xl border border-slate-200 p-4 md:grid-cols-[1fr_10rem]" [formGroupName]="$index"><div class="grid gap-2 text-sm sm:grid-cols-2"><div><span class="text-xs text-slate-500">SKU</span><p>{{ variant?.sku }}</p></div><div><span class="text-xs text-slate-500">Talla / color</span><p>{{ sizeName(variant?.size_id ?? null) }} · {{ colorName(variant?.color_id ?? null) }}</p></div><div><span class="text-xs text-slate-500">Disponibilidad del proveedor</span><p>{{ variant?.provider_quantity ?? 0 }}</p></div></div><div><label hlmFieldLabel [for]="'request-quantity-' + $index">Cantidad solicitada</label><input hlmInput [id]="'request-quantity-' + $index" type="number" min="0" step="1" formControlName="requested_quantity" /></div></div> }</div>
           <div class="flex justify-end gap-2"><button hlmBtn variant="outline" type="button" (click)="closeRequest()">Cancelar</button><button hlmBtn type="submit">Crear solicitud</button></div>
         </form>
