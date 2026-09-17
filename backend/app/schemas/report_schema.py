@@ -71,6 +71,23 @@ class ReportQuery(BaseModel):
     q: str | None = None
 
 
+AllowedReportColumn = Literal[
+    "branch_name",
+    "product_name",
+    "variant_sku",
+    "type",
+    "quantity_sold",
+    "gross_sales",
+    "payment_method",
+    "payment_status",
+    "sale_status",
+    "quantity",
+    "reserved_quantity",
+    "available_quantity",
+    "movement_type",
+    "movements_count",
+]
+
 AllowedSalesReportColumn = Literal[
     "branch_name",
     "product_name",
@@ -95,6 +112,13 @@ DEFAULT_SALES_REPORT_COLUMNS: list[AllowedSalesReportColumn] = [
     "sale_status",
 ]
 
+DEFAULT_INVENTORY_REPORT_COLUMNS = [
+    "branch_name", "product_name", "variant_sku", "quantity", "reserved_quantity", "available_quantity",
+]
+DEFAULT_MOVEMENT_REPORT_COLUMNS = [
+    "branch_name", "product_name", "variant_sku", "movement_type", "quantity", "movements_count",
+]
+
 
 class NaturalReportRequest(BaseModel):
     query: str = Field(min_length=1, max_length=500)
@@ -111,11 +135,11 @@ class NaturalReportInterpretation(BaseModel):
     q: str | None = Field(default=None, max_length=120)
     interpretation: str = Field(min_length=1, max_length=500)
     unmatched_entity: str | None = Field(default=None, max_length=160)
-    columns: list[AllowedSalesReportColumn] = Field(default_factory=lambda: DEFAULT_SALES_REPORT_COLUMNS.copy(), min_length=1)
+    columns: list[AllowedReportColumn] = Field(default_factory=lambda: DEFAULT_SALES_REPORT_COLUMNS.copy(), min_length=1)
 
     @field_validator("columns")
     @classmethod
-    def deduplicate_columns(cls, value: list[AllowedSalesReportColumn]) -> list[AllowedSalesReportColumn]:
+    def deduplicate_columns(cls, value: list[AllowedReportColumn]) -> list[AllowedReportColumn]:
         return list(dict.fromkeys(value))
 
 
