@@ -2,7 +2,7 @@
 
 Documento resumen del flujo de trabajo **1. Captura de Requisitos** (PUDS) — Parte II del informe.
 
-> **Nota:** el sistema base cubre 23 CU trazables a los RF01–RF25 del examen. Se agrega **CU24 – Recibir notificaciones push** como funcionalidad adicional (plus) propuesta por el equipo, sin RF numerado de origen, ubicada en el Ciclo 3 y en el Paquete P6.
+> **Nota:** el sistema base cubre 23 CU trazables a los RF01–RF25 del examen. Se agregan dos funcionalidades adicionales sin RF numerado de origen: **CU24 – Recibir notificaciones push**, un plus propuesto por el equipo, ubicado en el Ciclo 3 y en el Paquete P6; y **CU25 – Gestionar códigos promocionales**, una ampliación del alcance solicitada por la docente, ubicada en el Ciclo 3 y en el Paquete P4.
 
 ---
 
@@ -56,6 +56,10 @@ Documento resumen del flujo de trabajo **1. Captura de Requisitos** (PUDS) — P
 
 - **CU24 – Recibir notificaciones push**: Envío de alertas automáticas en tiempo real al dispositivo móvil sobre eventos relevantes del sistema (cambios de estado, alertas operativas, recomendaciones, nuevas temporadas/prendas), sin que el usuario tenga que consultarlos manualmente. Cada actor recibe un tipo distinto de notificación según los eventos que le corresponden. *Actores: Administrador, Cliente, Encargado de sucursal (Proveedor: pendiente de confirmación del equipo).*
 
+**Funcionalidad adicional (ampliación solicitada por la docente, sin RF numerado de origen)**
+
+- **CU25 – Gestionar códigos promocionales**: Creación y consulta de códigos de descuento (cupones) con tipo de descuento, valor, vigencia y alcance (global o de una sucursal específica), aplicables posteriormente por el cliente en su carrito de compras. *Actores: Administrador, Encargado de sucursal.*
+
 ---
 
 ## 2. Distribución de Casos de Uso por Ciclos
@@ -90,7 +94,7 @@ Proyecto dividido en **3 ciclos**, aumentando progresivamente la complejidad té
 | CU17 | Atender reserva en sucursal | Alta | Medio | Pendiente | Encargado de sucursal | Web |
 | CU18 | Registrar venta presencial y procesar pago en caja | Alta | Medio | Pendiente | Cajero | Web |
 
-### Ciclo 3 (6 CU) — Realidad Aumentada, Inteligencia Artificial, Reportes avanzados y Notificaciones
+### Ciclo 3 (7 CU) — Realidad Aumentada, Inteligencia Artificial, Reportes avanzados, Notificaciones y Promociones
 
 | ID | Caso de uso | Prioridad | Riesgo | Estado | Actor(es) principal | Plataforma |
 |---|---|---|---|---|---|---|
@@ -100,19 +104,22 @@ Proyecto dividido en **3 ciclos**, aumentando progresivamente la complejidad té
 | CU22 | Consultar asistente virtual/chatbot | Baja | Alto | Pendiente | Cliente | Ambas |
 | CU23 | Generar reporte por voz/lenguaje natural | Baja | Alto | Pendiente | Administrador | Web |
 | CU24 | Recibir notificaciones push | Media | Alto | Pendiente | Administrador, Cliente, Encargado de sucursal | Móvil |
+| CU25 | Gestionar códigos promocionales | Media | Bajo | Pendiente | Administrador, Encargado de sucursal | Web |
 
 > CU24 es una **funcionalidad adicional (plus)** propuesta por el equipo, no exigida por el examen. Se ubica en el Ciclo 3 por su dependencia de eventos generados en CU07, CU12, CU14, CU16, CU17 y CU20, y por su riesgo técnico alto (integración con servicio de notificaciones push, ej. Firebase Cloud Messaging).
+>
+> CU25 es una **ampliación del alcance solicitada por la docente**, no exigida por el examen original. Se ubica en el Ciclo 3 por ser una funcionalidad adicional a los RF01–RF25, y su riesgo es bajo al ser una gestión de datos maestros similar a CU09, ya implementada en el backend.
 
 ---
 
 ## 3. Paquetes de Arquitectura (Análisis de Arquitectura – PUDS)
 
-Para el flujo de trabajo de **Análisis**, los 23 CU se agrupan en **6 paquetes** según afinidad funcional, reduciendo la complejidad del análisis y facilitando la identificación posterior de clases y relaciones.
+Para el flujo de trabajo de **Análisis**, los 25 CU se agrupan en **6 paquetes** según afinidad funcional, reduciendo la complejidad del análisis y facilitando la identificación posterior de clases y relaciones.
 
 - **P1 – Gestión de usuarios y acceso**: Registro de clientes, autenticación y acceso al sistema, administración de usuarios internos, gestión de sucursales, cuentas de proveedores y actualización de datos de perfil.
 - **P2 – Gestión de productos y catálogo**: Envío de información por parte de proveedores, gestión de productos, promociones, categorías, tallas, colores, temporadas y colecciones; consulta y filtrado del catálogo por parte del cliente.
 - **P3 – Gestión de inventario y disponibilidad**: Control de existencias en las diferentes sucursales, consulta de disponibilidad, registro de movimientos de inventario y consulta consolidada.
-- **P4 – Gestión de compras y reservas**: Selección de prendas para reservar o comprar digitalmente, carrito de compras, checkout, pago electrónico y consulta del estado del pedido.
+- **P4 – Gestión de compras y reservas**: Selección de prendas para reservar o comprar digitalmente, carrito de compras, checkout, pago electrónico, consulta del estado del pedido, y gestión de códigos promocionales (cupones) aplicables durante la compra.
 - **P5 – Gestión de ventas y atención en sucursal**: Operación presencial de la tienda: preparación y atención de reservas, registro de ventas presenciales, procesamiento de pago en caja y emisión de comprobante.
 - **P6 – Experiencia inteligente y analítica**: Vestidor virtual mediante realidad aumentada, generación de reportes y dashboards, recomendaciones de IA, asistente virtual, generación de reportes por lenguaje natural, y envío de notificaciones push como canal proactivo de estos y otros módulos (compras, inventario, reservas).
 
@@ -125,7 +132,7 @@ Para el flujo de trabajo de **Análisis**, los 23 CU se agrupan en **6 paquetes*
 | **P1 – Gestión de usuarios y acceso** | CU01, CU02, CU03, CU04, CU05, CU06 |
 | **P2 – Gestión de productos y catálogo** | CU07, CU08, CU09, CU10 |
 | **P3 – Gestión de inventario y disponibilidad** | CU11, CU12, CU13 |
-| **P4 – Gestión de compras y reservas** | CU14, CU15, CU16 |
+| **P4 – Gestión de compras y reservas** | CU14, CU15, CU16, CU25 |
 | **P5 – Gestión de ventas y atención en sucursal** | CU17, CU18 |
 | **P6 – Experiencia inteligente y analítica** | CU19, CU20, CU21, CU22, CU23, CU24 |
 
@@ -214,7 +221,13 @@ CU21 fue considerado como candidato a `<<extend>>` de CU10, de forma análoga a 
 
 Se formalizará esta relación una vez que esa decisión de diseño de interfaz quede cerrada. Mientras tanto, **CU21 se documenta como caso de uso independiente**, sin flechas de `<<include>>`/`<<extend>>` hacia ningún otro CU.
 
-### 5.7. Resumen consolidado de relaciones para el diagrama
+### 5.7. Nota sobre CU25 – Gestionar códigos promocionales
+
+CU25 **no requiere relaciones `<<include>>`/`<<extend>>` con ningún otro CU**. Es un caso de uso de gestión de datos maestros (crear y consultar códigos promocionales), con el mismo patrón que CU09 – Gestionar atributos del catálogo: se conecta únicamente a sus actores (Administrador, Encargado de sucursal), sin depender de que otro CU se ejecute primero ni ejecutar él mismo un paso de otro CU.
+
+En particular, **no existe relación formal con CU15 – Gestionar carrito de compras**, aunque ambos están relacionados a nivel de negocio: CU25 crea el código, y CU15 ya contempla en su propio flujo la aplicación de ese código por parte del cliente (funcionalidad ya implementada mediante `apply_coupon`/`remove_coupon`). Dado que CU15 solo **consume** un código ya existente sin ejecutar el comportamiento de "gestionar" (crear/listar) que define CU25, no corresponde modelarlo como `<<include>>` ni `<<extend>>` — es, igual que en otros casos ya analizados, una dependencia de datos entre ambos CU, no una relación UML.
+
+### 5.8. Resumen consolidado de relaciones para el diagrama
 
 | Relación | Origen | Destino | Tipo | Justificación breve |
 |---|---|---|---|---|
@@ -231,7 +244,7 @@ Se formalizará esta relación una vez que esa decisión de diseño de interfaz 
 | CU07 → CU24 | Registrar y enviar información de productos | Recibir notificaciones push | `<<extend>>` | Se activa al validar y publicar un producto nuevo del proveedor |
 | CU20 → CU24 | Generar reportes y dashboards | Recibir notificaciones push | `<<extend>>` | Se activa ante un indicador crítico detectado en el dashboard |
 
-**Total: 12 relaciones** (5 `<<include>>`, 7 `<<extend>>`) entre los 24 CU del proyecto.
+**Total: 12 relaciones** (5 `<<include>>`, 7 `<<extend>>`) entre los 24 CU del proyecto que participan en alguna relación formal (CU01–CU24). El CU25 – Gestionar códigos promocionales, agregado como ampliación solicitada por la docente, se suma al total de 25 CU del proyecto sin participar en ninguna relación `<<include>>`/`<<extend>>` (ver sección 5.7).
 
 Todo lo demás se mantiene como **casos de uso independientes**, conectados únicamente a su(s) actor(es) correspondiente(s), sin relaciones adicionales de inclusión, extensión o herencia entre sí. La generalización opcional de actor "Usuario del sistema" (mencionada en las secciones 5.1 y 5.4) se utiliza únicamente para simplificar el diagrama específico de CU02 – Iniciar sesión, y no forma parte de esta lista de relaciones entre casos de uso.
 
@@ -274,6 +287,10 @@ Verificación de que los 23 CU cubren la totalidad de los Requisitos Funcionales
 ### CU24 – Recibir notificaciones push (funcionalidad adicional)
 
 **CU24 no corresponde a ningún RF numerado del examen (RF01–RF25).** Es una funcionalidad adicional propuesta por el equipo para enriquecer la experiencia del usuario mediante alertas proactivas, apoyándose en eventos ya cubiertos por CU07, CU12, CU14, CU16, CU17 y CU20. Se documenta como un **plus** del proyecto, no como cobertura de un requisito faltante.
+
+### CU25 – Gestionar códigos promocionales (ampliación solicitada por la docente)
+
+**CU25 tampoco corresponde a ningún RF numerado del examen (RF01–RF25).** A diferencia de CU24, no es un plus propuesto por el equipo, sino una **ampliación del alcance solicitada explícitamente por la docente**. Permite crear y consultar códigos de descuento (cupones) con tipo, valor, vigencia y alcance (global o por sucursal); su aplicación por parte del cliente ya está fusionada dentro del flujo de CU15 – Gestionar carrito de compras. Se documenta como una ampliación de requisitos, no como cobertura de un RF faltante del examen original.
 
 ### Nota sobre los RNF y otras indicaciones
 

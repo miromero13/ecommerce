@@ -1,7 +1,7 @@
 // ============================================================================
 // Diagrama de Clases (Modelo de Datos) para Enterprise Architect — JScript
 // Genera el modelo a partir del esquema PostgreSQL: schema_postgres.sql
-// (Carpeta: documentationDocs\informes\)
+// (Carpeta: documentationDocs\3DiagramasDiseño\)
 //
 // USO:
 //   1. Abre Enterprise Architect.
@@ -10,10 +10,12 @@
 //   4. Selecciona (o deja seleccionado) el paquete destino en el Project Browser.
 //
 // GENERA:
-//   - Paquete "Modelo de Datos FashionStore" con 23 clases (una por tabla).
+//   - Paquete "Modelo de Datos FashionStore" con 27 entidades (una por tabla)
+//       usando el tipo "Class" con estereotipo "table" (variante amarilla de
+//       tabla de base de datos de EA, NO la clase azul ni el tipo "Entity").
 //   - Atributos con tipo de dato EA (Guid, String, Integer, Currency, Boolean,
 //     Date) y estereotipos PK / FK / enum según la columna SQL.
-//   - 35 asociaciones entre clases con VERBO en español y CARDINALIDADES.
+//   - 53 asociaciones entre clases con VERBO en español y CARDINALIDADES.
 // ============================================================================
 
 // Dentro de la ventana de Scripts de EA, "Repository" ya es un objeto global
@@ -50,12 +52,10 @@ function eaType(sqlType) {
 // ---------------------------------------------------------------------------
 var RELACIONES = [
     ["users",              "branches",            "pertenece",        "0..*", "1"],
-    ["providers",          "users",               "se_asocia_con",    "0..*", "0..1"],
-    ["providers",          "branches",            "opera_en",         "0..*", "1"],
+    ["providers",          "users",               "se_asocia_con",    "0..*", "1"],
     ["collections",        "seasons",             "pertenece_a",      "0..*", "1"],
     ["products",           "collections",         "se_asocia_a",      "0..*", "1"],
     ["products",           "categories",          "se_clasifica_en",  "0..*", "1"],
-    ["products",           "seasons",             "marca_temporada",  "0..*", "1"],
     ["providers",          "products",            "registra",         "1",    "0..*"],
     ["product_variants",   "products",            "pertenece_a",      "0..*", "1"],
     ["product_variants",   "sizes",               "tiene_talla",      "0..*", "1"],
@@ -67,23 +67,43 @@ var RELACIONES = [
     ["inventory_movements","branches",            "transfiere_a",     "0..*", "0..1"], // reference_branch_id
     ["inventory_movements","users",               "es_registrado_por","0..*", "0..1"], // created_by
     ["users",              "carts",               "posee",              "1",  "0..1"], // carrito único
+    ["carts",              "promotion_codes",     "aplica",           "0..1", "0..1"],
     ["carts",              "cart_items",          "contiene",           "1",  "0..*"],
     ["cart_items",         "product_variants",    "incluye",          "0..*", "1"],
+    ["cart_items",         "reservations",        "reserva_asociada", "0..*", "0..1"],
     ["reservations",       "branches",            "se_solicita_en",   "0..*", "1"],
-    ["reservations",       "users",               "es_solicitada_por","0..*", "0..1"],
+    ["reservations",       "users",               "es_solicitada_por","0..*", "1"],
+    ["reservations",       "carts",               "se_asocia_a",      "0..1", "1"],  // cart_id único
     ["reservations",       "reservation_items",   "contiene",           "1",  "0..*"],
     ["reservation_items",  "product_variants",    "reserva",          "0..*", "1"],
     ["users",              "orders",              "realiza",            "1",  "0..*"],
+    ["orders",             "promotion_codes",     "aplica",           "0..*", "0..1"],
     ["orders",             "branches",            "se_recoge_en",     "0..*", "0..1"], // pickup_branch_id
     ["orders",             "order_items",         "agrupa",             "1",  "0..*"],
     ["order_items",        "product_variants",    "detalla",          "0..*", "1"],
+    ["order_items",        "reservations",        "origina_de",       "0..*", "0..1"],
     ["sales",              "branches",            "se_registra_en",   "0..*", "1"],
     ["sales",              "users",               "es_atendida_por",  "0..*", "1"],
     ["sales",              "reservations",        "convierte",        "0..*", "0..1"], // reserva única
     ["sales",              "sale_items",          "detalla",            "1",  "0..*"],
     ["sale_items",         "product_variants",    "vende",            "0..*", "1"],
+    ["promotion_codes",    "branches",            "es_valido_en",     "0..*", "0..1"],
+    ["promotion_codes",    "users",               "es_creado_por",    "0..*", "1"],
+    ["promotion_code_usages","promotion_codes",   "registra_uso_de",  "0..*", "1"],
+    ["promotion_code_usages","users",             "usa",              "0..*", "1"],
     ["orders",             "payment_attempts",    "procesa_pago",       "1",  "0..*"],
-    ["payment_attempts",   "carts",               "valida_carrito",   "0..*", "1"]
+    ["payment_attempts",   "carts",               "valida_carrito",   "0..*", "1"],
+    ["provider_variant_availability","providers",  "declara",          "0..*", "1"],
+    ["provider_variant_availability","product_variants","para_variante","0..*", "1"],
+    ["replenishment_requests","providers",        "solicita_a",       "0..*", "1"],
+    ["replenishment_requests","branches",         "se_destina_en",    "0..*", "1"],
+    ["replenishment_requests","users",            "es_solicitada_por","0..*", "1"], // requested_by
+    ["replenishment_requests","users",            "es_aceptada_por",  "0..*", "0..1"], // accepted_by
+    ["replenishment_requests","users",            "es_preparada_por", "0..*", "0..1"], // preparing_by
+    ["replenishment_requests","users",            "recibe_por",       "0..*", "0..1"], // awaiting_receipt_by
+    ["replenishment_requests","users",            "es_entregada_por", "0..*", "0..1"], // delivered_by
+    ["replenishment_requests","replenishment_request_items","contiene","1",  "0..*"],
+    ["replenishment_request_items","product_variants","solicita",     "0..*", "1"]
 ];
 
 // ---------------------------------------------------------------------------
@@ -102,7 +122,7 @@ var TABLAS = [
     ]],
     ["providers", [
         ["id", "UUID", "PK"], ["user_id", "UUID", "FK"], ["business_name", "VARCHAR", null],
-        ["contact_name", "VARCHAR", null], ["phone", "VARCHAR", null], ["branch_id", "UUID", "FK"],
+        ["contact_name", "VARCHAR", null], ["phone", "VARCHAR", null],
         ["status", "providerstatusenum", "enum"]
     ]],
     ["categories", [["id", "UUID", "PK"], ["name", "VARCHAR", null]]],
@@ -110,10 +130,21 @@ var TABLAS = [
     ["collections",[["id", "UUID", "PK"], ["name", "VARCHAR", null], ["season_id", "UUID", "FK"]]],
     ["sizes",      [["id", "UUID", "PK"], ["name", "VARCHAR", null]]],
     ["colors",     [["id", "UUID", "PK"], ["name", "VARCHAR", null], ["hex_code", "VARCHAR", null]]],
+    ["promotion_codes", [
+        ["id", "UUID", "PK"], ["code", "VARCHAR(40)", null], ["discount_type", "VARCHAR(20)", null],
+        ["discount_value", "NUMERIC(10,2)", null], ["valid_from", "TIMESTAMP", null],
+        ["valid_until", "TIMESTAMP", null], ["branch_id", "UUID", "FK"],
+        ["created_by", "UUID", "FK"], ["is_active", "BOOLEAN", null], ["created_at", "TIMESTAMP", null]
+    ]],
+    ["promotion_code_usages", [
+        ["id", "UUID", "PK"], ["promotion_code_id", "UUID", "FK"], ["user_id", "UUID", "FK"],
+        ["used_at", "TIMESTAMP", null]
+    ]],
     ["products", [
         ["id", "UUID", "PK"], ["name", "VARCHAR", null], ["description", "TEXT", null],
-        ["category_id", "UUID", "FK"], ["collection_id", "UUID", "FK"], ["season_id", "UUID", "FK"],
-        ["provider_id", "UUID", "FK"], ["created_at", "TIMESTAMP", null], ["updated_at", "TIMESTAMP", null]
+        ["provider_id", "UUID", "FK"], ["category_id", "UUID", "FK"],
+        ["collection_id", "UUID", "FK"], ["discount_type", "VARCHAR(20)", null],
+        ["discount_value", "NUMERIC(10,2)", null]
     ]],
     ["product_variants", [
         ["id", "UUID", "PK"], ["product_id", "UUID", "FK"], ["sku", "VARCHAR", null],
@@ -123,7 +154,8 @@ var TABLAS = [
     ]],
     ["inventory", [
         ["id", "UUID", "PK"], ["variant_id", "UUID", "FK"], ["branch_id", "UUID", "FK"],
-        ["quantity", "INTEGER", null], ["reserved", "INTEGER", null]
+        ["quantity", "INTEGER", null], ["reserved_quantity", "INTEGER", null],
+        ["minimum_stock", "INTEGER", null]
     ]],
     ["inventory_movements", [
         ["id", "UUID", "PK"], ["variant_id", "UUID", "FK"], ["branch_id", "UUID", "FK"],
@@ -132,18 +164,18 @@ var TABLAS = [
         ["created_at", "TIMESTAMP", null]
     ]],
     ["carts", [
-        ["id", "UUID", "PK"], ["user_id", "UUID", "FK"], ["status", "cartstatusenum", "enum"],
-        ["subtotal", "NUMERIC(10,2)", null], ["discount_amount", "NUMERIC(10,2)", null],
-        ["total_amount", "NUMERIC(10,2)", null], ["created_at", "TIMESTAMP", null],
-        ["updated_at", "TIMESTAMP", null]
+        ["id", "UUID", "PK"], ["user_id", "UUID", "FK"], ["promotion_code_id", "UUID", "FK"],
+        ["status", "cartstatusenum", "enum"], ["subtotal", "NUMERIC(10,2)", null],
+        ["discount_amount", "NUMERIC(10,2)", null], ["total_amount", "NUMERIC(10,2)", null],
+        ["created_at", "TIMESTAMP", null], ["updated_at", "TIMESTAMP", null]
     ]],
     ["cart_items", [
-        ["id", "UUID", "PK"], ["cart_id", "UUID", "FK"], ["variant_id", "UUID", "FK"],
-        ["quantity", "INTEGER", null], ["unit_price", "NUMERIC(10,2)", null]
+        ["id", "UUID", "PK"], ["cart_id", "UUID", "FK"], ["reservation_id", "UUID", "FK"],
+        ["variant_id", "UUID", "FK"], ["quantity", "INTEGER", null], ["unit_price", "NUMERIC(10,2)", null]
     ]],
     ["reservations", [
         ["id", "UUID", "PK"], ["branch_id", "UUID", "FK"], ["user_id", "UUID", "FK"],
-        ["visit_date", "DATE", null], ["expires_at", "TIMESTAMP", null],
+        ["cart_id", "UUID", "FK"], ["visit_date", "DATE", null], ["expires_at", "DATE", null],
         ["status", "reservationstatusenum", "enum"], ["total_amount", "NUMERIC(10,2)", null],
         ["created_at", "TIMESTAMP", null], ["updated_at", "TIMESTAMP", null]
     ]],
@@ -152,18 +184,18 @@ var TABLAS = [
         ["quantity", "INTEGER", null], ["unit_price", "NUMERIC(10,2)", null]
     ]],
     ["orders", [
-        ["id", "UUID", "PK"], ["user_id", "UUID", "FK"], ["status", "orderstatusenum", "enum"],
-        ["payment_method", "paymentmethodenum", "enum"], ["payment_status", "paymentstatusenum", "enum"],
-        ["stripe_payment_intent_id", "VARCHAR", null], ["cash_reference", "VARCHAR", null],
-        ["pickup_branch_id", "UUID", "FK"], ["pickup_expires_at", "TIMESTAMP", null],
-        ["pickup_code", "VARCHAR", null], ["fulfillment_status", "fulfillmentstatusenum", "enum"],
-        ["subtotal", "NUMERIC(10,2)", null], ["discount_amount", "NUMERIC(10,2)", null],
-        ["total_amount", "NUMERIC(10,2)", null], ["currency", "VARCHAR", null],
-        ["created_at", "TIMESTAMP", null], ["updated_at", "TIMESTAMP", null]
+        ["id", "UUID", "PK"], ["user_id", "UUID", "FK"], ["promotion_code_id", "UUID", "FK"],
+        ["status", "orderstatusenum", "enum"], ["payment_method", "paymentmethodenum", "enum"],
+        ["payment_status", "paymentstatusenum", "enum"], ["stripe_payment_intent_id", "VARCHAR", null],
+        ["cash_reference", "VARCHAR", null], ["pickup_branch_id", "UUID", "FK"],
+        ["pickup_expires_at", "TIMESTAMP", null], ["pickup_code", "VARCHAR", null],
+        ["fulfillment_status", "fulfillmentstatusenum", "enum"], ["subtotal", "NUMERIC(10,2)", null],
+        ["discount_amount", "NUMERIC(10,2)", null], ["total_amount", "NUMERIC(10,2)", null],
+        ["currency", "VARCHAR", null], ["created_at", "TIMESTAMP", null], ["updated_at", "TIMESTAMP", null]
     ]],
     ["order_items", [
-        ["id", "UUID", "PK"], ["order_id", "UUID", "FK"], ["variant_id", "UUID", "FK"],
-        ["quantity", "INTEGER", null], ["unit_price", "NUMERIC(10,2)", null],
+        ["id", "UUID", "PK"], ["order_id", "UUID", "FK"], ["reservation_id", "UUID", "FK"],
+        ["variant_id", "UUID", "FK"], ["quantity", "INTEGER", null], ["unit_price", "NUMERIC(10,2)", null],
         ["line_total", "NUMERIC(10,2)", null], ["product_id", "UUID", null],
         ["product_name", "VARCHAR", null], ["variant_sku", "VARCHAR", null], ["size_id", "UUID", null],
         ["color_id", "UUID", null], ["image_url", "VARCHAR", null], ["image_public_id", "VARCHAR", null]
@@ -191,6 +223,23 @@ var TABLAS = [
     ]],
     ["stripe_events", [
         ["id", "UUID", "PK"], ["stripe_event_id", "VARCHAR", null], ["created_at", "TIMESTAMP", null]
+    ]],
+    ["provider_variant_availability", [
+        ["id", "UUID", "PK"], ["provider_id", "UUID", "FK"], ["variant_id", "UUID", "FK"],
+        ["quantity", "INTEGER", null]
+    ]],
+    ["replenishment_requests", [
+        ["id", "UUID", "PK"], ["provider_id", "UUID", "FK"], ["branch_id", "UUID", "FK"],
+        ["requested_by", "UUID", "FK"], ["status", "replenishmentstatusenum", "enum"],
+        ["created_at", "TIMESTAMP", null], ["updated_at", "TIMESTAMP", null],
+        ["accepted_by", "UUID", "FK"], ["accepted_at", "TIMESTAMP", null],
+        ["preparing_by", "UUID", "FK"], ["preparing_at", "TIMESTAMP", null],
+        ["awaiting_receipt_by", "UUID", "FK"], ["awaiting_receipt_at", "TIMESTAMP", null],
+        ["delivered_by", "UUID", "FK"], ["delivered_at", "TIMESTAMP", null]
+    ]],
+    ["replenishment_request_items", [
+        ["id", "UUID", "PK"], ["request_id", "UUID", "FK"], ["variant_id", "UUID", "FK"],
+        ["requested_quantity", "INTEGER", null]
     ]]
 ];
 
@@ -208,7 +257,8 @@ function Main() {
     var elementos = new Object();
     var total = TABLAS.length;
 
-    // 1) Crear clases + atributos
+    // 1) Crear tablas como tipo "Class" con estereotipo "table"
+    //    (icono AMARILLO de tabla de base de datos en EA)
     for (var i = 0; i < total; i++) {
         var tabla = TABLAS[i][0];
         var campos = TABLAS[i][1];
@@ -248,8 +298,8 @@ function Main() {
         conn.Update();
     }
 
-    // 3) Crear el diagrama de clases y posicionar los elementos en una grilla
-    var diagram = model.Diagrams.AddNew("Diagrama de Clases — Modelo de Datos", "Logical");
+    // 3) Crear el diagrama de datos y posicionar los elementos en una grilla
+    var diagram = model.Diagrams.AddNew("Diagrama de Entidades — Modelo de Datos", "Logical");
     diagram.Update();
 
     var cols = 5, ancho = 220, alto = 170, gapX = 40, gapY = 60, x0 = 30, y0 = 30;
@@ -268,7 +318,7 @@ function Main() {
 
     diagram.Update();
     Repo.RefreshModelView(diagram.DiagramID);
-    Log("Modelo generado: " + total + " clases, " + RELACIONES.length + " asociaciones.");
+    Log("Modelo generado: " + total + " entidades, " + RELACIONES.length + " asociaciones.");
 }
 
 Main();

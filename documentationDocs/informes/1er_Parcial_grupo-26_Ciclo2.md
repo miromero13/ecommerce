@@ -431,6 +431,7 @@ Para el desarrollo de WomenStyle, siguiendo el flujo de trabajo del PUDS, se emp
 | CU22 | Consultar asistente virtual/chatbot | Baja | Alto | Pendiente | Cliente | Ambas |
 | CU23 | Generar reporte por voz/lenguaje natural | Baja | Alto | Pendiente | Administrador | Web |
 | CU24 | Recibir notificaciones push  | Media | Alto | Completado | Administrador, Cliente, Encargado de sucursal | Móvil |
+| CU25 | Gestionar códigos promocionales | Media | Bajo | Pendiente | Administrador, Encargado de sucursal | Web |
 
 #### **CICLO \#1** {#ciclo-#1}
 
@@ -472,6 +473,7 @@ Para el desarrollo de WomenStyle, siguiendo el flujo de trabajo del PUDS, se emp
 | CU22 | Consultar asistente virtual/chatbot | Baja | Alto | Completado | Cliente | Ambas |
 | CU23 | Generar reporte por voz/lenguaje natural | Baja | Alto | Completado | Administrador | Web |
 | CU24 | Recibir notificaciones push  | Media | Alto | Completado | Administrador, Cliente, Encargado de sucursal | Móvil |
+| CU25 | Gestionar códigos promocionales | Media | Bajo | Pendiente | Administrador, Encargado de sucursal | Web |
 
 3. ### **Detalle de Casos de Uso** {#detalle-de-casos-de-uso}
 
@@ -839,6 +841,33 @@ Para el desarrollo de WomenStyle, siguiendo el flujo de trabajo del PUDS, se emp
 | **Flujo principal** | Ocurre un evento relevante dentro de otro caso de uso del sistema (ej. reserva registrada, stock bajo detectado, cambio de estado de pedido, nueva temporada publicada, recomendación generada). El sistema identifica el tipo de evento y determina qué actor(es) deben recibir la notificación, según el siguiente detalle: **2.1.  Cliente**: recibe notificaciones sobre cambio de estado de su pedido (pagado, en preparación, listo), nuevas recomendaciones de productos, ingreso de nueva temporada o colección, y disponibilidad de nuevas prendas en el catálogo. **2.2. Administrador**: recibe alertas de stock mínimo o próximo a agotarse a nivel consolidado. **2.3. Encargado de sucursal**: recibe notificación al registrarse una nueva reserva asignada a su sucursal, y alertas de stock mínimo a nivel local. El sistema genera el contenido de la notificación (título, mensaje breve, referencia al recurso relacionado) según el tipo identificado en el paso 2\. El sistema envía la notificación push al dispositivo móvil del destinatario. El destinatario recibe la notificación en su dispositivo, incluso si no tiene la app abierta en ese momento. El destinatario puede tocar la notificación para acceder directamente a la sección correspondiente dentro de la app (ej. detalle de la reserva, detalle del producto con stock bajo, estado del pedido). El sistema registra la notificación como leída una vez que el destinatario la abre. |
 | **Postcondición** | La notificación queda entregada al destinatario y registrada en su historial de notificaciones dentro de la app, con su estado (leída/no leída). |
 | **Excepción** | Usuario sin permisos de notificaciones habilitados en su dispositivo → la notificación no se entrega, pero queda registrada como pendiente/no entregada dentro de la app. Usuario sin conexión a internet al momento del envío → el sistema reintenta la entrega cuando el dispositivo vuelva a estar en línea. Error al generar o enviar la notificación → se registra el fallo internamente sin interrumpir el flujo del caso de uso que originó el evento. |
+
+CU25 – Gestionar códigos promocionales
+
+| Nombre CU | CU25 – Gestionar códigos promocionales |
+| :---- | :---- |
+| Propósito | Permitir al administrador y al encargado de sucursal crear y consultar códigos de descuento (cupones) que los clientes podrán aplicar posteriormente en su carrito de compras, definiendo tipo de descuento, valor, vigencia y alcance. 
+| Resumen | El actor accede al módulo de códigos promocionales y consulta el listado de códigos existentes (filtrado por sucursal si su rol es Encargado). Puede crear un nuevo código indicando su valor alfanumérico, tipo de descuento (porcentaje o monto fijo), monto, fechas de vigencia y alcance (global si es Administrador, o restringido a su propia sucursal si es Encargado). El sistema valida la información y deja el código disponible para que los clientes lo apliquen en su carrito.
+| Actores | Administrador, Encargado de sucursal
+| Actor iniciador | Administrador o Encargado de sucursal
+| Precondición | El usuario debe haber iniciado sesión mediante CU02 – Iniciar sesión con rol de administrador o encargado. 
+Si el código es de alcance por sucursal, esta debe existir previamente (CU04 – Gestionar sucursales).
+| Flujo principal | El actor accede al módulo de códigos promocionales.
+El sistema muestra el listado de códigos existentes (filtrado por sucursal si el rol es Encargado).
+El actor selecciona la opción de crear un nuevo código.
+El actor ingresa el código, tipo de descuento (porcentaje o monto fijo), valor del descuento y fechas de vigencia (inicio y fin).
+Si el actor es Encargado, el sistema asigna automáticamente su propia sucursal como alcance del código; si es Administrador, el código queda como global.
+El sistema valida que el código no exista ya, que el descuento porcentual no supere el 100%, y que la fecha de fin sea posterior a la de inicio.
+El sistema registra el código con estado activo.
+El actor puede consultar en cualquier momento el listado de códigos vigentes y su alcance.
+Postcondición
+El código queda registrado y disponible para que los clientes lo apliquen en su carrito de compras (CU15), respetando su vigencia, alcance y la regla de uso único por cliente.
+| Excepción | Código ya existente → informar que el valor ya está en uso y solicitar uno distinto.
+Descuento porcentual mayor al 100% → rechazar y solicitar un valor válido.
+Fecha de fin anterior o igual a la fecha de inicio → rechazar y solicitar fechas válidas.
+Encargado intentando asignar un alcance distinto a su propia sucursal → denegar la operación.
+Sesión no válida o expirada → solicitar iniciar sesión nuevamente mediante CU02. |
+
 
 CU19 – Usar vestidor virtual
 
