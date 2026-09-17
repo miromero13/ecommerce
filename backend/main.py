@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routes import user_routes, auth, branch_routes, provider_routes, catalog_routes, inventory_routes, cart_routes, reservation_routes, order_routes, payment_routes, sales_routes, report_routes, dashboard_routes, promotion_routes, replenishment_routes, recommendation_routes
+from app.routes import user_routes, auth, branch_routes, provider_routes, catalog_routes, inventory_routes, cart_routes, reservation_routes, order_routes, payment_routes, sales_routes, report_routes, dashboard_routes, promotion_routes, replenishment_routes, recommendation_routes, chatbot_routes
 from app.core.error_handlers import register_error_handlers
 from app.core.database import SessionLocal
 from app.services.expiration_service import run_daily_expiration
@@ -75,6 +75,7 @@ api_router.include_router(dashboard_routes.router)
 api_router.include_router(promotion_routes.router)
 api_router.include_router(replenishment_routes.router)
 api_router.include_router(recommendation_routes.router)
+api_router.include_router(chatbot_routes.router)
 
 app.include_router(api_router)
 
