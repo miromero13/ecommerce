@@ -16,6 +16,8 @@ from app.services.chatbot_service import (
     _catalog_answer,
     _static_context,
     classify_intent,
+    route_intent,
+    _parse_routed_intent,
     extract_profile_updates,
     generate_answer,
     upsert_profile,
@@ -84,6 +86,7 @@ def test_classifies_all_chatbot_intents_deterministically():
     assert classify_intent("¿Dónde está mi pedido?") == ChatIntent.PEDIDOS
     assert classify_intent("¿Cuál es la política de devolución?") == ChatIntent.POLITICAS
     assert classify_intent("¿Cómo funciona mi cuenta?") == ChatIntent.USO_SISTEMA
+    assert classify_intent("No sé cómo registrarme, ¿puedes explicarme cómo?") == ChatIntent.USO_SISTEMA
 
 
 def test_profile_extraction_requires_explicit_unambiguous_phrases():
@@ -105,8 +108,13 @@ def test_profile_upsert_creates_then_updates_only_explicit_fields():
 
 def test_static_context_loads_local_topics():
     context = _static_context(ChatIntent.POLITICAS, "Quiero conocer devoluciones")
-    assert context["topics"]
-    assert any("devol" in key for key in context["topics"])
+    assert context["knowledge"]
+    assert any("devol" in key for key in context["knowledge"])
+
+
+def test_static_context_sends_the_complete_json_to_the_ai():
+    context = _static_context(ChatIntent.USO_SISTEMA, "No sé cómo registrarme, ¿puedes explicarme cómo?")
+    assert set(context["knowledge"]) == {"registro_login", "favoritos", "seguimiento", "actualizar_perfil"}
 
 
 def test_catalog_context_caps_products_at_four_and_keeps_descriptions():
@@ -172,6 +180,55 @@ def test_continuation_inherits_previous_user_intent():
 def test_explicit_catalog_request_overrides_previous_order_context():
     conversation = [ConversationTurn(role="user", content="¿Tengo algún pedido activo?"), ConversationTurn(role="assistant", content="Pedido #89190024 — Pagado")]
     assert classify_intent("Quiero recomendaciones de poleras rojas para comprar", conversation) == ChatIntent.CATALOGO
+
+
+def test_explicit_system_request_overrides_previous_catalog_context():
+    conversation = [ConversationTurn(role="user", content="Quiero recomendaciones de poleras"), ConversationTurn(role="assistant", content="Tengo algunas recomendaciones para vos.")]
+    assert classify_intent("No sé cómo registrarme, ¿puedes explicarme cómo?", conversation) == ChatIntent.USO_SISTEMA
+
+
+def test_router_prompt_contains_only_destinations_current_message_and_history(monkeypatch):
+    from app.services import chatbot_service
+    prompts = []
+    monkeypatch.setattr(chatbot_service.settings, "gemini_api_key", "test")
+    monkeypatch.setattr(chatbot_service, "_generate_sync", lambda prompt: prompts.append(prompt) or '{"intent":"CATALOGO"}')
+    history = [ConversationTurn(role="user", content="¿Dónde está mi pedido?"), ConversationTurn(role="assistant", content="Lo reviso.")]
+    assert asyncio.run(route_intent("Busco un vestido rojo", history)) == ChatIntent.CATALOGO
+    payload = __import__("json").loads(prompts[0])
+    assert set(payload["destinations"]) == {"CATALOGO", "PEDIDOS", "POLITICAS", "USO_SISTEMA"}
+    assert payload["current_message"]["content"] == "Busco un vestido rojo"
+    assert payload["history"] == [{"role": turn.role, "content": turn.content} for turn in history]
+    assert "devoluciones" not in prompts[0] and "products" not in prompts[0]
+
+
+@pytest.mark.parametrize("value", ["CATALOGO", "PEDIDOS", "POLITICAS", "USO_SISTEMA"])
+def test_router_accepts_each_chat_intent(value):
+    assert _parse_routed_intent(f'{{"intent": "{value}"}}') == ChatIntent(value)
+
+
+def test_router_invalid_or_failed_response_uses_deterministic_fallback(monkeypatch):
+    from app.services import chatbot_service
+    monkeypatch.setattr(chatbot_service.settings, "gemini_api_key", "test")
+    monkeypatch.setattr(chatbot_service, "_generate_sync", lambda prompt: '{"intent":"UNKNOWN"}')
+    assert asyncio.run(route_intent("¿Dónde está mi pedido?")) == ChatIntent.PEDIDOS
+    monkeypatch.setattr(chatbot_service, "_generate_sync", lambda prompt: (_ for _ in ()).throw(TimeoutError()))
+    assert asyncio.run(route_intent("¿Cómo me registro?")) == ChatIntent.USO_SISTEMA
+
+
+def test_router_current_system_request_overrides_catalog_history(monkeypatch):
+    from app.services import chatbot_service
+    monkeypatch.setattr(chatbot_service.settings, "gemini_api_key", "test")
+    monkeypatch.setattr(chatbot_service, "_generate_sync", lambda prompt: '{"intent":"USO_SISTEMA"}')
+    history = [ConversationTurn(role="user", content="Quiero recomendaciones de poleras"), ConversationTurn(role="assistant", content="Tengo opciones.")]
+    assert asyncio.run(route_intent("¿Cómo me registro?", history)) == ChatIntent.USO_SISTEMA
+
+
+def test_router_current_catalog_request_overrides_order_history(monkeypatch):
+    from app.services import chatbot_service
+    monkeypatch.setattr(chatbot_service.settings, "gemini_api_key", "test")
+    monkeypatch.setattr(chatbot_service, "_generate_sync", lambda prompt: '{"intent":"CATALOGO"}')
+    history = [ConversationTurn(role="user", content="¿Tengo un pedido activo?"), ConversationTurn(role="assistant", content="Sí.")]
+    assert asyncio.run(route_intent("Busco una polera roja", history)) == ChatIntent.CATALOGO
 
 
 def test_gemini_prompt_includes_history(monkeypatch):
