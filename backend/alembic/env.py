@@ -3,6 +3,8 @@ from logging.config import fileConfig
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 from app.models.user import Base
+from app.models.conversation import Conversation  # noqa: F401
+from app.models.conversation_message import ConversationMessage  # noqa: F401
 from app.core.config import settings
 
 from alembic import context

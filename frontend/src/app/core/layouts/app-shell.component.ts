@@ -20,6 +20,7 @@ import {
 import { CatalogBranch } from '../../features/shared/models/catalog.model';
 import { CatalogApiService } from '../../features/shared/services/catalog-api.service';
 import { SessionService } from '../../features/shared/services/session.service';
+import { ChatbotComponent } from '../../features/shared/components/chatbot.component';
 
 type SidebarItem = {
   label: string;
@@ -52,6 +53,7 @@ type SidebarSection = {
     HlmSidebarMenuItem,
     HlmSidebarTrigger,
     HlmSidebarWrapper,
+    ChatbotComponent,
   ],
   providers: [
     provideIcons({

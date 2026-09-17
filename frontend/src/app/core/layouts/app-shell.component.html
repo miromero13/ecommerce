@@ -80,3 +80,7 @@
     </div>
   </main>
 </div>
+
+@if (userRole() === 'cliente') {
+  <app-chatbot />
+}

@@ -33,6 +33,8 @@ from app.models.sale_item import SaleItem
 from app.models.season import Season
 from app.models.size import Size
 from app.models.user import User
+from app.models.conversation import Conversation
+from app.models.conversation_message import ConversationMessage
 from app.models.promotion_code import PromotionCode
 from app.models.promotion_code_usage import PromotionCodeUsage
 from app.schemas.catalog_enums import ProductStatusEnum
