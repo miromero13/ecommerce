@@ -29,6 +29,7 @@ from app.services.pricing_service import discounted_price, discount_amount
 from app.services.cart_service import refresh_cart_totals
 from app.services.promotion_service import add_usage, validate_for_user
 from app.services.reservation_service import transition_reservation
+from app.services.recommendation_service import record_completed_order_interactions
 
 
 STRIPE_RESERVATION_MINUTES = 30
@@ -292,6 +293,7 @@ def _consume_order(db: Session, order: Order, collected_by: UUID | None = None) 
         attempt.status = "succeeded"
     if order.promotion_code_id:
         add_usage(db, order.promotion_code_id, order.user_id)
+    record_completed_order_interactions(db, order)
 
 
 def cancel_order(db: Session, user_id: UUID, order_id: UUID):

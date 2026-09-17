@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status, UploadFile, File
+from pydantic import BaseModel
 from sqlalchemy.orm import Session, selectinload
 from uuid import UUID
 
@@ -51,10 +52,16 @@ from app.services.catalog_service import (
     clear_variant_image,
 )
 from app.services.cloudinary_service import delete_image, upload_image
+from app.services.recommendation_service import record_product_view
 from app.utils.response import response
 
 
 router = APIRouter(prefix="/catalog", tags=["Catalog"])
+
+
+class ProductViewContext(BaseModel):
+    variant_id: UUID | None = None
+    branch_id: UUID | None = None
 
 
 def _validate_product_provider_scope(db: Session, provider_id: UUID | None) -> None:
@@ -274,6 +281,18 @@ async def list_admin_products_route(
 async def list_pending_products(db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
     products = list_pending_products_service(db)
     return response(status_code=200, message="Productos pendientes obtenidos exitosamente", data=products)
+
+
+@router.post("/products/{product_id}/view", status_code=status.HTTP_201_CREATED)
+async def record_product_view_route(
+    product_id: UUID,
+    payload: ProductViewContext | None = None,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_roles(RolEnum.cliente)),
+):
+    if not record_product_view(db, UUID(current_user["sub"]), product_id, payload.variant_id if payload else None, payload.branch_id if payload else None):
+        raise HTTPException(status_code=404, detail=f"Producto con id {product_id} no encontrado")
+    return response(status_code=201, message="Product view recorded", data={"product_id": str(product_id)})
 
 
 @router.post("/products", status_code=status.HTTP_201_CREATED)
