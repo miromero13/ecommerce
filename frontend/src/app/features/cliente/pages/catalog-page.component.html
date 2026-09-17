@@ -1,31 +1,54 @@
-<section class="space-y-5">
+<section class="min-w-0 max-w-full space-y-5 overflow-x-hidden">
   <header>
     <div class="flex items-center justify-between gap-4">
       <h1 class="text-2xl font-semibold">Catálogo</h1>
-      <a hlmBtn routerLink="/app/cliente/cart" variant="outline" aria-label="Ir al carrito" title="Ir al carrito">
+      <a
+        hlmBtn
+        routerLink="/app/cliente/cart"
+        variant="outline"
+        aria-label="Ir al carrito"
+        title="Ir al carrito"
+      >
         <ng-icon name="lucideShoppingCart" />
       </a>
     </div>
     <p class="text-sm text-slate-500">Consulta productos y disponibilidad por sucursal.</p>
   </header>
 
-  <form hlmCard class="grid gap-3 bg-white p-4 shadow-sm md:grid-cols-6" [formGroup]="form" (ngSubmit)="search()">
+  <form
+    hlmCard
+    class="grid min-w-0 max-w-full gap-3 bg-white p-4 mx-1 shadow-sm md:grid-cols-6"
+    [formGroup]="form"
+    (ngSubmit)="search()"
+  >
     <div hlmField class="md:col-span-2">
       <!-- <label hlmFieldLabel for="catalog-search">Buscar producto</label> -->
       <input id="catalog-search" hlmInput placeholder="Buscar producto" formControlName="q" />
     </div>
-    <div hlmSelect formControlName="branch_id" [itemToString]="branchSelectLabel" (valueChange)="updateBranchAvailability()">
+    <div
+      hlmSelect
+      formControlName="branch_id"
+      [itemToString]="branchSelectLabel"
+      (valueChange)="updateBranchAvailability()"
+    >
       <hlm-select-trigger>
         <span hlmSelectValue placeholder="Sucursal"></span>
       </hlm-select-trigger>
       <hlm-select-content>
         <hlm-select-item value="">Sucursal</hlm-select-item>
         @for (branch of branches(); track branch.id) {
-          <hlm-select-item [value]="branch.id">{{ branch.name }} - {{ branch.city }}</hlm-select-item>
+          <hlm-select-item [value]="branch.id"
+            >{{ branch.name }} - {{ branch.city }}</hlm-select-item
+          >
         }
       </hlm-select-content>
     </div>
-    <div hlmSelect formControlName="category_id" [itemToString]="categorySelectLabel">
+    <div
+      hlmSelect
+      formControlName="category_id"
+      [itemToString]="categorySelectLabel"
+      (valueChange)="search()"
+    >
       <hlm-select-trigger>
         <span hlmSelectValue placeholder="Categoría"></span>
       </hlm-select-trigger>
@@ -36,7 +59,12 @@
         }
       </hlm-select-content>
     </div>
-    <div hlmSelect formControlName="size_id" [itemToString]="sizeSelectLabel">
+    <div
+      hlmSelect
+      formControlName="size_id"
+      [itemToString]="sizeSelectLabel"
+      (valueChange)="search()"
+    >
       <hlm-select-trigger>
         <span hlmSelectValue placeholder="Talla"></span>
       </hlm-select-trigger>
@@ -47,7 +75,12 @@
         }
       </hlm-select-content>
     </div>
-    <div hlmSelect formControlName="color_id" [itemToString]="colorSelectLabel">
+    <div
+      hlmSelect
+      formControlName="color_id"
+      [itemToString]="colorSelectLabel"
+      (valueChange)="search()"
+    >
       <hlm-select-trigger>
         <span hlmSelectValue placeholder="Color"></span>
       </hlm-select-trigger>
@@ -58,7 +91,12 @@
         }
       </hlm-select-content>
     </div>
-    <div hlmSelect formControlName="season_id" [itemToString]="seasonSelectLabel">
+    <div
+      hlmSelect
+      formControlName="season_id"
+      [itemToString]="seasonSelectLabel"
+      (valueChange)="search()"
+    >
       <hlm-select-trigger>
         <span hlmSelectValue placeholder="Temporada"></span>
       </hlm-select-trigger>
@@ -69,7 +107,12 @@
         }
       </hlm-select-content>
     </div>
-    <div hlmSelect formControlName="collection_id" [itemToString]="collectionSelectLabel">
+    <div
+      hlmSelect
+      formControlName="collection_id"
+      [itemToString]="collectionSelectLabel"
+      (valueChange)="search()"
+    >
       <hlm-select-trigger>
         <span hlmSelectValue placeholder="Colección"></span>
       </hlm-select-trigger>
@@ -85,73 +128,258 @@
     </button>
   </form>
 
-  <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+  @if (recommendedProducts().length > 0) {
+  <section aria-labelledby="recommendations-heading" class="relative space-y-3 rounded-2xl border border-slate-100 bg-slate-50/50 p-5 backdrop-blur-sm">
+    
+    <div class="flex items-center justify-between px-1">
+      <div>
+        <h2 id="recommendations-heading" class="text-lg font-bold tracking-tight text-slate-900">
+          Recomendaciones para ti
+        </h2>
+        <p class="text-xs text-slate-500">Inspirado en tus gustos y compras anteriores</p>
+      </div>
+
+      <div class="flex items-center gap-1.5 text-xs font-medium text-slate-400">
+        <span>Desliza</span>
+        <svg class="h-4 w-4 animate-pulse text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+        </svg>
+      </div>
+    </div>
+
+    <!-- Carrusel -->
+    <div 
+      class="flex min-w-0 max-w-full snap-x snap-mandatory gap-4 overflow-x-auto overflow-y-hidden py-2 px-1 scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden" 
+      role="list"
+    >
+      @for (product of recommendedProducts(); track product.id) {
+        <article 
+          hlmCard 
+          class="group w-56 shrink-0 snap-start overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-md p-0" 
+          role="listitem"
+          (click)="recordProductView(product.id)" 
+        >
+          <!-- Contenedor de Imagen -->
+          <div class="relative h-56 w-full overflow-hidden bg-slate-100">
+            @if (currentProductImage(product); as image) {
+              <img
+                [src]="image"
+                [alt]="product.name"
+                class="h-full w-full object-cover object-center transition-transform duration-500 ease-out group-hover:scale-105"
+              />
+            } @else {
+              <div class="flex h-full items-center justify-center text-xs text-slate-400">
+                Sin imagen
+              </div>
+            }
+
+            <!-- Botón flotante -->
+            <button
+              type="button"
+              class="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-slate-700 backdrop-blur-sm transition-all hover:bg-white hover:text-black shadow-sm cursor-pointer"
+              title="Ver producto"
+              (click)="$event.stopPropagation(); recordProductView(product.id)"
+            >
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+            </button>
+          </div>
+
+          <!-- Información del Producto -->
+          <div hlmCardContent class="flex flex-col justify-between p-3.5 space-y-3">
+            <div class="space-y-1">
+              <h3 class="line-clamp-1 text-xs font-semibold text-slate-700 transition-colors group-hover:text-black">
+                {{ product.name }}
+              </h3>
+              <p class="text-sm font-extrabold text-slate-900">
+                {{ selectedVariant(product)?.price ? (selectedVariant(product)?.price | currency) : 'Sin precio' }}
+              </p>
+            </div>
+
+            <!-- Botón Agregar al Carrito -->
+            <button
+              hlmBtn
+              type="button"
+              class="w-full text-xs font-medium py-2 rounded-lg transition-all cursor-pointer z-10 relative"
+              (click)="$event.stopPropagation(); addSelectedVariantToCart(product)"
+              [disabled]="isAddingToCart(product.id)"
+            >
+              {{ isAddingToCart(product.id) ? 'Agregando...' : 'Agregar al carrito' }}
+            </button>
+          </div>
+        </article>
+      }
+    </div>
+  </section>
+}
+
+  <div class="grid min-w-0 mx-1 max-w-full gap-5 md:grid-cols-2 xl:grid-cols-3">
     @for (product of products(); track product.id) {
-      <article hlmCard class="bg-white shadow-sm">
-        <div class="relative overflow-hidden rounded-t-xl border-b border-slate-200 bg-slate-100">
+      <article 
+        hlmCard 
+        class="group flex flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-md p-0"
+        (click)="recordProductView(product.id)"
+      >
+        <div class="relative h-72 w-full overflow-hidden bg-slate-100">
           @if (productImages(product).length > 0) {
-            <img [src]="currentProductImage(product)!" [alt]="product.name" class="h-64 w-full object-cover" />
+            <img
+              [src]="currentProductImage(product)!"
+              [alt]="product.name"
+              class="h-full w-full object-cover object-center transition-transform duration-500 ease-out group-hover:scale-105"
+            />
             @if (productImages(product).length > 1) {
-              <button type="button" hlmBtn variant="secondary" class="absolute left-3 top-1/2 -translate-y-1/2 rounded-full px-3 py-2 text-xs" (click)="previousProductImage(product.id, productImages(product).length)">‹</button>
-              <button type="button" hlmBtn variant="secondary" class="absolute right-3 top-1/2 -translate-y-1/2 rounded-full px-3 py-2 text-xs" (click)="nextProductImage(product.id, productImages(product).length)">›</button>
-              <div class="absolute bottom-3 right-3 rounded-full bg-slate-950/70 px-3 py-1 text-xs font-medium text-white">
+              <button
+                type="button"
+                hlmBtn
+                variant="secondary"
+                class="absolute left-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 p-0 text-slate-800 backdrop-blur-sm transition-all hover:bg-white hover:scale-110 shadow-sm cursor-pointer z-10"
+                (click)="$event.stopPropagation(); previousProductImage(product.id, productImages(product).length)"
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                hlmBtn
+                variant="secondary"
+                class="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 p-0 text-slate-800 backdrop-blur-sm transition-all hover:bg-white hover:scale-110 shadow-sm cursor-pointer z-10"
+                (click)="$event.stopPropagation(); nextProductImage(product.id, productImages(product).length)"
+              >
+                ›
+              </button>
+              <div
+                class="absolute bottom-3 right-3 rounded-full bg-slate-950/70 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur-md"
+              >
                 {{ currentProductImageIndex(product) + 1 }} / {{ productImages(product).length }}
               </div>
             }
           } @else {
-            <div class="flex h-64 items-center justify-center text-sm text-slate-500">Sin imagen</div>
+            <div class="flex h-full items-center justify-center text-xs text-slate-400">
+              Sin imagen
+            </div>
           }
         </div>
-        <div hlmCardHeader class="space-y-2">
-          <h2 hlmCardTitle class="text-lg">{{ product.name }}</h2>
-          <p hlmCardDescription>{{ product.description ?? 'Sin descripción' }}</p>
+
+        <!-- Encabezado -->
+        <div hlmCardHeader class="space-y-1 p-5 pb-2">
+          <h2 hlmCardTitle class="text-base font-bold text-slate-900 group-hover:text-primary transition-colors line-clamp-1">
+            {{ product.name }}
+          </h2>
+          <p hlmCardDescription class="text-xs text-slate-500 line-clamp-2">
+            {{ product.description ?? 'Sin descripción' }}
+          </p>
         </div>
-        <div hlmCardContent class="space-y-3">
-          <div class="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
-            <div class="grid gap-2 md:grid-cols-2">
-              <p class="text-xs text-slate-500">Categoría: {{ categoryName(product.category_id) }}</p>
-              <p class="text-xs text-slate-500">Colección: {{ collectionName(product.collection_id) }}</p>
-              <p class="text-xs text-slate-500">Temporada: {{ collectionSeasonName(product.collection_id) }}</p>
-            </div>
-            <div class="flex items-center justify-between text-sm">
-               @if (selectedVariant(product); as variant) {
-                 @if (variant.original_price; as originalPrice) {
-                   <span class="space-x-2"><s class="text-slate-400">{{ originalPrice }}</s><span class="font-medium text-emerald-700">{{ variant.price }}</span></span>
-                 } @else {
-                   <span class="font-medium text-slate-900">{{ variant.price }}</span>
-                 }
-               } @else {
-                 <span class="font-medium text-slate-500">Sin precio</span>
-               }
-              <span hlmBadge class="bg-slate-900 text-white">{{ selectedVariant(product)?.status ?? 'active' }}</span>
-            </div>
-          </div>
 
-          <div class="space-y-2">
-            <label class="text-xs font-medium text-slate-600">Variante</label>
-            <div hlmSelect class="w-full" [value]="selectedVariant(product)?.id" [itemToString]="variantSelectLabel(product)" (valueChange)="setSelectedVariant(product.id, $event)">
-              <hlm-select-trigger size="sm">
-                <span hlmSelectValue placeholder="Variante"></span>
-              </hlm-select-trigger>
-              <hlm-select-content>
-                @for (variant of productVariants(product); track variant.id) {
-                  <hlm-select-item [value]="variant.id">{{ variantLabel(variant) }} - {{ variant.price }}</hlm-select-item>
+        <!-- Contenido y Metadatos -->
+        <div hlmCardContent class="flex flex-1 flex-col justify-between p-5 pt-0 space-y-4">
+          <div class="space-y-3">
+            <!-- Bloque de Categorías y Precios -->
+            <div class="space-y-2.5 rounded-xl border border-slate-100 bg-slate-50/70 p-3.5">
+              <div class="grid gap-1.5 md:grid-cols-2">
+                <p class="text-[11px] text-slate-500">
+                  <strong class="font-medium text-slate-700">Categoría:</strong> {{ categoryName(product.category_id) }}
+                </p>
+                <p class="text-[11px] text-slate-500">
+                  <strong class="font-medium text-slate-700">Colección:</strong> {{ collectionName(product.collection_id) }}
+                </p>
+                <p class="text-[11px] text-slate-500 col-span-2">
+                  <strong class="font-medium text-slate-700">Temporada:</strong> {{ collectionSeasonName(product.collection_id) }}
+                </p>
+              </div>
+
+              <div class="flex items-center justify-between pt-1 border-t border-slate-200/60">
+                @if (selectedVariant(product); as variant) {
+                  @if (variant.original_price; as originalPrice) {
+                    <span class="space-x-2"
+                      ><s class="text-xs text-slate-400">{{ originalPrice }}</s
+                      ><span class="text-base font-bold text-emerald-700">{{ variant.price }}</span></span
+                    >
+                  } @else {
+                    <span class="text-base font-bold text-slate-900">{{ variant.price }}</span>
+                  }
+                } @else {
+                  <span class="text-sm font-medium text-slate-400">Sin precio</span>
                 }
-              </hlm-select-content>
+                <span hlmBadge class="bg-slate-900 text-white text-[10px] px-2 py-0.5 font-medium rounded-full uppercase tracking-wider">
+                  {{ selectedVariant(product)?.status ?? 'active' }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Selector de Variante -->
+            <div class="space-y-1.5" (click)="$event.stopPropagation()">
+              <label class="text-[11px] font-semibold text-slate-600 uppercase tracking-wider">Variante</label>
+              <div
+                hlmSelect
+                class="w-full cursor-pointer"
+                [value]="selectedVariant(product)?.id"
+                [itemToString]="variantSelectLabel(product)"
+                (valueChange)="setSelectedVariant(product.id, $event)"
+              >
+                <hlm-select-trigger size="sm" class="rounded-lg border-slate-200">
+                  <span hlmSelectValue placeholder="Variante"></span>
+                </hlm-select-trigger>
+                <hlm-select-content>
+                  @for (variant of productVariants(product); track variant.id) {
+                    <hlm-select-item [value]="variant.id"
+                      >{{ variantLabel(variant) }} - {{ variant.price }}</hlm-select-item
+                    >
+                  }
+                </hlm-select-content>
+              </div>
+            </div>
+
+            <!-- Información de Sucursal y Stock -->
+            <div class="rounded-xl border border-slate-100 bg-white p-3 text-[11px] text-slate-500 space-y-1">
+              <p><strong class="font-medium text-slate-700">Sucursal:</strong> {{ branchName(form.controls.branch_id.value || null) }}</p>
+              <p>
+                <strong class="font-medium text-slate-700">Disponibilidad:</strong>
+                {{
+                  availabilityLabel(selectedVariant(product), form.controls.branch_id.value || null)
+                }}
+              </p>
+              <p><strong class="font-medium text-slate-700">SKU:</strong> {{ selectedVariant(product)?.sku ?? 'Sin SKU' }}</p>
             </div>
           </div>
 
-          <div class="rounded-xl border border-slate-200 p-3 text-xs text-slate-500">
-            <p>Sucursal: {{ branchName(form.controls.branch_id.value || null) }}</p>
-            <p>Disponibilidad: {{ availabilityLabel(selectedVariant(product), form.controls.branch_id.value || null) }}</p>
-            <p>SKU: {{ selectedVariant(product)?.sku ?? 'Sin SKU' }}</p>
-          </div>
+          <!-- Botones de Acción -->
+          <div class="flex items-center justify-between gap-2 pt-2" (click)="$event.stopPropagation()">
+            <!-- Botón Ver Producto con Ícono de Ojito -->
+            <button 
+              hlmBtn 
+              type="button" 
+              variant="outline" 
+              class="flex h-9 w-9 items-center justify-center rounded-lg p-0 cursor-pointer hover:bg-slate-100 transition-colors text-slate-700"
+              title="Ver producto"
+              (click)="$event.stopPropagation(); recordProductView(product.id)"
+            >
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+            </button>
 
-          <div class="flex items-center justify-between gap-2">
-            <button hlmBtn type="button" class="flex-1" (click)="addSelectedVariantToCart(product)" [disabled]="isAddingToCart(product.id)">
+            <!-- Botón Agregar al Carrito (Ocupa el espacio principal) -->
+            <button
+              hlmBtn
+              type="button"
+              class="flex-1 text-xs font-semibold rounded-lg cursor-pointer"
+              (click)="$event.stopPropagation(); addSelectedVariantToCart(product)"
+              [disabled]="isAddingToCart(product.id)"
+            >
               {{ isAddingToCart(product.id) ? 'Agregando...' : 'Agregar al carrito' }}
             </button>
-            <a hlmBtn variant="outline" routerLink="/app/cliente/cart">Ver carrito</a>
+
+            <!-- Botón Ir al Carrito -->
+            <a 
+              hlmBtn 
+              variant="outline" 
+              routerLink="/app/cliente/cart"
+              class="text-xs rounded-lg cursor-pointer hover:bg-slate-50"
+            >
+              Ver carrito
+            </a>
           </div>
         </div>
       </article>

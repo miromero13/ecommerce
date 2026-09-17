@@ -26,11 +26,23 @@ import {
 } from '../../shared/models/catalog.model';
 import { CatalogApiService } from '../../shared/services/catalog-api.service';
 import { CartApiService } from '../../shared/services/cart-api.service';
+import { SessionService } from '../../shared/services/session.service';
 
 @Component({
   selector: 'app-catalog-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, ReactiveFormsModule, NgIcon, HlmButton, HlmInput, ...HlmBadgeImports, ...HlmCardImports, ...HlmFieldImports, ...HlmSelectImports],
+  imports: [
+    CommonModule,
+    RouterLink,
+    ReactiveFormsModule,
+    NgIcon,
+    HlmButton,
+    HlmInput,
+    ...HlmBadgeImports,
+    ...HlmCardImports,
+    ...HlmFieldImports,
+    ...HlmSelectImports,
+  ],
   providers: [provideIcons({ lucideShoppingCart })],
   templateUrl: './catalog-page.component.html',
 })
@@ -38,6 +50,7 @@ export class CatalogPageComponent {
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(CatalogApiService);
   private readonly cartApi = inject(CartApiService);
+  private readonly session = inject(SessionService);
 
   protected readonly branches = signal<CatalogBranch[]>([]);
   protected readonly categories = signal<CatalogNameItem[]>([]);
@@ -46,10 +59,12 @@ export class CatalogPageComponent {
   protected readonly seasons = signal<CatalogNameItem[]>([]);
   protected readonly collections = signal<CatalogCollectionItem[]>([]);
   protected readonly products = signal<CatalogProduct[]>([]);
+  protected readonly recommendedProducts = signal<CatalogProduct[]>([]);
   protected readonly selectedVariantByProduct = signal<Record<string, string>>({});
   protected readonly selectedImageByProduct = signal<Record<string, number>>({});
   protected readonly addingToCartByProduct = signal<Record<string, boolean>>({});
   protected readonly loading = signal(false);
+  private recommendationsRequestVersion = 0;
 
   protected readonly form = this.fb.nonNullable.group({
     q: [''],
@@ -112,10 +127,15 @@ export class CatalogPageComponent {
           season_id: value.season_id || undefined,
           collection_id: value.collection_id || undefined,
         }),
-        { loading: 'Consultando catálogo...', success: 'Catálogo actualizado.', error: 'No se pudo consultar el catálogo.' },
+        {
+          loading: 'Consultando catálogo...',
+          success: 'Catálogo actualizado.',
+          error: 'No se pudo consultar el catálogo.',
+        },
       );
       this.products.set(response.data ?? []);
       this.ensureSelectedVariants();
+      void this.loadRecommendations();
     } catch {
       // El toast de error ya se mostró con requestWithToast
     } finally {
@@ -136,10 +156,12 @@ export class CatalogPageComponent {
 
     this.addingToCartByProduct.update((current) => ({ ...current, [product.id]: true }));
     try {
-      await requestWithToast(
-        this.cartApi.addItem({ variant_id: variant.id, quantity: 1 }),
-        { loading: 'Agregando al carrito...', success: 'Producto agregado al carrito.', error: 'No se pudo agregar al carrito.' },
-      );
+      void this.recordProductView(product.id);
+      await requestWithToast(this.cartApi.addItem({ variant_id: variant.id, branch_id: this.form.getRawValue().branch_id || undefined, quantity: 1 }), {
+        loading: 'Agregando al carrito...',
+        success: 'Producto agregado al carrito.',
+        error: 'No se pudo agregar al carrito.',
+      });
     } catch {
       // El toast de error ya se mostró con requestWithToast
     } finally {
@@ -149,15 +171,16 @@ export class CatalogPageComponent {
 
   private async loadData(): Promise<void> {
     try {
-      const [branches, categories, sizes, colors, seasons, collections, products] = await Promise.all([
-        firstValueFrom(this.api.listPublicBranches()),
-        firstValueFrom(this.api.listCategories()),
-        firstValueFrom(this.api.listSizes()),
-        firstValueFrom(this.api.listColors()),
-        firstValueFrom(this.api.listSeasons()),
-        firstValueFrom(this.api.listCollections()),
-        firstValueFrom(this.api.listProducts()),
-      ]);
+      const [branches, categories, sizes, colors, seasons, collections, products] =
+        await Promise.all([
+          firstValueFrom(this.api.listPublicBranches()),
+          firstValueFrom(this.api.listCategories()),
+          firstValueFrom(this.api.listSizes()),
+          firstValueFrom(this.api.listColors()),
+          firstValueFrom(this.api.listSeasons()),
+          firstValueFrom(this.api.listCollections()),
+          firstValueFrom(this.api.listProducts()),
+        ]);
       this.branches.set(branches.data ?? []);
       this.categories.set(categories.data ?? []);
       this.sizes.set(sizes.data ?? []);
@@ -166,6 +189,7 @@ export class CatalogPageComponent {
       this.collections.set(collections.data ?? []);
       this.products.set(products.data ?? []);
       this.ensureSelectedVariants();
+      void this.loadRecommendations();
     } catch (error) {
       toast.error(getErrorMessage(error, 'No se pudo cargar el catálogo.'));
     }
@@ -198,7 +222,9 @@ export class CatalogPageComponent {
 
   protected collectionName(collectionId: string | null | undefined): string {
     if (!collectionId) return 'Sin colección';
-    return this.collections().find((collection) => collection.id === collectionId)?.name ?? collectionId;
+    return (
+      this.collections().find((collection) => collection.id === collectionId)?.name ?? collectionId
+    );
   }
 
   protected collectionSeasonName(collectionId: string | null | undefined): string {
@@ -235,7 +261,9 @@ export class CatalogPageComponent {
     return `${this.sizeName(variant.size_id)} / ${this.colorName(variant.color_id)}`;
   }
 
-  protected variantSelectLabel(product: CatalogProduct): (variantId: string | null | undefined) => string {
+  protected variantSelectLabel(
+    product: CatalogProduct,
+  ): (variantId: string | null | undefined) => string {
     return (variantId: string | null | undefined): string => {
       if (!variantId) return 'Variante';
       const variant = this.productVariants(product).find((item) => item.id === variantId);
@@ -243,7 +271,10 @@ export class CatalogPageComponent {
     };
   }
 
-  protected availabilityLabel(variant: CatalogProductVariant | null, branchId: string | null): string {
+  protected availabilityLabel(
+    variant: CatalogProductVariant | null,
+    branchId: string | null,
+  ): string {
     if (!branchId) {
       return 'Selecciona una sucursal para ver stock';
     }
@@ -315,5 +346,41 @@ export class CatalogPageComponent {
       }
     }
     this.selectedVariantByProduct.set(current);
+  }
+
+  private async loadRecommendations(): Promise<void> {
+    const requestVersion = ++this.recommendationsRequestVersion;
+    const user = this.session.user();
+    if (!user || user.rol !== 'cliente') return;
+    try {
+      const response = await firstValueFrom(
+        this.api.getCollaborativeRecommendations(user.id, {
+          branch_id: this.form.getRawValue().branch_id || undefined,
+        }),
+      );
+      const catalog = await firstValueFrom(this.api.listProducts({ branch_id: this.form.getRawValue().branch_id || undefined }));
+      const productById = new Map((catalog.data ?? []).map((product) => [product.id, product]));
+      if (requestVersion !== this.recommendationsRequestVersion) return;
+      this.recommendedProducts.set(
+        (response.data?.recommendations ?? [])
+          .map((recommendation) => productById.get(recommendation.product_id))
+          .filter((product): product is CatalogProduct => !!product),
+      );
+    } catch {
+      if (requestVersion !== this.recommendationsRequestVersion) return;
+      this.recommendedProducts.set([]);
+    }
+  }
+
+  protected async recordProductView(productId: string): Promise<void> {
+    try {
+      const product = this.products().find((item) => item.id === productId);
+      await firstValueFrom(this.api.recordProductView(productId, {
+        variant_id: product ? this.selectedVariant(product)?.id : undefined,
+        branch_id: this.form.getRawValue().branch_id || undefined,
+      }));
+    } catch {
+      // View telemetry must never block the normal cart flow.
+    }
   }
 }
