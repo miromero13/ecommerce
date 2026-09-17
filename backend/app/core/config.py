@@ -1,3 +1,4 @@
+from pydantic import Field
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
@@ -13,6 +14,9 @@ class Settings(BaseSettings):
     stripe_webhook_secret: str | None = None
     stripe_publishable_key: str | None = None
     stripe_currency: str = "usd"
+    gemini_api_key: str | None = None
+    gemini_model: str = "gemini-3.6-flash"
+    gemini_timeout_seconds: int = Field(default=30, ge=5, le=120)
 
     class Config:
         env_file = ".env"

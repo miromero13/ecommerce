@@ -3,7 +3,9 @@ from decimal import Decimal
 from enum import Enum
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from typing import Literal
+
+from pydantic import BaseModel, Field, field_validator
 
 from app.schemas.order_schema import PaymentMethodEnum, PaymentStatusEnum
 from app.schemas.sales_schema import SaleStatusEnum
@@ -67,6 +69,54 @@ class ReportQuery(BaseModel):
     from_date: date | None = None
     to_date: date | None = None
     q: str | None = None
+
+
+AllowedSalesReportColumn = Literal[
+    "branch_name",
+    "product_name",
+    "variant_sku",
+    "type",
+    "quantity_sold",
+    "gross_sales",
+    "payment_method",
+    "payment_status",
+    "sale_status",
+]
+
+DEFAULT_SALES_REPORT_COLUMNS: list[AllowedSalesReportColumn] = [
+    "branch_name",
+    "product_name",
+    "variant_sku",
+    "type",
+    "quantity_sold",
+    "gross_sales",
+    "payment_method",
+    "payment_status",
+    "sale_status",
+]
+
+
+class NaturalReportRequest(BaseModel):
+    query: str = Field(min_length=1, max_length=500)
+
+
+class NaturalReportInterpretation(BaseModel):
+    report_type: Literal["sales", "inventory", "movements"]
+    format: Literal["pdf", "html", "csv"] = "pdf"
+    branch_id: UUID | None = None
+    product_id: UUID | None = None
+    variant_id: UUID | None = None
+    from_date: date | None = None
+    to_date: date | None = None
+    q: str | None = Field(default=None, max_length=120)
+    interpretation: str = Field(min_length=1, max_length=500)
+    unmatched_entity: str | None = Field(default=None, max_length=160)
+    columns: list[AllowedSalesReportColumn] = Field(default_factory=lambda: DEFAULT_SALES_REPORT_COLUMNS.copy(), min_length=1)
+
+    @field_validator("columns")
+    @classmethod
+    def deduplicate_columns(cls, value: list[AllowedSalesReportColumn]) -> list[AllowedSalesReportColumn]:
+        return list(dict.fromkeys(value))
 
 
 class ReportExportMeta(BaseModel):
