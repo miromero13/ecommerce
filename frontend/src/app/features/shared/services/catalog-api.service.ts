@@ -5,6 +5,7 @@ import { ApiService } from '../../../core/services/api.service';
 import {
   CatalogBranch,
   CatalogCollectionItem,
+  CollaborativeRecommendations,
   CatalogColorItem,
   CatalogNameItem,
   CatalogProduct,
@@ -101,7 +102,10 @@ export class CatalogApiService {
   }
 
   updateCollection(collectionId: string, payload: UpdateCollectionRequest) {
-    return this.api.put<ApiResponse<CatalogCollectionItem>>(`/catalog/collections/${collectionId}`, payload);
+    return this.api.put<ApiResponse<CatalogCollectionItem>>(
+      `/catalog/collections/${collectionId}`,
+      payload,
+    );
   }
 
   deleteCollection(collectionId: string) {
@@ -110,9 +114,33 @@ export class CatalogApiService {
 
   listProducts(params?: Record<string, string | undefined>) {
     const query = params
-      ? '?' + Object.entries(params).filter(([, value]) => !!value).map(([key, value]) => `${key}=${encodeURIComponent(value ?? '')}`).join('&')
+      ? '?' +
+        Object.entries(params)
+          .filter(([, value]) => !!value)
+          .map(([key, value]) => `${key}=${encodeURIComponent(value ?? '')}`)
+          .join('&')
       : '';
     return this.api.get<ListResponse<CatalogProduct>>(`/catalog/products${query}`);
+  }
+
+  getCollaborativeRecommendations(userId: string, params?: { branch_id?: string }) {
+    const query = params
+      ? '?' +
+        Object.entries(params)
+          .filter(([, value]) => !!value)
+          .map(([key, value]) => `${key}=${encodeURIComponent(value ?? '')}`)
+          .join('&')
+      : '';
+    return this.api.get<ApiResponse<CollaborativeRecommendations>>(
+      `/recommendations/collaborative/user/${userId}${query}`,
+    );
+  }
+
+  recordProductView(productId: string, payload?: { variant_id?: string; branch_id?: string }) {
+    return this.api.post<ApiResponse<{ product_id: string }>>(
+      `/catalog/products/${productId}/view`,
+      payload ?? {},
+    );
   }
 
   listAdminProducts() {
@@ -144,15 +172,23 @@ export class CatalogApiService {
   }
 
   submitProviderProduct(payload: CreateProductRequest) {
-    return this.api.post<ApiResponse<CatalogProduct>>('/catalog/products/provider-submission', payload);
+    return this.api.post<ApiResponse<CatalogProduct>>(
+      '/catalog/products/provider-submission',
+      payload,
+    );
   }
 
   updateProductStatus(productId: string, status: ProductStatus) {
-    return this.api.patch<ApiResponse<CatalogProduct>>(`/catalog/products/${productId}/status`, { status });
+    return this.api.patch<ApiResponse<CatalogProduct>>(`/catalog/products/${productId}/status`, {
+      status,
+    });
   }
 
   updateMyProviderAvailability(updates: Array<{ variant_id: string; quantity: number }>) {
-    return this.api.put<ApiResponse<Array<{ variant_id: string; quantity: number }>>>('/providers/me/availability', { updates });
+    return this.api.put<ApiResponse<Array<{ variant_id: string; quantity: number }>>>(
+      '/providers/me/availability',
+      { updates },
+    );
   }
 
   getAvailability(productId: string, branchId: string) {
@@ -168,13 +204,18 @@ export class CatalogApiService {
   }
 
   updateVariantStatus(variantId: string, status: ProductStatus) {
-    return this.api.patch<ApiResponse<CatalogProduct>>(`/catalog/variants/${variantId}/status`, { status });
+    return this.api.patch<ApiResponse<CatalogProduct>>(`/catalog/variants/${variantId}/status`, {
+      status,
+    });
   }
 
   updateVariantImage(variantId: string, file: File) {
     const formData = new FormData();
     formData.append('file', file);
-    return this.api.patch<ApiResponse<CatalogProduct>>(`/catalog/variants/${variantId}/image`, formData);
+    return this.api.patch<ApiResponse<CatalogProduct>>(
+      `/catalog/variants/${variantId}/image`,
+      formData,
+    );
   }
 
   deleteVariantImage(variantId: string) {

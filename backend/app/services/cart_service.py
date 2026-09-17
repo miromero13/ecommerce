@@ -15,6 +15,7 @@ from app.schemas.cart_schema import CartItemCreate, CartItemUpdate, CartRead, Ca
 from app.schemas.promotion_schema import PromotionCodeApply
 from app.services.pricing_service import discounted_price, discount_amount
 from app.services.promotion_service import calculate_discount, cart_has_product_discount, get_code, validate_for_user
+from app.services.recommendation_service import ADD_TO_CART, record_interaction
 
 
 def _available_quantity(db: Session, variant_id: UUID) -> int:
@@ -151,6 +152,7 @@ def add_cart_item(db: Session, user_id: UUID, payload: CartItemCreate) -> CartRe
     else:
         db.add(CartItem(cart_id=cart.id, variant_id=payload.variant_id, quantity=payload.quantity, unit_price=variant.price))
 
+    record_interaction(db, user_id, variant.product_id, ADD_TO_CART, variant_id=variant.id, branch_id=payload.branch_id)
     refresh_cart_totals(db, cart)
     db.commit()
     db.refresh(cart)

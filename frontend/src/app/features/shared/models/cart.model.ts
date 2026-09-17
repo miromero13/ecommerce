@@ -37,6 +37,7 @@ export interface Cart {
 
 export interface AddCartItemRequest {
   variant_id: string;
+  branch_id?: string;
   quantity: number;
 }
 

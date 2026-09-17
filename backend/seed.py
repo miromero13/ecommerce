@@ -25,6 +25,7 @@ from app.models.reservation import Reservation
 from app.models.reservation_item import ReservationItem
 from app.models.replenishment_request import ReplenishmentRequest
 from app.models.replenishment_request_item import ReplenishmentRequestItem
+from app.models.recommendation import CollaborativeEmbedding, UserProductInteraction
 from app.models.order import Order
 from app.models.order_item import OrderItem
 from app.models.sale import Sale
@@ -42,9 +43,52 @@ from app.schemas.order_schema import OrderStatusEnum, PaymentMethodEnum, Payment
 from app.schemas.reservation_schema import ReservationStatusEnum
 from app.schemas.replenishment_schema import ReplenishmentStatusEnum
 from app.schemas.sales_schema import SaleStatusEnum
+from app.services.recommendation_service import (
+    ADD_TO_CART,
+    COMPLETED_ORDER,
+    VIEW,
+    WEIGHTS,
+    get_recommendations,
+    record_interaction,
+    train,
+)
 
 
 PASSWORD = "Fashion123!"
+RECOMMENDATION_DEMO_EMAIL = "cliente01.demo@fashionstore.bo"
+RECOMMENDATION_DEMO_CATALOG_PATH = "/app/cliente/catalog"
+RECOMMENDATION_DEMO_INTERACTIONS = (
+    (0, VIEW, (0, 1, 2)),
+    (0, ADD_TO_CART, (0, 2)),
+    (0, COMPLETED_ORDER, (0, 1)),
+    (1, VIEW, (0, 1, 2, 4)),
+    (1, ADD_TO_CART, (0, 1, 2)),
+    (1, COMPLETED_ORDER, (0, 1, 2)),
+    (2, VIEW, (0, 1, 2, 4)),
+    (2, ADD_TO_CART, (0, 1, 2)),
+    (2, COMPLETED_ORDER, (0, 1, 2)),
+    (3, VIEW, (0, 1, 2, 4)),
+    (3, ADD_TO_CART, (0, 1, 2)),
+    (3, COMPLETED_ORDER, (0, 1, 2)),
+    (4, VIEW, (0, 1, 3, 5)),
+    (4, ADD_TO_CART, (0, 3, 5)),
+    (4, COMPLETED_ORDER, (0, 1, 3)),
+    (5, VIEW, (0, 1, 3, 5)),
+    (5, ADD_TO_CART, (0, 3, 5)),
+    (5, COMPLETED_ORDER, (0, 1, 3)),
+    (6, VIEW, (0, 1, 3, 6)),
+    (6, ADD_TO_CART, (0, 3, 6)),
+    (6, COMPLETED_ORDER, (0, 1, 3)),
+    (7, VIEW, (0, 1, 3, 6)),
+    (7, ADD_TO_CART, (0, 3, 6)),
+    (7, COMPLETED_ORDER, (0, 1, 3)),
+    (8, VIEW, (0, 2, 3, 7)),
+    (8, ADD_TO_CART, (2, 3, 7)),
+    (8, COMPLETED_ORDER, (2, 3)),
+    (9, VIEW, (0, 2, 3, 7)),
+    (9, ADD_TO_CART, (2, 3, 7)),
+    (9, COMPLETED_ORDER, (2, 3)),
+)
 
 
 def main() -> None:
@@ -71,6 +115,7 @@ def main() -> None:
         reservations = _seed_reservations(session, clients, branches, product_variants)
         orders = _seed_orders(session, clients, branches, product_variants)
         sales = _seed_sales(session, cashiers, branches, product_variants, reservations)
+        recommendation_demo = _seed_collaborative_recommendation_demo(session, clients, branches, product_variants)
         _verify_seed(
             session,
             branches,
@@ -101,6 +146,7 @@ def main() -> None:
         print(f"- Reservas: {len(reservations)}")
         print(f"- Ordenes: {len(orders)}")
         print(f"- Ventas: {len(sales)}")
+        _print_collaborative_recommendation_demo(*recommendation_demo)
     except Exception:
         session.rollback()
         raise
@@ -135,6 +181,8 @@ def _ensure_tables() -> None:
         "sale_items",
         "promotion_codes",
         "promotion_code_usages",
+        "user_product_interactions",
+        "collaborative_embeddings",
     }
     inspector = inspect(engine)
     existing = set(inspector.get_table_names())
@@ -170,6 +218,8 @@ def _get_or_create(session, model, lookup: dict, defaults: dict | None = None):
 def _reset_demo_data(session) -> None:
     """Elimina datos generados por ejecuciones anteriores para mantener conteos deterministas."""
     delete_order = [
+        CollaborativeEmbedding,
+        UserProductInteraction,
         SaleItem,
         Sale,
         PromotionCodeUsage,
@@ -773,6 +823,85 @@ def _seed_products(
         all_products.append((product, variant))
 
     return all_products
+
+
+def _seed_collaborative_recommendation_demo(
+    session,
+    clients: list[User],
+    branches: list[Branch],
+    product_variants: list[tuple[Product, ProductVariant]],
+) -> tuple[User, str, list[tuple[str, str, float]], tuple[int, int], list[dict], list[dict]]:
+    products = sorted({product.id: product for product, _ in product_variants}.values(), key=lambda product: product.name)
+    if len(products) < 4:
+        raise RuntimeError("The collaborative recommendation demo needs at least four products")
+
+    clients_by_email = {client.email: client for client in clients}
+    target_client = clients_by_email[RECOMMENDATION_DEMO_EMAIL]
+    for client_index, interaction_type, product_indices in RECOMMENDATION_DEMO_INTERACTIONS:
+        for product_index in product_indices:
+            variant = next(variant for product, variant in product_variants if product.id == products[product_index].id)
+            record_interaction(session, clients[client_index].id, products[product_index].id, interaction_type, variant_id=variant.id, branch_id=branches[client_index % len(branches)].id)
+    session.flush()
+
+    trained_counts = train(session)
+    result = get_recommendations(session, target_client.id)
+    product_names = {str(product.id): product.name for product in products}
+    ranked_products = [
+        (recommendation["product_id"], product_names[recommendation["product_id"]], recommendation["score"])
+        for recommendation in result["recommendations"]
+    ]
+    target_inputs = [
+        {
+            "interaction_type": interaction_type,
+            "weight": WEIGHTS[interaction_type],
+            "product_name": products[product_index].name,
+            "product_id": str(products[product_index].id),
+        }
+        for client_index, interaction_type, product_indices in RECOMMENDATION_DEMO_INTERACTIONS
+        if client_index == clients.index(target_client)
+        for product_index in product_indices
+    ]
+    interaction_summary = []
+    for client in clients:
+        rows = session.execute(
+            select(UserProductInteraction).where(UserProductInteraction.user_id == client.id)
+        ).scalars().all()
+        counts = {interaction_type: sum(row.interaction_type == interaction_type for row in rows) for interaction_type in WEIGHTS}
+        interaction_summary.append({"email": client.email, "counts": counts, "total": len(rows)})
+    return target_client, result["logic_type"], ranked_products, trained_counts, target_inputs, interaction_summary
+
+
+def _print_collaborative_recommendation_demo(
+    target_client: User,
+    logic_type: str,
+    ranked_products: list[tuple[str, str, float]],
+    trained_counts: tuple[int, int],
+    target_inputs: list[dict],
+    interaction_summary: list[dict],
+) -> None:
+    trained_users, trained_products = trained_counts
+    print("Collaborative recommendation demo report")
+    print("Catalog filters do not affect AI recommendations; attributes are learned from interaction history.")
+    print(f"Target login: {target_client.email} / {PASSWORD}")
+    print(f"Catalog route: {RECOMMENDATION_DEMO_CATALOG_PATH}")
+    print("Target interaction inputs:")
+    for item in target_inputs:
+        print(
+            f"  - type={item['interaction_type']} weight={item['weight']} "
+            f"product={item['product_name']} id={item['product_id']}"
+        )
+    print("Per-client interaction summary (view/add_to_cart/completed_order):")
+    for item in interaction_summary:
+        counts = item["counts"]
+        print(
+            f"  - {item['email']}: {counts[VIEW]}/{counts[ADD_TO_CART]}/"
+            f"{counts[COMPLETED_ORDER]} ({item['total']} total)"
+        )
+    print(f"Trained users/products: {trained_users}/{trained_products}")
+    print(f"Logic type: {logic_type}")
+    print("Recommendations (actual current output; not hardcoded expectations):")
+    for rank, (product_id, product_name, score) in enumerate(ranked_products, start=1):
+        print(f"  - rank={rank} product={product_name} id={product_id} score={score:.6f}")
 
 
 def _seed_inventory(

@@ -15,6 +15,7 @@ class CartStatusEnum(str, Enum):
 
 class CartItemCreate(BaseModel):
     variant_id: UUID
+    branch_id: UUID | None = None
     reservation_id: UUID | None = None
     quantity: int = Field(gt=0)
 

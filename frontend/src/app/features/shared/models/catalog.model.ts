@@ -58,6 +58,17 @@ export interface CatalogProduct {
   variants?: CatalogProductVariant[];
 }
 
+export interface CollaborativeRecommendation {
+  product_id: string;
+  score: number;
+}
+
+export interface CollaborativeRecommendations {
+  logic_type: 'implicit_als' | 'popular_fallback';
+  user_id: string;
+  recommendations: CollaborativeRecommendation[];
+}
+
 export interface CreateNameItemRequest {
   name: string;
 }
