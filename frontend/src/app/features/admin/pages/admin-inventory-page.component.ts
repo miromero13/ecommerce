@@ -13,6 +13,7 @@ import { HlmSelectImports } from '../../../components/select/src';
 import { HlmTable } from '../../../components/table/src';
 import { HlmTabsImports } from '../../../components/tabs/src';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
+import { downloadSimplePdf } from '../../../core/utils/simple-pdf.util';
 import { CatalogBranch, CatalogProduct } from '../../shared/models/catalog.model';
 import {
   InventoryBranchStock,
@@ -284,7 +285,8 @@ export class AdminInventoryPageComponent {
       const reportRows = rows as unknown as Array<Record<string, unknown>>;
       const documentHtml = this.reportDocumentHtml(columns, reportRows);
       if (this.reportFormat() === 'csv') this.downloadReportCsv(columns, reportRows);
-      else this.openReportDocument(documentHtml, this.reportFormat() === 'pdf');
+      else if (this.reportFormat() === 'pdf') this.downloadReportPdf(columns, reportRows);
+      else this.downloadHtmlReport(documentHtml);
       this.closeReportModal();
     } catch (error) {
       toast.error(getErrorMessage(error, 'No se pudo generar el reporte.'));
@@ -407,7 +409,7 @@ export class AdminInventoryPageComponent {
       case 'transfer_out':
         return 'Traspaso salida';
       default:
-        return type;
+        return this.humanize(type);
     }
   }
 
@@ -551,11 +553,14 @@ export class AdminInventoryPageComponent {
     const title = this.reportType() === 'inventory' ? 'Reporte de inventario' : 'Reporte de movimientos';
     const header = columns.map((column) => `<th>${this.escapeHtml(column.label)}</th>`).join('');
     const body = rows.map((row) => `<tr>${columns.map((column) => `<td>${this.escapeHtml(this.reportCellValue(row[column.key]))}</td>`).join('')}</tr>`).join('');
-    return `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title><style>body{font:14px Arial,sans-serif;color:#172033;padding:24px}h1{font-size:20px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #cbd5e1;padding:8px;text-align:left}th{background:#e2e8f0}@media print{body{padding:0}}</style></head><body><h1>${title}</h1><p>Generado: ${new Date().toLocaleString('es-BO')}</p><table><thead><tr>${header}</tr></thead><tbody>${body || `<tr><td colspan="${columns.length}">No hay datos para los filtros seleccionados.</td></tr>`}</tbody></table></body></html>`;
+    const filters = this.reportFilterRows();
+    const filterHtml = filters.map(([label, value]) => `<dt>${this.escapeHtml(label)}</dt><dd>${this.escapeHtml(value)}</dd>`).join('');
+    return `<!doctype html><html><head><meta charset="utf-8"><title>${this.escapeHtml(title)}</title><style>body{font:14px Arial,sans-serif;color:#172033;padding:24px}h1{font-size:20px}dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 12px;margin:18px 0}dt{font-weight:700}dd{margin:0}table{border-collapse:collapse;width:100%}th,td{border:1px solid #cbd5e1;padding:8px;text-align:left}th{background:#e2e8f0}@media print{body{padding:0}}</style></head><body><h1>${this.escapeHtml(title)}</h1><p>Generado: ${this.escapeHtml(new Date().toLocaleString('es-BO'))}</p><section><h2>Filtros aplicados</h2><dl>${filterHtml}</dl></section><table><thead><tr>${header}</tr></thead><tbody>${body || `<tr><td colspan="${columns.length}">No hay datos para los filtros seleccionados.</td></tr>`}</tbody></table></body></html>`;
   }
 
   private downloadReportCsv(columns: ReportColumn[], rows: Array<Record<string, unknown>>): void {
-    const csv = [columns.map((column) => this.csvCell(column.label)), ...rows.map((row) => columns.map((column) => this.csvCell(this.reportCellValue(row[column.key]))))]
+    const filterRows = this.reportFilterRows().map(([label, value]) => [this.csvCell(label), this.csvCell(value)]);
+    const csv = [...filterRows, [], columns.map((column) => this.csvCell(column.label)), ...rows.map((row) => columns.map((column) => this.csvCell(this.reportCellValue(row[column.key]))))]
       .map((line) => line.join(','))
       .join('\r\n');
     const url = URL.createObjectURL(new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8' }));
@@ -566,15 +571,29 @@ export class AdminInventoryPageComponent {
     URL.revokeObjectURL(url);
   }
 
-  private openReportDocument(html: string, print: boolean): void {
-    const reportWindow = window.open('', '_blank');
-    if (!reportWindow) {
-      toast.error('El navegador bloqueó la ventana del reporte. Permite las ventanas emergentes e inténtalo de nuevo.');
-      return;
+  private downloadHtmlReport(html: string): void {
+    try {
+      const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${this.reportType()}-report.html`;
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 0);
+    } catch {
+      toast.error('El navegador bloqueó la descarga del reporte. Inténtalo de nuevo.');
     }
-    reportWindow.document.write(html);
-    reportWindow.document.close();
-    if (print) reportWindow.setTimeout(() => reportWindow.print(), 250);
+  }
+
+  private downloadReportPdf(columns: ReportColumn[], rows: Array<Record<string, unknown>>): void {
+    const title = this.reportType() === 'inventory' ? 'Reporte de inventario' : 'Reporte de movimientos';
+    downloadSimplePdf({
+      filename: `${this.reportType()}-report.pdf`,
+      title,
+      generatedAt: new Date().toLocaleString('es-BO'),
+      filters: this.reportFilterRows(),
+      columns: columns.map((column) => column.label),
+      rows: rows.map((row) => columns.map((column) => this.reportCellValue(row[column.key]))),
+    });
   }
 
   private reportCellValue(value: unknown): string {
@@ -583,12 +602,26 @@ export class AdminInventoryPageComponent {
     if (value === 'outcome') return 'Salida';
     if (value === 'transfer_in') return 'Traspaso entrada';
     if (value === 'transfer_out') return 'Traspaso salida';
+    if (value === 'active') return 'Activo';
+    if (value === 'inactive') return 'Inactivo';
     return String(value);
+  }
+
+  private reportFilterRows(): string[][] {
+    return [
+      ['Filtros aplicados', ''],
+      ['Sucursal', this.reportBranchSelectLabel(this.reportBranchId())],
+      ['Producto', this.reportProductSelectLabel(this.reportProductId())],
+      ['Desde', this.reportFromDate() || 'Sin límite'],
+      ['Hasta', this.reportToDate() || 'Sin límite'],
+    ];
   }
 
   private csvCell(value: string): string {
     return `"${value.replaceAll('"', '""')}"`;
   }
+
+  private humanize(value: string): string { return value.replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()); }
 
   private escapeHtml(value: string): string {
     return value.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character] ?? character);

@@ -8,17 +8,31 @@ from sqlalchemy.orm import Session
 from app.auth.dependencies import require_roles
 from app.core.database import get_db
 from app.schemas.enums import RolEnum
-from app.schemas.report_schema import ReportQuery
+from app.schemas.report_schema import NaturalReportRequest, ReportQuery
 from app.services.report_service import (
     export_rows_to_csv,
     get_inventory_report,
     get_movements_report,
     get_sales_report,
 )
+from app.services.natural_report_service import NaturalReportError, generate_natural_report
 from app.utils.response import response
 
 
 router = APIRouter(prefix="/reports", tags=["Reports"])
+
+
+@router.post("/query")
+async def natural_report_route(
+    request: NaturalReportRequest,
+    db: Session = Depends(get_db),
+    _: dict = Depends(require_roles(RolEnum.administrador)),
+):
+    try:
+        data = await generate_natural_report(db, request.query)
+    except NaturalReportError as error:
+        return response(status_code=error.status_code, message=error.detail, error=error.detail)
+    return response(status_code=status.HTTP_200_OK, message="Reporte interpretado exitosamente", data=data)
 
 
 def _filters(

@@ -72,3 +72,14 @@ export type SalesReportResponse = ApiResponse<ReportPayload<SalesReportRow>>;
 export type InventoryReportResponse = ApiResponse<ReportPayload<InventoryReportRow>>;
 export type MovementsReportResponse = ApiResponse<ReportPayload<MovementReportRow>>;
 export type ReportResponse = SalesReportResponse | InventoryReportResponse | MovementsReportResponse;
+
+export interface NaturalReportPayload {
+  report_type: ReportType;
+  format: 'pdf' | 'html' | 'csv';
+  columns?: string[];
+  filters: ReportQuery;
+  interpretation: string;
+  report: ReportPayload<SalesReportRow> | ReportPayload<InventoryReportRow> | ReportPayload<MovementReportRow>;
+}
+
+export type NaturalReportResponse = ApiResponse<NaturalReportPayload>;

@@ -4,6 +4,7 @@ import { ApiService } from '../../../core/services/api.service';
 import {
   InventoryReportResponse,
   MovementsReportResponse,
+  NaturalReportResponse,
   ReportQuery,
   SalesReportResponse,
   ReportType,
@@ -23,6 +24,10 @@ export class ReportsApiService {
 
   getMovementsReport(filters: ReportQuery) {
     return this.api.get<MovementsReportResponse>(`/reports/movements${this.query(filters)}`);
+  }
+
+  queryNaturalLanguage(query: string) {
+    return this.api.post<NaturalReportResponse>('/reports/query', { query });
   }
 
   exportReport(type: ReportType, filters: ReportQuery) {

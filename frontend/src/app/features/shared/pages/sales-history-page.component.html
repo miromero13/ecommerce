@@ -24,7 +24,7 @@
       <section hlmCard class="max-h-[90vh] w-full max-w-2xl overflow-y-auto bg-white text-slate-700 shadow-xl" role="dialog" aria-modal="true" aria-labelledby="sales-report-modal-title" (click)="$event.stopPropagation()">
         <div hlmCardHeader class="space-y-1 border-b border-slate-200 pb-4">
           <h2 id="sales-report-modal-title" hlmCardTitle class="text-xl">Reporte de ventas</h2>
-          <p class="text-sm text-slate-500">Elige los filtros, formato y columnas del reporte.</p>
+           <p class="text-sm text-slate-500">Elige los filtros, formato y columnas del reporte.</p>
         </div>
         <div class="grid gap-4 p-6 sm:grid-cols-2">
           @if (isAdmin()) { <label class="space-y-1 text-sm font-medium"><span>Sucursal</span>
@@ -42,11 +42,22 @@
           <label class="space-y-1 text-sm font-medium"><span>Desde (opcional)</span><input class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm" type="date" [value]="reportFromDate()" (change)="setReportFromDate($event)" /></label>
           <label class="space-y-1 text-sm font-medium"><span>Hasta (opcional)</span><input class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm" type="date" [value]="reportToDate()" (change)="setReportToDate($event)" /></label>
           <label class="space-y-1 text-sm font-medium sm:col-span-2"><span>Formato</span>
-            <div hlmSelect [value]="reportFormat()" [itemToString]="reportFormatSelectLabel" (valueChange)="setReportFormat($event)">
-              <hlm-select-trigger class="h-9 w-full" buttonId="sales-report-format"><span hlmSelectValue placeholder="PDF (imprimir o guardar)"></span></hlm-select-trigger>
-              <hlm-select-content><hlm-select-item value="pdf">PDF (imprimir o guardar)</hlm-select-item><hlm-select-item value="html">HTML (abrir documento)</hlm-select-item><hlm-select-item value="csv">CSV (descargar)</hlm-select-item></hlm-select-content>
-            </div>
-          </label>
+             <div hlmSelect [value]="reportFormat()" [itemToString]="reportFormatSelectLabel" (valueChange)="setReportFormat($event)">
+               <hlm-select-trigger class="h-9 w-full" buttonId="sales-report-format"><span hlmSelectValue placeholder="PDF (descarga directa)"></span></hlm-select-trigger>
+               <hlm-select-content><hlm-select-item value="pdf">PDF (descarga directa)</hlm-select-item><hlm-select-item value="html">HTML (abrir documento)</hlm-select-item><hlm-select-item value="csv">CSV (descargar)</hlm-select-item></hlm-select-content>
+             </div>
+           </label>
+           @if (isAdmin()) {
+             <section class="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3 sm:col-span-2">
+               <h3 class="text-sm font-semibold">Reporte por lenguaje natural</h3>
+                <p class="text-xs text-slate-500">Escribe o dicta filtros, periodo, formato y columnas. Si no indicas formato, se descargará PDF.</p>
+               <textarea class="min-h-20 w-full rounded-md border border-slate-300 bg-white p-2 text-sm" [value]="naturalQuery()" (input)="setNaturalQuery($event)" placeholder="Ventas de la sucursal Santa Cruz del último mes"></textarea>
+               <div class="flex flex-wrap gap-2">
+                 <button hlmBtn variant="outline" type="button" [attr.aria-label]="listening() ? 'Detener dictado' : 'Dictar solicitud'" [disabled]="reportLoading()" (click)="startListening()">{{ listening() ? 'Escuchando…' : '🎙 Dictar' }}</button>
+                 <button hlmBtn type="button" [disabled]="reportLoading() || listening()" (click)="generateNaturalReport()">{{ reportLoading() ? 'Interpretando...' : 'Interpretar y generar' }}</button>
+               </div>
+             </section>
+           }
           <fieldset class="space-y-2 sm:col-span-2"><legend class="text-sm font-medium">Columnas a exportar</legend><div class="grid gap-2 sm:grid-cols-2">
             @for (column of salesReportColumns; track column.key) {<label class="flex items-center gap-2 text-sm"><input type="checkbox" [checked]="isReportColumnSelected(column.key)" (change)="toggleReportColumn(column.key, $any($event.target).checked)" />{{ column.label }}</label>}
           </div></fieldset>
@@ -56,7 +67,7 @@
     </div>
   }
 
-    <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+     <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
       <table hlmTable class="w-full text-left text-sm">
         <thead class="bg-primary text-left text-xs font-bold uppercase tracking-wide text-white">
           <tr>
@@ -73,11 +84,11 @@
           @for (sale of sales(); track sale.id) {
             <tr class="hover:bg-slate-50">
               <td class="whitespace-nowrap px-4 py-3">{{ sale.created_at | date:'short' }}</td>
-              <td class="px-4 py-3">{{ sale.type }}</td>
-              <td class="px-4 py-3">{{ sale.branch_name }}</td>
+               <td class="px-4 py-3">{{ saleTypeLabel(sale.type) }}</td>
+               <td class="px-4 py-3">{{ saleBranchName(sale) }}</td>
               <td class="min-w-64 px-4 py-3 text-sm text-black">{{ itemSummary(sale) }}</td>
               <td class="px-4 py-3">{{ paymentLabel(sale.payment_method) }}</td>
-              <td class="px-4 py-3"><span class="text-sm text-black">{{ sale.payment_status }}</span></td>
+               <td class="px-4 py-3"><span class="text-sm text-black">{{ paymentStatusLabel(sale.payment_status) }}</span><span class="block text-xs text-slate-500">{{ saleStatusLabel(sale.status) }}</span></td>
               <td class="whitespace-nowrap px-4 py-3 text-right font-semibold">{{ sale.total_amount }} {{ sale.currency | uppercase }}</td>
             </tr>
           } @empty {
