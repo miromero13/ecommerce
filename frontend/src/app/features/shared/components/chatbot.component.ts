@@ -1,10 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { Component, ElementRef, ViewChild, inject, signal } from '@angular/core';
+import { Component, DestroyRef, ElementRef, ViewChild, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideEye, lucideMessageCircle, lucideRefreshCw, lucideSend, lucideTrash2, lucideX } from '@ng-icons/lucide';
 
 import { ChatbotMessage, ChatbotApiService } from '../services/chatbot-api.service';
+import { ChatbotUiService } from '../services/chatbot-ui.service';
 
 type UiMessage = ChatbotMessage & { state?: 'sending' | 'error' };
 
@@ -17,6 +20,9 @@ type UiMessage = ChatbotMessage & { state?: 'sending' | 'error' };
 })
 export class ChatbotComponent {
   private readonly chatbotApi = inject(ChatbotApiService);
+  private readonly chatbotUi = inject(ChatbotUiService);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly router = inject(Router);
 
   @ViewChild('messagesViewport') private messagesViewport?: ElementRef<HTMLElement>;
   @ViewChild('messageInput') private messageInput?: ElementRef<HTMLTextAreaElement>;
@@ -29,6 +35,15 @@ export class ChatbotComponent {
   protected readonly messages = signal<UiMessage[]>([]);
   protected readonly error = signal<string | null>(null);
   protected readonly draft = signal('');
+
+  constructor() {
+    this.chatbotUi.closeRequested$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.open.set(false);
+        this.deleteConfirmOpen.set(false);
+      });
+  }
 
   protected openChat(): void {
     this.open.set(true);
@@ -85,6 +100,11 @@ export class ChatbotComponent {
   protected retry(message: UiMessage): void {
     this.messages.update((messages) => messages.filter((item) => item.id !== message.id));
     void this.sendMessage(message.content);
+  }
+
+  protected openRecommendation(productId: string): void {
+    this.chatbotUi.requestClose();
+    void this.router.navigate(['/app/cliente/products', productId], { queryParams: { from: 'catalog' } });
   }
 
   protected async resetConversation(): Promise<void> {

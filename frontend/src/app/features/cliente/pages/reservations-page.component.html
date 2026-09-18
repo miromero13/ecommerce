@@ -86,12 +86,21 @@
                 <hlm-select-trigger size="sm"><span hlmSelectValue placeholder="Variante"></span></hlm-select-trigger>
                 <hlm-select-content>@for (variant of productVariants(product); track variant.id) { <hlm-select-item [value]="variant.id">{{ variantLabel(variant) }} - {{ variant.price }}</hlm-select-item> }</hlm-select-content>
               </div>
-              <div class="rounded-xl border border-slate-200 p-3 text-xs text-slate-500">
+               <div class="rounded-xl border border-slate-200 p-3 text-xs text-slate-500">
                 <p>Sucursal: {{ branchName(form.controls.branch_id.value || null) }}</p>
                 <p>Disponibilidad: {{ availabilityLabel(selectedVariant(product), form.controls.branch_id.value || null) }}</p>
                 <p>SKU: {{ selectedVariant(product)?.sku ?? 'Sin SKU' }}</p>
-              </div>
-              <div class="grid grid-cols-[1fr_auto] gap-2"><input hlmInput type="number" min="1" [value]="draftQuantity(product)" (input)="setDraftQuantity(product, $any($event.target).value)" /><button hlmBtn type="button" (click)="addToDraft(product)">Agregar al borrador</button></div>
+               </div>
+               <a
+                 hlmBtn
+                 [routerLink]="['/app/cliente/products', product.id]"
+                 [queryParams]="{ from: 'reservations', branch_id: form.controls.branch_id.value || undefined }"
+                 variant="outline"
+                 class="w-full"
+               >
+                 Ver producto
+               </a>
+               <div class="grid grid-cols-[1fr_auto] gap-2"><input hlmInput type="number" min="1" [value]="draftQuantity(product)" (input)="setDraftQuantity(product, $any($event.target).value)" /><button hlmBtn type="button" (click)="addToDraft(product)">Agregar al borrador</button></div>
             </div>
           </article>
         }

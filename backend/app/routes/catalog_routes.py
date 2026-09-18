@@ -41,6 +41,7 @@ from app.services.catalog_service import (
     delete_product,
     update_product_status,
     list_public_products,
+    get_public_product,
     list_admin_products,
     create_or_update_inventory,
     get_branch_quantity,
@@ -281,6 +282,14 @@ async def list_admin_products_route(
 async def list_pending_products(db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
     products = list_pending_products_service(db)
     return response(status_code=200, message="Productos pendientes obtenidos exitosamente", data=products)
+
+
+@router.get("/products/{product_id}")
+async def get_product(product_id: UUID, branch_id: UUID | None = None, db: Session = Depends(get_db)):
+    product = get_public_product(db, product_id, branch_id)
+    if not product:
+        raise HTTPException(status_code=404, detail=f"Producto con id {product_id} no encontrado")
+    return response(status_code=200, message="Producto obtenido exitosamente", data=product)
 
 
 @router.post("/products/{product_id}/view", status_code=status.HTTP_201_CREATED)

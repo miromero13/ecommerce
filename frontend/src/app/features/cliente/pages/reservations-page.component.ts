@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
 import { toast } from '@spartan-ng/brain/sonner';
@@ -28,7 +29,7 @@ import { ReservationApiService } from '../../shared/services/reservation-api.ser
 @Component({
   selector: 'app-reservations-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, HlmButton, HlmInput, ...HlmBadgeImports, ...HlmCardImports, ...HlmFieldImports, ...HlmSelectImports],
+  imports: [CommonModule, RouterLink, ReactiveFormsModule, HlmButton, HlmInput, ...HlmBadgeImports, ...HlmCardImports, ...HlmFieldImports, ...HlmSelectImports],
   templateUrl: './reservations-page.component.html',
 })
 export class ReservationsPageComponent {
