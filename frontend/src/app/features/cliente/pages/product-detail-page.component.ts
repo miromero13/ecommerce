@@ -12,11 +12,14 @@ import { getErrorMessage } from '../../../core/utils/http-error.util';
 import { CatalogNameItem, CatalogProduct, CatalogProductVariant } from '../../shared/models/catalog.model';
 import { CatalogApiService } from '../../shared/services/catalog-api.service';
 import { ChatbotUiService } from '../../shared/services/chatbot-ui.service';
+import { VirtualTryOnComponent } from '../../shared/components/virtual-try-on.component';
+import { DetectorRopaComponent } from '../../shared/components/detector-ropa.component';
+import { DetectorMediapipeComponent } from '../../shared/components/detector-mediapipe.component';
 
 @Component({
   selector: 'app-product-detail-page',
   standalone: true,
-  imports: [CommonModule, HlmButton, ...HlmBadgeImports, ...HlmCardImports],
+  imports: [CommonModule, HlmButton, VirtualTryOnComponent, DetectorRopaComponent, DetectorMediapipeComponent, ...HlmBadgeImports, ...HlmCardImports],
   templateUrl: './product-detail-page.component.html',
 })
 export class ProductDetailPageComponent {

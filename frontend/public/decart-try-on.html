@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Probador Virtual IA - Decart</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #111;
+      color: white;
+      font-family: Arial, sans-serif;
+
+      overflow: hidden;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    .panel,
+    .local-video-box,
+    #status,
+    #debug,
+    #apiKey,
+    #garmentInput,
+    #promptInput,
+    #startBtn,
+    #changeBtn,
+    #stopBtn,
+    #garmentPreview,
+    .warning {
+      display: none !important;
+    }
+
+    .row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 15px;
+    }
+
+    input[type="password"],
+    input[type="text"] {
+      width: 100%;
+      padding: 12px;
+
+      background: #292929;
+      color: white;
+
+      border: 1px solid #444;
+      border-radius: 8px;
+
+      font-size: 14px;
+    }
+
+    input[type="file"] {
+      padding: 10px;
+      background: #292929;
+      color: white;
+      border-radius: 8px;
+    }
+
+    button {
+      border: none;
+      border-radius: 8px;
+
+      padding: 12px 20px;
+
+      font-weight: bold;
+      cursor: pointer;
+
+      font-size: 14px;
+    }
+
+    #startBtn {
+      background: #42a846;
+      color: white;
+    }
+
+    #stopBtn {
+      background: #d63a35;
+      color: white;
+    }
+
+    #changeBtn {
+      background: #1976d2;
+      color: white;
+    }
+
+    button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .videos {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+    }
+
+    .video-box {
+      display: none;
+    }
+
+    .result-video-box {
+      display: block;
+      width: 100%;
+      height: 100%;
+      padding: 0;
+      border-radius: 0;
+      background: #000;
+    }
+
+    .loading-screen {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 50% 35%, rgba(220, 168, 92, 0.24), transparent 34%),
+        linear-gradient(145deg, #17100b 0%, #050505 72%);
+      text-align: center;
+    }
+
+    .loading-content {
+      position: relative;
+      z-index: 1;
+      max-width: 320px;
+    }
+
+    .loading-orbit {
+      position: relative;
+      width: 92px;
+      height: 92px;
+      margin: 0 auto 26px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 50%;
+      animation: loading-spin 2.4s linear infinite;
+    }
+
+    .loading-orbit::before,
+    .loading-orbit::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+    }
+
+    .loading-orbit::before {
+      inset: 12px;
+      border: 2px solid transparent;
+      border-top-color: #f3c47c;
+      border-right-color: #f3c47c;
+    }
+
+    .loading-orbit::after {
+      top: -4px;
+      left: 50%;
+      width: 8px;
+      height: 8px;
+      background: #fff0cb;
+      box-shadow: 0 0 18px 4px rgba(243, 196, 124, 0.8);
+      transform: translateX(-50%);
+    }
+
+    .loading-content h1 {
+      margin: 0;
+      color: #fff5e5;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .loading-content p {
+      margin: 10px 0 0;
+      color: rgba(255, 245, 229, 0.72);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .loading-dots {
+      display: inline-flex;
+      gap: 5px;
+      margin-top: 22px;
+    }
+
+    .loading-dots span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #f3c47c;
+      animation: loading-pulse 1.2s ease-in-out infinite;
+    }
+
+    .loading-dots span:nth-child(2) {
+      animation-delay: 0.15s;
+    }
+
+    .loading-dots span:nth-child(3) {
+      animation-delay: 0.3s;
+    }
+
+    @keyframes loading-spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes loading-pulse {
+      0%, 100% {
+        opacity: 0.3;
+        transform: translateY(0);
+      }
+      50% {
+        opacity: 1;
+        transform: translateY(-3px);
+      }
+    }
+
+    video {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+
+      background: black;
+
+      border-radius: 10px;
+
+      object-fit: cover;
+    }
+
+    #resultVideo {
+      height: 100%;
+      aspect-ratio: auto;
+      border-radius: 0;
+      object-fit: contain;
+    }
+
+    /*
+      Solo reflejamos nuestra vista local.
+    */
+    #localVideo {
+      transform: scaleX(-1);
+    }
+
+    #garmentPreview {
+      display: none;
+
+      width: 160px;
+      height: 160px;
+
+      object-fit: contain;
+
+      background: white;
+
+      border-radius: 10px;
+
+      margin-top: 10px;
+    }
+
+    #status {
+      width: 100%;
+      max-width: 1100px;
+
+      margin-top: 20px;
+
+      padding: 14px;
+
+      border-radius: 10px;
+
+      background: #1d1d1d;
+
+      text-align: center;
+
+      color: #ddd;
+    }
+
+    #debug {
+      width: 100%;
+      max-width: 1100px;
+
+      margin-top: 10px;
+
+      background: #080808;
+
+      color: #8cff8c;
+
+      padding: 12px;
+
+      border-radius: 8px;
+
+      font-family: monospace;
+      font-size: 12px;
+
+      white-space: pre-wrap;
+
+      display: none;
+    }
+
+    .warning {
+      margin-top: 10px;
+      color: #ffcc80;
+      font-size: 12px;
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <div class="panel">
+
+    <!-- API KEY -->
+    <div class="row">
+      <input
+        id="apiKey"
+        type="password"
+        placeholder="API Key de Decart"
+        readonly
+        hidden
+      >
+    </div>
+
+
+    <!-- PRENDA -->
+    <div class="row">
+      <input
+        id="garmentInput"
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+      >
+    </div>
+
+
+    <!-- PROMPT -->
+    <div class="row">
+      <input
+        id="promptInput"
+        type="text"
+        value="Substitute the current white sleeveless top with the bright mustard-yellow short-sleeve crew-neck cotton T-shirt shown in the reference image, regular relaxed fit."
+      >
+    </div>
+
+
+    <div class="row">
+
+      <button id="startBtn">
+        Iniciar probador
+      </button>
+
+      <button
+        id="changeBtn"
+        disabled
+      >
+        Aplicar / cambiar prenda
+      </button>
+
+      <button
+        id="stopBtn"
+        disabled
+      >
+        Detener
+      </button>
+
+    </div>
+
+
+    <img
+      id="garmentPreview"
+      alt="Prenda seleccionada"
+    >
+
+
+    <div class="warning">
+      La API Key y la imagen de la variante se reciben desde la configuración del entorno.
+    </div>
+
+  </div>
+
+
+  <div class="videos">
+
+    <div class="video-box local-video-box">
+
+      <video
+        id="localVideo"
+        autoplay
+        muted
+        playsinline
+      ></video>
+
+    </div>
+
+
+    <div class="video-box result-video-box">
+
+      <video
+        id="resultVideo"
+        autoplay
+        muted
+        playsinline
+      ></video>
+
+    </div>
+
+    <div id="loadingScreen" class="loading-screen" role="status" aria-live="polite">
+      <div class="loading-content">
+        <div class="loading-orbit" aria-hidden="true"></div>
+        <h1>Estamos preparando tu look</h1>
+        <p id="loadingMessage">Conectando con el vestidor virtual...</p>
+        <div class="loading-dots" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+
+  <div id="status">
+    Selecciona una prenda o espera la configuración del producto; luego presiona Iniciar.
+  </div>
+
+  <div id="debug"></div>
+
+
+  <script type="module">
+
+    import {
+      createDecartClient,
+      models
+    } from "https://cdn.jsdelivr.net/npm/@decartai/sdk@0.1.22/+esm";
+
+
+    // ==========================================================
+    // HTML
+    // ==========================================================
+
+    const apiKeyInput =
+      document.getElementById("apiKey");
+
+    const garmentInput =
+      document.getElementById("garmentInput");
+
+    const garmentPreview =
+      document.getElementById("garmentPreview");
+
+    const promptInput =
+      document.getElementById("promptInput");
+
+    const startBtn =
+      document.getElementById("startBtn");
+
+    const changeBtn =
+      document.getElementById("changeBtn");
+
+    const stopBtn =
+      document.getElementById("stopBtn");
+
+    const localVideo =
+      document.getElementById("localVideo");
+
+    const resultVideo =
+      document.getElementById("resultVideo");
+
+    const loadingScreen =
+      document.getElementById("loadingScreen");
+
+    const loadingMessage =
+      document.getElementById("loadingMessage");
+
+    const statusElement =
+      document.getElementById("status");
+
+    const debugElement =
+      document.getElementById("debug");
+
+
+    // ==========================================================
+    // VARIABLES
+    // ==========================================================
+
+    let cameraStream = null;
+
+    let realtimeClient = null;
+
+    let startInProgress = false;
+
+    let selectedGarment = null;
+
+    let garmentURL = null;
+
+    let client = null;
+
+    let configuredApiKey = "";
+
+    let configuredProductName = "";
+
+    let variantGarmentActive = false;
+
+    let resultTimer = null;
+
+
+    function setLoadingMessage(message) {
+      loadingScreen.hidden = false;
+      loadingMessage.textContent = message;
+    }
+
+
+    // ==========================================================
+    // MODELO
+    // ==========================================================
+
+    /*
+      IMPORTANTE:
+
+      Usamos el alias recomendado actualmente
+      para Virtual Try-On.
+    */
+
+    const model =
+      models.realtime("lucy-vton-latest");
+
+
+    console.log(
+      "Modelo Decart:",
+      model
+    );
+
+
+    // ==========================================================
+    // DEBUG
+    // ==========================================================
+
+    function showDebug(message) {
+
+      console.log(message);
+
+      debugElement.style.display =
+        "block";
+
+      debugElement.textContent +=
+        message + "\n";
+
+    }
+
+
+    function showError(error) {
+
+      console.error(error);
+
+      const message =
+        error?.message ||
+        String(error);
+
+      statusElement.textContent =
+        "ERROR: " + message;
+
+      debugElement.style.display =
+        "block";
+
+      debugElement.textContent +=
+        "\nERROR:\n" +
+        message +
+        "\n";
+
+      if (error?.stack) {
+
+        debugElement.textContent +=
+          error.stack;
+
+      }
+
+    }
+
+
+    function revokeGarmentPreview() {
+
+      if (garmentURL) {
+
+        URL.revokeObjectURL(garmentURL);
+
+        garmentURL = null;
+
+      }
+
+    }
+
+
+    function showGarmentPreview(file) {
+
+      selectedGarment = file;
+
+      revokeGarmentPreview();
+
+      garmentURL = URL.createObjectURL(file);
+
+      garmentPreview.src = garmentURL;
+
+      garmentPreview.style.display = "block";
+
+      const productLabel = configuredProductName
+        ? " para " + configuredProductName
+        : "";
+
+      statusElement.textContent =
+        "Prenda seleccionada" + productLabel + ": " + file.name;
+
+    }
+
+
+    async function applyConfiguration(data) {
+
+      configuredApiKey =
+        typeof data.apiKey === "string"
+          ? data.apiKey.trim()
+          : "";
+
+      configuredProductName =
+        typeof data.productName === "string"
+          ? data.productName.trim()
+          : "";
+
+      apiKeyInput.value = configuredApiKey;
+
+      const garmentImageUrl =
+        typeof data.garmentImageUrl === "string"
+          ? data.garmentImageUrl.trim()
+          : "";
+
+      if (!configuredApiKey || !garmentImageUrl) {
+
+        variantGarmentActive = false;
+
+        garmentInput.disabled = false;
+
+        const validationErrors = [];
+
+        if (!configuredApiKey) {
+          validationErrors.push("La API Key de Decart no está configurada en el entorno.");
+        }
+
+        if (!garmentImageUrl) {
+          validationErrors.push("No se recibió la imagen de la variante del producto.");
+        }
+
+        showError(new Error(validationErrors.join(" ")));
+
+        return;
+
+      }
+
+      variantGarmentActive = true;
+
+      garmentInput.disabled = true;
+
+      try {
+
+        setLoadingMessage(
+          "Cargando la imagen de la prenda..."
+        );
+
+        statusElement.textContent =
+          "Cargando la imagen de la variante...";
+
+        const response = await fetch(garmentImageUrl);
+
+        if (!response.ok) {
+          throw new Error("No se pudo cargar la imagen de la variante.");
+        }
+
+        const blob = await response.blob();
+
+        const fileType = blob.type || "image/jpeg";
+
+        if (!fileType.startsWith("image/")) {
+          throw new Error("La imagen de la variante no tiene un formato válido.");
+        }
+
+        const file = new File(
+          [blob],
+          "variant-garment",
+          { type: fileType }
+        );
+
+          showGarmentPreview(file);
+
+          setLoadingMessage(
+            "Encendiendo el vestidor virtual..."
+          );
+
+          void startSession();
+
+      }
+
+      catch (error) {
+
+        selectedGarment = null;
+
+        showError(error);
+
+      }
+
+    }
+
+
+    window.addEventListener(
+      "message",
+      event => {
+
+        if (
+          event.origin !== window.location.origin ||
+          !event.data ||
+          event.data.type !== "decart-try-on-config"
+        ) {
+
+          return;
+
+        }
+
+        void applyConfiguration(event.data);
+
+      }
+    );
+
+
+    // ==========================================================
+    // PRENDA
+    // ==========================================================
+
+    garmentInput.addEventListener(
+      "change",
+      async (event) => {
+
+        if (variantGarmentActive) {
+
+          return;
+
+        }
+
+        const file =
+          event.target.files[0];
+
+        if (!file) {
+          return;
+        }
+
+
+        showGarmentPreview(file);
+
+
+        /*
+          Si ya estamos conectados,
+          podemos cambiar la prenda
+          sin reiniciar la cámara.
+        */
+
+        if (realtimeClient) {
+
+          changeBtn.disabled =
+            false;
+
+        }
+
+      }
+    );
+
+
+    // ==========================================================
+    // INICIAR
+    // ==========================================================
+
+    async function startSession() {
+
+      if (realtimeClient || startInProgress) {
+
+        return;
+
+      }
+
+        debugElement.textContent =
+          "";
+
+
+        const apiKey =
+          configuredApiKey;
+
+
+        if (!apiKey) {
+
+          showError(new Error("La API Key de Decart no está configurada en el entorno."));
+
+          return;
+
+        }
+
+
+        if (!selectedGarment) {
+
+          showError(new Error("Selecciona una imagen de una prenda."));
+
+          return;
+
+        }
+
+        startInProgress = true;
+
+
+        startBtn.disabled =
+          true;
+
+
+        try {
+
+          // ====================================================
+          // 1. CREAR CLIENTE
+          // ====================================================
+
+          statusElement.textContent =
+            "Creando cliente de Decart...";
+
+
+          client =
+            createDecartClient({
+              apiKey
+            });
+
+
+          showDebug(
+            "Cliente Decart creado."
+          );
+
+
+          // ====================================================
+          // 2. ABRIR CÁMARA
+          // ====================================================
+
+          statusElement.textContent =
+            "Abriendo cámara...";
+
+
+          /*
+            ESTA ES LA CORRECCIÓN DEL ERROR.
+
+            NO usamos:
+
+            width: model.width
+            height: model.height
+            fps: model.fps
+
+            porque cualquiera de esos valores
+            puede generar el error non-finite.
+
+            Dejamos que navegador + SDK negocien
+            la resolución.
+          */
+
+          cameraStream =
+            await navigator.mediaDevices.getUserMedia({
+
+              audio: false,
+
+              video: {
+                facingMode: "user"
+              }
+
+            });
+
+
+          showDebug(
+            "Cámara abierta correctamente."
+          );
+
+
+          const videoTrack =
+            cameraStream
+              .getVideoTracks()[0];
+
+
+          if (videoTrack) {
+
+            const settings =
+              videoTrack.getSettings();
+
+
+            showDebug(
+              "Resolución cámara: " +
+              settings.width +
+              "x" +
+              settings.height
+            );
+
+
+            showDebug(
+              "FPS cámara: " +
+              settings.frameRate
+            );
+
+          }
+
+
+          localVideo.srcObject =
+            cameraStream;
+
+
+          await localVideo.play();
+
+
+          // ====================================================
+          // 3. CONECTAR CON LUCY VTON
+          // ====================================================
+
+          statusElement.textContent =
+            "Conectando con Lucy VTON...";
+
+          setLoadingMessage(
+            "Conectando con la inteligencia artificial..."
+          );
+
+
+          realtimeClient =
+            await client.realtime.connect(
+
+              cameraStream,
+
+              {
+
+                model,
+
+                /*
+                  En computadora usamos true
+                  porque normalmente webcam
+                  frontal = espejo.
+                */
+
+                mirror: true,
+
+
+                onRemoteStream:
+                  async (remoteStream) => {
+
+                    showDebug(
+                      "Stream IA recibido."
+                    );
+
+
+          resultVideo.srcObject =
+            remoteStream;
+
+
+                      try {
+
+                        await resultVideo.play();
+
+                        loadingScreen.hidden = true;
+
+                        startResultTimer();
+
+                      }
+
+                    catch (error) {
+
+                      console.warn(
+                        error
+                      );
+
+                    }
+
+
+                    statusElement.textContent =
+                      "Probador IA funcionando.";
+
+                  },
+
+
+                onConnectionQuality:
+                  (report) => {
+
+                    console.log(
+                      "Calidad conexión:",
+                      report
+                    );
+
+                  }
+
+              }
+
+            );
+
+
+          showDebug(
+            "Conectado al modelo Lucy VTON."
+          );
+
+
+          // ====================================================
+          // 4. EVENTOS
+          // ====================================================
+
+          realtimeClient.on(
+            "connectionChange",
+            state => {
+
+              showDebug(
+                "Estado Decart: " +
+                state
+              );
+
+
+              if (
+                state === "connected"
+              ) {
+
+                statusElement.textContent =
+                  "Conectado. Enviando prenda...";
+
+              }
+
+
+              if (
+                state === "generating"
+              ) {
+
+                statusElement.textContent =
+                  "IA generando la prenda en tiempo real...";
+
+              }
+
+            }
+          );
+
+
+          // ====================================================
+          // 5. ENVIAR PRENDA
+          // ====================================================
+
+          statusElement.textContent =
+            "Enviando imagen de la prenda...";
+
+
+          /*
+            ESTA ES TAMBIÉN UNA CORRECCIÓN.
+
+            La API actual usa:
+
+            setImage(blob, opciones)
+          */
+
+          await realtimeClient.setImage(
+
+            selectedGarment,
+
+            {
+
+              prompt:
+                promptInput.value.trim(),
+
+              enhance:
+                true
+
+            }
+
+          );
+
+
+          showDebug(
+            "Prenda enviada correctamente."
+          );
+
+
+          statusElement.textContent =
+            "Prenda enviada. Esperando video generado...";
+
+
+          changeBtn.disabled =
+            false;
+
+
+          stopBtn.disabled =
+            false;
+
+        }
+
+        catch (error) {
+
+          showError(
+            error
+          );
+
+
+          stopEverything();
+
+        }
+
+        finally {
+
+          startInProgress =
+            false;
+
+        }
+
+    }
+
+    startBtn.addEventListener(
+      "click",
+      () => {
+        void startSession();
+      }
+    );
+
+
+    // ==========================================================
+    // CAMBIAR PRENDA
+    // ==========================================================
+
+    changeBtn.addEventListener(
+      "click",
+      async () => {
+
+        if (
+          !realtimeClient ||
+          !selectedGarment
+        ) {
+
+          return;
+
+        }
+
+
+        changeBtn.disabled =
+          true;
+
+
+        try {
+
+          statusElement.textContent =
+            "Aplicando nueva prenda...";
+
+
+          await realtimeClient.setImage(
+
+            selectedGarment,
+
+            {
+
+              prompt:
+                promptInput.value.trim(),
+
+              enhance:
+                false
+
+            }
+
+          );
+
+
+          statusElement.textContent =
+            "Nueva prenda enviada a la IA.";
+
+
+          showDebug(
+            "Prenda cambiada."
+          );
+
+        }
+
+        catch (error) {
+
+          showError(
+            error
+          );
+
+        }
+
+        finally {
+
+          changeBtn.disabled =
+            false;
+
+        }
+
+      }
+    );
+
+
+    // ==========================================================
+    // DETENER
+    // ==========================================================
+
+    function clearResultTimer() {
+
+      if (resultTimer !== null) {
+
+        clearTimeout(resultTimer);
+
+        resultTimer = null;
+
+      }
+
+    }
+
+
+    function startResultTimer() {
+
+      clearResultTimer();
+
+      resultTimer = setTimeout(() => {
+
+        resultTimer = null;
+
+        stopEverything();
+
+        window.parent.postMessage(
+          {
+            type: "decart-try-on-expired"
+          },
+          window.location.origin
+        );
+
+      }, 5000);
+
+    }
+
+    stopBtn.addEventListener(
+      "click",
+      () => {
+
+        stopEverything();
+
+        statusElement.textContent =
+          "Probador detenido.";
+
+      }
+    );
+
+
+    function stopEverything() {
+
+      clearResultTimer();
+
+      // IA
+
+      if (realtimeClient) {
+
+        try {
+
+          realtimeClient.disconnect();
+
+        }
+
+        catch (error) {
+
+          console.warn(
+            error
+          );
+
+        }
+
+        realtimeClient =
+          null;
+
+      }
+
+
+      // Cámara
+
+      if (cameraStream) {
+
+        cameraStream
+          .getTracks()
+          .forEach(
+            track =>
+              track.stop()
+          );
+
+        cameraStream =
+          null;
+
+      }
+
+
+      localVideo.srcObject =
+        null;
+
+
+      resultVideo.srcObject =
+        null;
+
+
+      startBtn.disabled =
+        false;
+
+
+      changeBtn.disabled =
+        true;
+
+
+      stopBtn.disabled =
+        true;
+
+    }
+
+
+    window.addEventListener(
+      "beforeunload",
+      () => {
+        clearResultTimer();
+        stopEverything();
+        revokeGarmentPreview();
+      }
+    );
+
+  </script>
+
+</body>
+</html>
