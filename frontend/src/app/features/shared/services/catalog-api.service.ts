@@ -123,6 +123,11 @@ export class CatalogApiService {
     return this.api.get<ListResponse<CatalogProduct>>(`/catalog/products${query}`);
   }
 
+  getProduct(productId: string, branchId?: string) {
+    const query = branchId ? `?branch_id=${encodeURIComponent(branchId)}` : '';
+    return this.api.get<ApiResponse<CatalogProduct>>(`/catalog/products/${productId}${query}`);
+  }
+
   getCollaborativeRecommendations(userId: string, params?: { branch_id?: string }) {
     const query = params
       ? '?' +

@@ -57,6 +57,11 @@ export const routes: Routes = [
           import('./features/cliente/pages/reservations-page.component').then((m) => m.ReservationsPageComponent),
       },
       {
+        path: 'cliente/products/:productId',
+        loadComponent: () =>
+          import('./features/cliente/pages/product-detail-page.component').then((m) => m.ProductDetailPageComponent),
+      },
+      {
         path: 'cliente/my-reservations',
         canActivate: [roleGuard(['cliente'])],
         loadComponent: () =>

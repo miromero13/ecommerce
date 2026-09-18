@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -51,6 +51,7 @@ export class CatalogPageComponent {
   private readonly api = inject(CatalogApiService);
   private readonly cartApi = inject(CartApiService);
   private readonly session = inject(SessionService);
+  private readonly router = inject(Router);
 
   protected readonly branches = signal<CatalogBranch[]>([]);
   protected readonly categories = signal<CatalogNameItem[]>([]);
@@ -108,6 +109,10 @@ export class CatalogPageComponent {
     if (!collection) return collectionId;
     return `${collection.name} - ${this.seasonName(collection.season_id)}`;
   };
+
+  protected productDetailOrigin(): string {
+    return this.router.url.startsWith('/app/cliente/catalog') ? 'catalog' : 'catalog-home';
+  }
 
   constructor() {
     void this.loadData();
