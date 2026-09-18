@@ -381,6 +381,28 @@ def serialize_product(db: Session, product_id):
     return _product_to_read(product, product.variants)
 
 
+def get_public_product(db: Session, product_id, branch_id=None):
+    product = db.query(Product).options(selectinload(Product.variants)).filter(Product.id == product_id).first()
+    if not product:
+        return None
+
+    variants = [variant for variant in product.variants if variant.status == ProductStatusEnum.active]
+    if not variants:
+        return None
+
+    branch_quantity_map = None
+    if branch_id:
+        inventories = db.query(Inventory).filter(
+            Inventory.variant_id.in_([variant.id for variant in variants]),
+            Inventory.branch_id == branch_id,
+        ).all()
+        branch_quantity_map = {
+            inventory.variant_id: available_quantity(inventory.quantity, inventory.reserved_quantity)
+            for inventory in inventories
+        }
+    return _product_to_read(product, variants, branch_quantity_map)
+
+
 def list_public_products(
     db: Session,
     branch_id=None,
