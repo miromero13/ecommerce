@@ -93,9 +93,11 @@
                 {{ variant.price }}
               </p>
             </div>
-            <app-virtual-try-on [productName]="product.name" [garmentImageUrl]="variant.image_url ?? product.image_url ?? null" />
-            <app-detector-ropa [garmentImageUrl]="variant.image_url ?? product.image_url ?? null" />
-            <app-detector-mediapipe [garmentImageUrl]="variant.image_url ?? product.image_url ?? null" />
+            <div class="space-y-5 gap-4 space-x-1">
+              <app-virtual-try-on [productName]="product.name" [garmentImageUrl]="variant.image_url ?? product.image_url ?? null" />
+              <app-detector-ropa [variantId]="variant.id" [garmentPoints]="variant.garment_points" [garmentImageUrl]="variant.image_url ?? product.image_url ?? null" />
+              <app-detector-mediapipe [variantId]="variant.id" [garmentPoints]="variant.garment_points" [garmentImageUrl]="variant.image_url ?? product.image_url ?? null" />
+            </div>
           }
         </div>
 

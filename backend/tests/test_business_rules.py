@@ -9,7 +9,7 @@ from app.models.user import User  # noqa: F401 - registers SQLAlchemy relationsh
 from app.schemas.order_schema import PaymentMethodEnum
 from app.schemas.reservation_schema import ReservationStatusEnum
 from app.schemas.sales_schema import SaleCreate
-from app.schemas.catalog_schema import ProductCreate, ProductVariantCreate
+from app.schemas.catalog_schema import ProductCreate, ProductVariantCreate, ProductVariantGarmentPointsUpdate
 from app.schemas.catalog_enums import ProductStatusEnum
 from app.services.catalog_service import _normalized_variants
 from app.services.inventory_service import _inventory_available, get_consolidated_stock
@@ -83,6 +83,21 @@ def test_product_variant_update_payload_preserves_variant_id():
     )
 
     assert _normalized_variants(payload, ProductStatusEnum.active)[0]["id"] == variant_id
+
+
+def test_variant_garment_points_validate_normalized_coordinates_and_nullability():
+    payload = ProductVariantGarmentPointsUpdate(garment_points=[{"x": 0, "y": 1}] * 17)
+    dress_payload = ProductVariantGarmentPointsUpdate(garment_points=[{"x": 0, "y": 1}] * 19)
+    assert payload.garment_points[0].model_dump() == {"x": 0, "y": 1}
+    assert len(dress_payload.garment_points) == 19
+    assert ProductVariantGarmentPointsUpdate(garment_points=None).garment_points is None
+
+    for count in (0, 1, 18, 20):
+        with pytest.raises(ValidationError):
+            ProductVariantGarmentPointsUpdate(garment_points=[{"x": 0, "y": 1}] * count)
+
+    with pytest.raises(ValidationError):
+        ProductVariantGarmentPointsUpdate(garment_points=[{"x": 1.1, "y": 0.5}] * 17)
 
 
 def test_replenishment_status_transition_requires_provider_ownership_and_order():

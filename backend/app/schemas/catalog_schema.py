@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from uuid import UUID
 from decimal import Decimal
 from enum import Enum
@@ -23,6 +23,11 @@ class CollectionCreate(BaseModel):
 class DiscountTypeEnum(str, Enum):
     percentage = "percentage"
     fixed = "fixed"
+
+
+class Point(BaseModel):
+    x: float = Field(ge=0, le=1)
+    y: float = Field(ge=0, le=1)
 
 
 class ProductVariantCreate(BaseModel):
@@ -52,6 +57,17 @@ class ProductVariantStatusUpdate(BaseModel):
     status: ProductStatusEnum
 
 
+class ProductVariantGarmentPointsUpdate(BaseModel):
+    garment_points: list[Point] | None
+
+    @field_validator("garment_points")
+    @classmethod
+    def validate_point_count(cls, points: list[Point] | None) -> list[Point] | None:
+        if points is not None and len(points) not in (17, 19):
+            raise ValueError("garment_points must contain exactly 17 or 19 points")
+        return points
+
+
 class ProductVariantRead(BaseModel):
     id: UUID
     product_id: UUID
@@ -63,6 +79,7 @@ class ProductVariantRead(BaseModel):
     color_id: UUID | None = None
     image_url: str | None = None
     image_public_id: str | None = None
+    garment_points: list[Point] | None = None
     status: ProductStatusEnum
     branch_quantity: int | None = None
     provider_quantity: int | None = None

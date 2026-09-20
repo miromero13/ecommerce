@@ -22,6 +22,7 @@ export interface CatalogCollectionItem extends CatalogNameItem {
 
 export type ProductStatus = 'pending' | 'active' | 'inactive';
 export type DiscountType = 'percentage' | 'fixed';
+export type Point = { x: number; y: number };
 
 export interface CatalogProductVariant {
   id: string;
@@ -34,6 +35,7 @@ export interface CatalogProductVariant {
   color_id: string | null;
   image_url?: string | null;
   image_public_id?: string | null;
+  garment_points: Point[] | null;
   status: ProductStatus;
   branch_quantity?: number | null;
   provider_quantity?: number | null;

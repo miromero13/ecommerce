@@ -1,123 +1,30 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, ElementRef, inject, Input, NgZone, OnChanges, OnDestroy, signal, SimpleChanges, viewChild } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import { HlmButton } from '../../../components/button/src';
 import { HlmCardImports } from '../../../components/card/src';
 import { CatalogoPrendaService } from '../services/catalogo-prenda.service';
 import {
-  DEFAULT_FIT, DEFAULT_PROFILE, GARMENT_CATEGORIES, SLEEVE_KINDS, calibrationHandles, defaultFit, loadGarmentProfile, saveGarmentProfile, GarmentCalibrationEditor, GarmentTryOnEngine,
-  prepareGarmentTexture, type FitKey, type GarmentFit, type GarmentProfile,
+  DEFAULT_FIT, DEFAULT_PROFILE, GARMENT_CATEGORIES, SLEEVE_KINDS, calibrationHandles, defaultFit, GarmentCalibrationEditor, GarmentTryOnEngine,
+  prepareGarmentTexture, type FitKey, type GarmentFit, type GarmentProfile, type Point,
 } from './garment-overlay.renderer';
+import { CatalogApiService } from '../services/catalog-api.service';
 
 @Component({
   selector: 'app-detector-mediapipe',
   standalone: true,
   imports: [CommonModule, HlmButton, ...HlmCardImports],
-  template: `
-    <button hlmBtn type="button" variant="outline" (click)="openDetector()">Probar en vestidor virtual 3</button>
-    @if (open()) {
-      <section hlmCard class="mt-4 bg-white shadow-sm">
-        <div hlmCardHeader class="flex flex-row items-start justify-between gap-4">
-          <div>
-            <h2 hlmCardTitle>Vestidor virtual 3</h2>
-            <p hlmCardDescription>Vista frontal para poleras, blusas y vestidos.</p>
-          </div>
-          <button hlmBtn type="button" variant="ghost" (click)="closeDetector()">Cerrar</button>
-        </div>
-        <div hlmCardContent class="space-y-4">
-          <div class="grid gap-3 sm:grid-cols-2">
-            <label class="block text-sm">Tipo de prenda
-              <select class="mt-1 block w-full rounded-md border bg-white p-2" [value]="profile().category" (change)="changeProfile('category',$event)">
-                @for (kind of categories; track kind.value) { <option [value]="kind.value">{{ kind.label }}</option> }
-              </select>
-            </label>
-            <label class="block text-sm">Mangas
-              <select class="mt-1 block w-full rounded-md border bg-white p-2" [value]="profile().sleeves" (change)="changeProfile('sleeves',$event)">
-                @for (kind of sleeveKinds; track kind.value) { <option [value]="kind.value">{{ kind.label }}</option> }
-              </select>
-            </label>
-          </div>
-          @if (profile().category === 'dress') {
-            <p class="text-sm text-slate-600">Muestra al menos hasta las rodillas. Para vestidos largos, muestra también los tobillos. Ajusta el largo y el ancho de la falda.</p>
-          }
-          @if (profile().sleeves !== 'long') {
-            <p class="text-xs text-slate-600">Para probar manga corta o tirantes, usa ropa que deje los brazos descubiertos: esta vista no elimina las mangas de tu ropa actual.</p>
-          }
-          <!-- The video is an input only. Camera and garment share one visible canvas. -->
-          <video #video autoplay muted playsinline aria-hidden="true"
-            style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none"></video>
-          <canvas #canvas width="640" height="480" role="img" aria-label="Vista de cámara con la prenda"
-            class="block w-full rounded-xl bg-slate-950" style="height:auto"></canvas>
-          <p class="text-sm text-slate-600" role="status" aria-live="polite">{{ status() }}</p>
-          @if (error(); as message) { <p class="text-sm text-red-600" role="alert">{{ message }}</p> }
-          @if (garmentError(); as message) { <p class="text-sm text-red-600" role="alert">{{ message }}</p> }
-          @if (warning(); as message) { <p class="text-sm text-amber-700">{{ message }}</p> }
-
-          <details [open]="!calibrated()" class="rounded-lg border p-3" [hidden]="!assetReady()">
-            <summary class="cursor-pointer font-medium">Calibrar la foto de esta prenda</summary>
-            <div class="mt-3 space-y-3">
-              <p class="text-sm text-slate-600">
-                Marca los {{ points().length }} puntos en la foto. Izquierda y derecha se refieren a la imagen.
-                Selecciona un punto y toca su posición; también puedes arrastrar los círculos.
-                La malla debe seguir las costuras y cubrir la prenda sin cruzarse.
-              </p>
-              <label class="block text-sm">
-                Punto que vas a colocar
-                <select class="mt-1 block w-full rounded-md border bg-white p-2"
-                  [value]="selectedPoint()" (change)="selectPoint($event)">
-                  @for (point of points(); track point.id) { <option [value]="point.id">{{ point.label }}</option> }
-                </select>
-              </label>
-              <canvas #calibration role="img" aria-label="Foto de la prenda con puntos de calibración"
-                class="block w-full rounded-lg border" style="height:auto;max-width:520px;touch-action:none"></canvas>
-              <div class="flex flex-wrap gap-2">
-                <button hlmBtn type="button" variant="outline" (click)="nextPoint()">Siguiente punto</button>
-                <button hlmBtn type="button" (click)="saveCalibration()">Guardar calibración</button>
-                <button hlmBtn type="button" variant="ghost" (click)="resetCalibration()">Restablecer puntos</button>
-              </div>
-              @if (calibrationMessage()) { <p class="text-sm" role="status">{{ calibrationMessage() }}</p> }
-            </div>
-          </details>
-
-          <label class="flex items-center gap-2 text-sm font-medium">
-            <input type="checkbox" [checked]="coverage()" (change)="toggleCoverage($event)" />
-            Ajustar y cubrir la ropa detectada
-          </label>
-          <p class="text-xs text-slate-600">
-            La cobertura extiende la textura de la prenda sobre los huecos. Si alcanza tu pantalón,
-            baja el valor de «Límite inferior del relleno». La línea naranja muestra ese límite
-            al activar «Mostrar malla».
-          </p>
-          <div class="grid gap-3 sm:grid-cols-2">
-            @for (control of controls(); track control.key) {
-              <label class="block text-sm">
-                {{ control.label }}: {{ fit()[control.key] | number:'1.2-2' }}
-                <input type="range" class="mt-1 block w-full" [min]="control.min" [max]="control.max"
-                  step="0.01" [value]="fit()[control.key]" (input)="setFit(control.key, $event)" />
-              </label>
-            }
-          </div>
-          <div class="flex flex-wrap items-center gap-3">
-            <button hlmBtn type="button" variant="outline" (click)="recenter()">Reiniciar seguimiento</button>
-            <button hlmBtn type="button" variant="ghost" (click)="resetFit()">Restablecer ajuste</button>
-            <label class="flex items-center gap-2 text-sm">
-              <input type="checkbox" [checked]="debug()" (change)="toggleDebug($event)" /> Mostrar malla
-            </label>
-          </div>
-          <p class="text-xs text-slate-500">
-            Mantén visible la zona del cuerpo que cubre la prenda. El relleno puede estirar el estampado
-            y depende de detectar bien la ropa. No calcula la talla real.
-          </p>
-        </div>
-      </section>
-    }
-  `,
+  templateUrl: './detector-mediapipe.component.html',
 })
 export class DetectorMediapipeComponent implements OnChanges, OnDestroy {
   @Input() garmentImageUrl: string | null = null;
+  @Input() variantId: string | null = null;
+  @Input() garmentPoints: Point[] | null = null;
   private readonly video = viewChild<ElementRef<HTMLVideoElement>>('video');
   private readonly canvas = viewChild<ElementRef<HTMLCanvasElement>>('canvas');
   private readonly calibration = viewChild<ElementRef<HTMLCanvasElement>>('calibration');
   private readonly catalogoPrenda = inject(CatalogoPrendaService);
+  private readonly catalogApi = inject(CatalogApiService);
   private readonly zone = inject(NgZone);
   protected readonly open = signal(false);
   protected readonly status = signal('Listo para iniciar.');
@@ -160,13 +67,13 @@ export class DetectorMediapipeComponent implements OnChanges, OnDestroy {
   private destroyed = false;
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (!('garmentImageUrl' in changes)) return;
+    if (!('garmentImageUrl' in changes) && !('variantId' in changes) && !('garmentPoints' in changes)) return;
     const request = ++this.garmentRequest;
     this.texture = null; this.assetReady.set(false); this.calibrated.set(false);
     this.garmentError.set(null); this.calibrationMessage.set('');
     this.editor?.destroy(); this.editor = null; this.engine?.setGarment(null);
     const url = this.garmentImageUrl?.trim();
-    this.profile.set(loadGarmentProfile(url ?? '')); this.fit.set(defaultFit(this.profile()));
+    this.profile.set({ ...DEFAULT_PROFILE }); this.fit.set(defaultFit(this.profile()));
     if (this.engine) { this.engine.profile = { ...this.profile() }; this.engine.fit = { ...this.fit() }; }
     if (url) void this.prepareGarment(url, request);
   }
@@ -212,10 +119,11 @@ export class DetectorMediapipeComponent implements OnChanges, OnDestroy {
     if (!canvas || !engine || !texture) return;
     this.editor?.destroy(); this.calibrated.set(false); this.selectedPoint.set(0);
     engine.profile = { ...this.profile() }; engine.setGarment(texture);
-    this.editor = new GarmentCalibrationEditor(canvas, texture, this.garmentImageUrl ?? '',
+    this.editor = new GarmentCalibrationEditor(canvas, texture,
       index => this.zone.run(() => this.selectedPoint.set(index)),
       points => this.zone.run(() => { engine.setCalibration(points); this.calibrated.set(true); }),
       this.profile(),
+      this.garmentPoints,
     );
   }
   protected selectPoint(event: Event): void { this.editor?.select(Number((event.target as HTMLSelectElement).value)); }
@@ -227,14 +135,25 @@ export class DetectorMediapipeComponent implements OnChanges, OnDestroy {
     const value = (event.target as HTMLSelectElement).value;
     if (!(key === 'category' ? this.categories : this.sleeveKinds).some(p => p.value === value)) return;
     this.profile.update(profile => ({ ...profile, [key]: value }));
-    saveGarmentProfile(this.garmentImageUrl ?? '', this.profile());
     this.fit.set(defaultFit(this.profile())); this.calibrated.set(false); this.calibrationMessage.set('Ajusta y guarda los puntos correspondientes a este tipo de prenda.');
     if (this.engine) { this.engine.profile = { ...this.profile() }; this.engine.fit = { ...this.fit() }; this.engine.recalibrate(); }
     this.bindGarment();
   }
-  protected saveCalibration(): void {
-    try { this.calibrationMessage.set(this.editor?.save() ?? 'Espera a que se cargue la prenda.'); }
-    catch (error) { this.calibrationMessage.set(this.messageFor(error)); }
+  protected async saveCalibration(): Promise<void> {
+    try {
+      const variantId = this.variantId;
+      const hasVariant = !!variantId;
+      const message = this.editor?.save(!hasVariant);
+      if (!message) { this.calibrationMessage.set('Espera a que se cargue la prenda.'); return; }
+      const points = this.editor?.getPoints();
+      if (variantId && points) {
+        await firstValueFrom(this.catalogApi.updateVariantGarmentPoints(variantId, points));
+        this.engine?.setCalibration(points); this.calibrated.set(true);
+        this.calibrationMessage.set('Calibración guardada en esta variante.');
+      } else {
+        this.calibrationMessage.set(message);
+      }
+    } catch (error) { this.calibrationMessage.set(this.messageFor(error)); }
   }
   protected resetCalibration(): void {
     this.editor?.reset(); this.engine?.recalibrate(); this.calibrated.set(false); this.calibrationMessage.set('Ajusta los puntos y vuelve a guardar.');

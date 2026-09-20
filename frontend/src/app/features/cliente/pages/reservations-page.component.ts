@@ -32,7 +32,7 @@ import { DetectorMediapipeComponent } from '../../shared/components/detector-med
 @Component({
   selector: 'app-reservations-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, ReactiveFormsModule, HlmButton, HlmInput, VirtualTryOnComponent, DetectorRopaComponent, DetectorMediapipeComponent, ...HlmBadgeImports, ...HlmCardImports, ...HlmFieldImports, ...HlmSelectImports],
+  imports: [CommonModule, RouterLink, ReactiveFormsModule, HlmButton, HlmInput, ...HlmBadgeImports, ...HlmCardImports, ...HlmFieldImports, ...HlmSelectImports],
   templateUrl: './reservations-page.component.html',
 })
 export class ReservationsPageComponent {

@@ -4,7 +4,7 @@
     <p class="text-sm text-slate-500">Consulta disponibilidad y arma tu reserva.</p>
   </header>
 
-  <div class="grid gap-5 xl:grid-cols-[1.5fr_1fr]">
+  <div class="grid gap-5 grid-cols-[1.5fr_1fr]">
     <div class="space-y-5">
       <form hlmCard class="grid gap-3 bg-white p-4 shadow-sm md:grid-cols-6" [formGroup]="form" (ngSubmit)="search()">
         <div hlmField class="md:col-span-2">
@@ -57,7 +57,7 @@
 
       <div class="grid gap-4 md:grid-cols-1 xl:grid-cols-2">
         @for (product of products(); track product.id) {
-          <article hlmCard class="bg-white shadow-sm">
+          <article hlmCard class="bg-white shadow-sm pt-0">
             <div class="relative overflow-hidden rounded-t-xl border-b border-slate-200 bg-slate-100">
               @if (productImages(product).length > 0) {
                 <img [src]="currentProductImage(product)!" [alt]="product.name" class="h-64 w-full object-cover" />
@@ -100,13 +100,7 @@
                 >
                   Ver producto
                 </a>
-                   <app-virtual-try-on
-                     [productName]="product.name"
-                     [garmentImageUrl]="selectedVariant(product)?.image_url ?? product.image_url ?? null"
-                   />
-                   <app-detector-ropa [garmentImageUrl]="selectedVariant(product)?.image_url ?? product.image_url ?? null" />
-                   <app-detector-mediapipe [garmentImageUrl]="selectedVariant(product)?.image_url ?? product.image_url ?? null" />
-                  <div class="grid grid-cols-[1fr_auto] gap-2"><input hlmInput type="number" min="1" [value]="draftQuantity(product)" (input)="setDraftQuantity(product, $any($event.target).value)" /><button hlmBtn type="button" (click)="addToDraft(product)">Agregar al borrador</button></div>
+                <div class="grid grid-cols-[1fr_auto] gap-2"><input hlmInput type="number" min="1" [value]="draftQuantity(product)" (input)="setDraftQuantity(product, $any($event.target).value)" /><button hlmBtn type="button" (click)="addToDraft(product)">Agregar al borrador</button></div>
             </div>
           </article>
         }
