@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Enum as SQLAlchemyEnum, ForeignKey, UniqueConstraint, Numeric
+from sqlalchemy import Column, String, Enum as SQLAlchemyEnum, ForeignKey, UniqueConstraint, Numeric, JSON
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -18,6 +18,7 @@ class ProductVariant(Base):
     color_id = Column(UUID(as_uuid=True), ForeignKey("colors.id"), nullable=True, index=True)
     image_url = Column(String, nullable=True)
     image_public_id = Column(String, nullable=True)
+    garment_points = Column(JSON, nullable=True)
     status = Column(SQLAlchemyEnum(ProductStatusEnum), nullable=False, default=ProductStatusEnum.pending)
 
     product = relationship("Product", back_populates="variants")

@@ -19,6 +19,7 @@ import {
   UpdateColorRequest,
   UpdateNameItemRequest,
   UpdateProductRequest,
+  Point,
 } from '../models/catalog.model';
 
 @Injectable({ providedIn: 'root' })
@@ -211,6 +212,12 @@ export class CatalogApiService {
   updateVariantStatus(variantId: string, status: ProductStatus) {
     return this.api.patch<ApiResponse<CatalogProduct>>(`/catalog/variants/${variantId}/status`, {
       status,
+    });
+  }
+
+  updateVariantGarmentPoints(variantId: string, garment_points: Point[]) {
+    return this.api.patch<ApiResponse<CatalogProduct>>(`/catalog/variants/${variantId}/garment-points`, {
+      garment_points,
     });
   }
 

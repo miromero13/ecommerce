@@ -1,12 +1,14 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, ElementRef, inject, Input, NgZone, OnChanges, OnDestroy, signal, SimpleChanges, viewChild } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import { HlmButton } from '../../../components/button/src';
 import { HlmCardImports } from '../../../components/card/src';
 import { CatalogoPrendaService } from '../services/catalogo-prenda.service';
 import {
   DEFAULT_FIT, DEFAULT_PROFILE, GARMENT_CATEGORIES, SLEEVE_KINDS, calibrationHandles, defaultFit, loadGarmentProfile, saveGarmentProfile, GarmentCalibrationEditor, GarmentTryOnEngine,
-  prepareGarmentTexture, type FitKey, type GarmentFit, type GarmentProfile,
+  prepareGarmentTexture, type FitKey, type GarmentFit, type GarmentProfile, type Point,
 } from './garment-overlay.renderer';
+import { CatalogApiService } from '../services/catalog-api.service';
 
 @Component({
   selector: 'app-detector-mediapipe',
@@ -52,10 +54,12 @@ import {
           @if (garmentError(); as message) { <p class="text-sm text-red-600" role="alert">{{ message }}</p> }
           @if (warning(); as message) { <p class="text-sm text-amber-700">{{ message }}</p> }
 
-          <details [open]="!calibrated()" class="rounded-lg border p-3" [hidden]="!assetReady()">
+          <details [open]="!calibrated()" class="rounded-lg border p-3" [hidden]="!assetReady() || calibrated()">
             <summary class="cursor-pointer font-medium">Calibrar la foto de esta prenda</summary>
             <div class="mt-3 space-y-3">
               <p class="text-sm text-slate-600">
+                No hay puntos guardados para esta variante: debes colocarlos y guardarlos.
+                <br />
                 Marca los {{ points().length }} puntos en la foto. Izquierda y derecha se refieren a la imagen.
                 Selecciona un punto y toca su posición; también puedes arrastrar los círculos.
                 La malla debe seguir las costuras y cubrir la prenda sin cruzarse.
@@ -114,10 +118,13 @@ import {
 })
 export class DetectorMediapipeComponent implements OnChanges, OnDestroy {
   @Input() garmentImageUrl: string | null = null;
+  @Input() variantId: string | null = null;
+  @Input() garmentPoints: Point[] | null = null;
   private readonly video = viewChild<ElementRef<HTMLVideoElement>>('video');
   private readonly canvas = viewChild<ElementRef<HTMLCanvasElement>>('canvas');
   private readonly calibration = viewChild<ElementRef<HTMLCanvasElement>>('calibration');
   private readonly catalogoPrenda = inject(CatalogoPrendaService);
+  private readonly catalogApi = inject(CatalogApiService);
   private readonly zone = inject(NgZone);
   protected readonly open = signal(false);
   protected readonly status = signal('Listo para iniciar.');
@@ -160,7 +167,7 @@ export class DetectorMediapipeComponent implements OnChanges, OnDestroy {
   private destroyed = false;
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (!('garmentImageUrl' in changes)) return;
+    if (!('garmentImageUrl' in changes) && !('variantId' in changes) && !('garmentPoints' in changes)) return;
     const request = ++this.garmentRequest;
     this.texture = null; this.assetReady.set(false); this.calibrated.set(false);
     this.garmentError.set(null); this.calibrationMessage.set('');
@@ -216,6 +223,7 @@ export class DetectorMediapipeComponent implements OnChanges, OnDestroy {
       index => this.zone.run(() => this.selectedPoint.set(index)),
       points => this.zone.run(() => { engine.setCalibration(points); this.calibrated.set(true); }),
       this.profile(),
+      this.garmentPoints,
     );
   }
   protected selectPoint(event: Event): void { this.editor?.select(Number((event.target as HTMLSelectElement).value)); }
@@ -232,9 +240,18 @@ export class DetectorMediapipeComponent implements OnChanges, OnDestroy {
     if (this.engine) { this.engine.profile = { ...this.profile() }; this.engine.fit = { ...this.fit() }; this.engine.recalibrate(); }
     this.bindGarment();
   }
-  protected saveCalibration(): void {
-    try { this.calibrationMessage.set(this.editor?.save() ?? 'Espera a que se cargue la prenda.'); }
-    catch (error) { this.calibrationMessage.set(this.messageFor(error)); }
+  protected async saveCalibration(): Promise<void> {
+    try {
+      const message = this.editor?.save();
+      if (!message) { this.calibrationMessage.set('Espera a que se cargue la prenda.'); return; }
+      const points = this.editor?.getPoints();
+      if (this.variantId && points) {
+        await firstValueFrom(this.catalogApi.updateVariantGarmentPoints(this.variantId, points));
+        this.calibrationMessage.set('Calibración guardada en esta variante y en este navegador.');
+      } else {
+        this.calibrationMessage.set(message);
+      }
+    } catch (error) { this.calibrationMessage.set(this.messageFor(error)); }
   }
   protected resetCalibration(): void {
     this.editor?.reset(); this.engine?.recalibrate(); this.calibrated.set(false); this.calibrationMessage.set('Ajusta los puntos y vuelve a guardar.');

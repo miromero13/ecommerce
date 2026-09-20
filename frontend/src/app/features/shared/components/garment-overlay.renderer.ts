@@ -173,6 +173,7 @@ export class GarmentCalibrationEditor {
     private readonly changed: (selected: number) => void,
     private readonly applied: (points: Point[]) => void,
     private readonly profile: GarmentProfile = DEFAULT_PROFILE,
+    private readonly serverPoints: readonly Point[] | null = null,
   ) {
     this.points = defaultCalibration(profile); this.handles = calibrationHandles(profile);
     const legacy = storageKey(sourceKey, texture);
@@ -181,22 +182,29 @@ export class GarmentCalibrationEditor {
     canvas.width = Math.round(texture.width * scale);
     canvas.height = Math.round(texture.height * scale);
     canvas.style.touchAction = 'none';
-    try {
-      const saved: unknown = JSON.parse(localStorage.getItem(this.key) ?? 'null');
-      if (Array.isArray(saved) && saved.every(p => p && typeof p.x === 'number' && typeof p.y === 'number')) {
-        // Migra calibraciones anteriores: conserva tus 16 puntos y añade solo el nuevo punto 17.
-        let candidate = clonePoints(saved as Point[]);
-        if (this.profile.category === 'dress' && candidate.length === 18) {
-          candidate = [...candidate.slice(0, 16), { ...this.points[16] }, ...candidate.slice(16)];
-        } else if (this.profile.category !== 'dress' && candidate.length === 16) {
-          candidate.push({ ...this.points[16] });
+    const serverCandidate = this.serverPoints && !validateCalibration(this.serverPoints, this.profile)
+      ? clonePoints(this.serverPoints)
+      : null;
+    if (serverCandidate) {
+      this.points = serverCandidate; this.applied(clonePoints(this.points));
+    } else {
+      try {
+        const saved: unknown = JSON.parse(localStorage.getItem(this.key) ?? 'null');
+        if (Array.isArray(saved) && saved.every(p => p && typeof p.x === 'number' && typeof p.y === 'number')) {
+          // Migra calibraciones anteriores: conserva tus 16 puntos y añade solo el nuevo punto 17.
+          let candidate = clonePoints(saved as Point[]);
+          if (this.profile.category === 'dress' && candidate.length === 18) {
+            candidate = [...candidate.slice(0, 16), { ...this.points[16] }, ...candidate.slice(16)];
+          } else if (this.profile.category !== 'dress' && candidate.length === 16) {
+            candidate.push({ ...this.points[16] });
+          }
+          if (candidate.length === this.points.length && !validateCalibration(candidate, this.profile)) {
+            this.points = candidate; this.applied(clonePoints(this.points));
+            if (candidate.length !== (saved as Point[]).length) localStorage.setItem(this.key, JSON.stringify(candidate));
+          }
         }
-        if (candidate.length === this.points.length && !validateCalibration(candidate, this.profile)) {
-          this.points = candidate; this.applied(clonePoints(this.points));
-          if (candidate.length !== (saved as Point[]).length) localStorage.setItem(this.key, JSON.stringify(candidate));
-        }
-      }
-    } catch { /* Storage is optional; calibration still works in this session. */ }
+      } catch { /* Storage is optional; calibration still works in this session. */ }
+    }
     const options = { signal: this.abort.signal };
     canvas.addEventListener('pointerdown', this.down, options);
     canvas.addEventListener('pointermove', this.move, options);
@@ -217,6 +225,7 @@ export class GarmentCalibrationEditor {
     catch { return 'Calibración aplicada para esta sesión. El navegador no permitió guardarla.'; }
     return 'Calibración guardada en este navegador para esta prenda.';
   }
+  getPoints(): Point[] { return clonePoints(this.points); }
   destroy(): void { this.abort.abort(); this.pointer = null; }
   private position(event: PointerEvent): Point {
     const rect = this.canvas.getBoundingClientRect();

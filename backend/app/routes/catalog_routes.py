@@ -15,6 +15,7 @@ from app.schemas.catalog_schema import (
     ProductCreate,
     ProductRead,
     ProductVariantStatusUpdate,
+    ProductVariantGarmentPointsUpdate,
 )
 from app.schemas.enums import RolEnum
 from app.models.category import Category
@@ -40,6 +41,7 @@ from app.services.catalog_service import (
     update_product,
     delete_product,
     update_product_status,
+    update_variant_garment_points,
     list_public_products,
     get_public_product,
     list_admin_products,
@@ -370,6 +372,20 @@ async def update_variant_status_route(variant_id: UUID, payload: ProductVariantS
         raise HTTPException(status_code=404, detail=f"Variante con id {variant_id} no encontrada")
     serialized = serialize_product(db, variant.product_id)
     return response(status_code=200, message="Variante actualizada exitosamente", data=serialized)
+
+
+@router.patch("/variants/{variant_id}/garment-points")
+async def update_variant_garment_points_route(
+    variant_id: UUID,
+    payload: ProductVariantGarmentPointsUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    variant = update_variant_garment_points(db, variant_id, payload)
+    if not variant:
+        raise HTTPException(status_code=404, detail=f"Variante con id {variant_id} no encontrada")
+    serialized = serialize_product(db, variant.product_id)
+    return response(status_code=200, message="Puntos de calibracion actualizados exitosamente", data=serialized)
 
 
 @router.patch("/variants/{variant_id}/image")

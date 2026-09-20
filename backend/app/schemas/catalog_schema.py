@@ -25,6 +25,11 @@ class DiscountTypeEnum(str, Enum):
     fixed = "fixed"
 
 
+class Point(BaseModel):
+    x: float = Field(ge=0, le=1)
+    y: float = Field(ge=0, le=1)
+
+
 class ProductVariantCreate(BaseModel):
     id: UUID | None = None
     sku: str
@@ -52,6 +57,10 @@ class ProductVariantStatusUpdate(BaseModel):
     status: ProductStatusEnum
 
 
+class ProductVariantGarmentPointsUpdate(BaseModel):
+    garment_points: list[Point] | None
+
+
 class ProductVariantRead(BaseModel):
     id: UUID
     product_id: UUID
@@ -63,6 +72,7 @@ class ProductVariantRead(BaseModel):
     color_id: UUID | None = None
     image_url: str | None = None
     image_public_id: str | None = None
+    garment_points: list[Point] | None = None
     status: ProductStatusEnum
     branch_quantity: int | None = None
     provider_quantity: int | None = None

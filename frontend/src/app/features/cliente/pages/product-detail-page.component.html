@@ -94,8 +94,8 @@
               </p>
             </div>
             <app-virtual-try-on [productName]="product.name" [garmentImageUrl]="variant.image_url ?? product.image_url ?? null" />
-            <app-detector-ropa [garmentImageUrl]="variant.image_url ?? product.image_url ?? null" />
-            <app-detector-mediapipe [garmentImageUrl]="variant.image_url ?? product.image_url ?? null" />
+             <app-detector-ropa [variantId]="variant.id" [garmentPoints]="variant.garment_points" [garmentImageUrl]="variant.image_url ?? product.image_url ?? null" />
+             <app-detector-mediapipe [variantId]="variant.id" [garmentPoints]="variant.garment_points" [garmentImageUrl]="variant.image_url ?? product.image_url ?? null" />
           }
         </div>
 

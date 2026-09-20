@@ -18,6 +18,7 @@ from app.schemas.catalog_schema import (
     CollectionCreate,
     ProductCreate,
     ProductVariantStatusUpdate,
+    ProductVariantGarmentPointsUpdate,
     ProductRead,
     ProductVariantRead,
 )
@@ -155,6 +156,20 @@ def update_product_status(db: Session, variant_id, update_data: ProductVariantSt
     if not variant:
         return None
     variant.status = update_data.status
+    db.commit()
+    db.refresh(variant)
+    return variant
+
+
+def update_variant_garment_points(db: Session, variant_id, update_data: ProductVariantGarmentPointsUpdate):
+    variant = db.query(ProductVariant).filter(ProductVariant.id == variant_id).first()
+    if not variant:
+        return None
+    variant.garment_points = (
+        [point.model_dump() for point in update_data.garment_points]
+        if update_data.garment_points is not None
+        else None
+    )
     db.commit()
     db.refresh(variant)
     return variant
@@ -340,6 +355,7 @@ def _product_to_read(product: Product, variants: list[ProductVariant], branch_qu
                 "color_id": variant.color_id,
                 "image_url": variant.image_url,
                 "image_public_id": variant.image_public_id,
+                "garment_points": variant.garment_points,
                 "status": variant.status,
                 "branch_quantity": branch_quantity,
                 "provider_quantity": provider_quantity,
