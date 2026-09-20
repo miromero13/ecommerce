@@ -93,18 +93,6 @@ export function calibrationHandles(profile: GarmentProfile): CalibrationHandle[]
     return [{ ...p, id, label }];
   }).map((p, index) => ({ ...p, label: `${index + 1}. ${p.label}` }));
 }
-function profileKey(source: string): string { let h = 2166136261; for (let i = 0; i < source.length; i++)h = Math.imul(h ^ source.charCodeAt(i), 16777619); return `aci-garment-profile-v1:${h >>> 0}`; }
-export function loadGarmentProfile(source: string): GarmentProfile {
-  try {
-    const p = JSON.parse(localStorage.getItem(profileKey(source)) ?? 'null');
-    if (p && GARMENT_CATEGORIES.some(v => v.value === p.category) && SLEEVE_KINDS.some(v => v.value === p.sleeves)) return { category: p.category, sleeves: p.sleeves };
-  } catch { /* Profile selection remains available without storage. */ }
-  return { ...DEFAULT_PROFILE };
-}
-export function saveGarmentProfile(source: string, profile: GarmentProfile): void {
-  try { localStorage.setItem(profileKey(source), JSON.stringify(profile)); } catch { /* Session-only preference. */ }
-}
-
 const clonePoints = (points: readonly Point[]): Point[] => points.map(({ x, y }) => ({ x, y }));
 const add = (a: Point, b: Point, scale = 1): Point => ({ x: a.x + b.x * scale, y: a.y + b.y * scale });
 const sub = (a: Point, b: Point): Point => ({ x: a.x - b.x, y: a.y - b.y });
@@ -151,33 +139,23 @@ export function prepareGarmentTexture(image: HTMLImageElement): HTMLCanvasElemen
   return cropped;
 }
 
-function storageKey(key: string, texture: HTMLCanvasElement): string {
-  let hash = 2166136261;
-  for (let i = 0; i < key.length; i++) hash = Math.imul(hash ^ key.charCodeAt(i), 16777619);
-  return `aci-garment-mesh-v1:${hash >>> 0}:${texture.width}x${texture.height}`;
-}
-
 /** Click a point in the list, then click its position in the product photo; handles also drag. */
 export class GarmentCalibrationEditor {
   private points: Point[];
   private readonly handles: CalibrationHandle[];
   private selected = 0;
   private pointer: number | null = null;
-  private readonly key: string;
   private readonly abort = new AbortController();
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
     private readonly texture: HTMLCanvasElement,
-    sourceKey: string,
     private readonly changed: (selected: number) => void,
     private readonly applied: (points: Point[]) => void,
     private readonly profile: GarmentProfile = DEFAULT_PROFILE,
     private readonly serverPoints: readonly Point[] | null = null,
   ) {
     this.points = defaultCalibration(profile); this.handles = calibrationHandles(profile);
-    const legacy = storageKey(sourceKey, texture);
-    this.key = profile.category === 'top' && profile.sleeves === 'long' ? legacy : `${legacy}:${profile.category}:${profile.sleeves}`;
     const scale = Math.min(1, 720 / texture.width);
     canvas.width = Math.round(texture.width * scale);
     canvas.height = Math.round(texture.height * scale);
@@ -187,23 +165,6 @@ export class GarmentCalibrationEditor {
       : null;
     if (serverCandidate) {
       this.points = serverCandidate; this.applied(clonePoints(this.points));
-    } else {
-      try {
-        const saved: unknown = JSON.parse(localStorage.getItem(this.key) ?? 'null');
-        if (Array.isArray(saved) && saved.every(p => p && typeof p.x === 'number' && typeof p.y === 'number')) {
-          // Migra calibraciones anteriores: conserva tus 16 puntos y añade solo el nuevo punto 17.
-          let candidate = clonePoints(saved as Point[]);
-          if (this.profile.category === 'dress' && candidate.length === 18) {
-            candidate = [...candidate.slice(0, 16), { ...this.points[16] }, ...candidate.slice(16)];
-          } else if (this.profile.category !== 'dress' && candidate.length === 16) {
-            candidate.push({ ...this.points[16] });
-          }
-          if (candidate.length === this.points.length && !validateCalibration(candidate, this.profile)) {
-            this.points = candidate; this.applied(clonePoints(this.points));
-            if (candidate.length !== (saved as Point[]).length) localStorage.setItem(this.key, JSON.stringify(candidate));
-          }
-        }
-      } catch { /* Storage is optional; calibration still works in this session. */ }
     }
     const options = { signal: this.abort.signal };
     canvas.addEventListener('pointerdown', this.down, options);
@@ -221,9 +182,7 @@ export class GarmentCalibrationEditor {
     const error = validateCalibration(this.points, this.profile);
     if (error) throw new Error(error);
     if (apply) this.applied(clonePoints(this.points));
-    try { localStorage.setItem(this.key, JSON.stringify(this.points)); }
-    catch { return 'Calibración aplicada para esta sesión. El navegador no permitió guardarla.'; }
-    return 'Calibración guardada en este navegador para esta prenda.';
+    return apply ? 'Calibración aplicada para esta sesión.' : 'Calibración validada.';
   }
   getPoints(): Point[] { return clonePoints(this.points); }
   destroy(): void { this.abort.abort(); this.pointer = null; }
