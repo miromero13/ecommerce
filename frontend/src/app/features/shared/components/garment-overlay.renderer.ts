@@ -217,10 +217,10 @@ export class GarmentCalibrationEditor {
     this.selected = this.handles.some(p => p.id === index) ? index : this.handles[0].id; this.changed(this.selected); this.draw();
   }
   reset(): void { this.points = defaultCalibration(this.profile); this.select(0); }
-  save(): string {
+  save(apply = true): string {
     const error = validateCalibration(this.points, this.profile);
     if (error) throw new Error(error);
-    this.applied(clonePoints(this.points));
+    if (apply) this.applied(clonePoints(this.points));
     try { localStorage.setItem(this.key, JSON.stringify(this.points)); }
     catch { return 'Calibración aplicada para esta sesión. El navegador no permitió guardarla.'; }
     return 'Calibración guardada en este navegador para esta prenda.';

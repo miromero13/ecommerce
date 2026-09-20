@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from uuid import UUID
 from decimal import Decimal
 from enum import Enum
@@ -59,6 +59,13 @@ class ProductVariantStatusUpdate(BaseModel):
 
 class ProductVariantGarmentPointsUpdate(BaseModel):
     garment_points: list[Point] | None
+
+    @field_validator("garment_points")
+    @classmethod
+    def validate_point_count(cls, points: list[Point] | None) -> list[Point] | None:
+        if points is not None and len(points) not in (17, 19):
+            raise ValueError("garment_points must contain exactly 17 or 19 points")
+        return points
 
 
 class ProductVariantRead(BaseModel):

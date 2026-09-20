@@ -242,11 +242,14 @@ export class DetectorRopaComponent implements OnChanges, OnDestroy {
   }
   protected async saveCalibration(): Promise<void> {
     try {
-      const message = this.editor?.save();
+      const variantId = this.variantId;
+      const hasVariant = !!variantId;
+      const message = this.editor?.save(!hasVariant);
       if (!message) { this.calibrationMessage.set('Espera a que se cargue la prenda.'); return; }
       const points = this.editor?.getPoints();
-      if (this.variantId && points) {
-        await firstValueFrom(this.catalogApi.updateVariantGarmentPoints(this.variantId, points));
+      if (variantId && points) {
+        await firstValueFrom(this.catalogApi.updateVariantGarmentPoints(variantId, points));
+        this.engine?.setCalibration(points); this.calibrated.set(true);
         this.calibrationMessage.set('Calibración guardada en esta variante y en este navegador.');
       } else {
         this.calibrationMessage.set(message);
