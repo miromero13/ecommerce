@@ -104,8 +104,8 @@
                      [productName]="product.name"
                      [garmentImageUrl]="selectedVariant(product)?.image_url ?? product.image_url ?? null"
                    />
-                  <app-detector-ropa />
-                  <app-detector-mediapipe />
+                   <app-detector-ropa [garmentImageUrl]="selectedVariant(product)?.image_url ?? product.image_url ?? null" />
+                   <app-detector-mediapipe [garmentImageUrl]="selectedVariant(product)?.image_url ?? product.image_url ?? null" />
                   <div class="grid grid-cols-[1fr_auto] gap-2"><input hlmInput type="number" min="1" [value]="draftQuantity(product)" (input)="setDraftQuantity(product, $any($event.target).value)" /><button hlmBtn type="button" (click)="addToDraft(product)">Agregar al borrador</button></div>
             </div>
           </article>
