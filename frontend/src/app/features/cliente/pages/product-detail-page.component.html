@@ -93,6 +93,9 @@
                 {{ variant.price }}
               </p>
             </div>
+            <app-virtual-try-on [productName]="product.name" [garmentImageUrl]="variant.image_url ?? product.image_url ?? null" />
+            <app-detector-ropa [garmentImageUrl]="variant.image_url ?? product.image_url ?? null" />
+            <app-detector-mediapipe [garmentImageUrl]="variant.image_url ?? product.image_url ?? null" />
           }
         </div>
 

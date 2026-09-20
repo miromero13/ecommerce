@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     stripe_currency: str = "usd"
     gemini_api_key: str | None = None
     gemini_model: str = "gemini-3.6-flash"
+    gemini_garment_model: str | None = None
     gemini_timeout_seconds: int = Field(default=30, ge=5, le=120)
 
     class Config:

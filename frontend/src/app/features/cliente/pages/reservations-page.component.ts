@@ -25,11 +25,14 @@ import {
 import { CreateReservationRequest } from '../../shared/models/reservation.model';
 import { CatalogApiService } from '../../shared/services/catalog-api.service';
 import { ReservationApiService } from '../../shared/services/reservation-api.service';
+import { VirtualTryOnComponent } from '../../shared/components/virtual-try-on.component';
+import { DetectorRopaComponent } from '../../shared/components/detector-ropa.component';
+import { DetectorMediapipeComponent } from '../../shared/components/detector-mediapipe.component';
 
 @Component({
   selector: 'app-reservations-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, ReactiveFormsModule, HlmButton, HlmInput, ...HlmBadgeImports, ...HlmCardImports, ...HlmFieldImports, ...HlmSelectImports],
+  imports: [CommonModule, RouterLink, ReactiveFormsModule, HlmButton, HlmInput, VirtualTryOnComponent, DetectorRopaComponent, DetectorMediapipeComponent, ...HlmBadgeImports, ...HlmCardImports, ...HlmFieldImports, ...HlmSelectImports],
   templateUrl: './reservations-page.component.html',
 })
 export class ReservationsPageComponent {
