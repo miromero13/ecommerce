@@ -39,6 +39,11 @@ export interface CatalogProductVariant {
   provider_quantity?: number | null;
 }
 
+export interface CatalogGarmentResponse {
+  image_data_url: string;
+  mime_type: string;
+}
+
 export interface CatalogProduct {
   id: string;
   name: string;
