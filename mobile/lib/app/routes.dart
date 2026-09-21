@@ -7,6 +7,8 @@ import '../features/catalog/catalog_page.dart';
 import '../features/catalog/product_detail_page.dart';
 import '../features/cart/cart_page.dart';
 import '../features/management/management_page.dart';
+import '../features/notifications/notification_controller.dart';
+import '../features/notifications/notifications_page.dart';
 import '../features/orders/checkout_page.dart';
 import '../features/orders/orders_page.dart';
 import '../features/profile/profile_page.dart';
@@ -26,6 +28,7 @@ abstract final class AppRoutes {
   static const checkout = '/checkout';
   static const productDetail = '/product';
   static const login = '/login';
+  static const notifications = '/notifications';
 }
 
 abstract final class AppRouter {
@@ -33,6 +36,7 @@ abstract final class AppRouter {
     RouteSettings settings, {
     required AuthController authController,
     CatalogController? catalogController,
+    NotificationController? notificationController,
   }) {
     return switch (settings.name) {
       AppRoutes.catalog => _page(
@@ -54,8 +58,17 @@ abstract final class AppRouter {
       ),
       AppRoutes.management => _page(
         settings,
-        const ManagementPage(),
+        ManagementPage(notificationController: notificationController),
         selectedIndex: 1,
+      ),
+      AppRoutes.notifications => _page(
+        settings,
+        NotificationsPage(
+          authController: authController,
+          controller: notificationController,
+        ),
+        selectedIndex: 1,
+        shellTitle: 'Notificaciones',
       ),
       AppRoutes.account => _page(
         settings,
