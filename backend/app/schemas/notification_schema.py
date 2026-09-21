@@ -18,4 +18,4 @@ class NotificationRead(BaseModel):
 
 class DeviceTokenUpsert(BaseModel):
     token: str = Field(min_length=1, max_length=4096)
-    platform: Literal["android"] = "android"
+    platform: Literal["android", "web"] = "android"

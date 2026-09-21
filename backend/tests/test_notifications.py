@@ -57,14 +57,15 @@ def test_mark_all_read_returns_updated_count():
     db.commit.assert_called_once()
 
 
-def test_device_token_upsert_reactivates_existing_token_without_duplicate_insert():
+def test_web_device_token_upsert_reactivates_existing_token_without_duplicate_insert():
     user_id = uuid4()
     device = SimpleNamespace(id=uuid4(), user_id=uuid4(), token="token", platform="android", is_active=False)
     db = _query_db(device)
 
-    result = notification_service.register_device_token(db, user_id, DeviceTokenUpsert(token=" token "))
+    result = notification_service.register_device_token(db, user_id, DeviceTokenUpsert(token=" token ", platform="web"))
 
     assert result["token"] == "token"
+    assert result["platform"] == "web"
     assert device.user_id == user_id
     assert device.is_active is True
     db.add.assert_not_called()
