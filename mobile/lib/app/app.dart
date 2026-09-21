@@ -111,10 +111,10 @@ class _MainPage extends StatelessWidget {
         };
         Navigator.of(context).pushReplacementNamed(route);
       },
-       body: CatalogPage(
-         controller: catalogController,
-         authController: authController,
-       ),
+      body: CatalogPage(
+        controller: catalogController,
+        authController: authController,
+      ),
     );
   }
 }

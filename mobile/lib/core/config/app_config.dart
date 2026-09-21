@@ -3,8 +3,17 @@ class AppConfig {
 
   static const backendUrl = String.fromEnvironment(
     'BACKEND_URL',
-    defaultValue: 'http://10.0.2.2:8000',
+    defaultValue: 'http://192.168.0.7:8000',
   );
+
+  // The emulator default targets the local frontend; deployed/device builds
+  // must provide a real HTTPS URL with --dart-define=FRONTEND_URL=....
+  static const frontendUrl = String.fromEnvironment(
+    'FRONTEND_URL',
+    defaultValue: 'https://ecommerce-five-xi-60.vercel.app',
+  );
+
+  static const decartApiKey = String.fromEnvironment('DECART_API_KEY');
 
   static const apiPrefix = '/api';
 
@@ -15,6 +24,9 @@ class AppConfig {
   );
 
   static String get apiBaseUrl => '$backendUrl$apiPrefix';
+
+  static String get decartTryOnUrl =>
+      '${frontendUrl.trim().replaceFirst(RegExp(r'/$'), '')}/decart-try-on.html';
 
   static const connectTimeout = Duration(seconds: 15);
   static const receiveTimeout = Duration(seconds: 15);
