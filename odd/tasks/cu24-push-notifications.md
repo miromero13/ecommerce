@@ -38,9 +38,9 @@ Administrators, customers, and branch managers need timely alerts without manual
 - [x] T4 — Add Flutter FCM initialization, Android permission/token registration, foreground/background handling, and tap routing.
 - [x] T5 — Add the mobile inbox, unread badge, read action, and focused tests.
 - [x] T6 — Run focused and baseline checks, reconcile failures, update this document, and record work-unit commit evidence.
-- [ ] T7 — Add Firebase Web Messaging to Angular, register web tokens, and serve the messaging service worker.
-- [ ] T8 — Add the web notification inbox, unread badge, read action, permission handling, and data-driven tap navigation.
-- [ ] T9 — Run web-focused checks and record the combined Android/Web verification state.
+- [x] T7 — Add Firebase Web Messaging to Angular, register web tokens, and serve the messaging service worker.
+- [x] T8 — Add the web notification inbox, unread badge, read action, permission handling, and data-driven tap navigation.
+- [x] T9 — Run web-focused checks and record the combined Android/Web verification state.
 
 ## Acceptance criteria
 
@@ -87,3 +87,16 @@ git status --short
 - Security verification: `git check-ignore` confirms `backend/.secrets/` and `mobile/android/app/google-services.json` are ignored; neither secret file is included in the implementation diff.
 - Rollback boundary: remove the CU24 notification files and matching config/router/Gradle/pubspec/manifest changes; revert migration `0037` to remove only the two additive tables. Existing tables, virtual try-on HTML, iOS project files, and frontend code remain outside the feature.
 - Deferred semantics: recommendation/catalog push events remain deferred because no corresponding domain transition event exists in the current services.
+
+### Web Push slice evidence
+
+- Web work-unit commits: `ea74ff7 feat(backend): accept web notification tokens` and `432309c feat(web): add Firebase push notifications`.
+- Exact changed files: `backend/app/schemas/notification_schema.py`, `backend/tests/test_notifications.py`, `frontend/package.json`, `frontend/package-lock.json`, `frontend/src/environments/environment.ts`, `frontend/public/firebase-messaging-sw.js`, `frontend/src/app/app.ts`, `frontend/src/app/app.routes.ts`, `frontend/src/app/core/layouts/app-shell.component.ts`, `frontend/src/app/core/layouts/app-shell.component.html`, `frontend/src/app/features/shared/models/notification.model.ts`, `frontend/src/app/features/shared/services/notification-api.service.ts`, `frontend/src/app/features/shared/services/notification-push.service.ts`, `frontend/src/app/features/shared/pages/notification-page.component.ts`, `frontend/src/app/features/shared/pages/notification-page.component.html`, and this task document.
+- `npm --prefix frontend install` → blocked by the pre-existing `angular-chrts@0.1.0-beta.7` peer requirement for Angular 19 while the project uses Angular 21 (`ERESOLVE`). `npm --prefix frontend install firebase --legacy-peer-deps` → dependency and lockfile update completed; npm reported 75 audit vulnerabilities.
+- `npm --prefix frontend test` → Angular development build passed.
+- `npm --prefix frontend run build` → production build passed with the existing initial bundle budget warning (`762.09 kB`, `12.09 kB` over `750 kB`). Built asset `frontend/dist/frontend/browser/firebase-messaging-sw.js` is present; `node --check frontend/public/firebase-messaging-sw.js` passed.
+- `PYTHONPATH=. .venv/bin/python -m pytest -q tests/test_notifications.py` from `backend` → `4 passed, 1 warning`.
+- `git diff --check` → passed. `git status --short` confirms the unrelated pre-existing `mobile/ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` remains modified and is not part of this slice.
+- Browser delivery status: no browser/device push session was available, so real permission, FCM delivery, background display, and click routing remain pending manual HTTPS-browser verification.
+- Current Android package mismatch gap remains unchanged: supplied local Firebase Android configuration is for `com.example.flutter_template`, while the app application ID is `com.example.mobile`; the existing Android integration preserves this as an explicit gap.
+- Rollback boundary: revert the web-only files listed above, remove the `firebase` dependency and lockfile entries, and restore `DeviceTokenUpsert.platform` to `android`-only. Leave migration `0037`, Android notification behavior, existing tables, `mobile/ios/.../Package.resolved`, service-account files, `google-services.json`, and virtual try-on HTML untouched.
