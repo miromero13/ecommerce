@@ -507,6 +507,8 @@
 
     let configuredProductName = "";
 
+    let keepSessionActive = false;
+
     let variantGarmentActive = false;
 
     let resultTimer = null;
@@ -561,8 +563,10 @@
       console.error(error);
 
       const message =
-        error?.message ||
-        String(error);
+        error?.name && error?.message
+          ? error.name + ": " + error.message
+          : error?.message ||
+            String(error);
 
       statusElement.textContent =
         "ERROR: " + message;
@@ -631,6 +635,8 @@
         typeof data.productName === "string"
           ? data.productName.trim()
           : "";
+
+      keepSessionActive = data.keepSessionActive === true;
 
       apiKeyInput.value = configuredApiKey;
 
@@ -948,7 +954,7 @@
 
 
                 onRemoteStream:
-                  async (remoteStream) => {
+                  (remoteStream) => {
 
                     showDebug(
                       "Stream IA recibido."
@@ -958,28 +964,7 @@
           resultVideo.srcObject =
             remoteStream;
 
-
-                      try {
-
-                        await resultVideo.play();
-
-                        loadingScreen.hidden = true;
-
-                        startResultTimer();
-
-                      }
-
-                    catch (error) {
-
-                      console.warn(
-                        error
-                      );
-
-                    }
-
-
-                    statusElement.textContent =
-                      "Probador IA funcionando.";
+                      void playRemoteVideo();
 
                   },
 
@@ -1215,6 +1200,12 @@
 
       clearResultTimer();
 
+      if (keepSessionActive) {
+
+        return;
+
+      }
+
       resultTimer = setTimeout(() => {
 
         resultTimer = null;
@@ -1231,6 +1222,51 @@
       }, 5000);
 
     }
+
+    async function playRemoteVideo() {
+
+      resultVideo.muted = true;
+      resultVideo.playsInline = true;
+
+      if (resultVideo.readyState < HTMLMediaElement.HAVE_METADATA) {
+
+        await new Promise(resolve => {
+
+          resultVideo.addEventListener(
+            "loadedmetadata",
+            resolve,
+            { once: true }
+          );
+
+        });
+
+      }
+
+      try {
+
+        await resultVideo.play();
+        loadingScreen.hidden = true;
+        showDebug(
+          "Video remoto reproduciéndose correctamente."
+        );
+        statusElement.textContent =
+          "Probador IA funcionando.";
+        startResultTimer();
+
+      }
+
+      catch (error) {
+
+        console.warn(
+          "No se pudo reproducir el video remoto.",
+          error
+        );
+        showError(error);
+
+      }
+
+    }
+
 
     stopBtn.addEventListener(
       "click",
