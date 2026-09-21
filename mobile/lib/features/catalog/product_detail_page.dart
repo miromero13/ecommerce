@@ -14,6 +14,7 @@ import '../../shared/widgets/product_price.dart';
 import '../../shared/widgets/quantity_selector.dart';
 import '../../shared/widgets/variant_selector.dart';
 import 'catalog_models.dart';
+import 'virtual_try_on_page.dart';
 
 class ProductDetailArguments {
   const ProductDetailArguments({
@@ -80,8 +81,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     }
 
     final variant = _selectedVariant;
-    final imageUrl =
-        variant?.imageUrl ?? (_variants.isEmpty ? product.imageUrl : null);
+    final imageUrl = variant?.imageUrl ?? product.imageUrl;
     final price = variant?.price ?? 0;
     final status = variant?.status ?? product.status;
     final quantity = variant?.branchQuantity ?? product.branchQuantity;
@@ -109,7 +109,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             subtitle: product.sku ?? 'Producto FashionStore',
           ),
           const SizedBox(height: 12),
-           ProductPrice(price: price, originalPrice: variant?.originalPrice),
+          ProductPrice(price: price, originalPrice: variant?.originalPrice),
           if (product.description != null &&
               product.description!.isNotEmpty) ...[
             const SizedBox(height: 16),
@@ -170,12 +170,29 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           AppButton(
             label: 'Reservar prenda',
             icon: const Icon(Icons.bookmark_add_outlined),
-            onPressed: _canReserve(product, variant)
-                ? _reserveGarment
-                : null,
+            onPressed: _canReserve(product, variant) ? _reserveGarment : null,
             variant: AppButtonVariant.outlined,
             expand: true,
           ),
+          if (imageUrl != null && imageUrl.trim().isNotEmpty) ...[
+            const SizedBox(height: 12),
+            AppButton(
+              label: 'Probar prenda',
+              icon: const Icon(Icons.checkroom_outlined),
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => VirtualTryOnPage(
+                      productName: product.name,
+                      garmentImageUrl: imageUrl,
+                    ),
+                  ),
+                );
+              },
+              variant: AppButtonVariant.outlined,
+              expand: true,
+            ),
+          ],
         ],
       ),
     );

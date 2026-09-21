@@ -29,10 +29,9 @@ class AppVariantSelector extends StatelessWidget {
           ChoiceChip(
             label: ConstrainedBox(
               constraints: BoxConstraints(
-                maxWidth: (MediaQuery.sizeOf(context).width - 80).clamp(
-                  100.0,
-                  260.0,
-                ).toDouble(),
+                maxWidth: (MediaQuery.sizeOf(context).width - 80)
+                    .clamp(100.0, 260.0)
+                    .toDouble(),
               ),
               child: Text(
                 option.label,

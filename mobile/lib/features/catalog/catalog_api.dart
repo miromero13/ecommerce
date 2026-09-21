@@ -54,18 +54,22 @@ class CatalogApi {
         Map<String, dynamic>.from(value as Map),
       ),
     );
-    return response.data ?? const CollaborativeRecommendations(recommendations: []);
+    return response.data ??
+        const CollaborativeRecommendations(recommendations: []);
   }
 
   Future<Product> getProduct(String productId, {String? branchId}) async {
     final response = await _client.get<Product>(
       'catalog/products/$productId',
       queryParameters: branchId == null ? null : {'branch_id': branchId},
-      parser: (value) => Product.fromJson(Map<String, dynamic>.from(value as Map)),
+      parser: (value) =>
+          Product.fromJson(Map<String, dynamic>.from(value as Map)),
     );
     final product = response.data;
     if (product == null) {
-      throw const FormatException('La respuesta del producto no contiene datos');
+      throw const FormatException(
+        'La respuesta del producto no contiene datos',
+      );
     }
     return product;
   }
