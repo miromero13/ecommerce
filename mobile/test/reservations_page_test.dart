@@ -91,9 +91,8 @@ void main() {
             ],
           ),
         ),
-        onGenerateRoute: (settings) => MaterialPageRoute<void>(
-          builder: (_) => const SizedBox.shrink(),
-        ),
+        onGenerateRoute: (settings) =>
+            MaterialPageRoute<void>(builder: (_) => const SizedBox.shrink()),
       ),
     );
     await tester.pumpAndSettle();

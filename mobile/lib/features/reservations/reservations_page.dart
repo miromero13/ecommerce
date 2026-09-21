@@ -68,7 +68,9 @@ class _ReservationsPageState extends State<ReservationsPage> {
 
   Future<void> _loadReservations() async {
     await _controller.load();
-    if (!mounted || _initialDetailOpened || widget.initialReservationId == null) {
+    if (!mounted ||
+        _initialDetailOpened ||
+        widget.initialReservationId == null) {
       return;
     }
     _initialDetailOpened = true;
@@ -159,7 +161,9 @@ class _ReservationsPageState extends State<ReservationsPage> {
                 onNotPurchase: reservation.status == ReservationStatus.attended
                     ? () => _decide(reservation, purchase: false)
                     : null,
-                onTransfer: reservation.status == ReservationStatus.purchasePending && reservation.cartId == null
+                onTransfer:
+                    reservation.status == ReservationStatus.purchasePending &&
+                        reservation.cartId == null
                     ? () => _transfer(reservation)
                     : null,
               ),
@@ -259,7 +263,10 @@ class _ReservationsPageState extends State<ReservationsPage> {
     if (message != null) AppSnackBar.show(context, message, tone: tone);
   }
 
-  Future<void> _decide(Reservation reservation, {required bool purchase}) async {
+  Future<void> _decide(
+    Reservation reservation, {
+    required bool purchase,
+  }) async {
     await _controller.decide(reservation.id, purchase: purchase);
     if (mounted) _showFeedback(AppSnackBarTone.success);
   }
@@ -268,7 +275,11 @@ class _ReservationsPageState extends State<ReservationsPage> {
     await _controller.transferToCart(reservation.id);
     if (!mounted) return;
     if (_controller.status == ReservationControllerStatus.error) {
-      AppSnackBar.show(context, _controller.errorMessage ?? 'No se pudo transferir la reserva.', tone: AppSnackBarTone.error);
+      AppSnackBar.show(
+        context,
+        _controller.errorMessage ?? 'No se pudo transferir la reserva.',
+        tone: AppSnackBarTone.error,
+      );
       return;
     }
     Navigator.of(context).pushReplacementNamed('/cart');
@@ -338,15 +349,27 @@ class _ReservationCard extends StatelessWidget {
               spacing: 8,
               children: [
                 if (onPurchase != null)
-                  FilledButton(onPressed: onPurchase, child: const Text('Comprar prendas')),
+                  FilledButton(
+                    onPressed: onPurchase,
+                    child: const Text('Comprar prendas'),
+                  ),
                 if (onNotPurchase != null)
-                  OutlinedButton(onPressed: onNotPurchase, child: const Text('No comprar')),
+                  OutlinedButton(
+                    onPressed: onNotPurchase,
+                    child: const Text('No comprar'),
+                  ),
               ],
             ),
           ],
           if (onTransfer != null) ...[
             const SizedBox(height: 8),
-            Align(alignment: Alignment.centerRight, child: FilledButton(onPressed: onTransfer, child: const Text('Pasar al carrito'))),
+            Align(
+              alignment: Alignment.centerRight,
+              child: FilledButton(
+                onPressed: onTransfer,
+                child: const Text('Pasar al carrito'),
+              ),
+            ),
           ],
         ],
       ),
@@ -372,10 +395,12 @@ class _ReservationCard extends StatelessWidget {
       ReservationStatus.confirmed => const Color(0xFFDDF3E6),
       ReservationStatus.attended => Theme.of(
         context,
-        ).colorScheme.surfaceContainerHighest,
+      ).colorScheme.surfaceContainerHighest,
       ReservationStatus.purchasePending => const Color(0xFFE9D5FF),
       ReservationStatus.sold => const Color(0xFFDDF3E6),
-      ReservationStatus.notSold => Theme.of(context).colorScheme.surfaceContainerHighest,
+      ReservationStatus.notSold => Theme.of(
+        context,
+      ).colorScheme.surfaceContainerHighest,
       ReservationStatus.cancelled ||
       ReservationStatus.expired => Theme.of(context).colorScheme.errorContainer,
     };

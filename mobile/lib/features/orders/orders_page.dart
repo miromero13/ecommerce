@@ -149,9 +149,7 @@ class _OrdersPageState extends State<OrdersPage> {
               _OrderCard(
                 order: order,
                 onTap: () => _showDetails(order.id),
-                onPay: _canPay(order)
-                    ? () => _payOrder(order.id)
-                    : null,
+                onPay: _canPay(order) ? () => _payOrder(order.id) : null,
               ),
               const SizedBox(height: 12),
             ],
