@@ -1245,6 +1245,24 @@
       try {
 
         await resultVideo.play();
+
+        const hasRemoteFrame =
+          await waitForRemoteVideoFrame();
+
+        if (!hasRemoteFrame) {
+
+          loadingScreen.hidden = true;
+
+          showError(
+            new Error(
+              "Decart inició la reproducción, pero no entregó frames de video."
+            )
+          );
+
+          return;
+
+        }
+
         loadingScreen.hidden = true;
         showDebug(
           "Video remoto reproduciéndose correctamente."
@@ -1264,6 +1282,51 @@
         showError(error);
 
       }
+
+    }
+
+
+    function waitForRemoteVideoFrame() {
+
+      if (
+        typeof resultVideo.requestVideoFrameCallback !==
+        "function"
+      ) {
+
+        return Promise.resolve(true);
+
+      }
+
+      return new Promise(resolve => {
+
+        let settled = false;
+
+        const finish = (hasFrame) => {
+
+          if (settled) {
+            return;
+          }
+
+          settled = true;
+
+          showDebug(
+            hasFrame
+              ? "Primer frame remoto recibido: " +
+                resultVideo.videoWidth +
+                "x" +
+                resultVideo.videoHeight
+              : "Reproducción iniciada; primer frame remoto no confirmado."
+          );
+
+          resolve(hasFrame);
+
+        };
+
+        resultVideo.requestVideoFrameCallback(() => finish(true));
+
+        setTimeout(() => finish(false), 10000);
+
+      });
 
     }
 
