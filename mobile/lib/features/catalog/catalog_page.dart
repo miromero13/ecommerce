@@ -1,20 +1,35 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../app/routes.dart';
 import '../../shared/widgets/app_empty_view.dart';
 import '../../shared/widgets/app_error_view.dart';
+import '../../shared/widgets/app_button.dart';
 import '../../shared/widgets/app_loading.dart';
 import '../../shared/widgets/app_section_title.dart';
+import '../../shared/widgets/app_snack_bar.dart';
 import '../../shared/widgets/filter_chip.dart';
 import '../../shared/widgets/product_card.dart';
+import '../auth/auth_controller.dart';
+import '../chatbot/chatbot_page.dart';
+import '../reservations/reservation_models.dart';
+import 'catalog_api.dart';
 import 'catalog_controller.dart';
 import 'catalog_models.dart';
 import 'product_detail_page.dart';
 
 class CatalogPage extends StatefulWidget {
-  const CatalogPage({super.key, this.controller});
+  const CatalogPage({
+    super.key,
+    this.controller,
+    this.authController,
+    this.reservationArguments,
+  });
 
   final CatalogController? controller;
+  final AuthController? authController;
+  final ReservationArguments? reservationArguments;
 
   @override
   State<CatalogPage> createState() => _CatalogPageState();
@@ -23,16 +38,31 @@ class CatalogPage extends StatefulWidget {
 class _CatalogPageState extends State<CatalogPage> {
   late final CatalogController _controller;
   late final bool _ownsController;
+  late final CatalogApi _authenticatedApi;
   late final TextEditingController _searchController;
+  late List<ReservationDraftItem> _reservationItems;
+  List<Product> _recommendedProducts = const [];
+  var _recommendationsRequestVersion = 0;
 
   @override
   void initState() {
     super.initState();
     _ownsController = widget.controller == null;
     _controller = widget.controller ?? CatalogController();
+    _authenticatedApi = CatalogApi(
+      tokenProvider: () => widget.authController?.accessToken,
+      onUnauthorized: widget.authController?.handleUnauthorized,
+    );
     _searchController = TextEditingController();
+    _reservationItems = [...?widget.reservationArguments?.items];
     if (_controller.status == CatalogStatus.idle) {
-      _controller.load();
+      unawaited(
+        _controller.load().then((_) {
+          if (mounted) unawaited(_loadRecommendations());
+        }),
+      );
+    } else if (_controller.status == CatalogStatus.ready) {
+      unawaited(_loadRecommendations());
     }
   }
 
@@ -47,23 +77,34 @@ class _CatalogPageState extends State<CatalogPage> {
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: _controller,
-      builder: (context, _) => ListView(
-        padding: const EdgeInsets.all(20),
+      builder: (context, _) => Stack(
         children: [
-          const AppSectionTitle(
-            title: 'Catálogo público',
-            subtitle: 'Explora las prendas disponibles en FashionStore.',
+          ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              const AppSectionTitle(
+                title: 'Catálogo público',
+                subtitle: 'Explora las prendas disponibles en FashionStore.',
+              ),
+              const SizedBox(height: 20),
+              _shortcuts(),
+              const SizedBox(height: 20),
+              _searchField(),
+              const SizedBox(height: 12),
+              _branchSelector(),
+              if (_controller.status == CatalogStatus.ready) ...[
+                const SizedBox(height: 8),
+                _filters(),
+              ],
+              const SizedBox(height: 16),
+              _content(),
+            ],
           ),
-          const SizedBox(height: 20),
-          _searchField(),
-          const SizedBox(height: 12),
-          _branchSelector(),
-          if (_controller.status == CatalogStatus.ready) ...[
-            const SizedBox(height: 8),
-            _filters(),
-          ],
-          const SizedBox(height: 16),
-          _content(),
+          if (_isCliente)
+            ChatbotAssistant(
+              authController: widget.authController!,
+              onOpenProduct: _openProductById,
+            ),
         ],
       ),
     );
@@ -73,16 +114,43 @@ class _CatalogPageState extends State<CatalogPage> {
     return TextField(
       controller: _searchController,
       textInputAction: TextInputAction.search,
-      onSubmitted: _controller.search,
+      onSubmitted: _search,
       decoration: InputDecoration(
         hintText: 'Buscar productos',
         prefixIcon: const Icon(Icons.search),
         suffixIcon: IconButton(
           tooltip: 'Buscar',
-          onPressed: () => _controller.search(_searchController.text),
+          onPressed: () => _search(_searchController.text),
           icon: const Icon(Icons.arrow_forward),
         ),
       ),
+    );
+  }
+
+  Widget _shortcuts() {
+    return Row(
+      children: [
+        Expanded(
+          child: AppButton(
+            label: 'Carrito',
+            icon: const Icon(Icons.shopping_bag_outlined),
+            onPressed: () => Navigator.of(context).pushNamed(AppRoutes.cart),
+            expand: true,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: AppButton(
+            label: 'Reservas',
+            icon: const Icon(Icons.event_available_outlined),
+            onPressed: () => Navigator.of(context).pushNamed(
+              AppRoutes.reservationCreate,
+              arguments: ReservationArguments(items: List.of(_reservationItems)),
+            ),
+            expand: true,
+          ),
+        ),
+      ],
     );
   }
 
@@ -231,17 +299,79 @@ class _CatalogPageState extends State<CatalogPage> {
         padding: const EdgeInsets.symmetric(vertical: 40),
         child: AppErrorView(
           message: _controller.errorMessage ?? 'No se pudo cargar el catálogo.',
-          onRetry: _controller.load,
+          onRetry: _retryCatalog,
         ),
       ),
-      CatalogStatus.ready when _controller.products.isEmpty => const Padding(
-        padding: EdgeInsets.symmetric(vertical: 80),
-        child: AppEmptyView(
-          message: 'No encontramos productos con esos filtros.',
-        ),
-      ),
-      CatalogStatus.ready => _productGrid(),
+      CatalogStatus.ready => _catalogContent(),
     };
+  }
+
+  Widget _catalogContent() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (_recommendedProducts.isNotEmpty) ...[
+          const AppSectionTitle(
+            title: 'Recomendaciones para ti',
+            subtitle: 'Prendas que podrían gustarte.',
+          ),
+          const SizedBox(height: 12),
+          _recommendationCarousel(),
+          const SizedBox(height: 24),
+        ],
+        if (_controller.products.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 80),
+            child: AppEmptyView(
+              message: 'No encontramos productos con esos filtros.',
+            ),
+          )
+        else
+          _productGrid(),
+      ],
+    );
+  }
+
+  Widget _recommendationCarousel() {
+    return SizedBox(
+      height: 300,
+      child: Stack(
+        children: [
+          ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: _recommendedProducts.length,
+            padding: const EdgeInsets.only(right: 42),
+            separatorBuilder: (_, _) => const SizedBox(width: 12),
+            itemBuilder: (context, index) => SizedBox(
+              width: 180,
+              child: _productCard(_recommendedProducts[index]),
+            ),
+          ),
+          if (_recommendedProducts.length > 1)
+            Positioned(
+              top: 0,
+              right: 0,
+              bottom: 0,
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Theme.of(context).colorScheme.surface.withValues(alpha: 0),
+                        Theme.of(context).colorScheme.surface,
+                      ],
+                    ),
+                  ),
+                  child: const SizedBox(
+                    width: 48,
+                    child: Center(child: Icon(Icons.swipe_outlined)),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
   Widget _productGrid() {
@@ -255,44 +385,134 @@ class _CatalogPageState extends State<CatalogPage> {
         childAspectRatio: .60,
       ),
       itemCount: _controller.products.length,
-      itemBuilder: (context, index) {
-        final product = _controller.products[index];
-        final variants = product.variants ?? const <ProductVariant>[];
-        final primaryVariant = variants.isEmpty ? null : variants.first;
-        final imageUrls = (product.variants ?? const <ProductVariant>[])
-            .where(
-              (variant) =>
-                  variant.status == ProductStatus.active &&
-                  variant.imageUrl?.trim().isNotEmpty == true,
-            )
-            .map((variant) => variant.imageUrl!.trim())
-            .toList(growable: false);
-        final badge = product.branchQuantity == null
-            ? null
-            : product.branchQuantity! > 0
-            ? 'Disponible'
-            : 'Agotado';
-
-        return ProductCard(
-          name: product.name,
-           price: primaryVariant?.price ?? 0,
-           originalPrice: primaryVariant?.originalPrice,
-          imageUrl: imageUrls.isEmpty ? product.imageUrl : null,
-          variantImageUrls: imageUrls,
-          badge: badge,
-          onTap: () => Navigator.of(context).pushNamed(
-            AppRoutes.productDetail,
-            arguments: ProductDetailArguments(
-              product: product,
-              sizes: _controller.sizes,
-              colors: _controller.colors,
-              branches: _controller.branches,
-              branchId: _controller.branchId,
-            ),
-          ),
-        );
-      },
+      itemBuilder: (context, index) => _productCard(_controller.products[index]),
     );
+  }
+
+  Widget _productCard(Product product) {
+    final variants = product.variants ?? const <ProductVariant>[];
+    final primaryVariant = variants.isEmpty ? null : variants.first;
+    final imageUrls = variants
+        .where(
+          (variant) =>
+              variant.status == ProductStatus.active &&
+              variant.imageUrl?.trim().isNotEmpty == true,
+        )
+        .map((variant) => variant.imageUrl!.trim())
+        .toList(growable: false);
+    final badge = product.branchQuantity == null
+        ? null
+        : product.branchQuantity! > 0
+        ? 'Disponible'
+        : 'Agotado';
+
+    return ProductCard(
+      name: product.name,
+      price: primaryVariant?.price ?? 0,
+      originalPrice: primaryVariant?.originalPrice,
+      imageUrl: imageUrls.isEmpty ? product.imageUrl : null,
+      variantImageUrls: imageUrls,
+      badge: badge,
+      onTap: () => _openProduct(product),
+    );
+  }
+
+  Future<void> _openProduct(Product product) async {
+    unawaited(_recordProductView(product));
+    final result = await Navigator.of(context).pushNamed(
+      AppRoutes.productDetail,
+      arguments: ProductDetailArguments(
+        product: product,
+        sizes: _controller.sizes,
+        colors: _controller.colors,
+        branches: _controller.branches,
+        branchId: _controller.branchId,
+        reservationArguments: ReservationArguments(
+          items: List.of(_reservationItems),
+        ),
+      ),
+    );
+    if (!mounted || result is! ReservationArguments) return;
+
+    setState(() => _reservationItems = List.of(result.items));
+    AppSnackBar.show(
+      context,
+      'Prenda agregada a la reserva.',
+      tone: AppSnackBarTone.success,
+    );
+  }
+
+  Future<void> _openProductById(String productId) async {
+    try {
+      final product = await _authenticatedApi.getProduct(
+        productId,
+        branchId: _controller.branchId,
+      );
+      if (mounted) await _openProduct(product);
+    } catch (_) {
+      if (mounted) {
+        AppSnackBar.show(
+          context,
+          'No se pudo cargar el producto.',
+          tone: AppSnackBarTone.error,
+        );
+      }
+    }
+  }
+
+  Future<void> _recordProductView(Product product) async {
+    if (!_isCliente) return;
+    try {
+      await _authenticatedApi.recordProductView(
+        product.id,
+        variantId: product.variants?.firstOrNull?.id,
+        branchId: _controller.branchId,
+      );
+    } catch (_) {
+      // View telemetry must never block catalog navigation.
+    }
+  }
+
+  Future<void> _loadRecommendations() async {
+    final requestVersion = ++_recommendationsRequestVersion;
+    final authController = widget.authController;
+    final user = authController?.user;
+    if (!_isCliente || authController == null || user == null) {
+      if (mounted) setState(() => _recommendedProducts = const []);
+      return;
+    }
+
+    try {
+      final recommendations = await _authenticatedApi
+          .getCollaborativeRecommendations(
+            userId: user.id,
+            branchId: _controller.branchId,
+          );
+      final catalog = await _authenticatedApi.getProducts(
+        branchId: _controller.branchId,
+      );
+      final productById = {for (final product in catalog) product.id: product};
+      if (!mounted || requestVersion != _recommendationsRequestVersion) return;
+      setState(
+        () => _recommendedProducts = recommendations.recommendations
+            .map((item) => productById[item.productId])
+            .whereType<Product>()
+            .toList(growable: false),
+      );
+    } catch (_) {
+      if (!mounted || requestVersion != _recommendationsRequestVersion) return;
+      setState(() => _recommendedProducts = const []);
+    }
+  }
+
+  Future<void> _search(String value) async {
+    await _controller.search(value);
+    if (mounted) await _loadRecommendations();
+  }
+
+  Future<void> _retryCatalog() async {
+    await _controller.load();
+    if (mounted) await _loadRecommendations();
   }
 
   void _updateFilters({
@@ -303,7 +523,7 @@ class _CatalogPageState extends State<CatalogPage> {
     String? seasonId,
     String? collectionId,
   }) {
-    _controller.updateFilters(
+    unawaited(_controller.updateFilters(
       branchId: branchId == null
           ? _controller.branchId
           : _emptyAsNull(branchId),
@@ -318,8 +538,14 @@ class _CatalogPageState extends State<CatalogPage> {
       collectionId: collectionId == null
           ? _controller.collectionId
           : _emptyAsNull(collectionId),
-    );
+    ).then((_) {
+      if (mounted) unawaited(_loadRecommendations());
+    }));
   }
+
+  bool get _isCliente =>
+      widget.authController?.isAuthenticated == true &&
+      widget.authController?.user?.rol.value == 'cliente';
 
   static String? _emptyAsNull(String? value) =>
       value == null || value.isEmpty ? null : value;

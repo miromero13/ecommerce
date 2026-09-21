@@ -57,6 +57,18 @@ class OrderApi {
     return StripeCheckoutResult(checkout: checkout, message: response.message);
   }
 
+  Future<StripeCheckoutResult> payOrder({required String orderId}) async {
+    final response = await _client.post<StripeCheckout>(
+      'payments/stripe/orders/$orderId',
+      parser: _parseStripeCheckout,
+    );
+    final checkout = response.data;
+    if (checkout == null) {
+      throw const FormatException('La respuesta de Stripe está vacía');
+    }
+    return StripeCheckoutResult(checkout: checkout, message: response.message);
+  }
+
   static Order _parseOrder(dynamic value) {
     if (value is! Map) {
       throw const FormatException('La respuesta del pedido es inválida');

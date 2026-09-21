@@ -13,6 +13,7 @@ import '../../shared/widgets/product_price.dart';
 import '../../shared/widgets/quantity_selector.dart';
 import '../auth/auth_controller.dart';
 import '../auth/login_dialog.dart';
+import '../../app/routes.dart';
 import 'cart_api.dart';
 import 'cart_controller.dart';
 import 'cart_models.dart';
@@ -153,12 +154,12 @@ class _CartPageState extends State<CartPage> {
              onRemove: () => _runMutation(_controller.removeCoupon),
            ),
            const SizedBox(height: 16),
-          AppButton(
-            label: 'Continuar',
-            icon: Icon(Icons.arrow_forward),
-            onPressed: () => Navigator.of(context).pushNamed('/orders'),
-            expand: true,
-          ),
+           AppButton(
+             label: 'Continuar',
+             icon: Icon(Icons.arrow_forward),
+             onPressed: () => Navigator.of(context).pushNamed(AppRoutes.checkout),
+             expand: true,
+           ),
         ],
       ),
     );

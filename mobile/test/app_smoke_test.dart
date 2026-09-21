@@ -59,11 +59,15 @@ void main() {
     );
 
     await _enterAsGuest(tester);
-    await tester.tap(find.text('Carrito'));
+    await tester.tap(find.text('Gestiones'));
     await tester.pumpAndSettle();
 
+    expect(find.text('Mis reservas'), findsOneWidget);
+    expect(find.text('Mis pedidos'), findsOneWidget);
+    await tester.tap(find.text('Mis reservas'));
+    await tester.pumpAndSettle();
     expect(
-      find.text('Inicia sesión para consultar tu carrito.'),
+      find.text('Inicia sesión para consultar tus reservas.'),
       findsOneWidget,
     );
     expect(find.byType(AppScaffold), findsOneWidget);
@@ -76,6 +80,11 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Catálogo público'), findsOneWidget);
+
+    await tester.tap(find.text('Carrito'));
+    await tester.pumpAndSettle();
+    expect(find.text('Carrito privado'), findsOneWidget);
+    expect(find.text('Carrito'), findsAtLeastNWidgets(1));
   });
 
   testWidgets('mantiene detalle y login como rutas públicas', (tester) async {

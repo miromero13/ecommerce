@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_stripe/flutter_stripe.dart' hide PaymentMethod;
 
-import '../../core/config/app_config.dart';
+import '../../app/routes.dart';
 import '../../shared/widgets/app_button.dart';
 import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/app_empty_view.dart';
 import '../../shared/widgets/app_error_view.dart';
 import '../../shared/widgets/app_loading.dart';
 import '../../shared/widgets/app_section_title.dart';
-import '../../shared/widgets/app_snack_bar.dart';
 import '../../shared/widgets/product_image.dart';
 import '../../shared/widgets/product_price.dart';
 import '../auth/auth_controller.dart';
@@ -17,9 +15,15 @@ import 'order_controller.dart';
 import 'order_models.dart';
 
 class OrdersPage extends StatefulWidget {
-  const OrdersPage({super.key, required this.authController, this.controller});
+  const OrdersPage({
+    super.key,
+    required this.authController,
+    this.initialOrderId,
+    this.controller,
+  });
 
   final AuthController authController;
+  final String? initialOrderId;
   final OrderController? controller;
 
   @override
@@ -30,8 +34,7 @@ class _OrdersPageState extends State<OrdersPage> {
   late final OrderController _controller;
   late final bool _ownsController;
   String? _loadedToken;
-  String? _pickupBranchId;
-  PaymentMethod _paymentMethod = PaymentMethod.cash;
+  bool _initialDetailOpened = false;
 
   @override
   void initState() {
@@ -60,7 +63,19 @@ class _OrdersPageState extends State<OrdersPage> {
     final token = widget.authController.accessToken;
     if (token == null || token == _loadedToken) return;
     _loadedToken = token;
-    _controller.load();
+    _loadOrders();
+  }
+
+  Future<void> _loadOrders() async {
+    await _controller.load();
+    if (!mounted ||
+        _initialDetailOpened ||
+        widget.initialOrderId == null ||
+        _controller.status != OrderControllerStatus.ready) {
+      return;
+    }
+    _initialDetailOpened = true;
+    await _showDetails(widget.initialOrderId!);
   }
 
   @override
@@ -124,8 +139,6 @@ class _OrdersPageState extends State<OrdersPage> {
             subtitle: 'Consulta el estado y el detalle de tus compras.',
           ),
           const SizedBox(height: 16),
-          _checkoutCard(context),
-          const SizedBox(height: 20),
           if (_controller.orders.isEmpty)
             const AppEmptyView(
               title: 'Aún no tienes pedidos',
@@ -133,224 +146,30 @@ class _OrdersPageState extends State<OrdersPage> {
             )
           else
             for (final order in _controller.orders) ...[
-              _OrderCard(order: order, onTap: () => _showDetails(order.id)),
-              const SizedBox(height: 12),
-            ],
-        ],
-      ),
-    );
-  }
-
-  Widget _checkoutCard(BuildContext context) {
-    final isSaving = _controller.status == OrderControllerStatus.saving;
-    final branches = _controller.pickupBranches
-        .where((branch) => branch.isActive)
-        .toList(growable: false);
-    final pickupBranchId =
-        _pickupBranchId ??
-        branches.where((branch) => branch.isDefault).firstOrNull?.id ??
-        branches.firstOrNull?.id;
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Finalizar compra',
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 4),
-          const Text('Elige dónde retirarás tu pedido y cómo pagarás.'),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            initialValue: pickupBranchId,
-            decoration: const InputDecoration(labelText: 'Sucursal de retiro'),
-            hint: const Text('Selecciona una sucursal'),
-            items: branches
-                .map(
-                  (branch) => DropdownMenuItem(
-                    value: branch.id,
-                    child: Text('${branch.name} · ${branch.city}'),
-                  ),
-                )
-                .toList(growable: false),
-            onChanged: isSaving
-                ? null
-                : (value) => setState(() => _pickupBranchId = value),
-          ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<PaymentMethod>(
-            initialValue: _paymentMethod,
-            decoration: const InputDecoration(labelText: 'Método de pago'),
-            items: const [
-              DropdownMenuItem(
-                value: PaymentMethod.cash,
-                child: Text('Efectivo al retirar'),
-              ),
-              DropdownMenuItem(
-                value: PaymentMethod.stripe,
-                child: Text('Tarjeta'),
-              ),
-            ],
-            onChanged: isSaving
-                ? null
-                : (value) => setState(() => _paymentMethod = value!),
-          ),
-          const SizedBox(height: 12),
-          AppButton(
-            label: _paymentMethod == PaymentMethod.cash
-                ? 'Comprar con efectivo'
-                : 'Pagar con tarjeta',
-            icon: Icon(
-              _paymentMethod == PaymentMethod.cash
-                  ? Icons.payments_outlined
-                  : Icons.credit_card_outlined,
-            ),
-            onPressed: isSaving || pickupBranchId == null
-                ? null
-                : () => _checkout(pickupBranchId),
-            isLoading: isSaving,
-            expand: true,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _checkout(String pickupBranchId) async {
-    if (_paymentMethod == PaymentMethod.stripe &&
-        AppConfig.stripePublishableKey.isEmpty) {
-      AppSnackBar.show(
-        context,
-        'Configura STRIPE_PUBLISHABLE_KEY para pagar con tarjeta.',
-        tone: AppSnackBarTone.error,
-      );
-      return;
-    }
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirmar compra'),
-        content: const Text(
-          'Se creará un pedido con los productos del carrito.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Volver'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Confirmar'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    if (_paymentMethod == PaymentMethod.stripe) {
-      await _checkoutStripe(pickupBranchId);
-      return;
-    }
-    await _controller.checkoutCash(pickupBranchId: pickupBranchId);
-    if (!mounted) return;
-    final isError = _controller.status == OrderControllerStatus.error;
-    final message = isError
-        ? _controller.errorMessage
-        : _controller.feedbackMessage;
-    if (message != null) {
-      AppSnackBar.show(
-        context,
-        message,
-        tone: isError ? AppSnackBarTone.error : AppSnackBarTone.success,
-      );
-    }
-    if (!isError && _controller.selectedOrder != null) {
-      final branch = _controller.pickupBranches
-          .where((branch) => branch.id == pickupBranchId)
-          .firstOrNull;
-      await _showCashPickup(_controller.selectedOrder!, branch);
-    }
-  }
-
-  Future<void> _checkoutStripe(String pickupBranchId) async {
-    final result = await _controller.checkoutStripe(
-      pickupBranchId: pickupBranchId,
-    );
-    if (!mounted) return;
-    if (result == null) {
-      AppSnackBar.show(
-        context,
-        _controller.errorMessage ?? 'No se pudo iniciar el pago.',
-        tone: AppSnackBarTone.error,
-      );
-      return;
-    }
-    try {
-      await Stripe.instance.initPaymentSheet(
-        paymentSheetParameters: SetupPaymentSheetParameters(
-          merchantDisplayName: 'FashionStore',
-          paymentIntentClientSecret: result.checkout.clientSecret,
-        ),
-      );
-      await Stripe.instance.presentPaymentSheet();
-      await _controller.loadDetail(result.checkout.orderId);
-      if (!mounted) return;
-      final paid = _controller.selectedOrder?.paymentStatus == PaymentStatus.paid;
-      AppSnackBar.show(
-        context,
-        paid
-            ? 'Pago confirmado. Tu pedido queda pendiente de retiro.'
-            : 'Pago enviado. Esperando confirmación del servidor.',
-        tone: paid ? AppSnackBarTone.success : AppSnackBarTone.warning,
-      );
-    } on StripeException catch (error) {
-      if (!mounted) return;
-      AppSnackBar.show(
-        context,
-        error.error.localizedMessage ?? 'No se pudo completar el pago.',
-        tone: AppSnackBarTone.error,
-      );
-    } catch (_) {
-      if (!mounted) return;
-      AppSnackBar.show(
-        context,
-        'No se pudo completar el pago.',
-        tone: AppSnackBarTone.error,
-      );
-    }
-  }
-
-  Future<void> _showCashPickup(Order order, PickupBranch? branch) {
-    return showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Retiro en efectivo',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+              _OrderCard(
+                order: order,
+                onTap: () => _showDetails(order.id),
+                onPay: _canPay(order)
+                    ? () => _payOrder(order.id)
+                    : null,
               ),
               const SizedBox(height: 12),
-              Text('Código: ${order.pickupCode ?? 'No disponible'}'),
-              Text(
-                'Sucursal: ${branch?.name ?? order.pickupBranchId ?? 'No disponible'}',
-              ),
-              Text(
-                'Vence: ${order.pickupExpiresAt == null ? 'No disponible' : _displayDateTime(order.pickupExpiresAt!)}',
-              ),
             ],
-          ),
-        ),
+        ],
       ),
     );
+  }
+
+  bool _canPay(Order order) {
+    return order.fulfillmentStatus == FulfillmentStatus.pendingPickup &&
+        order.paymentStatus == PaymentStatus.pending;
+  }
+
+  Future<void> _payOrder(String orderId) async {
+    await Navigator.of(
+      context,
+    ).pushNamed(AppRoutes.checkout, arguments: orderId);
+    if (mounted) await _controller.load();
   }
 
   Future<void> _showDetails(String orderId) async {
@@ -372,13 +191,16 @@ class _OrdersPageState extends State<OrdersPage> {
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
-             Text('Estado: ${_fulfillmentLabel(order.fulfillmentStatus)}'),
+            Text('Estado: ${_fulfillmentLabel(order.fulfillmentStatus)}'),
+            Text('Pedido: ${_orderStatusLabel(order.status)}'),
             Text('Pago: ${_paymentStatusLabel(order.paymentStatus)}'),
-            if (order.paymentMethod == PaymentMethod.cash) ...[
-              Text('Código de retiro: ${order.pickupCode ?? 'No disponible'}'),
+            if (order.pickupBranchId != null) ...[
               Text(
                 'Sucursal: ${_controller.pickupBranches.where((branch) => branch.id == order.pickupBranchId).firstOrNull?.name ?? order.pickupBranchId ?? 'No disponible'}',
               ),
+            ],
+            if (order.paymentMethod == PaymentMethod.cash) ...[
+              Text('Código de retiro: ${order.pickupCode ?? 'No disponible'}'),
               if (order.pickupExpiresAt != null)
                 Text('Vence: ${_displayDateTime(order.pickupExpiresAt!)}'),
             ],
@@ -419,47 +241,63 @@ class _OrdersPageState extends State<OrdersPage> {
 }
 
 class _OrderCard extends StatelessWidget {
-  const _OrderCard({required this.order, required this.onTap});
+  const _OrderCard({required this.order, required this.onTap, this.onPay});
 
   final Order order;
   final VoidCallback onTap;
+  final VoidCallback? onPay;
 
   @override
   Widget build(BuildContext context) {
     return AppCard(
       onTap: onTap,
-      child: Row(
+      child: Column(
         children: [
-          CircleAvatar(
-            backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-            child: Icon(
-              Icons.receipt_long_outlined,
-              color: Theme.of(context).colorScheme.onPrimaryContainer,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Pedido ${order.id.substring(0, 8)}',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+          Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                child: Icon(
+                  Icons.receipt_long_outlined,
+                  color: Theme.of(context).colorScheme.onPrimaryContainer,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                   '${_fulfillmentLabel(order.fulfillmentStatus)} · ${order.items.length} ítems',
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Pedido ${order.id.substring(0, 8)}',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${_fulfillmentLabel(order.fulfillmentStatus)} · ${order.items.length} ítems',
+                    ),
+                    Text(_displayDate(order.createdAt)),
+                  ],
                 ),
-                Text(_displayDate(order.createdAt)),
-              ],
+              ),
+              ProductPrice(
+                price: order.totalAmount,
+                currency: _currencyLabel(order.currency),
+              ),
+            ],
+          ),
+          if (onPay != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: AppButton(
+                label: 'Pagar pedido',
+                icon: const Icon(Icons.credit_card_outlined),
+                onPressed: onPay,
+                variant: AppButtonVariant.outlined,
+                expand: true,
+              ),
             ),
-          ),
-          ProductPrice(
-            price: order.totalAmount,
-            currency: _currencyLabel(order.currency),
-          ),
         ],
       ),
     );
@@ -481,6 +319,15 @@ String _paymentStatusLabel(PaymentStatus status) {
     PaymentStatus.pending => 'Pendiente',
     PaymentStatus.paid => 'Pagado',
     PaymentStatus.failed => 'Fallido',
+  };
+}
+
+String _orderStatusLabel(OrderStatus status) {
+  return switch (status) {
+    OrderStatus.pending => 'Pendiente',
+    OrderStatus.paid => 'Pagado',
+    OrderStatus.failed => 'Fallido',
+    OrderStatus.cancelled => 'Cancelado',
   };
 }
 

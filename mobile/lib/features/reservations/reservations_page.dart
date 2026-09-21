@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../app/theme.dart';
-import '../../shared/widgets/app_button.dart';
 import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/app_empty_view.dart';
 import '../../shared/widgets/app_error_view.dart';
@@ -19,12 +18,12 @@ class ReservationsPage extends StatefulWidget {
   const ReservationsPage({
     super.key,
     required this.authController,
-    this.arguments,
+    this.initialReservationId,
     this.controller,
   });
 
   final AuthController authController;
-  final ReservationArguments? arguments;
+  final String? initialReservationId;
   final ReservationController? controller;
 
   @override
@@ -34,12 +33,8 @@ class ReservationsPage extends StatefulWidget {
 class _ReservationsPageState extends State<ReservationsPage> {
   late final ReservationController _controller;
   late final bool _ownsController;
-  late List<ReservationDraftItem> _draftItems;
-
   String? _loadedToken;
-  String? _selectedBranchId;
-  DateTime _visitDate = _dateOnly(DateTime.now());
-  String? _formError;
+  bool _initialDetailOpened = false;
 
   @override
   void initState() {
@@ -48,7 +43,6 @@ class _ReservationsPageState extends State<ReservationsPage> {
     _controller =
         widget.controller ??
         ReservationController(authController: widget.authController);
-    _draftItems = [...?widget.arguments?.items];
     widget.authController.addListener(_handleAuthChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) => _handleAuthChanged());
   }
@@ -74,14 +68,11 @@ class _ReservationsPageState extends State<ReservationsPage> {
 
   Future<void> _loadReservations() async {
     await _controller.load();
-    if (!mounted || _selectedBranchId != null) return;
-    final activeBranches = _controller.branches.where(
-      (branch) => branch.isActive,
-    );
-    _selectedBranchId =
-        activeBranches.where((branch) => branch.isDefault).firstOrNull?.id ??
-        activeBranches.firstOrNull?.id;
-    setState(() {});
+    if (!mounted || _initialDetailOpened || widget.initialReservationId == null) {
+      return;
+    }
+    _initialDetailOpened = true;
+    await _showDetails(widget.initialReservationId!);
   }
 
   @override
@@ -144,10 +135,6 @@ class _ReservationsPageState extends State<ReservationsPage> {
             title: 'Mis reservas',
             subtitle: 'Prepara prendas para probártelas en tienda.',
           ),
-          if (_draftItems.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            _createCard(context),
-          ],
           const SizedBox(height: 20),
           if (_controller.reservations.isEmpty)
             AppEmptyView(
@@ -182,108 +169,6 @@ class _ReservationsPageState extends State<ReservationsPage> {
         ],
       ),
     );
-  }
-
-  Widget _createCard(BuildContext context) {
-    final isSaving = _controller.status == ReservationControllerStatus.saving;
-    final activeBranches = _controller.branches
-        .where((branch) => branch.isActive)
-        .toList();
-    return AbsorbPointer(
-      absorbing: isSaving,
-      child: AppCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Crear reserva',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 4),
-            Text('${_draftItems.length} variante(s) seleccionada(s).'),
-            const SizedBox(height: 12),
-            for (final item in _draftItems) _DraftItemRow(item: item),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              initialValue:
-                  activeBranches.any((branch) => branch.id == _selectedBranchId)
-                  ? _selectedBranchId
-                  : null,
-              decoration: const InputDecoration(labelText: 'Sucursal'),
-              items: [
-                for (final branch in activeBranches)
-                  DropdownMenuItem(
-                    value: branch.id,
-                    child: Text('${branch.name} · ${branch.city}'),
-                  ),
-              ],
-              onChanged: (value) => setState(() => _selectedBranchId = value),
-            ),
-            const SizedBox(height: 12),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.calendar_today_outlined),
-              title: const Text('Fecha de visita'),
-              subtitle: Text(_displayDate(_visitDate)),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: _selectDate,
-            ),
-            if (_formError != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                _formError!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-            ],
-            const SizedBox(height: 12),
-            AppButton(
-              label: 'Crear reserva',
-              icon: const Icon(Icons.event_available_outlined),
-              onPressed: isSaving ? null : _createReservation,
-              isLoading: isSaving,
-              expand: true,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _selectDate() async {
-    final selected = await showDatePicker(
-      context: context,
-      initialDate: _visitDate,
-      firstDate: _dateOnly(DateTime.now()),
-      lastDate: _dateOnly(DateTime.now()).add(const Duration(days: 365)),
-    );
-    if (selected != null && mounted) setState(() => _visitDate = selected);
-  }
-
-  Future<void> _createReservation() async {
-    if (_selectedBranchId == null) {
-      setState(() => _formError = 'Selecciona una sucursal.');
-      return;
-    }
-    if (_draftItems.isEmpty) {
-      setState(() => _formError = 'Agrega al menos una prenda.');
-      return;
-    }
-
-    setState(() => _formError = null);
-    await _controller.create(
-      branchId: _selectedBranchId!,
-      visitDate: _visitDate,
-      items: _draftItems,
-    );
-    if (!mounted) return;
-    if (_controller.status == ReservationControllerStatus.ready) {
-      setState(() => _draftItems = []);
-      _showFeedback(AppSnackBarTone.success);
-    } else if (_controller.status == ReservationControllerStatus.error) {
-      _showFeedback(AppSnackBarTone.error);
-    }
   }
 
   Future<void> _cancel(Reservation reservation) async {
@@ -387,29 +272,6 @@ class _ReservationsPageState extends State<ReservationsPage> {
       return;
     }
     Navigator.of(context).pushReplacementNamed('/cart');
-  }
-}
-
-class _DraftItemRow extends StatelessWidget {
-  const _DraftItemRow({required this.item});
-
-  final ReservationDraftItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      dense: true,
-      leading: SizedBox(
-        width: 40,
-        height: 48,
-        child: ProductImage(imageUrl: item.imageUrl),
-      ),
-      title: Text(item.productName ?? 'Variante seleccionada'),
-      subtitle: Text(
-        '${item.variantSku ?? item.variantId} · Cantidad ${item.quantity}',
-      ),
-    );
   }
 }
 
@@ -519,8 +381,6 @@ class _ReservationCard extends StatelessWidget {
     };
   }
 }
-
-DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);
 
 String _displayDate(DateTime date) {
   final day = date.day.toString().padLeft(2, '0');

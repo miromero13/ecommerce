@@ -72,7 +72,10 @@ class _AuthGate extends StatelessWidget {
           return const SplashPage();
         }
         if (authController.isAuthenticated || authController.hasGuestAccess) {
-          return _MainPage(catalogController: catalogController);
+          return _MainPage(
+            authController: authController,
+            catalogController: catalogController,
+          );
         }
         return Scaffold(
           body: SafeArea(
@@ -90,8 +93,9 @@ class _AuthGate extends StatelessWidget {
 }
 
 class _MainPage extends StatelessWidget {
-  const _MainPage({this.catalogController});
+  const _MainPage({required this.authController, this.catalogController});
 
+  final AuthController authController;
   final CatalogController? catalogController;
 
   @override
@@ -102,12 +106,15 @@ class _MainPage extends StatelessWidget {
       onDestinationSelected: (index) {
         final route = switch (index) {
           0 => AppRoutes.catalog,
-          1 => AppRoutes.cart,
+          1 => AppRoutes.management,
           _ => AppRoutes.account,
         };
         Navigator.of(context).pushReplacementNamed(route);
       },
-      body: CatalogPage(controller: catalogController),
+       body: CatalogPage(
+         controller: catalogController,
+         authController: authController,
+       ),
     );
   }
 }

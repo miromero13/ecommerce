@@ -18,6 +18,9 @@ void main() {
   testWidgets('consulta, edita y sincroniza el perfil autenticado', (
     tester,
   ) async {
+    await tester.binding.setSurfaceSize(const Size(280, 640));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
     final authController = AuthController(api: _FakeAuthApi());
     await authController.login(
       const LoginRequest(email: 'cliente@example.com', password: 'secret'),
@@ -51,6 +54,7 @@ void main() {
 
     await tester.tap(find.text('Editar perfil'));
     await tester.pump();
+    expect(tester.takeException(), isNull);
     await tester.enterText(find.byType(TextField).at(0), 'Cliente Actualizado');
     await tester.enterText(
       find.byType(TextField).at(1),

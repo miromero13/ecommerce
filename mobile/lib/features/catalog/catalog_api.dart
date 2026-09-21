@@ -2,7 +2,16 @@ import '../../core/network/api_client.dart';
 import 'catalog_models.dart';
 
 class CatalogApi {
-  CatalogApi({ApiClient? client}) : _client = client ?? ApiClient();
+  CatalogApi({
+    ApiClient? client,
+    TokenProvider? tokenProvider,
+    UnauthorizedHandler? onUnauthorized,
+  }) : _client =
+           client ??
+           ApiClient(
+             tokenProvider: tokenProvider,
+             onUnauthorized: onUnauthorized,
+           );
 
   final ApiClient _client;
 
@@ -31,6 +40,47 @@ class CatalogApi {
       'catalog/products',
       queryParameters: queryParameters,
       parser: Product.fromJson,
+    );
+  }
+
+  Future<CollaborativeRecommendations> getCollaborativeRecommendations({
+    required String userId,
+    String? branchId,
+  }) async {
+    final response = await _client.get<CollaborativeRecommendations>(
+      'recommendations/collaborative/user/$userId',
+      queryParameters: branchId == null ? null : {'branch_id': branchId},
+      parser: (value) => CollaborativeRecommendations.fromJson(
+        Map<String, dynamic>.from(value as Map),
+      ),
+    );
+    return response.data ?? const CollaborativeRecommendations(recommendations: []);
+  }
+
+  Future<Product> getProduct(String productId, {String? branchId}) async {
+    final response = await _client.get<Product>(
+      'catalog/products/$productId',
+      queryParameters: branchId == null ? null : {'branch_id': branchId},
+      parser: (value) => Product.fromJson(Map<String, dynamic>.from(value as Map)),
+    );
+    final product = response.data;
+    if (product == null) {
+      throw const FormatException('La respuesta del producto no contiene datos');
+    }
+    return product;
+  }
+
+  Future<void> recordProductView(
+    String productId, {
+    String? variantId,
+    String? branchId,
+  }) async {
+    await _client.post<void>(
+      'catalog/products/$productId/view',
+      data: {
+        if (variantId != null) 'variant_id': variantId,
+        if (branchId != null) 'branch_id': branchId,
+      },
     );
   }
 
