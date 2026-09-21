@@ -23,6 +23,7 @@ from app.schemas.inventory_schema import InventoryMovementTypeEnum
 from app.schemas.reservation_schema import ReservationStatusEnum
 from app.services.reservation_service import transition_reservation
 from app.services.pricing_service import discounted_price, discount_amount
+from app.services.notification_service import notify_low_stock, notify_reservation_event
 
 
 def _get_inventory_for_update(db: Session, variant_id, branch_id) -> Inventory | None:
@@ -255,6 +256,14 @@ def create_sale(db: Session, user_id: UUID, payload: SaleCreate, branch_id: UUID
             sale = _create_sale_from_items(db, branch_id, user_id, payload, normalized_items)
         db.commit()
         db.refresh(sale)
+        for variant_id in normalized_items:
+            inventory = _get_inventory_for_update(db, variant_id, branch_id)
+            if inventory:
+                notify_low_stock(db, inventory)
+        if payload.reservation_id:
+            reservation = db.query(Reservation).filter(Reservation.id == payload.reservation_id).first()
+            if reservation and reservation.status == ReservationStatusEnum.attended:
+                notify_reservation_event(db, reservation.id, reservation.user_id, reservation.status.value)
         return _serialize_sale(db, sale).model_dump()
     except Exception:
         db.rollback()

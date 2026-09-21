@@ -18,6 +18,7 @@ from app.schemas.inventory_schema import (
     InventoryTransferCreate,
     InventoryThresholdUpdate,
 )
+from app.services.notification_service import notify_low_stock
 
 
 def _inventory_available(inventory: Inventory) -> int:
@@ -236,6 +237,7 @@ def register_income(db: Session, payload: InventoryMovementCreate, created_by=No
         db.commit()
         db.refresh(inventory)
         db.refresh(movement)
+        notify_low_stock(db, inventory)
         return movement, inventory
     except Exception:
         db.rollback()
@@ -262,6 +264,7 @@ def register_outcome(db: Session, payload: InventoryMovementCreate, created_by=N
         db.commit()
         db.refresh(inventory)
         db.refresh(movement)
+        notify_low_stock(db, inventory)
         return movement, inventory
     except Exception:
         db.rollback()
@@ -307,6 +310,8 @@ def register_transfer(db: Session, payload: InventoryTransferCreate, created_by=
         db.refresh(destination_inventory)
         db.refresh(out_movement)
         db.refresh(in_movement)
+        notify_low_stock(db, source_inventory)
+        notify_low_stock(db, destination_inventory)
         return [out_movement, in_movement], [source_inventory, destination_inventory]
     except Exception:
         db.rollback()

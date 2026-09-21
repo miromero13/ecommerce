@@ -23,6 +23,7 @@ from app.schemas.catalog_enums import ProductStatusEnum
 from app.schemas.reservation_schema import ReservationCreate, ReservationItemRead, ReservationRead, ReservationStatusEnum
 from app.schemas.cart_schema import CartStatusEnum
 from app.services.cart_service import _serialize_cart, refresh_cart_totals
+from app.services.notification_service import notify_reservation_event
 
 
 ACTIVE_RESERVATION_STATUSES = {ReservationStatusEnum.pending, ReservationStatusEnum.confirmed}
@@ -178,6 +179,8 @@ def expire_due_reservations(db: Session):
             logger.exception("No se pudo expirar la reserva %s", reservation.id)
 
     db.commit()
+    for reservation in expired:
+        notify_reservation_event(db, reservation.id, reservation.user_id, reservation.status.value)
     return expired
 
 
@@ -213,6 +216,8 @@ def expire_transferred_reservations(db: Session):
         expired.append(reservation)
     if expired:
         db.commit()
+        for reservation in expired:
+            notify_reservation_event(db, reservation.id, reservation.user_id, reservation.status.value)
     return expired
 
 
@@ -305,6 +310,7 @@ def create_reservation(db: Session, user_id: UUID, payload: ReservationCreate):
     db.commit()
 
     db.refresh(reservation)
+    notify_reservation_event(db, reservation.id, reservation.user_id, reservation.status.value)
     return _serialize_reservation(db, reservation).model_dump()
 
 
@@ -323,6 +329,7 @@ def cancel_reservation(db: Session, user_id: UUID, reservation_id: UUID):
     db.commit()
 
     db.refresh(reservation)
+    notify_reservation_event(db, reservation.id, reservation.user_id, reservation.status.value)
     return _serialize_reservation(db, reservation).model_dump()
 
 
@@ -343,6 +350,7 @@ def confirm_reservation_arrival(db: Session, reservation_id: UUID, branch_id: UU
     transition_reservation(reservation, ReservationStatusEnum.confirmed)
     db.commit()
     db.refresh(reservation)
+    notify_reservation_event(db, reservation.id, reservation.user_id, reservation.status.value)
     return _serialize_reservation(db, reservation).model_dump()
 
 
@@ -360,6 +368,7 @@ def attend_reservation(db: Session, reservation_id: UUID, branch_id: UUID):
                 raise ValueError("No existe inventario para la variante reservada")
         db.commit()
         db.refresh(reservation)
+        notify_reservation_event(db, reservation.id, reservation.user_id, reservation.status.value)
         return _serialize_reservation(db, reservation).model_dump()
     except Exception:
         db.rollback()
@@ -382,6 +391,7 @@ def decide_reservation(db: Session, user_id: UUID, reservation_id: UUID, purchas
                     inventory.reserved_quantity = max((inventory.reserved_quantity or 0) - item.quantity, 0)
         db.commit()
         db.refresh(reservation)
+        notify_reservation_event(db, reservation.id, reservation.user_id, reservation.status.value)
         return _serialize_reservation(db, reservation).model_dump()
     except Exception:
         db.rollback()
@@ -451,6 +461,7 @@ def cancel_branch_reservation(db: Session, reservation_id: UUID, branch_id: UUID
         transition_reservation(reservation, ReservationStatusEnum.cancelled)
         db.commit()
         db.refresh(reservation)
+        notify_reservation_event(db, reservation.id, reservation.user_id, reservation.status.value)
         return _serialize_reservation(db, reservation).model_dump()
     except Exception:
         db.rollback()
