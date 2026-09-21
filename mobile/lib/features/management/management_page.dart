@@ -54,9 +54,7 @@ class _ManagementCard extends StatelessWidget {
       onTap: onTap,
       child: Row(
         children: [
-          CircleAvatar(
-            child: Icon(icon),
-          ),
+          CircleAvatar(child: Icon(icon)),
           const SizedBox(width: 12),
           Expanded(
             child: Column(

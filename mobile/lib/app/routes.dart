@@ -113,13 +113,13 @@ abstract final class AppRouter {
         settings,
         _LoginRoutePage(authController: authController),
       ),
-       _ => _page(
-         settings,
-         CatalogPage(
-           controller: catalogController,
-           authController: authController,
-         ),
-       ),
+      _ => _page(
+        settings,
+        CatalogPage(
+          controller: catalogController,
+          authController: authController,
+        ),
+      ),
     };
   }
 
@@ -146,11 +146,13 @@ class _ShellPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      title: title ?? switch (index) {
-        0 => 'Catálogo',
-        1 => 'Gestiones',
-        _ => 'Cuenta',
-      },
+      title:
+          title ??
+          switch (index) {
+            0 => 'Catálogo',
+            1 => 'Gestiones',
+            _ => 'Cuenta',
+          },
       selectedIndex: index,
       onDestinationSelected: (nextIndex) {
         final route = switch (nextIndex) {
