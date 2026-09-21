@@ -212,6 +212,81 @@ def create_stripe_payment(db: Session, user_id: UUID, pickup_branch_id: UUID):
         raise ValueError(f"No se pudo iniciar el pago con Stripe: {exc}") from exc
 
 
+def create_stripe_payment_for_order(db: Session, user_id: UUID, order_id: UUID):
+    try:
+        expire_due_orders(db)
+        order = (
+            db.query(Order)
+            .filter(Order.id == order_id, Order.user_id == user_id)
+            .with_for_update()
+            .first()
+        )
+        if not order:
+            raise ValueError("Pedido no encontrado")
+        if (
+            order.payment_status != PaymentStatusEnum.pending
+            or order.fulfillment_status != FulfillmentStatusEnum.pending_pickup
+        ):
+            raise ValueError("El pedido no está pendiente de pago")
+
+        attempt = (
+            db.query(PaymentAttempt)
+            .filter(PaymentAttempt.order_id == order.id, PaymentAttempt.status == "pending")
+            .with_for_update()
+            .first()
+        )
+        if not attempt and not order.stripe_payment_intent_id:
+            cart = db.query(Cart).filter(Cart.user_id == order.user_id).first()
+            if not cart:
+                raise ValueError("El pedido no tiene un intento de pago reutilizable")
+            attempt = PaymentAttempt(
+                order_id=order.id,
+                cart_id=cart.id,
+                status="pending",
+                idempotency_key=secrets.token_urlsafe(24),
+            )
+            db.add(attempt)
+            order.payment_method = PaymentMethodEnum.stripe
+            db.flush()
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+
+    try:
+        import stripe
+
+        if not settings.stripe_secret_key:
+            raise ValueError("Stripe no está configurado")
+        stripe.api_key = settings.stripe_secret_key
+
+        existing_intent_id = order.stripe_payment_intent_id or (
+            attempt.stripe_payment_intent_id if attempt else None
+        )
+        if existing_intent_id:
+            intent = stripe.PaymentIntent.retrieve(existing_intent_id)
+            if order.stripe_payment_intent_id != intent.id:
+                order.stripe_payment_intent_id = intent.id
+                db.commit()
+        else:
+            amount = int((order.total_amount * Decimal("100")).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+            intent = stripe.PaymentIntent.create(
+                amount=amount,
+                currency=order.currency.lower(),
+                metadata={"order_id": str(order.id)},
+                automatic_payment_methods={"enabled": True, "allow_redirects": "never"},
+                idempotency_key=attempt.idempotency_key,
+            )
+            attempt.stripe_payment_intent_id = intent.id
+            order.stripe_payment_intent_id = intent.id
+            db.commit()
+
+        return _serialize_order(db, order).model_dump(), intent.client_secret, intent.id
+    except Exception as exc:
+        db.rollback()
+        raise ValueError(f"No se pudo iniciar el pago con Stripe: {exc}") from exc
+
+
 def _release_order(db: Session, order: Order, payment_status: PaymentStatusEnum, fulfillment_status: FulfillmentStatusEnum) -> None:
     reservation_ids = {item.reservation_id for item in order.items if item.reservation_id}
     for item in order.items:
