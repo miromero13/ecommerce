@@ -19,7 +19,7 @@ Administrators, customers, and branch managers need timely alerts without manual
 - Mobile notification inbox, unread badge, read state, token registration, and tap routing.
 - Notification emission for the currently supported reservation, order, and low-stock event paths.
 - Additive schema only; do not change existing table attributes unless required for integration.
-- Android only for the initial delivery. No Firebase Web or iOS setup.
+- Android-only was the initial delivery. Firebase Web Push is now authorized as the next slice; iOS remains out of scope.
 - Preserve unrelated worktree changes. Do not modify the existing virtual try-on HTML.
 
 ## Constraints
@@ -38,6 +38,9 @@ Administrators, customers, and branch managers need timely alerts without manual
 - [x] T4 — Add Flutter FCM initialization, Android permission/token registration, foreground/background handling, and tap routing.
 - [x] T5 — Add the mobile inbox, unread badge, read action, and focused tests.
 - [x] T6 — Run focused and baseline checks, reconcile failures, update this document, and record work-unit commit evidence.
+- [ ] T7 — Add Firebase Web Messaging to Angular, register web tokens, and serve the messaging service worker.
+- [ ] T8 — Add the web notification inbox, unread badge, read action, permission handling, and data-driven tap navigation.
+- [ ] T9 — Run web-focused checks and record the combined Android/Web verification state.
 
 ## Acceptance criteria
 
@@ -47,6 +50,7 @@ Administrators, customers, and branch managers need timely alerts without manual
 - Backend role and ownership checks prevent reading or marking another user's notifications.
 - Reservation, order, and low-stock transitions reach the notification service through service-level paths, including non-HTTP paths where applicable.
 - Android foreground, background, and notification-tap paths are covered by the smallest useful automated checks available in the repository.
+- A supported HTTPS browser can request permission, register a web FCM token, receive foreground/background notifications, and open the related route.
 - No existing table attributes are changed unnecessarily and no secret file is tracked.
 
 ## Applicable checks
@@ -67,7 +71,7 @@ git status --short
 - TDD mode: not configured for this ODD task; use existing focused tests and functional checks.
 - Delivery strategy: ask-on-risk; decide chaining only if the accumulated authored diff approaches the repository's review budget.
 - Feature branch: required before the first work-unit commit because the current branch is `main`.
-- Progress: backend notification persistence/API, FCM provider boundary, service-level event hooks, Android Firebase setup, and the Flutter inbox are complete. Firebase files were inspected only for metadata; the supplied Android config package is `com.example.flutter_template`, while the app application ID is `com.example.mobile`, so the Android build integration preserves that mismatch as an explicit gap rather than changing the existing app identity.
+- Progress: backend notification persistence/API, FCM provider boundary, service-level event hooks, Android Firebase setup, and the Flutter inbox are complete. Firebase files were inspected only for metadata; the supplied Android config package is `com.example.flutter_template`, while the app application ID is `com.example.mobile`, so the Android build integration preserves that mismatch as an explicit gap rather than changing the existing app identity. Web Push configuration is supplied and is the active implementation slice.
 
 ## Work-unit evidence
 
