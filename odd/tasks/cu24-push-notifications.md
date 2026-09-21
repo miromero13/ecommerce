@@ -37,7 +37,7 @@ Administrators, customers, and branch managers need timely alerts without manual
 - [x] T3 — Add safe notification emission and FCM delivery at service boundaries for reservation, order, and low-stock events.
 - [x] T4 — Add Flutter FCM initialization, Android permission/token registration, foreground/background handling, and tap routing.
 - [x] T5 — Add the mobile inbox, unread badge, read action, and focused tests.
-- [ ] T6 — Run focused and baseline checks, reconcile failures, update this document, and record work-unit commit evidence.
+- [x] T6 — Run focused and baseline checks, reconcile failures, update this document, and record work-unit commit evidence.
 
 ## Acceptance criteria
 
@@ -71,14 +71,15 @@ git status --short
 
 ## Work-unit evidence
 
-- Backend and mobile implementation work units: complete; final baseline reconciliation remains.
+- Backend and mobile implementation work units: complete; baseline reconciliation is recorded below.
+- Dependency verification: `cd mobile && fvm flutter pub get` passes; Firebase dependency resolution temporarily changes the tracked iOS `Package.resolved`, which was reverted to preserve the Android-only scope.
 - Focused backend verification: `PYTHONPATH=. .venv/bin/python -m pytest -q tests` → `63 passed, 2 warnings`.
 - Focused mobile verification: `fvm flutter test test/notification_test.dart test/app_smoke_test.dart` → `6 passed`; targeted CU24 analyze → `No issues found`.
 - Migration verification: Alembic script inspection → head `0037`.
 - Work-unit commit: `b255b39 feat(backend): add notification history and FCM infrastructure` (API, additive migration, Firebase Admin boundary, delivery isolation tests).
 - Work-unit commit: `71c5a3b feat(backend): emit notifications from business services` (reservation, order, sale, and low-stock service hooks).
-- Mobile work-unit commit: pending commit; it includes Android Gradle/manifest setup, FlutterFire lifecycle wiring, inbox/controller, unread badge, safe tap routing, and focused tests.
-- Baseline observations: the required root-level `python -m pytest -q backend/tests` cannot start because the system Python has no pytest and the repository expects the backend environment; the equivalent backend-venv run passes. The required `fvm flutter test mobile/test` path cannot run from the repository root because Flutter requires a project pubspec; the equivalent `cd mobile && fvm flutter test test` runs and retains existing failures in orders/catalog/reservation/profile/product-detail tests. `fvm flutter analyze` retains pre-existing errors in `test/orders_page_test.dart`; the known product-detail variant failure remains unrelated to CU24. `npm --prefix frontend test` passes with the existing build-oriented warnings.
+- Mobile work-unit commit: `fb5ff81 feat(mobile): add Android notification inbox and FCM lifecycle` (Android Gradle/manifest setup, FlutterFire lifecycle wiring, inbox/controller, unread badge, safe tap routing, and focused tests).
+- Baseline observations: the required root-level `python -m pytest -q backend/tests` cannot start because the system Python has no pytest and the repository expects the backend environment; the equivalent backend-venv run passes with `63 passed, 2 warnings`. The required `fvm flutter test mobile/test` path cannot run from the repository root because Flutter requires a project pubspec; the equivalent `cd mobile && fvm flutter test test` completes with `72 passed, 8 failed`, retaining failures in orders/catalog/reservation/profile/product-detail tests. `fvm flutter analyze` reports 10 issues: 8 pre-existing infos and 2 errors in `test/orders_page_test.dart`; the known product-detail variant failure remains unrelated to CU24. `npm --prefix frontend test` passes.
 - Security verification: `git check-ignore` confirms `backend/.secrets/` and `mobile/android/app/google-services.json` are ignored; neither secret file is included in the implementation diff.
 - Rollback boundary: remove the CU24 notification files and matching config/router/Gradle/pubspec/manifest changes; revert migration `0037` to remove only the two additive tables. Existing tables, virtual try-on HTML, iOS project files, and frontend code remain outside the feature.
 - Deferred semantics: recommendation/catalog push events remain deferred because no corresponding domain transition event exists in the current services.
