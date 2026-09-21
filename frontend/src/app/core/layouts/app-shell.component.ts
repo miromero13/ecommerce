@@ -3,7 +3,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideCalendarDays, lucideClipboardList, lucideLayoutDashboard, lucideLogOut, lucidePackageSearch, lucideShoppingCart, lucideTicket, lucideUserRound, lucideUsers } from '@ng-icons/lucide';
+import { lucideBell, lucideCalendarDays, lucideClipboardList, lucideLayoutDashboard, lucideLogOut, lucidePackageSearch, lucideShoppingCart, lucideTicket, lucideUserRound, lucideUsers } from '@ng-icons/lucide';
 
 import {
   HlmSidebar,
@@ -21,6 +21,7 @@ import { CatalogBranch } from '../../features/shared/models/catalog.model';
 import { CatalogApiService } from '../../features/shared/services/catalog-api.service';
 import { SessionService } from '../../features/shared/services/session.service';
 import { ChatbotComponent } from '../../features/shared/components/chatbot.component';
+import { NotificationPushService } from '../../features/shared/services/notification-push.service';
 
 type SidebarItem = {
   label: string;
@@ -57,6 +58,7 @@ type SidebarSection = {
   ],
   providers: [
     provideIcons({
+      lucideBell,
       lucideLayoutDashboard,
       lucideLogOut,
       lucideCalendarDays,
@@ -73,6 +75,7 @@ type SidebarSection = {
 export class AppShellComponent {
   private readonly session = inject(SessionService);
   private readonly catalogApi = inject(CatalogApiService);
+  protected readonly notifications = inject(NotificationPushService);
 
   protected readonly branches = signal<CatalogBranch[]>([]);
 
@@ -217,6 +220,7 @@ export class AppShellComponent {
   });
 
   protected async logout(): Promise<void> {
+    await this.notifications.logout();
     await this.session.logout(true);
   }
 
