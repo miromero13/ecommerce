@@ -20,7 +20,10 @@ logger = logging.getLogger(__name__)
 def _firebase_app():
     path_value = settings.firebase_service_account_path
     if not path_value:
-        logger.warning("Firebase push delivery disabled: FIREBASE_SERVICE_ACCOUNT_PATH is not set")
+        logger.warning(
+            "Firebase push delivery disabled: set FIREBASE_SERVICE_ACCOUNT_PATH "
+            "or FIREBASE_SERVICE_ACCOUNT_FILE"
+        )
         return None
 
     path = Path(path_value)

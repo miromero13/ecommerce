@@ -27,6 +27,7 @@ Administrators, customers, and branch managers need timely alerts without manual
 - Use the existing FastAPI, SQLAlchemy, Alembic, and Flutter patterns.
 - Use Firebase Admin SDK on the backend and `firebase_core`/`firebase_messaging` on Flutter.
 - Keep the Firebase service-account file out of version control.
+- Configure Firebase Admin with `FIREBASE_SERVICE_ACCOUNT_PATH` (preferred) or `FIREBASE_SERVICE_ACCOUNT_FILE` (legacy fallback); never commit the service-account file.
 - Push delivery failures must not interrupt the originating business use case.
 - Keep notification persistence provider-neutral so delivery can be retried or inspected.
 
@@ -95,7 +96,8 @@ git status --short
 - `npm --prefix frontend install` → blocked by the pre-existing `angular-chrts@0.1.0-beta.7` peer requirement for Angular 19 while the project uses Angular 21 (`ERESOLVE`). `npm --prefix frontend install firebase --legacy-peer-deps` → dependency and lockfile update completed; npm reported 75 audit vulnerabilities.
 - `npm --prefix frontend test` → Angular development build passed.
 - `npm --prefix frontend run build` → production build passed with the existing initial bundle budget warning (`762.09 kB`, `12.09 kB` over `750 kB`). Built asset `frontend/dist/frontend/browser/firebase-messaging-sw.js` is present; `node --check frontend/public/firebase-messaging-sw.js` passed.
-- `PYTHONPATH=. .venv/bin/python -m pytest -q tests/test_notifications.py` from `backend` → `4 passed, 1 warning`.
+- `PYTHONPATH=. .venv/bin/python -m pytest -q tests/test_notifications.py` from `backend` → `5 passed, 1 warning`.
+- Firebase configuration compatibility: both `FIREBASE_SERVICE_ACCOUNT_PATH` and legacy `FIREBASE_SERVICE_ACCOUNT_FILE` resolve through the shared settings boundary, with PATH taking precedence; the regression test does not initialize Firebase or load credentials.
 - `git diff --check` → passed. `git status --short` confirms the unrelated pre-existing `mobile/ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` remains modified and is not part of this slice.
 - Browser delivery status: no browser/device push session was available, so real permission, FCM delivery, background display, and click routing remain pending manual HTTPS-browser verification.
 - Current Android package mismatch gap remains unchanged: supplied local Firebase Android configuration is for `com.example.flutter_template`, while the app application ID is `com.example.mobile`; the existing Android integration preserves this as an explicit gap.

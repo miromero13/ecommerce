@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 from uuid import uuid4
 
+from app.core.config import Settings
 from app.schemas.notification_schema import DeviceTokenUpsert
 from app.services import notification_service
 from app.services import notification_delivery
@@ -77,3 +78,35 @@ def test_push_delivery_failure_does_not_escape_business_flow(monkeypatch):
     monkeypatch.setattr(notification_delivery, "_send_push", MagicMock(side_effect=RuntimeError("FCM down")))
 
     notification_service.deliver_notification(db, notification)
+
+
+def test_legacy_firebase_credential_file_reaches_path_resolution(monkeypatch):
+    monkeypatch.delenv("FIREBASE_SERVICE_ACCOUNT_PATH", raising=False)
+    monkeypatch.setenv("FIREBASE_SERVICE_ACCOUNT_FILE", "legacy/firebase.json")
+    configured = Settings(
+        database_url="postgresql://test",
+        secret_key="test",
+        access_token_expire_minutes=15,
+        _env_file=None,
+    )
+    monkeypatch.setattr(notification_delivery, "settings", configured)
+
+    resolved = {}
+
+    def fake_is_file(path):
+        resolved["path"] = path
+        return False
+
+    monkeypatch.setattr(notification_delivery.Path, "is_file", fake_is_file)
+
+    assert notification_delivery._firebase_app() is None
+    assert resolved["path"] == notification_delivery.Path.cwd() / "legacy/firebase.json"
+
+    monkeypatch.setenv("FIREBASE_SERVICE_ACCOUNT_PATH", "preferred/firebase.json")
+    preferred = Settings(
+        database_url="postgresql://test",
+        secret_key="test",
+        access_token_expire_minutes=15,
+        _env_file=None,
+    )
+    assert preferred.firebase_service_account_path == "preferred/firebase.json"
