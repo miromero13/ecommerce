@@ -7,7 +7,7 @@ from app.auth.dependencies import get_current_user, require_roles
 from app.core.database import get_db
 from app.schemas.enums import RolEnum
 from app.schemas.payment_schema import CashPaymentRequest, StripePaymentRequest, StripeCheckoutResponse
-from app.services.order_service import checkout_cash, create_stripe_payment, process_stripe_event
+from app.services.order_service import checkout_cash, create_stripe_payment, create_stripe_payment_for_order, process_stripe_event
 from app.utils.response import response
 
 
@@ -41,6 +41,30 @@ async def stripe_checkout_route(
         status_code=201,
         message="Pago con Stripe iniciado exitosamente",
         data=StripeCheckoutResponse(order_id=str(order["id"]), client_secret=client_secret, payment_intent_id=payment_intent_id, pickup_expires_at=order["pickup_expires_at"].isoformat()).model_dump(),
+    )
+
+
+@router.post("/stripe/orders/{order_id}")
+async def stripe_order_payment_route(
+    order_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_roles(RolEnum.cliente)),
+):
+    try:
+        order, client_secret, payment_intent_id = create_stripe_payment_for_order(
+            db, UUID(current_user["sub"]), order_id
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return response(
+        status_code=200,
+        message="Pago con Stripe iniciado exitosamente",
+        data=StripeCheckoutResponse(
+            order_id=str(order["id"]),
+            client_secret=client_secret,
+            payment_intent_id=payment_intent_id,
+            pickup_expires_at=order["pickup_expires_at"].isoformat(),
+        ).model_dump(),
     )
 
 

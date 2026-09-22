@@ -6,18 +6,24 @@ import '../features/catalog/catalog_controller.dart';
 import '../features/catalog/catalog_page.dart';
 import '../features/catalog/product_detail_page.dart';
 import '../features/cart/cart_page.dart';
-import '../shared/widgets/app_scaffold.dart';
+import '../features/management/management_page.dart';
+import '../features/orders/checkout_page.dart';
+import '../features/orders/orders_page.dart';
 import '../features/profile/profile_page.dart';
+import '../features/reservations/reservation_create_page.dart';
 import '../features/reservations/reservation_models.dart';
 import '../features/reservations/reservations_page.dart';
-import '../features/orders/orders_page.dart';
+import '../shared/widgets/app_scaffold.dart';
 
 abstract final class AppRoutes {
   static const catalog = '/';
   static const cart = '/cart';
+  static const management = '/management';
   static const account = '/account';
   static const reservations = '/reservations';
+  static const reservationCreate = '/reservation-create';
   static const orders = '/orders';
+  static const checkout = '/checkout';
   static const productDetail = '/product';
   static const login = '/login';
 }
@@ -31,12 +37,24 @@ abstract final class AppRouter {
     return switch (settings.name) {
       AppRoutes.catalog => _page(
         settings,
-        CatalogPage(controller: catalogController),
+        CatalogPage(
+          controller: catalogController,
+          authController: authController,
+          reservationArguments: settings.arguments is ReservationArguments
+              ? settings.arguments as ReservationArguments
+              : null,
+        ),
         selectedIndex: 0,
       ),
       AppRoutes.cart => _page(
         settings,
         CartPage(authController: authController),
+        selectedIndex: 0,
+        shellTitle: 'Carrito',
+      ),
+      AppRoutes.management => _page(
+        settings,
+        const ManagementPage(),
         selectedIndex: 1,
       ),
       AppRoutes.account => _page(
@@ -48,16 +66,39 @@ abstract final class AppRouter {
         settings,
         ReservationsPage(
           authController: authController,
+          initialReservationId: settings.arguments is String
+              ? settings.arguments as String
+              : null,
+        ),
+        selectedIndex: 1,
+      ),
+      AppRoutes.orders => _page(
+        settings,
+        OrdersPage(
+          authController: authController,
+          initialOrderId: settings.arguments is String
+              ? settings.arguments as String
+              : null,
+        ),
+        selectedIndex: 1,
+      ),
+      AppRoutes.reservationCreate => _page(
+        settings,
+        ReservationCreatePage(
+          authController: authController,
           arguments: settings.arguments is ReservationArguments
               ? settings.arguments as ReservationArguments
               : null,
         ),
-        selectedIndex: 2,
       ),
-      AppRoutes.orders => _page(
+      AppRoutes.checkout => _page(
         settings,
-        OrdersPage(authController: authController),
-        selectedIndex: 2,
+        CheckoutPage(
+          authController: authController,
+          orderId: settings.arguments is String
+              ? settings.arguments as String
+              : null,
+        ),
       ),
       AppRoutes.productDetail => _page(
         settings,
@@ -72,7 +113,13 @@ abstract final class AppRouter {
         settings,
         _LoginRoutePage(authController: authController),
       ),
-      _ => _page(settings, CatalogPage(controller: catalogController)),
+       _ => _page(
+         settings,
+         CatalogPage(
+           controller: catalogController,
+           authController: authController,
+         ),
+       ),
     };
   }
 
@@ -80,33 +127,35 @@ abstract final class AppRouter {
     RouteSettings settings,
     Widget page, {
     int? selectedIndex,
+    String? shellTitle,
   }) {
     final child = selectedIndex == null
         ? page
-        : _ShellPage(index: selectedIndex, child: page);
+        : _ShellPage(index: selectedIndex, title: shellTitle, child: page);
     return MaterialPageRoute<void>(settings: settings, builder: (_) => child);
   }
 }
 
 class _ShellPage extends StatelessWidget {
-  const _ShellPage({required this.index, required this.child});
+  const _ShellPage({required this.index, this.title, required this.child});
 
   final int index;
+  final String? title;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      title: switch (index) {
+      title: title ?? switch (index) {
         0 => 'Catálogo',
-        1 => 'Carrito',
+        1 => 'Gestiones',
         _ => 'Cuenta',
       },
       selectedIndex: index,
       onDestinationSelected: (nextIndex) {
         final route = switch (nextIndex) {
           0 => AppRoutes.catalog,
-          1 => AppRoutes.cart,
+          1 => AppRoutes.management,
           _ => AppRoutes.account,
         };
         Navigator.of(context).pushReplacementNamed(route);

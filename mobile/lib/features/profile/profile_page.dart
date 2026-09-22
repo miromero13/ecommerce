@@ -157,7 +157,6 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ),
         const SizedBox(height: 16),
-        _futureAccessCard(context),
         const SizedBox(height: 16),
         AppButton(
           label: 'Cerrar sesión',
@@ -211,6 +210,7 @@ class _ProfilePageState extends State<ProfilePage> {
         DropdownButtonFormField<UserGender>(
           initialValue: _gender,
           decoration: const InputDecoration(labelText: 'Género'),
+          isExpanded: true,
           items: [
             for (final gender in UserGender.values)
               DropdownMenuItem(
@@ -235,65 +235,25 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ],
         const SizedBox(height: 16),
-        Row(
+        OverflowBar(
+          spacing: 8,
+          overflowSpacing: 8,
+          alignment: MainAxisAlignment.spaceBetween,
           children: [
-            Expanded(
-              child: AppButton(
-                label: 'Cancelar',
-                variant: AppButtonVariant.text,
-                onPressed: isSaving ? null : _cancelEditing,
-                expand: true,
-              ),
+            AppButton(
+              label: 'Cancelar',
+              variant: AppButtonVariant.text,
+              onPressed: isSaving ? null : _cancelEditing,
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: AppButton(
-                label: 'Guardar',
-                icon: const Icon(Icons.check),
-                onPressed: isSaving ? null : _saveProfile,
-                isLoading: isSaving,
-                expand: true,
-              ),
+            AppButton(
+              label: 'Guardar',
+              icon: const Icon(Icons.check),
+              onPressed: isSaving ? null : _saveProfile,
+              isLoading: isSaving,
             ),
           ],
         ),
       ],
-    );
-  }
-
-  Widget _futureAccessCard(BuildContext context) {
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Mis gestiones',
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Accesos disponibles próximamente.',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 8),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.event_available_outlined),
-            title: Text('Mis reservas'),
-            subtitle: Text('Consultar reservas'),
-            onTap: () => Navigator.of(context).pushNamed('/reservations'),
-          ),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.receipt_long_outlined),
-            title: Text('Mis pedidos'),
-            subtitle: Text('Consultar pedidos y comprar'),
-            onTap: () => Navigator.of(context).pushNamed('/orders'),
-          ),
-        ],
-      ),
     );
   }
 

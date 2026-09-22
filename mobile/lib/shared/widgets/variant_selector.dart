@@ -27,7 +27,19 @@ class AppVariantSelector extends StatelessWidget {
       children: [
         for (final option in options)
           ChoiceChip(
-            label: Text(option.label),
+            label: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: (MediaQuery.sizeOf(context).width - 80).clamp(
+                  100.0,
+                  260.0,
+                ).toDouble(),
+              ),
+              child: Text(
+                option.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
             selected: option.id == selectedId,
             onSelected: (_) => onChanged(option.id),
           ),

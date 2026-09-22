@@ -29,9 +29,9 @@ class AppScaffold extends StatelessWidget {
             label: 'Catálogo',
           ),
           NavigationDestination(
-            icon: Icon(Icons.shopping_bag_outlined),
-            selectedIcon: Icon(Icons.shopping_bag),
-            label: 'Carrito',
+            icon: Icon(Icons.assignment_outlined),
+            selectedIcon: Icon(Icons.assignment),
+            label: 'Gestiones',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),

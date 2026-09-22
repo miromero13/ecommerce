@@ -19,6 +19,15 @@ void main() {
     await controller.loadDetail('order-id');
     expect(controller.selectedOrder?.id, 'order-id');
   });
+
+  test('inicia el pago de un pedido existente', () async {
+    final controller = OrderController(api: _FakeOrderApi());
+
+    final result = await controller.payOrder(orderId: 'order-id');
+
+    expect(result?.checkout.orderId, 'order-id');
+    expect(controller.status, OrderControllerStatus.ready);
+  });
 }
 
 class _FakeOrderApi extends OrderApi {
@@ -58,6 +67,18 @@ class _FakeOrderApi extends OrderApi {
     return OrderResult(
       order: _order(orderId),
       message: 'Pedido obtenido exitosamente',
+    );
+  }
+
+  @override
+  Future<StripeCheckoutResult> payOrder({required String orderId}) async {
+    return StripeCheckoutResult(
+      checkout: StripeCheckout(
+        orderId: orderId,
+        clientSecret: 'secret',
+        paymentIntentId: 'intent-id',
+      ),
+      message: 'Pago con Stripe iniciado exitosamente',
     );
   }
 }

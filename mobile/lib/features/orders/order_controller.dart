@@ -105,6 +105,25 @@ class OrderController extends ChangeNotifier {
     }
   }
 
+  Future<StripeCheckoutResult?> payOrder({required String orderId}) async {
+    status = OrderControllerStatus.saving;
+    errorMessage = null;
+    feedbackMessage = null;
+    notifyListeners();
+    try {
+      final result = await _api.payOrder(orderId: orderId);
+      feedbackMessage = result.message;
+      status = OrderControllerStatus.ready;
+      notifyListeners();
+      return result;
+    } catch (error) {
+      status = OrderControllerStatus.error;
+      errorMessage = _messageFor(error);
+      notifyListeners();
+      return null;
+    }
+  }
+
   static String _messageFor(Object error) {
     if (error is ApiException) return error.message;
     return 'No se pudieron sincronizar los pedidos.';

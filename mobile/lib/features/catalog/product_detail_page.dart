@@ -4,6 +4,7 @@ import '../../core/network/api_exception.dart';
 import '../auth/auth_controller.dart';
 import '../auth/login_dialog.dart';
 import '../cart/cart_api.dart';
+import '../reservations/reservation_models.dart';
 import '../../shared/widgets/app_button.dart';
 import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/app_section_title.dart';
@@ -21,6 +22,7 @@ class ProductDetailArguments {
     this.colors = const [],
     this.branches = const [],
     this.branchId,
+    this.reservationArguments,
   });
 
   final Product product;
@@ -28,6 +30,7 @@ class ProductDetailArguments {
   final List<CatalogColor> colors;
   final List<Branch> branches;
   final String? branchId;
+  final ReservationArguments? reservationArguments;
 }
 
 class ProductDetailPage extends StatefulWidget {
@@ -163,6 +166,16 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             isLoading: _addingToCart,
             expand: true,
           ),
+          const SizedBox(height: 12),
+          AppButton(
+            label: 'Reservar prenda',
+            icon: const Icon(Icons.bookmark_add_outlined),
+            onPressed: _canReserve(product, variant)
+                ? _reserveGarment
+                : null,
+            variant: AppButtonVariant.outlined,
+            expand: true,
+          ),
         ],
       ),
     );
@@ -274,6 +287,43 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     return widget.authController != null &&
         variant != null &&
         (quantity == null || quantity > 0);
+  }
+
+  bool _canReserve(Product? product, ProductVariant? variant) {
+    return widget.authController != null && product != null && variant != null;
+  }
+
+  void _reserveGarment() {
+    final product = _product;
+    final variant = _selectedVariant;
+    if (!_canReserve(product, variant)) return;
+
+    final selectedItem = ReservationDraftItem(
+      variantId: variant!.id,
+      quantity: _quantity,
+      productName: product!.name,
+      variantSku: variant.sku.isEmpty ? product.sku : variant.sku,
+      imageUrl: variant.imageUrl ?? product.imageUrl,
+    );
+    final items = [...?widget.arguments?.reservationArguments?.items];
+    final existingIndex = items.indexWhere(
+      (item) => item.variantId == selectedItem.variantId,
+    );
+    if (existingIndex == -1) {
+      items.add(selectedItem);
+    } else {
+      final existing = items[existingIndex];
+      items[existingIndex] = ReservationDraftItem(
+        variantId: existing.variantId,
+        quantity: existing.quantity + selectedItem.quantity,
+        productName: selectedItem.productName ?? existing.productName,
+        variantSku: selectedItem.variantSku ?? existing.variantSku,
+        imageUrl: selectedItem.imageUrl ?? existing.imageUrl,
+      );
+    }
+
+    final updatedArguments = ReservationArguments(items: items);
+    Navigator.of(context).pop(updatedArguments);
   }
 
   Future<void> _addToCart() async {

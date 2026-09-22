@@ -121,6 +121,39 @@ class Product {
   }
 }
 
+class CollaborativeRecommendation {
+  const CollaborativeRecommendation({required this.productId, this.score});
+
+  final String productId;
+  final double? score;
+
+  factory CollaborativeRecommendation.fromJson(Map<String, dynamic> json) {
+    return CollaborativeRecommendation(
+      productId: _requiredString(json, 'product_id'),
+      score: _optionalDouble(json, 'score'),
+    );
+  }
+}
+
+class CollaborativeRecommendations {
+  const CollaborativeRecommendations({required this.recommendations});
+
+  final List<CollaborativeRecommendation> recommendations;
+
+  factory CollaborativeRecommendations.fromJson(Map<String, dynamic> json) {
+    final rawRecommendations = json['recommendations'];
+    if (rawRecommendations is! List) {
+      throw const FormatException('Las recomendaciones son inválidas');
+    }
+    return CollaborativeRecommendations(
+      recommendations: _parseList(
+        rawRecommendations,
+        CollaborativeRecommendation.fromJson,
+      ),
+    );
+  }
+}
+
 class Category {
   const Category({required this.id, required this.name});
 
