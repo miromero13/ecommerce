@@ -30,6 +30,7 @@ from app.services.cart_service import refresh_cart_totals
 from app.services.promotion_service import add_usage, validate_for_user
 from app.services.reservation_service import transition_reservation
 from app.services.recommendation_service import record_completed_order_interactions
+from app.services.notification_service import notify_low_stock, notify_order_event
 
 
 STRIPE_RESERVATION_MINUTES = 30
@@ -99,6 +100,7 @@ def mark_order_ready(db: Session, order_id: UUID, branch_id: UUID):
     order.fulfillment_status = FulfillmentStatusEnum.ready_for_pickup
     db.commit()
     db.refresh(order)
+    notify_order_event(db, order.id, order.user_id, "ready_for_pickup")
     return _serialize_order(db, order).model_dump()
 
 
@@ -168,6 +170,7 @@ def checkout_cash(db: Session, user_id: UUID, pickup_branch_id: UUID):
         order = _new_order(db, cart, user_id, pickup_branch_id, PaymentMethodEnum.cash)
         db.commit()
         db.refresh(order)
+        notify_order_event(db, order.id, order.user_id, "pending")
         return _serialize_order(db, order).model_dump()
     except Exception:
         db.rollback()
@@ -209,6 +212,7 @@ def create_stripe_payment(db: Session, user_id: UUID, pickup_branch_id: UUID):
         _release_order(db, order, PaymentStatusEnum.failed, FulfillmentStatusEnum.cancelled)
         attempt.status = "failed"
         db.commit()
+        notify_order_event(db, order.id, order.user_id, "failed")
         raise ValueError(f"No se pudo iniciar el pago con Stripe: {exc}") from exc
 
 
@@ -323,6 +327,8 @@ def expire_due_orders(db: Session) -> None:
     for order in expired:
         _release_order(db, order, PaymentStatusEnum.failed, FulfillmentStatusEnum.expired)
     db.commit()
+    for order in expired:
+        notify_order_event(db, order.id, order.user_id, "expired")
 
     if not intent_ids or not settings.stripe_secret_key:
         return
@@ -386,6 +392,7 @@ def cancel_order(db: Session, user_id: UUID, order_id: UUID):
             stripe.PaymentIntent.cancel(order.stripe_payment_intent_id)
         _release_order(db, order, PaymentStatusEnum.failed, FulfillmentStatusEnum.cancelled)
         db.commit()
+        notify_order_event(db, order.id, order.user_id, "cancelled")
         return _serialize_order(db, order).model_dump()
     except Exception:
         db.rollback()
@@ -403,6 +410,11 @@ def collect_cash(db: Session, order_id: UUID, pickup_code: str, cashier_branch_i
             raise ValueError("El pedido no está disponible para cobro")
         _consume_order(db, order, cashier_id)
         db.commit()
+        for item in order.items:
+            inventory = db.query(Inventory).filter(Inventory.variant_id == item.variant_id, Inventory.branch_id == order.pickup_branch_id).first()
+            if inventory:
+                notify_low_stock(db, inventory)
+        notify_order_event(db, order.id, order.user_id, "collected")
         return _serialize_order(db, order).model_dump()
     except Exception:
         db.rollback()
@@ -428,3 +440,11 @@ def process_stripe_event(db: Session, event) -> None:
         elif event["type"] in {"payment_intent.payment_failed", "payment_intent.canceled"}:
             _release_order(db, order, PaymentStatusEnum.failed, FulfillmentStatusEnum.cancelled)
     db.commit()
+    if order and order.payment_status == PaymentStatusEnum.paid:
+        for item in order.items:
+            inventory = db.query(Inventory).filter(Inventory.variant_id == item.variant_id, Inventory.branch_id == order.pickup_branch_id).first()
+            if inventory:
+                notify_low_stock(db, inventory)
+        notify_order_event(db, order.id, order.user_id, "paid")
+    elif order and order.payment_status == PaymentStatusEnum.failed:
+        notify_order_event(db, order.id, order.user_id, "failed")

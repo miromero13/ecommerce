@@ -43,3 +43,6 @@ dist/
 # Misc
 *.bak
 *.swp
+
+# Local Firebase credentials
+.secrets/

@@ -3,12 +3,23 @@ import 'package:flutter/material.dart';
 import '../../app/routes.dart';
 import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/app_section_title.dart';
+import '../notifications/notification_controller.dart';
 
 class ManagementPage extends StatelessWidget {
-  const ManagementPage({super.key});
+  const ManagementPage({super.key, this.notificationController});
+
+  final NotificationController? notificationController;
 
   @override
   Widget build(BuildContext context) {
+    if (notificationController == null) return _buildList(context);
+    return ListenableBuilder(
+      listenable: notificationController!,
+      builder: (context, _) => _buildList(context),
+    );
+  }
+
+  Widget _buildList(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
       children: [
@@ -30,6 +41,14 @@ class ManagementPage extends StatelessWidget {
           subtitle: 'Consulta compras, pagos y estados de retiro.',
           onTap: () => Navigator.of(context).pushNamed(AppRoutes.orders),
         ),
+        const SizedBox(height: 12),
+        _ManagementCard(
+          icon: Icons.notifications_none,
+          title: 'Notificaciones',
+          subtitle: 'Consulta novedades y cambios de estado.',
+          badge: notificationController?.unreadCount,
+          onTap: () => Navigator.of(context).pushNamed(AppRoutes.notifications),
+        ),
       ],
     );
   }
@@ -41,12 +60,14 @@ class _ManagementCard extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.onTap,
+    this.badge,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
   final VoidCallback onTap;
+  final int? badge;
 
   @override
   Widget build(BuildContext context) {
@@ -54,9 +75,7 @@ class _ManagementCard extends StatelessWidget {
       onTap: onTap,
       child: Row(
         children: [
-          CircleAvatar(
-            child: Icon(icon),
-          ),
+          CircleAvatar(child: Icon(icon)),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -73,6 +92,8 @@ class _ManagementCard extends StatelessWidget {
               ],
             ),
           ),
+          if (badge != null && badge! > 0) Badge(label: Text('$badge')),
+          const SizedBox(width: 8),
           const Icon(Icons.chevron_right),
         ],
       ),

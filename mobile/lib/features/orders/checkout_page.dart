@@ -128,7 +128,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
       );
     }
     if (_controller.status == OrderControllerStatus.loading &&
-        (_isOrderPayment && order == null || !_isOrderPayment && _controller.orders.isEmpty)) {
+        (_isOrderPayment && order == null ||
+            !_isOrderPayment && _controller.orders.isEmpty)) {
       return const AppLoading(message: 'Cargando pago...');
     }
     if (_isOrderPayment && order == null) {
@@ -171,7 +172,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
             DropdownButtonFormField<String>(
               isExpanded: true,
               initialValue: pickupBranchId,
-              decoration: const InputDecoration(labelText: 'Sucursal de retiro'),
+              decoration: const InputDecoration(
+                labelText: 'Sucursal de retiro',
+              ),
               hint: const Text('Selecciona una sucursal'),
               items: branches
                   .map(
@@ -347,8 +350,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
       );
     }
   }
-
 }
+
 class _OrderSummary extends StatelessWidget {
   const _OrderSummary({required this.order});
 

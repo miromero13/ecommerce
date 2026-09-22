@@ -145,7 +145,9 @@ class _CatalogPageState extends State<CatalogPage> {
             icon: const Icon(Icons.event_available_outlined),
             onPressed: () => Navigator.of(context).pushNamed(
               AppRoutes.reservationCreate,
-              arguments: ReservationArguments(items: List.of(_reservationItems)),
+              arguments: ReservationArguments(
+                items: List.of(_reservationItems),
+              ),
             ),
             expand: true,
           ),
@@ -357,7 +359,9 @@ class _CatalogPageState extends State<CatalogPage> {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        Theme.of(context).colorScheme.surface.withValues(alpha: 0),
+                        Theme.of(
+                          context,
+                        ).colorScheme.surface.withValues(alpha: 0),
                         Theme.of(context).colorScheme.surface,
                       ],
                     ),
@@ -385,7 +389,8 @@ class _CatalogPageState extends State<CatalogPage> {
         childAspectRatio: .60,
       ),
       itemCount: _controller.products.length,
-      itemBuilder: (context, index) => _productCard(_controller.products[index]),
+      itemBuilder: (context, index) =>
+          _productCard(_controller.products[index]),
     );
   }
 
@@ -523,24 +528,30 @@ class _CatalogPageState extends State<CatalogPage> {
     String? seasonId,
     String? collectionId,
   }) {
-    unawaited(_controller.updateFilters(
-      branchId: branchId == null
-          ? _controller.branchId
-          : _emptyAsNull(branchId),
-      categoryId: categoryId == null
-          ? _controller.categoryId
-          : _emptyAsNull(categoryId),
-      sizeId: sizeId == null ? _controller.sizeId : _emptyAsNull(sizeId),
-      colorId: colorId == null ? _controller.colorId : _emptyAsNull(colorId),
-      seasonId: seasonId == null
-          ? _controller.seasonId
-          : _emptyAsNull(seasonId),
-      collectionId: collectionId == null
-          ? _controller.collectionId
-          : _emptyAsNull(collectionId),
-    ).then((_) {
-      if (mounted) unawaited(_loadRecommendations());
-    }));
+    unawaited(
+      _controller
+          .updateFilters(
+            branchId: branchId == null
+                ? _controller.branchId
+                : _emptyAsNull(branchId),
+            categoryId: categoryId == null
+                ? _controller.categoryId
+                : _emptyAsNull(categoryId),
+            sizeId: sizeId == null ? _controller.sizeId : _emptyAsNull(sizeId),
+            colorId: colorId == null
+                ? _controller.colorId
+                : _emptyAsNull(colorId),
+            seasonId: seasonId == null
+                ? _controller.seasonId
+                : _emptyAsNull(seasonId),
+            collectionId: collectionId == null
+                ? _controller.collectionId
+                : _emptyAsNull(collectionId),
+          )
+          .then((_) {
+            if (mounted) unawaited(_loadRecommendations());
+          }),
+    );
   }
 
   bool get _isCliente =>

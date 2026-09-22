@@ -63,13 +63,16 @@ class ReservationApi {
     return _result(response.data, response.message);
   }
 
-  Future<CartOperationResult> transferToCart({required String reservationId}) async {
+  Future<CartOperationResult> transferToCart({
+    required String reservationId,
+  }) async {
     final response = await _client.post<Cart>(
       'reservations/$reservationId/to-cart',
       parser: (value) => Cart.fromJson(Map<String, dynamic>.from(value as Map)),
     );
     final cart = response.data;
-    if (cart == null) throw const FormatException('La respuesta no contiene un carrito');
+    if (cart == null)
+      throw const FormatException('La respuesta no contiene un carrito');
     return CartOperationResult(cart: cart, message: response.message);
   }
 

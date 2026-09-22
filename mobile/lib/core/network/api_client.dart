@@ -54,9 +54,10 @@ class ApiClient {
 
   Future<ApiResponse<T>> delete<T>(
     String path, {
+    Object? data,
     T Function(dynamic value)? parser,
   }) {
-    return _request(method: 'DELETE', path: path, parser: parser);
+    return _request(method: 'DELETE', path: path, data: data, parser: parser);
   }
 
   Future<ApiResponse<T>> _request<T>({

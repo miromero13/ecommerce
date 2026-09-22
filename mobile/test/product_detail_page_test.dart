@@ -143,7 +143,9 @@ void main() {
                           arguments: const ProductDetailArguments(
                             product: product,
                             sizes: [Size(id: 'size-m', name: 'M')],
-                            colors: [CatalogColor(id: 'color-red', name: 'Rojo')],
+                            colors: [
+                              CatalogColor(id: 'color-red', name: 'Rojo'),
+                            ],
                             reservationArguments: ReservationArguments(
                               items: [
                                 ReservationDraftItem(
@@ -191,5 +193,50 @@ void main() {
     expect(items.last.productName, 'Blusa Demo');
     expect(items.last.variantSku, 'SKU-2');
     expect(items.last.imageUrl, 'variant-image');
+  });
+
+  testWidgets('muestra probar prenda solo cuando hay una imagen', (
+    tester,
+  ) async {
+    ProductDetailArguments arguments(Product product) =>
+        ProductDetailArguments(product: product);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildAppTheme(),
+        home: ProductDetailPage(
+          arguments: arguments(
+            const Product(
+              id: 'without-image',
+              name: 'Sin imagen',
+              categoryId: 'category-id',
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(find.text('Probar prenda'), findsNothing);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildAppTheme(),
+        home: ProductDetailPage(
+          arguments: arguments(
+            const Product(
+              id: 'with-image',
+              name: 'Con imagen',
+              categoryId: 'category-id',
+              imageUrl: 'https://example.com/garment.jpg',
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.scrollUntilVisible(
+      find.text('Probar prenda'),
+      500,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Probar prenda'), findsOneWidget);
   });
 }

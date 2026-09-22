@@ -128,7 +128,9 @@ class _ChatbotPanelState extends State<_ChatbotPanel> {
         if (_messages.isEmpty && _error == null)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 32),
-            child: Center(child: Text('Todavía no hay mensajes. ¿En qué puedo ayudarte?')),
+            child: Center(
+              child: Text('Todavía no hay mensajes. ¿En qué puedo ayudarte?'),
+            ),
           ),
         for (final message in _messages) _messageBubble(message),
         if (_error != null)
@@ -184,7 +186,8 @@ class _ChatbotPanelState extends State<_ChatbotPanel> {
                     return SizedBox(
                       width: 140,
                       child: InkWell(
-                        onTap: () => _openRecommendation(recommendation.productId),
+                        onTap: () =>
+                            _openRecommendation(recommendation.productId),
                         borderRadius: BorderRadius.circular(10),
                         child: Card(
                           margin: EdgeInsets.zero,
@@ -206,7 +209,9 @@ class _ChatbotPanelState extends State<_ChatbotPanel> {
                                   recommendation.name,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontWeight: FontWeight.w600),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
                             ],
@@ -285,7 +290,8 @@ class _ChatbotPanelState extends State<_ChatbotPanel> {
       setState(() => _messages = messages.map(_UiMessage.normal).toList());
       _scrollToLatest();
     } catch (_) {
-      if (mounted) setState(() => _error = 'No se pudo cargar la conversación.');
+      if (mounted)
+        setState(() => _error = 'No se pudo cargar la conversación.');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -315,7 +321,8 @@ class _ChatbotPanelState extends State<_ChatbotPanel> {
     try {
       final messages = await widget.api.sendMessage(content);
       messages.sort((a, b) => a.createdAt.compareTo(b.createdAt));
-      if (mounted) setState(() => _messages = messages.map(_UiMessage.normal).toList());
+      if (mounted)
+        setState(() => _messages = messages.map(_UiMessage.normal).toList());
     } catch (_) {
       if (mounted) {
         setState(() {
@@ -350,7 +357,9 @@ class _ChatbotPanelState extends State<_ChatbotPanel> {
     final confirmed = await AppDialog.show<bool>(
       context: context,
       title: '¿Borrar conversación?',
-      content: const Text('Se eliminarán todos los mensajes de este asistente.'),
+      content: const Text(
+        'Se eliminarán todos los mensajes de este asistente.',
+      ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(false),
@@ -372,7 +381,8 @@ class _ChatbotPanelState extends State<_ChatbotPanel> {
       await widget.api.deleteConversation();
       if (mounted) setState(() => _messages = []);
     } catch (_) {
-      if (mounted) setState(() => _error = 'No se pudo borrar la conversación.');
+      if (mounted)
+        setState(() => _error = 'No se pudo borrar la conversación.');
     } finally {
       if (mounted) setState(() => _resetting = false);
     }

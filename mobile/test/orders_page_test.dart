@@ -70,10 +70,8 @@ class _FakeOrderApi extends OrderApi {
   Future<List<PickupBranch>> getPublicBranches() async => const [];
 
   @override
-  Future<OrderResult> getById({required String orderId}) async => const OrderResult(
-    order: _order,
-    message: 'Pedido obtenido exitosamente',
-  );
+  Future<OrderResult> getById({required String orderId}) async =>
+      const OrderResult(order: _order, message: 'Pedido obtenido exitosamente');
 }
 
 const _order = Order(

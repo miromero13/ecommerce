@@ -10,7 +10,9 @@ import 'package:mobile/features/catalog/product_detail_page.dart';
 import 'package:mobile/features/reservations/reservation_models.dart';
 
 void main() {
-  testWidgets('muestra accesos visibles para carrito y reservas', (tester) async {
+  testWidgets('muestra accesos visibles para carrito y reservas', (
+    tester,
+  ) async {
     final controller = CatalogController()..status = CatalogStatus.ready;
     addTearDown(controller.dispose);
 

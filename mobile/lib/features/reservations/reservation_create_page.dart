@@ -43,7 +43,8 @@ class _ReservationCreatePageState extends State<ReservationCreatePage> {
   void initState() {
     super.initState();
     _ownsController = widget.controller == null;
-    _controller = widget.controller ??
+    _controller =
+        widget.controller ??
         ReservationController(authController: widget.authController);
     _items = [...?widget.arguments?.items];
     widget.authController.addListener(_handleAuthChanged);
@@ -81,7 +82,8 @@ class _ReservationCreatePageState extends State<ReservationCreatePage> {
           }
           if (widget.authController.status == AuthStatus.error) {
             return AppErrorView(
-              message: widget.authController.errorMessage ??
+              message:
+                  widget.authController.errorMessage ??
                   'No se pudo validar la sesión.',
               onRetry: widget.authController.restoreSession,
             );
@@ -219,9 +221,9 @@ class _ReservationCreatePageState extends State<ReservationCreatePage> {
         children: [
           Text(
             'Prendas seleccionadas',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 12),
           if (_items.isEmpty)
@@ -284,10 +286,9 @@ class _ReservationCreatePageState extends State<ReservationCreatePage> {
         _controller.feedbackMessage ?? 'Reserva creada exitosamente.',
         tone: AppSnackBarTone.success,
       );
-      Navigator.of(context).pushReplacementNamed(
-        AppRoutes.reservations,
-        arguments: reservationId,
-      );
+      Navigator.of(
+        context,
+      ).pushReplacementNamed(AppRoutes.reservations, arguments: reservationId);
     } else if (_controller.status == ReservationControllerStatus.error) {
       AppSnackBar.show(
         context,
@@ -324,9 +325,9 @@ class _DraftItemRow extends StatelessWidget {
                   item.productName ?? 'Prenda seleccionada',
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 4),
                 Text(

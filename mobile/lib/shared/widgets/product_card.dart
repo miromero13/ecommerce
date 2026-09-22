@@ -74,7 +74,7 @@ class ProductCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 6),
-                       ProductPrice(price: price, originalPrice: originalPrice),
+                      ProductPrice(price: price, originalPrice: originalPrice),
                     ],
                   ),
                 ),

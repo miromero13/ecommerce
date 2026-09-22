@@ -1,4 +1,4 @@
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
@@ -18,6 +18,13 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-3.6-flash"
     gemini_garment_model: str | None = None
     gemini_timeout_seconds: int = Field(default=30, ge=5, le=120)
+    firebase_service_account_path: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "FIREBASE_SERVICE_ACCOUNT_PATH",
+            "FIREBASE_SERVICE_ACCOUNT_FILE",
+        ),
+    )
 
     class Config:
         env_file = ".env"

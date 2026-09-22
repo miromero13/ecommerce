@@ -35,6 +35,10 @@ export const routes: Routes = [
         redirectTo: 'perfil',
       },
       {
+        path: 'notifications',
+        loadComponent: () => import('./features/shared/pages/notification-page.component').then((m) => m.NotificationPageComponent),
+      },
+      {
         path: 'perfil',
         loadComponent: () =>
           import('./features/shared/pages/profile-page.component').then(
@@ -231,6 +235,10 @@ export const routes: Routes = [
         ],
       },
     ],
+  },
+  {
+    path: 'notifications',
+    redirectTo: 'app/notifications',
   },
   {
     path: '',
