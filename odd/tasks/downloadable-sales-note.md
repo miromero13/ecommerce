@@ -18,8 +18,8 @@ Enable authorized customers to download a readable Spanish sales note for each c
 - Verification command: `npm test` from `frontend/`.
 
 ## Route and Delegation Evidence
-- Route: local branch `feat/downloadable-sales-note`; no remote access used.
-- Delegation: none.
+- Route: delegated direct; no remote access used.
+- Delegation: direct delegation to the `explore` and `general` roles.
 
 ## Tasks
 - [x] Integrate `downloadSimplePdf` directly in the customer components to generate the Spanish sales note from an `Order`.
@@ -28,4 +28,4 @@ Enable authorized customers to download a readable Spanish sales note for each c
 ## Tracking State
 - Engram mirror: pending — both immediate and post-verification attempts were unavailable because multiple active runtime sessions match `ecommerce`.
 - Verification evidence: `cd frontend && npm test` passed on 2026-09-22; `ng build --configuration development` completed in 3.847 seconds and wrote `frontend/dist/frontend`.
-- Commit identity: `feat(cliente): add downloadable sales notes`.
+- Commit identity: `fbf99282dd09a3e92cd49afcbf2b26184bbe0702` (`feat(cliente): add downloadable sales notes`).
