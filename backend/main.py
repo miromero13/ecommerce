@@ -76,8 +76,8 @@ api_router.include_router(dashboard_routes.router)
 api_router.include_router(promotion_routes.router)
 api_router.include_router(replenishment_routes.router)
 api_router.include_router(recommendation_routes.router)
-    api_router.include_router(chatbot_routes.router)
-    api_router.include_router(notification_routes.router)
+api_router.include_router(chatbot_routes.router)
+api_router.include_router(notification_routes.router)
 
 app.include_router(api_router)
 
