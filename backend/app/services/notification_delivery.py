@@ -8,8 +8,10 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.models.inventory import Inventory
 from app.models.notification import DeviceToken, Notification
+from app.models.order import Order
 from app.models.product import Product
 from app.models.product_variant import ProductVariant
+from app.models.reservation import Reservation
 from app.models.user import User
 from app.schemas.enums import RolEnum
 
@@ -99,6 +101,16 @@ def notify_reservation_event(db: Session, reservation_id: UUID, user_id: UUID, s
         {"destination": "reservations", "reservation_id": str(reservation_id), "status": status},
         f"reservation:{reservation_id}:{status}",
     )
+    if status == "pending":
+        branch_id = db.query(Reservation.branch_id).filter(Reservation.id == reservation_id).scalar()
+        _notify_branch_managers(
+            db,
+            branch_id,
+            "Nueva reserva",
+            "Se creó una nueva reserva para tu sucursal.",
+            {"destination": "reservations", "reservation_id": str(reservation_id), "status": status},
+            f"reservation:{reservation_id}:{status}",
+        )
 
 
 def notify_order_event(db: Session, order_id: UUID, user_id: UUID, status: str) -> None:
@@ -122,6 +134,48 @@ def notify_order_event(db: Session, order_id: UUID, user_id: UUID, status: str) 
         {"destination": "orders", "order_id": str(order_id), "status": status},
         f"order:{order_id}:{status}",
     )
+    if status == "pending":
+        branch_id = db.query(Order.pickup_branch_id).filter(Order.id == order_id).scalar()
+        _notify_branch_managers(
+            db,
+            branch_id,
+            "Nuevo pedido",
+            "Se creó un nuevo pedido para tu sucursal.",
+            {"destination": "orders", "order_id": str(order_id), "status": status},
+            f"order:{order_id}:{status}",
+        )
+
+
+def _notify_branch_managers(
+    db: Session,
+    branch_id: UUID | None,
+    title: str,
+    body: str,
+    data: dict[str, str],
+    dedupe_prefix: str,
+) -> None:
+    if branch_id is None:
+        return
+    managers = (
+        db.query(User)
+        .filter(
+            User.rol == RolEnum.encargado,
+            User.branch_id == branch_id,
+            User.is_active.is_(True),
+        )
+        .all()
+    )
+    from app.services.notification_service import create_notification
+
+    for manager in managers:
+        create_notification(
+            db,
+            manager.id,
+            title,
+            body,
+            data,
+            f"{dedupe_prefix}:manager:{manager.id}",
+        )
 
 
 def notify_low_stock(db: Session, inventory: Inventory) -> None:
