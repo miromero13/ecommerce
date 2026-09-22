@@ -16,7 +16,7 @@ The backend completes the order-ready flow, persists the notification, and resol
 ## Tasks
 - [x] FPN-1 Add the existing-standard Flutter local notification dependency and initialize an Android channel.
 - [x] FPN-2 Display foreground FCM title/body/payload while preserving inbox refresh and tap behavior.
-- [ ] FPN-3 Enable the Android build configuration required by the local-notification plugin.
+- [x] FPN-3 Enable the Android build configuration required by the local-notification plugin.
 - [ ] FPN-4 Run formatting, analysis, focused tests, and a debug build; record evidence.
 
 ## Acceptance Criteria
@@ -35,5 +35,5 @@ The backend completes the order-ready flow, persists the notification, and resol
 - Route: delegated direct writer; two non-trivial mobile files plus dependency metadata.
 - Current evidence: backend returned `200` for `/ready`, inserted notification `0cb10878-be20-4a0a-9cde-db2223fd5d10`, selected an active device token, and produced no FCM error. The app was foregrounded and refreshed `/api/notifications`.
 - Observed verification: `dart format --output=none --set-exit-if-changed lib/features/notifications/notification_push_service.dart`, focused notification analysis, and `flutter test test/notification_test.dart` passed. The requested `flutter format` command is not available in Flutter 3.44; Dart format was used for the equivalent check.
-- Limitation: `flutter analyze` still reports two pre-existing errors in `test/orders_page_test.dart`; `flutter build apk --debug` is blocked because `flutter_local_notifications` requires Android core-library desugaring, which is now authorized in `mobile/android/app/build.gradle.kts`.
-- Next step: enable desugaring, rerun the build, and record final verification.
+- Limitation: the current parent and verification environments do not expose `flutter` or `dart` on `PATH`, so final formatting, analysis, tests, and APK build cannot be rerun here. The delegated writer previously reported focused checks passing and the full analysis/build limitations before desugaring was authorized.
+- Next step: rerun FPN-4 from an environment with Flutter/Dart installed; then perform a real foreground and background-device delivery test.
