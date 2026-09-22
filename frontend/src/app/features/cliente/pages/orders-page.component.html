@@ -10,6 +10,7 @@
         <div hlmCardContent class="space-y-3"><div class="flex items-center justify-between"><span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold">{{ statusLabel(order.fulfillment_status) }}</span><span class="font-semibold">{{ order.total_amount }} {{ order.currency }}</span></div>
           <div class="space-y-1 border-t border-slate-200 pt-3 text-sm">@for (item of order.items; track item.id) { <div class="flex justify-between"><span>{{ item.product_name }} · {{ item.quantity }}</span><span>{{ item.line_total }}</span></div> }</div>
           @if (order.pickup_code && order.fulfillment_status !== 'collected') { <p class="text-xs text-slate-500">Código de retiro: <strong>{{ order.pickup_code }}</strong></p> }
+          <button hlmBtn type="button" variant="outline" class="w-full" (click)="downloadSalesNote(order)">Descargar nota de venta</button>
         </div>
       </article>
     } @empty { <div class="rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">Aún no tienes pedidos.</div> }

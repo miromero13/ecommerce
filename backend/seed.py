@@ -28,7 +28,6 @@ from app.models.replenishment_request_item import ReplenishmentRequestItem
 from app.models.recommendation import CollaborativeEmbedding, UserProductInteraction
 from app.models.order import Order
 from app.models.order_item import OrderItem
-from app.models.payment_attempt import PaymentAttempt
 from app.models.sale import Sale
 from app.models.sale_item import SaleItem
 from app.models.season import Season
@@ -58,10 +57,6 @@ from app.services.recommendation_service import (
 
 
 PASSWORD = "Fashion123!"
-MIN_DEMO_CLIENTS = 50
-HISTORICAL_SALE_COUNT = 1_000
-HISTORICAL_SALE_WINDOW = timedelta(days=180)
-HISTORICAL_SALE_TIMESTAMP_MARGIN = timedelta(minutes=1)
 RECOMMENDATION_DEMO_EMAIL = "cliente01.demo@fashionstore.bo"
 RECOMMENDATION_DEMO_CATALOG_PATH = "/app/cliente/catalog"
 RECOMMENDATION_DEMO_INTERACTIONS = (
@@ -184,7 +179,6 @@ def _ensure_tables() -> None:
         "replenishment_request_items",
         "orders",
         "order_items",
-        "payment_attempts",
         "sales",
         "sale_items",
         "promotion_codes",
@@ -231,7 +225,6 @@ def _reset_demo_data(session) -> None:
         SaleItem,
         Sale,
         PromotionCodeUsage,
-        PaymentAttempt,
         OrderItem,
         Order,
         ReservationItem,
@@ -380,8 +373,6 @@ def _verify_seed(
     branch_ids = {str(branch.id) for branch in branches}
     if internal_users["branch_id"].isna().any() or not internal_users["branch_id"].map(str).isin(branch_ids).all():
         raise RuntimeError("Hay usuarios internos sin una sucursal valida")
-    if (users_frame["rol"].map(_enum_value) == RolEnum.cliente.value).sum() < MIN_DEMO_CLIENTS:
-        raise RuntimeError(f"El seed debe generar al menos {MIN_DEMO_CLIENTS} clientes")
 
     providers_frame = frames["providers"]
     if providers_frame["user_id"].duplicated().any():
@@ -423,19 +414,6 @@ def _verify_seed(
         raise RuntimeError("Las ventas deben tener fechas timezone-aware")
     if len({sale.created_at for sale in sales}) != len(sales):
         raise RuntimeError("Cada venta debe tener una fecha distinta")
-    now = datetime.now(timezone.utc)
-    sale_window_start = now - HISTORICAL_SALE_WINDOW
-    if len(sales) < HISTORICAL_SALE_COUNT:
-        raise RuntimeError(f"El seed debe generar al menos {HISTORICAL_SALE_COUNT} ventas")
-    if any(sale.created_at < sale_window_start or sale.created_at > now for sale in sales):
-        raise RuntimeError("Las ventas deben estar dentro de los ultimos 180 dias")
-    sales_frame = frames["sales"]
-    if sales_frame["cash_reference"].isna().any() or sales_frame["cash_reference"].duplicated().any():
-        raise RuntimeError("Las ventas deben tener referencias de caja unicas")
-    cashiers_frame = users_frame[users_frame["rol"].map(_enum_value) == RolEnum.cajero.value]
-    cashier_branches = dict(zip(cashiers_frame["id"].map(str), cashiers_frame["branch_id"].map(str)))
-    if any(cashier_branches.get(str(sale.user_id)) != str(sale.branch_id) for sale in sales):
-        raise RuntimeError("Las ventas deben pertenecer a la sucursal de su cajero")
 
     for table_name, frame in frames.items():
         if frame.empty and table_name in {"cart_items", "reservation_items", "order_items", "sale_items"}:
@@ -539,10 +517,6 @@ def _seed_users(session, branches: list[Branch]) -> list[User]:
         ("Sofia", "Paredes"),
         ("Diego", "Gutierrez"),
     ]
-    clients_payload.extend(
-        (f"Cliente {index:02d}", "Demo")
-        for index in range(len(clients_payload) + 1, MIN_DEMO_CLIENTS + 1)
-    )
 
     genders = [GenderEnum.femenino, GenderEnum.masculino]
     for index, (first, last) in enumerate(clients_payload, start=1):
@@ -1276,14 +1250,6 @@ def _seed_sales(
     reservations: list[Reservation],
 ) -> list[Sale]:
     sales: list[Sale] = []
-    seeded_at = datetime.now(timezone.utc)
-    sale_window_start = seeded_at - HISTORICAL_SALE_WINDOW + HISTORICAL_SALE_TIMESTAMP_MARGIN
-    sale_window_end = seeded_at - HISTORICAL_SALE_TIMESTAMP_MARGIN
-
-    def _sale_timestamp(sale_index: int) -> datetime:
-        span = sale_window_end - sale_window_start
-        return sale_window_start + span * sale_index / (HISTORICAL_SALE_COUNT - 1)
-
     def _cashier_for_branch(branch: Branch, fallback_index: int = 0) -> User | None:
         branch_cashiers = [user for user in cashiers if user.branch_id == branch.id]
         if branch_cashiers:
@@ -1316,7 +1282,7 @@ def _seed_sales(
         sale.payment_status = PaymentStatusEnum.paid
         sale.cash_reference = reference
         sale.currency = "usd"
-        sale.created_at = _sale_timestamp(sale_index)
+        sale.created_at = datetime(2026, 2, 1, tzinfo=timezone.utc) + timedelta(days=sale_index)
 
         subtotal = Decimal("0")
         for reservation_item in reservation.items:
@@ -1365,62 +1331,6 @@ def _seed_sales(
         sale = _create_sale_for_reservation(reservation, sale_index)
         if sale is not None:
             sales.append(sale)
-
-    for sale_index in range(len(sales), HISTORICAL_SALE_COUNT):
-        branch = branches[sale_index % len(branches)]
-        cashier = _cashier_for_branch(branch, sale_index)
-        if cashier is None:
-            raise RuntimeError("El seed necesita al menos un cajero para generar ventas")
-        product, variant = product_variants[sale_index % len(product_variants)]
-        quantity = sale_index % 3 + 1
-        line_total = _money(variant.price * quantity)
-        reference = f"CASH-HIST-{sale_index:04d}"
-        sale, _ = _get_or_create(
-            session,
-            Sale,
-            {"cash_reference": reference},
-            {
-                "branch_id": branch.id,
-                "user_id": cashier.id,
-                "status": SaleStatusEnum.completed,
-                "payment_method": PaymentMethodEnum.cash,
-                "payment_status": PaymentStatusEnum.paid,
-                "currency": "usd",
-            },
-        )
-        sale.branch_id = branch.id
-        sale.user_id = cashier.id
-        sale.status = SaleStatusEnum.completed
-        sale.payment_method = PaymentMethodEnum.cash
-        sale.payment_status = PaymentStatusEnum.paid
-        sale.cash_reference = reference
-        sale.subtotal = line_total
-        sale.discount_amount = Decimal("0.00")
-        sale.total_amount = line_total
-        sale.currency = "usd"
-        sale.created_at = _sale_timestamp(sale_index)
-        sale_item, _ = _get_or_create(
-            session,
-            SaleItem,
-            {"sale_id": sale.id, "variant_id": variant.id},
-            {
-                "quantity": quantity,
-                "unit_price": variant.price,
-                "line_total": line_total,
-                **_product_variant_snapshot(product, variant),
-            },
-        )
-        sale_item.quantity = quantity
-        sale_item.unit_price = variant.price
-        sale_item.line_total = line_total
-        sale_item.product_id = product.id
-        sale_item.product_name = product.name
-        sale_item.variant_sku = variant.sku
-        sale_item.size_id = variant.size_id
-        sale_item.color_id = variant.color_id
-        sale_item.image_url = variant.image_url
-        sale_item.image_public_id = None
-        sales.append(sale)
 
     return sales
 
