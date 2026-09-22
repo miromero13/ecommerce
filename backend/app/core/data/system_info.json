@@ -1,6 +1,10 @@
 {
-  "registro_login": "Puedes iniciar sesión o registrarte desde el icono de perfil en la esquina superior derecha.",
-  "favoritos": "Guarda productos haciendo clic en el icono de corazón junto a la prenda.",
-  "seguimiento": "Consulta el estado de tu pedido desde la sección 'Mis Compras' en tu perfil.",
-  "actualizar_perfil": "Puedes cambiar tus medidas y tallas desde los ajustes de tu cuenta o indicándomelo directamente aquí en el chat."
+  "catalogo_y_filtros": "Puedes explorar el catálogo y filtrar por categoría, talla, color y temporada desde la web o la app.",
+  "disponibilidad": "Antes de reservar o comprar, puedes consultar si una prenda está disponible en la sucursal que prefieras.",
+  "carrito": "Agrega prendas al carrito desde la ficha del producto; ahí puedes ajustar cantidades o aplicar un cupón de descuento antes de pagar.",
+  "cupones": "Si tienes un código promocional, puedes aplicarlo en el carrito antes de finalizar la compra.",
+  "estado_reserva": "Puedes ver el estado de tus reservas (pendiente, confirmada, atendida o cancelada) y cancelarlas si ya no las necesitas, desde tu perfil.",
+  "vestidor_virtual": "Desde la app móvil puedes activar el vestidor virtual con realidad aumentada en la ficha de cualquier prenda compatible.",
+  "recomendaciones": "Te sugerimos prendas según tus gustos y tu historial de compras; mientras más uses la tienda, mejores serán las recomendaciones.",
+  "reiniciar_chat": "Si quieres empezar una conversación nueva conmigo, solo dime que reinicie el chat."
 }

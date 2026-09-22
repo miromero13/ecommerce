@@ -1,5 +1,11 @@
 {
-  "envios": "Envíos a todo el país. Gratis en compras mayores a $50. Tiempo estimado: 3 a 5 días hábiles.",
+  "compra_digital": "Podés comprar desde la web o la app: agregá prendas al carrito, elegí sucursal de retiro y pagá en línea (tarjeta vía Stripe) o reservá el pago en efectivo para pagarlo al retirar.",
+  "retiro_en_tienda": "Las compras digitales no se envían a domicilio: se retiran en la sucursal que elegiste, presentando el código de retiro que te llega al confirmar el pedido.",
+  "reservas": "Podés reservar prendas para probártelas en tienda antes de comprar. La reserva queda pendiente hasta que la sucursal la prepara y tiene un tiempo límite antes de vencer.",
+  "compra_presencial": "También podés comprar directamente en la sucursal: el cajero registra la venta y podés pagar en efectivo, tarjeta o QR en el punto de caja.",
+  "tallas_y_cambios": "Antes de reservar o comprar podés consultar la disponibilidad por talla y color en cada sucursal.",
+  "vestidor_virtual": "Desde la app móvil podés usar el vestidor virtual con realidad aumentada para ver cómo te queda una prenda antes de comprarla.",
+  "envios": "Actualmente WomenStyle no realiza envíos a domicilio: todas las compras se retiran en la sucursal seleccionada.",
   "devoluciones": "Cambios permitidos dentro de los 30 días posteriores a la compra con etiqueta original.",
-  "pagos": "Aceptamos tarjetas de crédito, débito y transferencias bancarias."
+  "pagos": "Aceptamos tarjetas de crédito y débito (vía Stripe) para compras digitales, y efectivo, tarjeta o QR en punto de caja."
 }
