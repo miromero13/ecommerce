@@ -1,23 +1,127 @@
 # Casos de Uso – Segundo Parcial
 
-Documento de especificación de requisitos y arquitectura funcional para el **Segundo Parcial**. Consolida el estado actual del software (MVP base implementado) y define el nuevo alcance requerido: transformación a **Plataforma SaaS Multi-Tenant**, cobertura total de las **6 ramas de Inteligencia Artificial**, **fidelización omnicanal con billetera digital**, **logística de delivery y devoluciones**, y **soporte PWA/Offline**.
+Documento exhaustivo de especificación de requisitos, arquitectura de software, flujo de desarrollo y contratos de integración para el **Segundo Parcial**. Consolida el software desarrollado en el primer ciclo (MVP base implementado) y especifica en profundidad el nuevo alcance: **Plataforma SaaS Multi-Tenant**, cobertura de las **6 ramas de Inteligencia Artificial**, **fidelización omnicanal con billetera digital**, **logística de delivery y devoluciones**, y **arquitectura PWA / Offline-First**.
 
 ---
 
-## 1. Módulos de Arquitectura del Sistema
+## 1. Convenciones Estrictas de Desarrollo y Arquitectura
 
-El sistema se estructura en **6 Módulos Cohesivos** que agrupan los 22 Casos de Uso:
+### 1.1. Regla de Idiomas: Código en Inglés vs. Interfaz en Español
+* **Todo el código es estrictamente en inglés:** nombres de archivos, funciones, clases, componentes, servicios, modelos de base de datos, nombres de tablas, columnas SQL, interfaces TypeScript, esquemas Pydantic, nombres de endpoints HTTP, verbos, parámetros de query/body, variables locales, comentarios técnicos y mensajes de commit de Git (ej. `tenant_id`, `StripeSubscriptionService`, `StoreWalletComponent`, `POST /api/saas/tenants`).
+* **Únicamente lo que ve el usuario final es en español:** los textos de los mensajes de respuesta (`message`), los títulos, etiquetas de formularios (*labels*), textos de botones, alertas visuales (*toasts* / *snackbars*), modales y textos explicativos de la interfaz.
 
-* **Módulo 1: Plataforma SaaS, Seguridad y Comercial:** Multi-tenancy con aislamiento estricto de empresas (`tenant_id`), planes y cobro recurrente de suscripciones B2B, gestión granular de roles y permisos (RBAC dinámico), y Landing Page pública institucional.
-* **Módulo 2: Inteligencia Artificial y Automatización:** Cobertura de las 6 ramas de IA: Visión por Computadora, Machine Learning (filtrado colaborativo ALS), Procesamiento de Lenguaje Natural (PLN), IA Generativa (Google Gemini y Decart AI), Sistemas Expertos (reglas de reabastecimiento de stock) y RPA con IA (procesamiento automatizado de remitos y catálogos de proveedores).
-* **Módulo 3: Inventario y Operaciones de Sucursal:** Gestión multi-sucursal, traspasos entre tiendas con ajuste automático de existencias y despacho de notificaciones push móviles en tiempo real.
-* **Módulo 4: Business Intelligence y Reportes:** Dashboard gerencial con KPIs comerciales por sucursal y fechas, junto a generación de reportes tabulares detallados con exportación a CSV.
-* **Módulo 5: Promociones, Fidelización y Experiencia de Cliente:** Cupones promocionales, lista de deseos (*Wishlist*), acumulación y canje de puntos de lealtad, compra de Gift Cards con código QR y gestión de la billetera digital (*Store Wallet*) para pagos y saldos a favor.
-* **Módulo 6: Logística, Despacho y Posventa:** Despacho de pedidos a domicilio con cálculo de flete (última milla), gestión integral de cambios y devoluciones (*RMA*), y arquitectura offline-first con soporte PWA en web y persistencia local en app móvil.
+### 1.2. Prefijo Canónico de Endpoints (Sin versión /v1)
+* El backend monta todos los routers bajo el prefijo raíz `/api` definido en `backend/main.py`.
+* **No se utiliza `/v1` ni subversiones.** Las rutas siguen directamente el módulo:
+  - `/api/saas/tenants`, `/api/saas/plans`, `/api/saas/subscriptions`
+  - `/api/rbac/roles`, `/api/rbac/permissions`
+  - `/api/inventory/movements/transfer`, `/api/promotions`, `/api/cart`
+  - `/api/wishlist`, `/api/loyalty/...`, `/api/gift-cards/...`, `/api/wallet/...`
+  - `/api/delivery/...`, `/api/rma/...`, `/api/offline/...`
+
+### 1.3. Contrato Estándar de Respuestas y Errores del Backend
+El sistema utiliza la función utilitaria `response(...)` de `backend/app/utils/response.py` y los manejadores globales de `backend/app/core/error_handlers.py`.
+
+#### Mecanismo de Excepciones y Serialización HTTP
+* En el código Python de backend se lanza la excepción nativa:
+  ```python
+  raise HTTPException(status_code=400, detail="Mensaje de error en español")
+  ```
+* El manejador global `StarletteHTTPException` en `backend/app/core/error_handlers.py` captura esta excepción y la serializa **siempre** bajo el contrato unificado:
+  ```json
+  {
+    "statusCode": 400,
+    "message": "Mensaje de error en español",
+    "error": "HTTPException"
+  }
+  ```
+* **Aclaración crítica para desarrollo y agentes IA:** En la respuesta HTTP JSON que viaja por la red hacia el frontend o móvil, **el campo siempre se llama `"message"`, NUNCA `"detail"`**. No se debe esperar un campo `"detail"` en el JSON de respuesta.
+
+#### Modelos de Respuesta HTTP
+* **Estructura de Respuesta Exitosa (`status_code: 200 / 201`):**
+```json
+{
+  "statusCode": 200,
+  "message": "Operación completada exitosamente",
+  "data": { ... },
+  "countData": null
+}
+```
+
+* **Estructura de Error de Negocio (`status_code: 400 / 403 / 404 / 409`):**
+```json
+{
+  "statusCode": 400,
+  "message": "Stock insuficiente en la sucursal de origen",
+  "error": "HTTPException"
+}
+```
+
+* **Estructura de Error de Validación (`status_code: 422`):**
+```json
+{
+  "statusCode": 422,
+  "message": "Error de validación en los datos enviados",
+  "error": [
+    {
+      "loc": ["body", "email"],
+      "msg": "Formato de correo inválido",
+      "type": "value_error"
+    }
+  ]
+}
+```
+
+### 1.4. Regla Mandatoria para el Frontend y Móvil: Mostrar el Mensaje del Backend
+* **La interfaz de usuario DEBE mostrar el mensaje exacto retornado por el backend en `response.message`.** Queda terminantemente prohibido hardcodear textos genéricos de éxito o error en los componentes.
+* En **Angular**:
+  - En peticiones exitosas: consumir y mostrar `response.message` usando `toast.success(res.message)`.
+  - En errores HTTP: utilizar la utilidad del sistema `getErrorMessage(error, fallback)` (`frontend/src/app/core/utils/http-error.util.ts`) que extrae automáticamente `error.error?.message` o emplear `requestWithToast(...)` (`request-toast.util.ts`).
+* En **Flutter (Móvil)**:
+  - Deserializar la respuesta con `ApiResponse.fromJson(...)` y mostrar `response.message` en el `AppSnackBar.showSuccess(context, message)` o `AppSnackBar.showError(context, message)`.
 
 ---
 
-## 2. Matriz General de Casos de Uso (CU1 al CU22)
+## 2. Orden General de Implementación de un Nuevo Caso de Uso
+
+Para mantener la cohesión y respetar **estrictamente la estructura existente del sistema**, la construcción de cualquier caso de uso nuevo o modificación de uno existente debe seguir de forma rigurosa el siguiente pipeline de desarrollo:
+
+```
+[1. MODEL DB] ➔ [2. MIGRACIÓN ALEMBIC] ➔ [3. SCHEMA PYDANTIC] ➔ [4. SERVICIO BACKEND] ➔ [5. ROUTE FASTAPI] ➔ [6. REGISTRO EN MAIN.PY] ➔ [7. TESTS]
+                                                                                                                           │
+                                                                                                                           ▼
+[8. MODEL TYPESCRIPT] ➔ [9. SERVICIO API ANGULAR] ➔ [10. COMPONENTE & VISTA] ➔ [11. RUTA APP.ROUTES] ➔ [12. INTEGRACIÓN EN MENÚ / APPSHELL]
+                                                                                                                           │
+                                                                                                                           ▼
+[13. MODEL DART (MÓVIL)] ➔ [14. SERVICIO API DART] ➔ [15. CONTROLLER / ESTADO] ➔ [16. PANTALLA UI] ➔ [17. RUTAS APP / MENÚ PERFIL]
+```
+
+### Fase A: Backend (Python / FastAPI)
+1. **Modelo de Base de Datos (`backend/app/models/<entity>.py`):** Crear o actualizar la clase SQLAlchemy heredando de `Base`. Incluir siempre `tenant_id` para aislamiento multi-tenant, claves foráneas, índices y constraints de unicidad.
+2. **Migración Alembic (`backend/alembic/versions/xxxx_<description>.py`):** Generar y aplicar la migración incremental para alterar la base de datos sin romper tablas previas.
+3. **Esquema Pydantic (`backend/app/schemas/<entity>_schema.py`):** Definir modelos de validación de entrada (`Create`, `Update`) y de serialización de salida (`Read`), con nombres de propiedades en inglés.
+4. **Servicio de Dominio (`backend/app/services/<entity>_service.py`):** Escribir la lógica pura de negocio, reglas de cálculo y persistencia transaccional en base de datos.
+5. **Ruta y Endpoints (`backend/app/routes/<entity>_routes.py`):** Crear el `APIRouter(prefix="/<entity>", tags=["<Tag>"])`. Inyectar sesión de base de datos con `Depends(get_db)`, aplicar control de acceso con `require_roles(...)` o validación de permisos RBAC, y retornar siempre mediante la función `response(status_code, message="...", data=...)`. Lanzar errores con `raise HTTPException(status_code, detail="Mensaje en español")`.
+6. **Registro en Router Principal (`backend/main.py`):** Incluir la nueva ruta en `api_router.include_router(<entity>_routes.router)`.
+7. **Pruebas de Backend (`backend/tests/test_<entity>_service.py`):** Crear tests automatizados cubriendo casos de éxito y caminos alternativos.
+
+### Fase B: Frontend Web (Angular)
+8. **Modelo TypeScript (`frontend/src/app/features/<modulo>/models/<entity>.model.ts` o `shared/models/`):** Declarar las interfaces de datos reflejando exactamente el contrato JSON del backend en inglés.
+9. **Servicio API Angular (`frontend/src/app/features/<modulo>/services/<entity>-api.service.ts`):** Inyectar `ApiService` (`frontend/src/app/core/services/api.service.ts`) y definir métodos que retornen `Observable<ApiResponse<T>>` hacia la ruta `/api/<entity>`.
+10. **Componente y Plantilla HTML (`frontend/src/app/features/<modulo>/pages/<component-name>.component.ts` y `.html`):** Implementar la vista del usuario, formularios reactivos y feedback visual consumiendo el `message` que devuelve el backend a través de `toast` o `requestWithToast`.
+11. **Enrutamiento Web (`frontend/src/app/app.routes.ts`):** Registrar la ruta con `loadComponent()` y protegerla mediante `authenticatedGuard` y `roleGuard(['<rol>'])`.
+12. **Integración en Menú y Shell (`frontend/src/app/core/layouts/app-shell.component.ts`):** Incorporar la opción en `sidebarSections` para el rol correspondiente o en la sección de perfil si es una funcionalidad transversal de cuenta.
+
+### Fase C: Aplicación Móvil (Flutter – para casos con soporte móvil)
+13. **Modelo Dart (`mobile/lib/features/<modulo>/<entity>_models.dart`):** Crear clases con serializadores `fromJson` y `toJson`.
+14. **Servicio API Móvil (`mobile/lib/features/<modulo>/<entity>_api.dart`):** Implementar llamadas HTTP usando el cliente base autenticado.
+15. **Controlador de Estado (`mobile/lib/features/<modulo>/<entity>_controller.dart`):** Gestionar el ciclo de vida, estados de carga y errores.
+16. **Pantalla UI (`mobile/lib/features/<modulo>/<entity>_page.dart`):** Diseñar widgets siguiendo los componentes compartidos (`AppCard`, `AppButton`, `AppSnackBar`).
+17. **Rutas y Menú (`mobile/lib/app/routes.dart`):** Registrar la ruta de navegación y añadir el botón de acceso en el Menú de Perfil (`ProfilePage`) o tarjeta activa en la pantalla principal.
+
+---
+
+## 3. Matriz General de Casos de Uso (CU1 al CU22)
 
 | **ID** | **Caso de uso** | **Módulo** | **Estado en Código** | **Actor(es) principal** | **Plataforma** |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -29,7 +133,7 @@ El sistema se estructura en **6 Módulos Cohesivos** que agrupan los 22 Casos de
 | **CU6** | **Recibir recomendaciones de catálogo** | M2: Inteligencia Artificial | **Hecho** | Cliente | Ambas |
 | **CU7** | **Consultar asistente virtual / Chatbot** | M2: Inteligencia Artificial | **Hecho** | Cliente | Ambas |
 | **CU8** | **Generar reportes por voz y lenguaje natural** | M2: Inteligencia Artificial | **Hecho** | Administrador | Web |
-| **CU9** | **Reabastecimiento automático de stock** | M2: Inteligencia Artificial | **Pendiente** | Administrador, Sistema | Web |
+| **CU9** | **Reabastecimiento automático de stock (Sistema Experto)** | M2: Inteligencia Artificial | **Pendiente** | Administrador, Sistema | Web |
 | **CU10** | **Ingesta de mercadería con RPA e IA** | M2: Inteligencia Artificial | **Pendiente** | Proveedor, Sistema | Web |
 | **CU11** | **Traspaso manual de inventario** | M3: Inventario y Operaciones | **Hecho** | Administrador, Encargado | Web |
 | **CU12** | **Notificaciones push móviles** | M3: Inventario y Operaciones | **Hecho** | Cliente, Sistema | Móvil |
@@ -37,7 +141,7 @@ El sistema se estructura en **6 Módulos Cohesivos** que agrupan los 22 Casos de
 | **CU14** | **Generación y exportación de reportes** | M4: Business Intelligence | **Hecho** | Administrador | Web |
 | **CU15** | **Gestionar y aplicar cupones promocionales** | M5: Promociones y Fidelización | **Hecho** | Cliente, Admin, Encargado | Ambas |
 | **CU16** | **Gestionar lista de deseos (*Wishlist*)** | M5: Promociones y Fidelización | **Pendiente** | Cliente | Ambas |
-| **CU17** | **Fidelización y billetera de puntos** | M5: Promociones y Fidelización | **Pendiente** | Cliente, Cajero | Ambas |
+| **CU17** | **Fidelización y billetera de puntos (*Loyalty*)** | M5: Promociones y Fidelización | **Pendiente** | Cliente, Cajero | Ambas |
 | **CU18** | **Emitir y comprar tarjetas de regalo (*Gift Cards*)** | M5: Promociones y Fidelización | **Pendiente** | Cliente | Ambas |
 | **CU19** | **Gestionar billetera digital (*Store Wallet*)** | M5: Promociones y Fidelización | **Pendiente** | Cliente, Cajero | Ambas |
 | **CU20** | **Delivery y despacho a domicilio** | M6: Logística y Posventa | **Pendiente** | Cliente, Delivery | Ambas |
@@ -46,175 +150,1543 @@ El sistema se estructura en **6 Módulos Cohesivos** que agrupan los 22 Casos de
 
 ---
 
-## 3. Especificación Detallada de los Casos de Uso
+## 4. Especificación Técnica Detallada por Caso de Uso
+
+---
 
 ### Módulo 1: Plataforma SaaS, Seguridad y Comercial
 
 #### CU1 – Plataforma Multi-Tenant (Multi-empresa)
-* **Actor principal:** Superadministrador.
-* **Estado:** Pendiente.
-* **Descripción:** Transforma la arquitectura de base de datos a un modelo multi-inquilino (*Row-Level Multi-Tenancy*). Permite registrar empresas/marcas independientes con subdominio propio (`marca.plataforma.com`), logotipo, moneda y aislamiento estricto de catálogos, sucursales, usuarios e inventarios mediante la clave foránea `tenant_id` en todas las entidades transaccionales.
-* **Precondición:** El usuario debe estar autenticado con rol global `Superadministrador`.
-* **Flujo Principal:**
-  1. El superadministrador registra un nuevo Tenant especificando nombre comercial, slug/subdominio, correo de contacto y configuración regional.
-  2. El sistema valida la unicidad del subdominio y crea la organización en la base de datos.
-  3. El sistema provisiona al usuario Administrador inicial del tenant y le envía credenciales de acceso.
-  4. Toda consulta posterior efectuada bajo ese subdominio resuelve automáticamente el `tenant_id` en middleware, impidiendo accesos cruzados entre marcas.
-* **Postcondición:** El nuevo tenant queda operativo y aislado para su parametrización.
+* **Módulo:** M1: Plataforma SaaS y Seguridad
+* **Actor Principal:** Superadministrador
+* **Estado:** Pendiente | **Plataforma:** Web
+* **Descripción Funcional:** Gestión integral de organizaciones (`tenants`) bajo arquitectura multitenant compartida con aislamiento a nivel de fila (*Row-Level Multi-Tenancy* mediante `tenant_id`). Cada marca cuenta con subdominio personalizado (`marca.plataforma.com`), aislamiento de catálogos, usuarios, pedidos e inventarios.
+
+##### Endpoints Backend
+```http
+POST /api/saas/tenants
+Headers: Authorization: Bearer <superadmin_jwt>
+Request Body:
+{
+  "name": "Boutique Elegance",
+  "slug": "boutique-elegance",
+  "subdomain": "elegance",
+  "contact_email": "admin@elegance.com",
+  "currency": "BOB",
+  "country": "BO"
+}
+Response 201 Created:
+{
+  "statusCode": 201,
+  "message": "Organización creada exitosamente",
+  "data": {
+    "id": "e3b0c442-98fc-1c14-9afb-4c72e0500001",
+    "name": "Boutique Elegance",
+    "slug": "boutique-elegance",
+    "subdomain": "elegance",
+    "status": "pending_subscription",
+    "created_at": "2026-04-10T12:00:00Z"
+  }
+}
+
+Response 409 Conflict:
+{
+  "statusCode": 409,
+  "message": "El subdominio ya se encuentra registrado por otra empresa",
+  "error": "HTTPException"
+}
+
+Response 400 Bad Request:
+{
+  "statusCode": 400,
+  "message": "El correo de contacto no tiene un formato válido",
+  "error": "HTTPException"
+}
+```
+```http
+GET /api/saas/tenants
+Headers: Authorization: Bearer <superadmin_jwt>
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Listado de organizaciones obtenido",
+  "data": [ ... ]
+}
+```
+```http
+GET /api/saas/tenants/{tenant_id}
+PATCH /api/saas/tenants/{tenant_id}
+```
+
+##### Ubicación en Frontend (Angular)
+* **Página y Vista:** `frontend/src/app/features/admin/pages/tenant-management-page.component.ts` (`tenant-management-page.component.html`)
+* **Servicio API:** `frontend/src/app/features/shared/services/tenant-api.service.ts`
+* **Modelo TypeScript:** `frontend/src/app/features/shared/models/tenant.model.ts`
+* **Ruta Angular:** `/app/admin/tenants` (`canActivate: [roleGuard(['superadministrador'])]`)
+* **Integración en Menú:** Ítem `"Empresas / Tenants"` en `sidebarSections` de Superadministrador en `app-shell.component.ts`.
+* **Mensajes en UI:** La vista consume y muestra directamente el `message` del backend vía `toast.success(res.message)` o `toast.error(getErrorMessage(err, 'No se pudo crear la empresa'))`.
+
+##### Checklist de Implementación
+- [ ] Backend: Crear modelo SQLAlchemy `Tenant` y migración Alembic agregando `tenant_id` a tablas maestras.
+- [ ] Backend: Implementar middleware de resolución de tenant por subdominio / encabezado `X-Tenant-ID`.
+- [ ] Backend: Crear endpoints CRUD `/api/saas/tenants` en `tenant_routes.py` y registrarlo en `main.py`.
+- [ ] Frontend: Crear `TenantApiService` con métodos `list()`, `create()`, `update()`.
+- [ ] Frontend: Desarrollar pantalla `tenant-management-page` con tabla de tenants, modal de alta y mensajes dinámicos.
+- [ ] Verificación: Probar aislamiento estricto de catálogos y órdenes entre dos tenants distintos.
+
+---
 
 #### CU2 – Gestión de planes y suscripciones B2B
-* **Actor principal:** Superadministrador (crea planes), Administrador de Tenant (contrata).
-* **Estado:** Pendiente.
-* **Descripción:** Administración de tiers de suscripción mensual/anual para las marcas que contratan la plataforma SaaS (ej. Básico, Profesional, Enterprise). Controla límites por plan (sucursales máximas, número de prendas, acceso a vestidor virtual IA) y automatiza el cobro recurrente mediante integración con Stripe Billing.
-* **Precondición:** Tenant registrado en la plataforma.
-* **Flujo Principal:**
-  1. El administrador del tenant selecciona el plan deseado y ciclo de facturación (mensual o anual).
-  2. El sistema redirige al portal de pago seguro para ingresar tarjeta de crédito.
-  3. Stripe confirma la suscripción activa mediante webhook y el sistema actualiza el estado del tenant a `active`.
-  4. El sistema habilita los límites y funcionalidades acordes al plan adquirido.
-* **Flujos Alternativos:**
-  * **3a. Pago rechazado o suscripción vencida:** El sistema degrada el tenant a estado `read_only` o `suspended` hasta la regularización del cobro.
+* **Módulo:** M1: Plataforma SaaS y Seguridad
+* **Actor Principal:** Superadministrador (crea planes), Administrador de Tenant (contrata y paga)
+* **Estado:** Pendiente | **Plataforma:** Web
+* **Descripción Funcional:** Gestión de tiers de suscripción mensual/anual con límites operativos (número de sucursales, prendas y acceso a vestidor virtual IA) e integración con Stripe Checkout y Webhooks.
+
+##### Endpoints Backend
+```http
+GET /api/saas/plans
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Planes de suscripción recuperados",
+  "data": [
+    {
+      "id": "plan_basic_01",
+      "name": "Básico",
+      "price_monthly": 49.00,
+      "max_branches": 2,
+      "max_garments": 500,
+      "features": ["catalog", "pos", "inventory"]
+    },
+    {
+      "id": "plan_pro_02",
+      "name": "Profesional",
+      "price_monthly": 129.00,
+      "max_branches": 5,
+      "max_garments": 3000,
+      "features": ["catalog", "pos", "inventory", "ai_try_on", "chatbot"]
+    }
+  ]
+}
+```
+```http
+POST /api/saas/subscriptions/checkout-session
+Headers: Authorization: Bearer <admin_jwt>, X-Tenant-ID: <tenant_id>
+Request Body:
+{
+  "plan_id": "plan_pro_02",
+  "billing_cycle": "monthly",
+  "success_url": "https://elegance.plataforma.com/app/admin/subscription?status=success",
+  "cancel_url": "https://elegance.plataforma.com/app/admin/subscription?status=cancelled"
+}
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Sesión de pago iniciada",
+  "data": {
+    "checkout_url": "https://checkout.stripe.com/c/pay/cs_live_...",
+    "session_id": "cs_live_123456"
+  }
+}
+
+Response 400 Bad Request:
+{
+  "statusCode": 400,
+  "message": "El plan seleccionado no se encuentra disponible",
+  "error": "HTTPException"
+}
+
+Response 403 Forbidden:
+{
+  "statusCode": 403,
+  "message": "Límite de sucursales alcanzado para el plan actual. Actualizá tu suscripción.",
+  "error": "HTTPException"
+}
+```
+```http
+POST /api/saas/subscriptions/webhook
+Payload: Objeto Stripe Event
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Evento de suscripción procesado exitosamente"
+}
+```
+
+##### Ubicación en Frontend (Angular)
+* **Página y Vista:** `frontend/src/app/features/admin/pages/subscription-page.component.ts` (`subscription-page.component.html`)
+* **Servicio API:** `frontend/src/app/features/shared/services/subscription-api.service.ts`
+* **Modelo TypeScript:** `frontend/src/app/features/shared/models/subscription.model.ts`
+* **Ruta Angular:** `/app/admin/subscription` (`canActivate: [roleGuard(['administrador', 'superadministrador'])]`)
+* **Integración en Menú:** Ítem `"Suscripción y Plan"` en `sidebarSections` de Administrador en `app-shell.component.ts`.
+* **Mensajes en UI:** Notificación de éxito: `"Suscripción activada con éxito."` Alerta de límite: `"Límite de sucursales alcanzado para el plan actual. Actualizá tu suscripción."` (obtenida directamente del `response.message`).
+
+##### Checklist de Implementación
+- [ ] Backend: Crear tablas `saas_plans` y `tenant_subscriptions` con foreign key `tenant_id`.
+- [ ] Backend: Implementar cliente de Stripe Billing y endpoint webhook para confirmación de pagos.
+- [ ] Backend: Validador de límites del plan activo antes de permitir crear sucursales o prendas.
+- [ ] Frontend: Crear `SubscriptionApiService` y componente de tarjetas comparativas de precios.
+- [ ] Frontend: Desarrollar pantalla `subscription-page` con estado actual de la suscripción y botón a Stripe.
+- [ ] Verificación: Simular pago en sandbox de Stripe y corroborar activación de límites en la cuenta.
+
+---
 
 #### CU3 – Gestión granular de roles y permisos (RBAC dinámico)
-* **Actor principal:** Superadministrador, Administrador.
-* **Estado:** Pendiente.
-* **Descripción:** Reemplazo del enum rígido de roles actual por un esquema de Control de Acceso Basado en Roles (RBAC) dinámico. Tablas `roles`, `permissions` y `role_permissions` que permiten crear perfiles personalizados (ej. *Encargado de inventario*, *Supervisor de sucursal*, *Auditor*) y asignar permisos granulares por módulo y verbo HTTP.
-* **Precondición:** Usuario autenticado con privilegios de gestión de seguridad.
-* **Flujo Principal:**
-  1. El administrador accede al panel de roles y selecciona crear nuevo rol.
-  2. Asigna un nombre al rol y tilda los permisos específicos requeridos (ej. `inventory:read`, `inventory:transfer`, `sales:create`).
-  3. Asocia usuarios internos al nuevo rol.
-  4. Los endpoints del backend validan los permisos individuales inyectados en el token JWT.
+* **Módulo:** M1: Plataforma SaaS y Seguridad
+* **Actor Principal:** Superadministrador, Administrador
+* **Estado:** Pendiente | **Plataforma:** Web
+* **Descripción Funcional:** Sustitución del enum rígido de roles por un sistema de permisos dinámicos (`permissions`, `roles`, `role_permissions`). Permite crear perfiles a medida asignando permisos granulares por módulo y verbo (ej. `inventory:read`, `inventory:transfer`, `sales:create`).
+
+##### Endpoints Backend
+```http
+GET /api/rbac/permissions
+Headers: Authorization: Bearer <jwt>
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Catálogo de permisos obtenido",
+  "data": [
+    { "id": "perm_01", "name": "inventory:read", "module": "inventory", "description": "Consultar stock" },
+    { "id": "perm_02", "name": "inventory:transfer", "module": "inventory", "description": "Efectuar traspasos entre sucursales" }
+  ]
+}
+```
+```http
+POST /api/rbac/roles
+Headers: Authorization: Bearer <jwt>
+Request Body:
+{
+  "name": "Encargado de Almacén",
+  "code": "warehouse_manager",
+  "permission_ids": ["perm_01", "perm_02"]
+}
+Response 201 Created:
+{
+  "statusCode": 201,
+  "message": "Rol creado exitosamente",
+  "data": { "id": "role_123", "code": "warehouse_manager", "name": "Encargado de Almacén" }
+}
+
+Response 409 Conflict:
+{
+  "statusCode": 409,
+  "message": "El código del rol ya existe en la organización",
+  "error": "HTTPException"
+}
+
+Response 400 Bad Request:
+{
+  "statusCode": 400,
+  "message": "Debe asignar al menos un permiso al rol",
+  "error": "HTTPException"
+}
+
+Response 403 Forbidden:
+{
+  "statusCode": 403,
+  "message": "No tenés permisos suficientes para realizar esta acción",
+  "error": "HTTPException"
+}
+```
+```http
+GET /api/rbac/roles
+PUT /api/rbac/roles/{role_id}
+POST /api/rbac/users/{user_id}/roles
+```
+
+##### Ubicación en Frontend (Angular)
+* **Página y Vista:** `frontend/src/app/features/admin/pages/rbac-roles-page.component.ts` (`rbac-roles-page.component.html`)
+* **Servicio API:** `frontend/src/app/features/shared/services/rbac-api.service.ts`
+* **Modelo TypeScript:** `frontend/src/app/features/shared/models/rbac.model.ts`
+* **Directiva Estructural:** `frontend/src/app/features/shared/directives/has-permission.directive.ts`
+* **Ruta Angular:** `/app/admin/roles` (`canActivate: [roleGuard(['administrador', 'superadministrador'])]`)
+* **Integración en Menú:** Ítem `"Roles y Permisos"` dentro de la sección Administración en `app-shell.component.ts`.
+* **Mensajes en UI:** El toast proyecta `res.message` al guardar roles y `getErrorMessage(...)` ante rechazos de permisos.
+
+##### Checklist de Implementación
+- [ ] Backend: Modelar tablas `permissions`, `roles`, `role_permissions` y `user_roles`.
+- [ ] Backend: Inyectar matriz de permisos en el payload del token JWT (`permissions: [...]`).
+- [ ] Backend: Crear dependencia FastAPI `require_permission("permission_name")`.
+- [ ] Frontend: Crear directiva `*hasPermission="'inventory:transfer'"` para ocultar elementos en el DOM.
+- [ ] Frontend: Desarrollar pantalla `rbac-roles-page` con checkboxes de permisos agrupados por módulo.
+- [ ] Verificación: Asignar rol restrictivo a un usuario de prueba y validar bloqueo en endpoints y UI.
+
+---
 
 #### CU4 – Landing page y catálogo de planes
-* **Actor principal:** Prospecto / Marca B2B (Visitante público).
-* **Estado:** Pendiente.
-* **Descripción:** Portal web público y responsivo diseñado para marketing y captación B2B. Presenta los diferenciales del software (Omnicanalidad, Vestidor Virtual con IA, Chatbot inteligente, Gestión multi-sucursal), tabla comparativa de planes con precios y pasarela de registro para iniciar pruebas gratuitas (*Free Trial*).
-* **Flujo Principal:**
-  1. El visitante accede a la URL pública principal de la plataforma.
-  2. Visualiza las características del software, capturas de la app móvil y demostraciones interactivas del vestidor virtual.
-  3. Compara los planes de suscripción en la tabla interactiva de precios.
-  4. Presiona el botón *"Comenzar prueba gratis"* y completa el formulario de registro de su empresa.
+* **Módulo:** M1: Plataforma SaaS y Seguridad
+* **Actor Principal:** Prospecto / Marca B2B (Visitante público)
+* **Estado:** Pendiente | **Plataforma:** Web
+* **Descripción Funcional:** Portal web público institucional para captación comercial de marcas B2B. Presenta los diferenciales del software (IA, Vestidor Virtual, Omnicanalidad), tabla comparativa de planes y formulario para iniciar prueba gratuita de 14 días (*Free Trial*).
+
+##### Endpoints Backend
+```http
+GET /api/public/plans
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Planes públicos obtenidos",
+  "data": [ ... ]
+}
+```
+```http
+POST /api/public/register-tenant-trial
+Request Body:
+{
+  "company_name": "Moda Urbana",
+  "subdomain": "modaurbana",
+  "admin_name": "Valeria Gómez",
+  "admin_email": "valeria@modaurbana.com",
+  "password": "PasswordSeguro2026!"
+}
+Response 201 Created:
+{
+  "statusCode": 201,
+  "message": "Prueba gratuita iniciada. Te enviamos un correo con los datos de acceso.",
+  "data": {
+    "subdomain_url": "https://modaurbana.plataforma.com",
+    "trial_ends_at": "2026-04-24T23:59:59Z"
+  }
+}
+
+Response 409 Conflict:
+{
+  "statusCode": 409,
+  "message": "El subdominio solicitado ya está en uso. Elegí otro nombre.",
+  "error": "HTTPException"
+}
+
+Response 422 Unprocessable Entity:
+{
+  "statusCode": 422,
+  "message": "Error de validación en los datos enviados",
+  "error": [
+    {
+      "loc": ["body", "admin_email"],
+      "msg": "Formato de correo electrónico inválido",
+      "type": "value_error"
+    }
+  ]
+}
+```
+
+##### Ubicación en Frontend (Angular)
+* **Página y Vista:** `frontend/src/app/features/shared/pages/landing-page.component.ts` (`landing-page.component.html`)
+* **Componentes de Sección:** `frontend/src/app/features/shared/components/pricing-table.component.ts`
+* **Servicio API:** `frontend/src/app/features/shared/services/public-api.service.ts`
+* **Ruta Angular:** `/landing` o `/` (acceso público sin autenticación)
+* **Mensajes en UI:** La alerta de éxito muestra el mensaje del backend: `"Prueba gratuita iniciada. Te enviamos un correo con los datos de acceso."`
+
+##### Checklist de Implementación
+- [ ] Backend: Endpoint público `/api/public/register-tenant-trial` con creación automática de tenant en estado `trial`.
+- [ ] Frontend: Desarrollar página pública `landing-page` responsiva con sección hero, features y tabla de precios.
+- [ ] Frontend: Formulario reactivo de registro de prueba con validación inmediata de subdominio.
+- [ ] Verificación: Registrar una nueva organización desde la landing y verificar inicio de sesión en su subdominio.
 
 ---
 
 ### Módulo 2: Inteligencia Artificial y Automatización
 
 #### CU5 – Usar vestidor virtual en tiempo real
-* **Rama de IA:** **Visión por Computadora** (*Pose Estimation*) + **IA Generativa de Video** (Decart AI).
-* **Actor principal:** Cliente.
-* **Estado:** **Hecho** (Implementado en `mobile/lib/features/catalog/virtual_try_on_page.dart` y `frontend/public/decart-try-on.html`).
-* **Descripción:** Proyección en vivo de prendas del catálogo sobre el cuerpo del cliente mediante el stream de la cámara del dispositivo móvil. El motor detecta los puntos anatómicos del cuerpo y genera la prenda adaptada en movimiento respetando caída, perspectiva y rotación.
+* **Rama de IA:** **Visión por Computadora** (*Pose Estimation*) + **IA Generativa de Video** (Decart AI)
+* **Actor Principal:** Cliente
+* **Estado:** **Hecho** (Implementado en `mobile/lib/features/catalog/virtual_try_on_page.dart` y `frontend/public/decart-try-on.html`) | **Plataforma:** Móvil / Web
+* **Descripción Funcional:** Proyección en vivo de prendas del catálogo sobre la silueta del cliente mediante la cámara del móvil o webcam, con detección de puntos anatómicos y adaptación de caída y movimiento de la prenda.
+
+##### Endpoints Backend
+```http
+POST /api/ai/virtual-try-on/session
+Headers: Authorization: Bearer <jwt>
+Request Body:
+{
+  "garment_id": "550e8400-e29b-41d4-a716-446655440000",
+  "stream_provider": "decart"
+}
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Sesión de vestidor virtual inicializada",
+  "data": {
+    "session_id": "vto_sess_9921",
+    "webrtc_url": "wss://ai.plataforma.com/webrtc/stream",
+    "garment_texture_url": "https://storage.plataforma.com/textures/dress_01.png"
+  }
+}
+
+Response 404 Not Found:
+{
+  "statusCode": 404,
+  "message": "Prenda no encontrada para la sesión de vestidor virtual",
+  "error": "HTTPException"
+}
+
+Response 422 Unprocessable Entity:
+{
+  "statusCode": 422,
+  "message": "La prenda seleccionada no posee mapeo de textura 3D disponible",
+  "error": "HTTPException"
+}
+```
+
+##### Ubicación en Frontend (Angular & Móvil)
+* **Vista Web / Iframe:** `frontend/public/decart-try-on.html`
+* **Componente Modal Angular:** `frontend/src/app/features/shared/components/virtual-try-on.component.ts`
+* **Página de Detalle de Prenda:** `frontend/src/app/features/cliente/pages/product-detail-page.component.ts`
+* **App Móvil Flutter:** `mobile/lib/features/catalog/virtual_try_on_page.dart`
+* **Mensajes en UI:** Muestra en pantalla el estado devuelto por el motor: `"Sesión de vestidor virtual inicializada"` o advertencias de encuadre.
+
+##### Checklist de Implementación
+- [x] Backend: Microservicio y router WebRTC/Decart AI para procesamiento de video en tiempo real.
+- [x] Frontend: Integración de visor interactivo en `decart-try-on.html` y modal en `product-detail-page`.
+- [x] Móvil: Integración de cámara y visualizador de stream en Flutter (`virtual_try_on_page.dart`).
+- [x] Verificación: Renderizado de prendas en vivo con tracking anatómico en cámara web y móvil.
+
+---
 
 #### CU6 – Recibir recomendaciones personalizadas de catálogo
-* **Rama de IA:** **Machine Learning** (Filtrado Colaborativo con Implicit ALS en NumPy).
-* **Actor principal:** Cliente.
-* **Estado:** **Hecho** (Implementado en `backend/app/services/recommendation_service.py`).
-* **Descripción:** Generación de sugerencias personalizadas de prendas en pantalla de inicio y detalle. El modelo entrena factores latentes (*embeddings*) cruzando vistas (peso 1), agregados al carrito (peso 2) y compras completadas (peso 5) para predecir afinidad matemática mediante producto punto vectorial. Incluye fallback automático para usuarios nuevos (*Cold Start*).
+* **Rama de IA:** **Machine Learning** (Filtrado Colaborativo con Implicit ALS)
+* **Actor Principal:** Cliente
+* **Estado:** **Hecho** (Implementado en `backend/app/services/recommendation_service.py` y `recommendation_routes.py`) | **Plataforma:** Ambas
+* **Descripción Funcional:** Generación de sugerencias personalizadas de prendas en portada y detalle a partir de la matriz de interacciones del cliente (vistas, carritos y compras), con fallback automático por popularidad para usuarios nuevos (*Cold Start*).
+
+##### Endpoints Backend
+```http
+GET /api/recommendations/me?limit=6
+Headers: Authorization: Bearer <jwt>
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Recomendaciones generadas exitosamente",
+  "data": [
+    {
+      "product_id": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+      "name": "Vestido Midi Seda Floral",
+      "score": 0.892,
+      "recommendation_reason": "Basado en tus compras recientes y favoritos"
+    }
+  ]
+}
+
+Response 404 Not Found:
+{
+  "statusCode": 404,
+  "message": "No se encontraron interacciones suficientes para generar recomendaciones personalizadas",
+  "error": "HTTPException"
+}
+```
+```http
+POST /api/recommendations/interactions
+Request Body: { "product_id": "...", "interaction_type": "view" }
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Interacción registrada para el modelo de recomendaciones"
+}
+```
+
+##### Ubicación en Frontend (Angular & Móvil)
+* **Página y Vista:** `frontend/src/app/features/cliente/pages/cliente-home-page.component.ts` (`cliente-home-page.component.html`)
+* **Servicio API:** `frontend/src/app/features/shared/services/recommendation-api.service.ts`
+* **Móvil Flutter:** Carrusel de recomendaciones en `mobile/lib/features/catalog/catalog_page.dart`
+* **Mensajes en UI:** Encabezado dinámico: `"Recomendado para vos"` / `"Prendas que combinan con tu estilo"`.
+
+##### Checklist de Implementación
+- [x] Backend: Algoritmo Implicit ALS con NumPy en `recommendation_service.py`.
+- [x] Backend: Endpoint `/api/recommendations/me` con cálculo vectorial y fallback cold-start.
+- [x] Frontend: Carrusel de productos recomendados en `cliente-home-page`.
+- [x] Móvil: Integración de carrusel de recomendaciones en la portada del catálogo Flutter.
+- [x] Verificación: Comprobar actualización de recomendaciones tras registrar nuevas compras.
+
+---
 
 #### CU7 – Consultar asistente virtual / Chatbot
-* **Rama de IA:** **Procesamiento de Lenguaje Natural (PLN)** + **IA Generativa** (Google Gemini).
-* **Actor principal:** Cliente.
-* **Estado:** **Hecho** (Implementado en `backend/app/services/chatbot_service.py`).
-* **Descripción:** Chatbot conversacional que clasifica intenciones (`CATALOGO`, `PEDIDOS`, `TALLES`, `POLITICAS`, `OFERTAS`), aplica respuestas determinísticas para políticas comerciales y utiliza Google Gemini para consultas abiertas de moda y estilo, consultando el stock real.
+* **Rama de IA:** **Procesamiento de Lenguaje Natural (PLN)** + **IA Generativa** (Google Gemini)
+* **Actor Principal:** Cliente
+* **Estado:** **Hecho** (Implementado en `backend/app/services/chatbot_service.py` y `chatbot_routes.py`) | **Plataforma:** Ambas
+* **Descripción Funcional:** Asistente conversacional con clasificación de intenciones (`CATALOGO`, `PEDIDOS`, `TALLES`, `POLITICAS`, `OFERTAS`), respuestas directas de stock real y generación de sugerencias de moda con Google Gemini.
+
+##### Endpoints Backend
+```http
+POST /api/chatbot/message
+Headers: Authorization: Bearer <jwt> (opcional si es visitante)
+Request Body:
+{
+  "message": "¿Tenés disponible la chaqueta de cuero negra en talle M en la sucursal Centro?"
+}
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Respuesta generada por el asistente virtual",
+  "data": {
+    "reply_text": "¡Sí! Tenemos 3 unidades de la Chaqueta de Cuero Negra en talle M en la Sucursal Centro.",
+    "suggested_products": [ ... ]
+  }
+}
+
+Response 422 Unprocessable Entity:
+{
+  "statusCode": 422,
+  "message": "El mensaje no puede estar vacío",
+  "error": "HTTPException"
+}
+
+Response 503 Service Unavailable:
+{
+  "statusCode": 503,
+  "message": "El servicio de inteligencia artificial no está disponible temporalmente",
+  "error": "HTTPException"
+}
+```
+```http
+GET /api/chatbot/messages
+```
+
+##### Ubicación en Frontend (Angular & Móvil)
+* **Widget Flotante Web:** `frontend/src/app/features/shared/components/chatbot.component.ts` (`chatbot.component.html`)
+* **Servicio API:** `frontend/src/app/features/shared/services/chatbot-api.service.ts`
+* **Integración Global:** Incluido en `frontend/src/app/core/layouts/app-shell.component.html` para el rol cliente.
+* **Móvil Flutter:** Pantalla de chat en `mobile/lib/features/chatbot/chatbot_page.dart`.
+* **Mensajes en UI:** Muestra directamente las respuestas generadas por el bot en las burbujas de diálogo.
+
+##### Checklist de Implementación
+- [x] Backend: Servicio `chatbot_service.py` con integración a Google Gemini y clasificador de intenciones.
+- [x] Backend: Persistencia de conversaciones en tablas `chat_conversations` y `chat_messages`.
+- [x] Frontend: Componente widget flotante `chatbot.component` con mensajes optimistas y reintentos.
+- [x] Móvil: Integración de pantalla de chat interactivo en Flutter.
+- [x] Verificación: Consultas sobre disponibilidad real por talle, color y sucursal.
+
+---
 
 #### CU8 – Generar reportes por voz y lenguaje natural
-* **Rama de IA:** **Procesamiento de Lenguaje Natural (PLN)** + **IA Generativa** (*Text-to-Filters* con Gemini).
-* **Actor principal:** Administrador.
-* **Estado:** **Hecho** (Implementado en `backend/app/services/natural_report_service.py`).
-* **Descripción:** Interpretación de preguntas de negocio formuladas en lenguaje natural (escritas o dictadas por audio). El modelo de lenguaje extrae entidades semánticas y las traduce a filtros SQL estructurados (`branch_id`, fechas, métricas de venta), devolviendo reportes analíticos al instante.
+* **Rama de IA:** **Procesamiento de Lenguaje Natural (PLN)** + **IA Generativa** (*Text-to-Filters* con Gemini)
+* **Actor Principal:** Administrador
+* **Estado:** **Hecho** (Implementado en `backend/app/services/natural_report_service.py` y `report_routes.py`) | **Plataforma:** Web
+* **Descripción Funcional:** Interpretación de consultas analíticas formuladas por voz o texto coloquial, extrayendo parámetros estructurados (sucursal, fechas, categorías) y ejecutando el reporte al instante.
 
-#### CU9 – Reabastecimiento automático de stock mediante Sistema Experto
-* **Rama de IA:** **Sistemas Expertos** (Motor de Inferencia de Reglas Lógicas Determinísticas).
-* **Actor principal:** Administrador / Sistema.
-* **Estado:** Pendiente.
-* **Descripción:** Motor de inferencia autónomo que evalúa periódicamente la base de conocimiento de inventario (umbrales mínimos `threshold`, velocidad de rotación de ventas de los últimos 7 días y stock disponible en depósitos y sucursales cercanas). Aplica encadenamiento de reglas lógicas para emitir en automático órdenes de traspaso de inventario (`inventory_movements` tipo `transfer`) entre sucursales, previniendo quiebres de stock.
+##### Endpoints Backend
+```http
+POST /api/reports/natural-query
+Headers: Authorization: Bearer <admin_jwt>
+Request Body:
+{
+  "query_text": "Cuánto vendimos de blusas en la sucursal Centro la semana pasada"
+}
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Consulta en lenguaje natural interpretada exitosamente",
+  "data": {
+    "interpreted_filters": {
+      "branch_name": "Sucursal Centro",
+      "category": "Blusas",
+      "date_from": "2026-04-01",
+      "date_to": "2026-04-07"
+    },
+    "metrics": { "total_sales_amount": 3450.00, "total_units_sold": 23 },
+    "rows": [ ... ]
+  }
+}
 
-#### CU10 – Ingesta y catalogación automática con RPA e IA
-* **Rama de IA:** **RPA con IA** (*Intelligent Process Automation* - IDP).
-* **Actor principal:** Proveedor / Sistema (Bot RPA).
-* **Estado:** Pendiente.
-* **Descripción:** Bot de software desatendido que monitorea la llegada de remitos, listas de precios y catálogos desestructurados en formato PDF o planillas Excel enviados por proveedores. Emplea modelos de extracción de documentos para identificar atributos de prendas (talle, color, costo, cantidades) y crea automáticamente borradores de reabastecimiento en el sistema sin tipeo manual.
+Response 422 Unprocessable Entity:
+{
+  "statusCode": 422,
+  "message": "No se pudo interpretar el comando. Por favor especificá el período o la sucursal.",
+  "error": "HTTPException"
+}
+```
+
+##### Ubicación en Frontend (Angular)
+* **Página y Vista:** `frontend/src/app/features/admin/pages/admin-reports-page.component.ts` (`admin-reports-page.component.html`)
+* **Servicio API:** `frontend/src/app/features/shared/services/reports-api.service.ts`
+* **Ruta Angular:** `/app/admin/reports`
+* **Mensajes en UI:** El toast proyecta `res.message`: `"Consulta en lenguaje natural interpretada exitosamente"`.
+
+##### Checklist de Implementación
+- [x] Backend: Servicio `natural_report_service.py` con prompt estructurado JSON hacia Gemini.
+- [x] Backend: Endpoint `/api/reports/natural-query` con ejecución de consultas dinámicas.
+- [x] Frontend: Barra de consulta por voz/texto en `admin-reports-page` con Web Speech API.
+- [x] Verificación: Ejecución de consultas de ventas mediante dictado de voz.
+
+---
+
+#### CU9 – Reabastecimiento automático de stock (Sistema Experto)
+* **Rama de IA:** **Sistemas Expertos** (Motor de Inferencia de Reglas Determinísticas)
+* **Actor Principal:** Administrador, Sistema
+* **Estado:** Pendiente | **Plataforma:** Web
+* **Descripción Funcional:** Motor de inferencia autónomo que evalúa reglas de inventario (umbrales mínimos, velocidad de ventas de los últimos 7 días y stock disponible en depósitos) para emitir órdenes automáticas de traspaso (`transfer`) entre sucursales, previniendo quiebres de stock.
+
+##### Endpoints Backend
+```http
+POST /api/inventory/expert-replenishment/evaluate
+Headers: Authorization: Bearer <admin_jwt>, X-Tenant-ID: <tenant_id>
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Evaluación del sistema experto finalizada",
+  "data": {
+    "rules_evaluated_count": 4,
+    "suggested_transfers": [
+      {
+        "id": "sug_trans_01",
+        "product_variant_id": "770e8400-e29b-41d4-a716-446655440001",
+        "product_name": "Jeans Slim Denim Talle 38",
+        "source_branch_name": "Depósito Central",
+        "target_branch_name": "Sucursal Mall Ventura",
+        "suggested_quantity": 15,
+        "reason": "Stock actual (2) inferior al punto de reorden (5) con tasa de venta de 1.8 uds/día"
+      }
+    ]
+  }
+}
+```
+```http
+POST /api/inventory/expert-replenishment/apply-transfers
+Headers: Authorization: Bearer <admin_jwt>
+Request Body: { "transfer_ids": ["sug_trans_01"] }
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Órdenes de traspaso automático aplicadas al inventario"
+}
+
+Response 400 Bad Request:
+{
+  "statusCode": 400,
+  "message": "No hay stock disponible en el depósito de origen para realizar el traspaso sugerido",
+  "error": "HTTPException"
+}
+
+Response 404 Not Found:
+{
+  "statusCode": 404,
+  "message": "Una o más sugerencias de traspaso ya no son válidas o fueron procesadas",
+  "error": "HTTPException"
+}
+```
+```http
+GET /api/inventory/expert-replenishment/rules
+PUT /api/inventory/expert-replenishment/rules
+```
+
+##### Ubicación en Frontend (Angular)
+* **Página y Vista:** `frontend/src/app/features/admin/pages/admin-expert-replenishment-page.component.ts` (`admin-expert-replenishment-page.component.html`)
+* **Servicio API:** `frontend/src/app/features/shared/services/expert-replenishment-api.service.ts`
+* **Modelo TypeScript:** `frontend/src/app/features/shared/models/expert-replenishment.model.ts`
+* **Ruta Angular:** `/app/admin/expert-replenishment` (`canActivate: [roleGuard(['administrador'])]`)
+* **Integración en Menú:** Ítem `"Reabastecimiento IA"` en la sección Administración en `app-shell.component.ts`.
+* **Mensajes en UI:** Toast con `res.message`: `"Evaluación del sistema experto finalizada"` y `"Órdenes de traspaso automático aplicadas al inventario"`.
+
+##### Checklist de Implementación
+- [ ] Backend: Servicio `expert_replenishment_service.py` con motor de reglas lógicas basadas en hechos.
+- [ ] Backend: Endpoints `/api/inventory/expert-replenishment/...` para evaluar y confirmar transferencias.
+- [ ] Backend: Tarea programada en segundo plano para evaluación automática periódica.
+- [ ] Frontend: Crear `ExpertReplenishmentApiService` y página `admin-expert-replenishment-page`.
+- [ ] Frontend: Tabla de sugerencias del sistema experto con botón para aprobar traspasos en lote.
+- [ ] Verificación: Provocar nivel de stock crítico en una sucursal y validar la recomendación generada por el motor.
+
+---
+
+#### CU10 – Ingesta de mercadería con RPA e IA
+* **Rama de IA:** **RPA con IA** (*Intelligent Document Processing* - IDP)
+* **Actor Principal:** Proveedor, Sistema
+* **Estado:** Pendiente | **Plataforma:** Web
+* **Descripción Funcional:** Bot desatendido que procesa notas de remisión, facturas y catálogos en PDF o imágenes enviados por proveedores. Utiliza OCR y extracción semántica para reconocer atributos de prendas (talle, color, costo, cantidades) y crear borradores de ingreso de mercadería sin tipeo manual.
+
+##### Endpoints Backend
+```http
+POST /api/rpa/ingest/upload-document
+Headers: Authorization: Bearer <provider_jwt>
+Content-Type: multipart/form-data
+Body: file: remito_lote42.pdf
+Response 202 Accepted:
+{
+  "statusCode": 202,
+  "message": "Documento recibido. Extracción RPA en proceso.",
+  "data": {
+    "job_id": "rpa_job_7710",
+    "filename": "remito_lote42.pdf",
+    "status": "processing"
+  }
+}
+
+Response 400 Bad Request:
+{
+  "statusCode": 400,
+  "message": "El archivo proporcionado no es un documento PDF o imagen válido",
+  "error": "HTTPException"
+}
+```
+```http
+GET /api/rpa/ingest/jobs/{job_id}
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Resultado de extracción obtenido",
+  "data": {
+    "status": "completed",
+    "extracted_items": [
+      {
+        "sku": "BLU-SED-NEG-M",
+        "name": "Blusa de Seda Negra",
+        "size": "M",
+        "color": "Negro",
+        "quantity": 50,
+        "unit_cost": 85.00
+      }
+    ]
+  }
+}
+
+Response 422 Unprocessable Entity:
+{
+  "statusCode": 422,
+  "message": "No se pudieron reconocer ítems válidos en el documento suministrado",
+  "error": "HTTPException"
+}
+```
+```http
+POST /api/rpa/ingest/jobs/{job_id}/commit
+Response 201 Created:
+{
+  "statusCode": 201,
+  "message": "Mercadería ingresada al inventario y catálogo sincronizado exitosamente"
+}
+```
+
+##### Ubicación en Frontend (Angular)
+* **Página y Vista:** `frontend/src/app/features/proveedor/pages/provider-rpa-ingest-page.component.ts` (`provider-rpa-ingest-page.component.html`)
+* **Servicio API:** `frontend/src/app/features/shared/services/rpa-ingest-api.service.ts`
+* **Modelo TypeScript:** `frontend/src/app/features/shared/models/rpa-ingest.model.ts`
+* **Ruta Angular:** `/app/proveedor/rpa-ingest` (`canActivate: [roleGuard(['proveedor', 'administrador'])]`)
+* **Integración en Menú:** Ítem `"Ingesta RPA"` en la barra lateral del Proveedor en `app-shell.component.ts`.
+* **Mensajes en UI:** Toast con el mensaje devuelto por el backend: `"Mercadería ingresada al inventario y catálogo sincronizado exitosamente"`.
+
+##### Checklist de Implementación
+- [ ] Backend: Servicio `rpa_ingest_service.py` con OCR y extracción estructurada con Gemini Flash / Vision.
+- [ ] Backend: Endpoints `/api/rpa/ingest/...` para subida de documentos, consulta de job y confirmación.
+- [ ] Frontend: Desarrollar vista `provider-rpa-ingest-page` con zona de arrastre de archivos y grilla de ítems detectados.
+- [ ] Verificación: Subir un PDF de prueba de remito y corroborar la carga automática en existencias.
 
 ---
 
 ### Módulo 3: Inventario y Operaciones de Sucursal
 
 #### CU11 – Traspaso manual de inventario
-* **Actor principal:** Administrador, Encargado.
-* **Estado:** **Hecho** (Implementado en `backend/app/routes/inventory_routes.py` endpoint `/inventory/movements/transfer`).
-* **Descripción:** Registro de movimientos de transferencia de prendas entre dos sucursales físicas. Genera atómicamente los movimientos `transfer_out` en la sucursal de origen y `transfer_in` en la sucursal de destino, actualizando existencias.
+* **Módulo:** M3: Inventario y Operaciones
+* **Actor Principal:** Administrador, Encargado de sucursal
+* **Estado:** **Hecho** (Implementado en `backend/app/routes/inventory_routes.py` endpoint `/inventory/movements/transfer`) | **Plataforma:** Web
+* **Descripción Funcional:** Registro atómico de movimientos de transferencia de prendas entre dos sucursales físicas (`transfer_out` en origen y `transfer_in` en destino).
+
+##### Endpoints Backend
+```http
+POST /api/inventory/movements/transfer
+Headers: Authorization: Bearer <jwt>
+Request Body:
+{
+  "origin_branch_id": "d1e7c520-2c70-4f3a-969d-7db0a0210001",
+  "destination_branch_id": "d1e7c520-2c70-4f3a-969d-7db0a0210002",
+  "product_variant_id": "8b0c8b00-1111-4444-aaaa-123456789012",
+  "quantity": 5,
+  "notes": "Refuerzo por campaña de fin de semana"
+}
+Response 201 Created:
+{
+  "statusCode": 201,
+  "message": "Traspaso de inventario registrado exitosamente",
+  "data": { ... }
+}
+
+Response 400 Bad Request:
+{
+  "statusCode": 400,
+  "message": "Stock insuficiente en la sucursal de origen para la variante seleccionada",
+  "error": "HTTPException"
+}
+
+Response 400 Bad Request:
+{
+  "statusCode": 400,
+  "message": "La sucursal de origen y destino no pueden ser iguales",
+  "error": "HTTPException"
+}
+```
+
+##### Ubicación en Frontend (Angular)
+* **Página y Vista:** `frontend/src/app/features/admin/pages/admin-inventory-page.component.ts` (`admin-inventory-page.component.html`)
+* **Servicio API:** `frontend/src/app/features/shared/services/inventory-api.service.ts`
+* **Ruta Angular:** `/app/admin/inventory`
+* **Mensajes en UI:** El diálogo modal proyecta `res.message`: `"Traspaso de inventario registrado exitosamente"`.
+
+##### Checklist de Implementación
+- [x] Backend: Endpoint transaccional `/api/inventory/movements/transfer` con bloqueo concurrente.
+- [x] Backend: Modelos `inventory_movements` con tipos `transfer_out` y `transfer_in`.
+- [x] Frontend: Formulario modal de traspaso en `admin-inventory-page`.
+- [x] Verificación: Transferencia exitosa entre dos sucursales con actualización inmediata de existencias.
+
+---
 
 #### CU12 – Notificaciones push móviles
-* **Actor principal:** Cliente, Sistema.
-* **Estado:** **Hecho** (Implementado con Firebase Cloud Messaging FCM en backend y Flutter móvil).
-* **Descripción:** Despacho automatizado de notificaciones push a dispositivos móviles ante eventos de negocio: pedido listo para retiro, confirmación de reserva, recordatorio de vencimiento y alertas de stock bajo. Incluye bandeja de historial de notificaciones in-app.
+* **Módulo:** M3: Inventario y Operaciones
+* **Actor Principal:** Cliente, Sistema
+* **Estado:** **Hecho** (Implementado con FCM en backend y Flutter móvil) | **Plataforma:** Móvil
+* **Descripción Funcional:** Despacho automatizado de notificaciones push ante eventos del negocio (pedido listo, reserva confirmada, alerta de retiro) con bandeja in-app.
+
+##### Endpoints Backend
+```http
+POST /api/notifications/push/register-token
+Headers: Authorization: Bearer <jwt>
+Request Body:
+{
+  "fcm_token": "eXamPL3_fCm_ToK3n_12345...",
+  "device_platform": "android"
+}
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Token de dispositivo registrado exitosamente"
+}
+
+Response 400 Bad Request:
+{
+  "statusCode": 400,
+  "message": "El token FCM no es válido o ha expirado",
+  "error": "HTTPException"
+}
+```
+```http
+GET /api/notifications
+PATCH /api/notifications/{notification_id}/read
+```
+
+##### Ubicación en Frontend (Angular & Móvil)
+* **Bandeja Web:** `frontend/src/app/features/shared/pages/notification-page.component.ts`
+* **Servicio Web:** `frontend/src/app/features/shared/services/notification-push.service.ts`
+* **Móvil Flutter:** `mobile/lib/features/notifications/notifications_page.dart` y `push_notification_service.dart`
+* **Mensajes en UI:** Notificación emergente: `"¡Tu pedido está listo para retirar en la Sucursal Centro!"`
+
+##### Checklist de Implementación
+- [x] Backend: Integración con Firebase Admin SDK y tabla `user_device_tokens`.
+- [x] Frontend: Campana de notificaciones con contador de no leídas en `app-shell.component.html`.
+- [x] Móvil: Manejador de notificaciones push en primer plano y segundo plano en Flutter.
+- [x] Verificación: Despacho de push tras cambio de estado de pedido a `ready_for_pickup`.
 
 ---
 
 ### Módulo 4: Business Intelligence y Reportes
 
 #### CU13 – Dashboard de control y métricas
-* **Actor principal:** Administrador.
-* **Estado:** **Hecho** (Implementado en `backend/app/routes/dashboard_routes.py` y `admin-home-page`).
-* **Descripción:** Panel de visualización de indicadores comerciales clave (KPIs): volumen de ingresos, prendas vendidas, ranking de productos más demandados y nivel de inventario consolidado, con filtros por sucursal y períodos (día, semana, mes, año).
+* **Módulo:** M4: Business Intelligence
+* **Actor Principal:** Administrador
+* **Estado:** **Hecho** (Implementado en `backend/app/routes/dashboard_routes.py` y `admin-home-page`) | **Plataforma:** Web
+* **Descripción Funcional:** Tablero visual interactivo con KPIs comerciales: facturación total, prendas vendidas, ranking de productos y nivel de inventario por sucursal y fechas.
+
+##### Endpoints Backend
+```http
+GET /api/dashboard/kpis?branch_id=all&period=month
+Headers: Authorization: Bearer <admin_jwt>
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Métricas del dashboard obtenidas",
+  "data": {
+    "total_revenue": 128450.00,
+    "units_sold": 842,
+    "average_ticket": 152.55,
+    "top_products": [ ... ]
+  }
+}
+
+Response 403 Forbidden:
+{
+  "statusCode": 403,
+  "message": "No tenés permisos para visualizar métricas globales de otras sucursales",
+  "error": "HTTPException"
+}
+```
+
+##### Ubicación en Frontend (Angular)
+* **Página y Vista:** `frontend/src/app/features/admin/pages/admin-home-page.component.ts` (`admin-home-page.component.html`)
+* **Servicio API:** `frontend/src/app/features/shared/services/dashboard-api.service.ts`
+* **Ruta Angular:** `/app/admin`
+* **Mensajes en UI:** Muestra datos analíticos y el mensaje de estado de carga proveniente del backend.
+
+##### Checklist de Implementación
+- [x] Backend: Endpoints de agregación SQL optimizados en `dashboard_routes.py`.
+- [x] Frontend: Tarjetas de KPIs y gráficos analíticos en `admin-home-page`.
+- [x] Verificación: Filtrar métricas por sucursal específica y verificar coincidencia con ventas reales.
+
+---
 
 #### CU14 – Generación y exportación de reportes
-* **Actor principal:** Administrador.
-* **Estado:** **Hecho** (Implementado en `backend/app/routes/report_routes.py`).
-* **Descripción:** Consultas tabulares detalladas de ventas, movimientos de mercadería y existencias por sucursal con filtros combinados por fecha, categoría y producto, con opción de descarga de datos en formato CSV.
+* **Módulo:** M4: Business Intelligence
+* **Actor Principal:** Administrador
+* **Estado:** **Hecho** (Implementado en `backend/app/routes/report_routes.py`) | **Plataforma:** Web
+* **Descripción Funcional:** Consultas tabulares detalladas de transacciones, existencias y movimientos con filtros combinados y exportación a archivos CSV.
+
+##### Endpoints Backend
+```http
+GET /api/reports/sales?start_date=2026-04-01&end_date=2026-04-10
+GET /api/reports/export/csv?type=sales&start_date=2026-04-01&end_date=2026-04-10
+Headers: Authorization: Bearer <admin_jwt>
+Response 200 OK:
+Content-Type: text/csv
+
+Response 400 Bad Request:
+{
+  "statusCode": 400,
+  "message": "El rango de fechas especificado es inválido (fecha inicio mayor a fecha fin)",
+  "error": "HTTPException"
+}
+```
+
+##### Ubicación en Frontend (Angular)
+* **Página y Vista:** `frontend/src/app/features/admin/pages/admin-reports-page.component.ts`
+* **Servicio API:** `frontend/src/app/features/shared/services/reports-api.service.ts`
+* **Ruta Angular:** `/app/admin/reports`
+* **Mensajes en UI:** Toast: `"Archivo CSV generado exitosamente. La descarga comenzará automáticamente."`
+
+##### Checklist de Implementación
+- [x] Backend: Streaming de archivos CSV en `report_routes.py`.
+- [x] Frontend: Filtros avanzados y botón de descarga en `admin-reports-page`.
+- [x] Verificación: Descargar reporte masivo de ventas y validar estructura de columnas.
 
 ---
 
 ### Módulo 5: Promociones, Fidelización y Experiencia de Cliente
 
 #### CU15 – Gestionar y aplicar cupones promocionales
-* **Actor principal:** Cliente, Administrador, Encargado.
-* **Estado:** **Hecho** (Implementado en `promotion_routes.py`, `cart_service.py` y `promotions-page`).
-* **Descripción:** Emisión de códigos de descuento alfanuméricos (`promotion_codes`) con porcentaje o monto fijo, ámbito global o de sucursal, fechas de vigencia y tope de uso. El cliente ingresa el cupón en el carrito de compras obteniendo la rebaja directa en el subtotal.
+* **Módulo:** M5: Promociones y Fidelización
+* **Actor Principal:** Cliente (aplica), Administrador / Encargado (crean)
+* **Estado:** **Hecho** (Implementado en `promotion_routes.py`, `cart_service.py` y `promotions-page`) | **Plataforma:** Ambas
+* **Descripción Funcional:** Emisión de códigos promocionales alfanuméricos con porcentaje o importe fijo, vigencia temporal, tope de usos y aplicación directa en el checkout.
+
+##### Endpoints Backend
+```http
+POST /api/cart/apply-coupon
+Headers: Authorization: Bearer <jwt>
+Request Body: { "coupon_code": "PROMOVERANO20" }
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Cupón de descuento aplicado exitosamente",
+  "data": {
+    "discount_amount": 25.00,
+    "new_subtotal": 100.00
+  }
+}
+
+Response 400 Bad Request:
+{
+  "statusCode": 400,
+  "message": "El cupón ingresado no existe o se encuentra vencido",
+  "error": "HTTPException"
+}
+
+Response 400 Bad Request:
+{
+  "statusCode": 400,
+  "message": "El cupón ha alcanzado el límite máximo de usos permitidos",
+  "error": "HTTPException"
+}
+```
+
+##### Ubicación en Frontend (Angular & Móvil)
+* **Páginas y Vistas:** `frontend/src/app/features/cliente/pages/cart-page.component.ts`, `frontend/src/app/features/admin/pages/admin-promotions-page.component.ts`
+* **Servicio API:** `frontend/src/app/features/shared/services/promotion-api.service.ts`
+* **Móvil Flutter:** Input de cupón en `mobile/lib/features/cart/cart_page.dart`
+* **Mensajes en UI:** El carrito muestra exactamente el mensaje del backend: `"Cupón de descuento aplicado exitosamente"` o el error si está vencido.
+
+##### Checklist de Implementación
+- [x] Backend: Modelo `promotion_codes` y validación en `cart_service.py`.
+- [x] Frontend: Sección de cupón promocional en la vista del carrito de compras.
+- [x] Móvil: Campo de cupón promocional en la pantalla de checkout de Flutter.
+- [x] Verificación: Validar restricción de tope de usos y fechas de vigencia.
+
+---
 
 #### CU16 – Gestionar lista de deseos (*Wishlist*)
-* **Actor principal:** Cliente.
-* **Estado:** Pendiente.
-* **Descripción:** Permite a los clientes autenticados marcar prendas como favoritas mediante el botón *"Añadir a lista de deseos"* en el catálogo y detalle de producto. Dispone de una vista consolidada para gestionar favoritos y transferir prendas directamente al carrito o a reserva.
+* **Módulo:** M5: Promociones y Fidelización
+* **Actor Principal:** Cliente
+* **Estado:** Pendiente | **Plataforma:** Ambas
+* **Descripción Funcional:** Permite al cliente autenticado guardar prendas en su lista de favoritos mediante el botón de corazón en catálogo y detalle, con vista consolidada para transferir directamente al carrito.
 
-#### CU17 – Acumular y canjear puntos de fidelización (*Loyalty*)
-* **Actor principal:** Cliente, Cajero.
-* **Estado:** Pendiente.
-* **Descripción:** Motor de fidelización basado en los `garment_points` configurados en las prendas. Acumula puntos automáticamente tras compras completadas (online o presenciales identificando al cliente en mostrador). Permite al cliente o al cajero canjear puntos acumulados como descuento directo en el importe final de la compra.
+##### Endpoints Backend
+```http
+GET /api/wishlist
+Headers: Authorization: Bearer <client_jwt>
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Lista de deseos obtenida exitosamente",
+  "data": [
+    {
+      "id": "wish_01",
+      "product_id": "770e8400-e29b-41d4-a716-446655440001",
+      "product_name": "Tapado Lana Premium",
+      "price": 280.00,
+      "image_url": "https://storage.plataforma.com/img/tapado.jpg",
+      "in_stock": true
+    }
+  ]
+}
+```
+```http
+POST /api/wishlist/items
+Headers: Authorization: Bearer <client_jwt>
+Request Body: { "product_id": "770e8400-e29b-41d4-a716-446655440001" }
+Response 201 Created:
+{
+  "statusCode": 201,
+  "message": "Prenda añadida a tu lista de deseos",
+  "data": { "wishlist_item_id": "wish_01" }
+}
+
+Response 404 Not Found:
+{
+  "statusCode": 404,
+  "message": "La prenda seleccionada no existe en el catálogo",
+  "error": "HTTPException"
+}
+
+Response 409 Conflict:
+{
+  "statusCode": 409,
+  "message": "La prenda ya se encuentra en tu lista de deseos",
+  "error": "HTTPException"
+}
+```
+```http
+DELETE /api/wishlist/items/{product_id}
+POST /api/wishlist/items/{product_id}/move-to-cart
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Prenda movida al carrito de compras con éxito"
+}
+
+Response 400 Bad Request:
+{
+  "statusCode": 400,
+  "message": "No hay stock disponible para mover la prenda al carrito",
+  "error": "HTTPException"
+}
+```
+
+##### Ubicación en Frontend (Angular & Móvil)
+* **Página y Vista:** `frontend/src/app/features/cliente/pages/wishlist-page.component.ts` (`wishlist-page.component.html`)
+* **Componente de Botón:** `frontend/src/app/features/cliente/components/wishlist-toggle-button.component.ts`
+* **Servicio API:** `frontend/src/app/features/shared/services/wishlist-api.service.ts`
+* **Modelo TypeScript:** `frontend/src/app/features/shared/models/wishlist.model.ts`
+* **Ruta Angular:** `/app/cliente/wishlist` (`canActivate: [roleGuard(['cliente'])]`)
+* **Integración en Menú:** Ítem `"Lista de deseos"` en la barra de navegación del Cliente y enlace en la pantalla de Perfil.
+* **Móvil Flutter:** `mobile/lib/features/profile/wishlist_page.dart` accesible desde el Menú de Perfil.
+* **Mensajes en UI:** Toast con `res.message`: `"Prenda añadida a tu lista de deseos"`.
+
+##### Checklist de Implementación
+- [ ] Backend: Modelo `WishlistItem` con claves `user_id`, `product_id`, `tenant_id` y restricción de unicidad.
+- [ ] Backend: Endpoints CRUD `/api/wishlist/...` y acción `/move-to-cart`.
+- [ ] Frontend: Crear `WishlistApiService` e integrarlo en tarjetas de producto y detalle.
+- [ ] Frontend: Desarrollar página `wishlist-page` con grilla de favoritos y botón para mover al carrito.
+- [ ] Móvil: Pantalla de favoritos en Flutter integrada al menú de perfil.
+- [ ] Verificación: Añadir prenda a favoritos y verificar persistencia entre sesiones.
+
+---
+
+#### CU17 – Fidelización y billetera de puntos (*Loyalty*)
+* **Módulo:** M5: Promociones y Fidelización
+* **Actor Principal:** Cliente, Cajero
+* **Estado:** Pendiente | **Plataforma:** Ambas
+* **Descripción Funcional:** Motor de fidelización basado en los `garment_points` configurados en las prendas. Acumula puntos tras compras completadas y permite canjearlos como descuento monetario en compras digitales o en caja física.
+
+##### Endpoints Backend
+```http
+GET /api/loyalty/balance
+Headers: Authorization: Bearer <jwt>
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Saldo de puntos de fidelización obtenido",
+  "data": {
+    "total_points": 450,
+    "cash_equivalent": 45.00,
+    "tier": "Gold"
+  }
+}
+```
+```http
+POST /api/loyalty/redeem
+Headers: Authorization: Bearer <jwt>
+Request Body:
+{
+  "order_or_sale_id": "ord_9901",
+  "points_to_redeem": 200
+}
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Puntos canjeados correctamente en la compra",
+  "data": {
+    "discount_applied": 20.00,
+    "remaining_points": 250
+  }
+}
+
+Response 400 Bad Request:
+{
+  "statusCode": 400,
+  "message": "Puntos insuficientes para realizar el canje solicitado",
+  "error": "HTTPException"
+}
+
+Response 400 Bad Request:
+{
+  "statusCode": 400,
+  "message": "El valor del canje no puede superar el importe total de la orden",
+  "error": "HTTPException"
+}
+```
+
+##### Ubicación en Frontend (Angular & Móvil)
+* **Páginas y Vistas:** `frontend/src/app/features/cliente/pages/loyalty-page.component.ts` (`loyalty-page.component.html`), `frontend/src/app/features/cajero/pages/caja-page.component.ts` (Canje en mostrador)
+* **Servicio API:** `frontend/src/app/features/shared/services/loyalty-api.service.ts`
+* **Modelo TypeScript:** `frontend/src/app/features/shared/models/loyalty.model.ts`
+* **Rutas Angular:** `/app/cliente/loyalty`, `/app/cajero/caja`
+* **Móvil Flutter:** `mobile/lib/features/profile/loyalty_points_page.dart` accesible desde el Menú de Perfil.
+* **Mensajes en UI:** La vista muestra directamente el mensaje del backend: `"Puntos canjeados correctamente en la compra"`.
+
+##### Checklist de Implementación
+- [ ] Backend: Modelar tablas `loyalty_accounts` y `loyalty_ledger_transactions` vinculadas a `tenant_id`.
+- [ ] Backend: Hook post-venta para acreditar puntos automáticos según las prendas adquiridas.
+- [ ] Backend: Endpoints `/api/loyalty/balance` y `/api/loyalty/redeem`.
+- [ ] Frontend: Crear `LoyaltyApiService` y pantalla `loyalty-page` con nivel de cliente e historial.
+- [ ] Frontend: Integrar selector de canje de puntos en el módulo de caja (`caja-page.component.ts`).
+- [ ] Verificación: Completar compra presencial y constatar acreditación inmediata de puntos.
+
+---
 
 #### CU18 – Emitir y comprar tarjetas de regalo (*Gift Cards*)
-* **Actor principal:** Cliente.
-* **Estado:** Pendiente.
-* **Descripción:** Proceso de adquisición de vouchers de saldo prepagado como regalo. El cliente elige un importe ($20, $50, $100), redacta una dedicatoria personalizada e indica el correo del agasajado. Al pagar, el sistema emite un código alfanumérico único con código QR descargable y enviado por email.
+* **Módulo:** M5: Promociones y Fidelización
+* **Actor Principal:** Cliente
+* **Estado:** Pendiente | **Plataforma:** Ambas
+* **Descripción Funcional:** Proceso de compra de vouchers prepagados con saldo configurable ($20, $50, $100), dedicatoria personalizada y generación de código alfanumérico único con código QR descargable y enviado por email.
 
-#### CU19 – Gestionar billetera digital y saldo de tienda (*Store Wallet*)
-* **Actor principal:** Cliente, Cajero.
-* **Estado:** Pendiente.
-* **Descripción:** Billetera digital asociada a la cuenta del usuario. Permite ingresar el código o escanear el QR de una Gift Card para acreditar el saldo en la cuenta, consultar el balance monetario disponible y utilizar dicho saldo como medio de pago (total o parcial) en el checkout web/móvil o en la caja física escaneando el código de usuario. También recibe las acreditaciones por devoluciones de mercadería.
+##### Endpoints Backend
+```http
+POST /api/gift-cards/purchase
+Headers: Authorization: Bearer <client_jwt>
+Request Body:
+{
+  "amount": 50.00,
+  "recipient_name": "Camila Morales",
+  "recipient_email": "camila@gmail.com",
+  "custom_message": "¡Feliz cumpleaños Cami!",
+  "payment_method": "stripe"
+}
+Response 201 Created:
+{
+  "statusCode": 201,
+  "message": "Tarjeta de regalo adquirida y enviada por correo al destinatario",
+  "data": {
+    "card_code": "GIFT-2026-X89Q",
+    "qr_code_url": "https://storage.plataforma.com/qr/gift_x89q.png",
+    "amount": 50.00
+  }
+}
+
+Response 400 Bad Request:
+{
+  "statusCode": 400,
+  "message": "El importe de la tarjeta de regalo debe ser mayor o igual a $10.00",
+  "error": "HTTPException"
+}
+```
+```http
+GET /api/gift-cards/my-purchases
+GET /api/gift-cards/verify/{code}
+Response 404 Not Found:
+{
+  "statusCode": 404,
+  "message": "Tarjeta de regalo no encontrada con el código ingresado",
+  "error": "HTTPException"
+}
+```
+
+##### Ubicación en Frontend (Angular & Móvil)
+* **Página y Vista:** `frontend/src/app/features/cliente/pages/gift-cards-page.component.ts` (`gift-cards-page.component.html`)
+* **Servicio API:** `frontend/src/app/features/shared/services/gift-card-api.service.ts`
+* **Modelo TypeScript:** `frontend/src/app/features/shared/models/gift-card.model.ts`
+* **Ruta Angular:** `/app/cliente/gift-cards` (`canActivate: [roleGuard(['cliente'])]`)
+* **Móvil Flutter:** `mobile/lib/features/profile/gift_cards_page.dart`
+* **Mensajes en UI:** Toast: `"Tarjeta de regalo adquirida y enviada por correo al destinatario"`.
+
+##### Checklist de Implementación
+- [ ] Backend: Modelar tabla `gift_cards` con código hash único, saldos y estado.
+- [ ] Backend: Generador de código QR y envío de correo con plantilla HTML.
+- [ ] Frontend: Desarrollar pantalla `gift-cards-page` con previsualizador visual de tarjeta de regalo.
+- [ ] Móvil: Pantalla de compra y listado de Gift Cards en Flutter.
+- [ ] Verificación: Adquirir una Gift Card y comprobar la validez del código QR generado.
+
+---
+
+#### CU19 – Gestionar billetera digital (*Store Wallet*)
+* **Módulo:** M5: Promociones y Fidelización
+* **Actor Principal:** Cliente, Cajero
+* **Estado:** Pendiente | **Plataforma:** Ambas
+* **Descripción Funcional:** Billetera digital unificada del usuario. Permite canjear Gift Cards acreditando saldo, consultar el balance monetario disponible y pagar total o parcialmente en checkout web/móvil o en caja escaneando el código de usuario. Recibe además los reembolsos por devoluciones (RMA).
+
+##### Regla de Navegación e Integración UI
+* **Ubicación en el Menú de Perfil (App Móvil y Web):**
+  - **En la App Móvil (Flutter):** En la pantalla de perfil (`ProfilePage`), en el mismo listado donde se accede a "Mis reservas" y "Mis pedidos", debe existir la opción destacada **"Mi Billetera Digital"** con ícono de billetera, que muestra el saldo actual y permite ingresar códigos de Gift Cards.
+  - **En el Frontend Web (Angular):** En la página de perfil (`/app/perfil`) y en el sidebar del cliente (`app-shell.component.ts`), opción directa hacia `/app/cliente/wallet`.
+
+##### Endpoints Backend
+```http
+GET /api/wallet/balance
+Headers: Authorization: Bearer <jwt>
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Saldo de billetera virtual obtenido",
+  "data": {
+    "balance": 175.50,
+    "currency": "BOB"
+  }
+}
+```
+```http
+POST /api/wallet/redeem-gift-card
+Headers: Authorization: Bearer <client_jwt>
+Request Body: { "card_code": "GIFT-2026-X89Q" }
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Gift Card canjeada exitosamente. Se acreditaron $50.00 en tu saldo.",
+  "data": {
+    "credited_amount": 50.00,
+    "new_balance": 225.50
+  }
+}
+
+Response 400 Bad Request:
+{
+  "statusCode": 400,
+  "message": "El código de la tarjeta de regalo no es válido o ya fue canjeado",
+  "error": "HTTPException"
+}
+
+Response 404 Not Found:
+{
+  "statusCode": 404,
+  "message": "La tarjeta de regalo no existe o ha expirado",
+  "error": "HTTPException"
+}
+```
+```http
+POST /api/wallet/pay
+Request Body: { "order_id": "ord_1020", "amount_to_debit": 120.00 }
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Pago debitado exitosamente de la billetera virtual"
+}
+
+Response 400 Bad Request:
+{
+  "statusCode": 400,
+  "message": "Saldo insuficiente en la billetera virtual para completar la operación",
+  "error": "HTTPException"
+}
+```
+```http
+GET /api/wallet/transactions
+```
+
+##### Ubicación en Frontend (Angular & Móvil)
+* **Página y Vista Web:** `frontend/src/app/features/cliente/pages/wallet-page.component.ts` (`wallet-page.component.html`)
+* **Integración en Perfil Web:** Componente `profile-page.component.html` con tarjeta de saldo y enlace a `/app/cliente/wallet`.
+* **Servicio API:** `frontend/src/app/features/shared/services/wallet-api.service.ts`
+* **Modelo TypeScript:** `frontend/src/app/features/shared/models/wallet.model.ts`
+* **Ruta Angular:** `/app/cliente/wallet` (`canActivate: [roleGuard(['cliente'])]`)
+* **Móvil Flutter:** `mobile/lib/features/profile/wallet_page.dart` con acceso directo desde `ProfilePage`.
+* **Mensajes en UI:** Muestra en pantalla el mensaje exacto del backend: `"Gift Card canjeada exitosamente. Se acreditaron $50.00 en tu saldo."` o `"Saldo insuficiente en la billetera virtual para completar la operación"`.
+
+##### Checklist de Implementación
+- [ ] Backend: Modelar tablas `user_wallets` y `wallet_transactions` con concurrencia segura y aislamiento por `tenant_id`.
+- [ ] Backend: Endpoints `/api/wallet/balance`, `/api/wallet/redeem-gift-card`, `/api/wallet/pay` y transacciones.
+- [ ] Frontend: Desarrollar pantalla `wallet-page` y tarjeta de saldo en la vista de perfil.
+- [ ] Frontend: Agregar medio de pago "Billetera Virtual" en el checkout del carrito (`cart-page.component.ts`).
+- [ ] Móvil: Añadir botón "Mi Billetera Digital" en el menú de `ProfilePage` en Flutter y vista de saldo.
+- [ ] Verificación: Cargar una tarjeta de regalo y realizar el pago total de un pedido descontando del saldo.
 
 ---
 
 ### Módulo 6: Logística, Despacho y Posventa
 
-#### CU20 – Delivery y despacho de pedidos a domicilio
-* **Actor principal:** Cliente, Delivery.
-* **Estado:** Pendiente.
-* **Descripción:** Extensión del checkout actual para admitir envío a domicilio: administración de libreta de direcciones (calle, ciudad, coordenadas GPS y referencias), cotización de costo de flete y nuevos estados de ciclo de vida (`shipped`, `in_transit`, `delivered`). Provee una vista de hoja de ruta para el rol repartidor con certificación de entrega mediante código PIN de seguridad provisto por el cliente.
+#### CU20 – Delivery y despacho a domicilio
+* **Módulo:** M6: Logística y Posventa
+* **Actor Principal:** Cliente (solicita y certifica con PIN), Delivery (despacha)
+* **Estado:** Pendiente | **Plataforma:** Ambas
+* **Descripción Funcional:** Despacho de pedidos a domicilio con libreta de direcciones, cotización de flete por distancia y estados (`shipped`, `in_transit`, `delivered`). Incorpora hoja de ruta para el repartidor y validación de entrega mediante código PIN de seguridad provisto por el cliente.
 
-#### CU21 – Solicitar y procesar cambios y devoluciones (RMA)
-* **Actor principal:** Cliente, Encargado de sucursal, Administrador.
-* **Estado:** Pendiente.
-* **Descripción:** Circuito de logística inversa. El cliente puede solicitar el cambio de talle/color o la devolución de una prenda dentro de los 30 días posteriores a la compra. El encargado inspecciona la prenda en sucursal y aprueba o rechaza el trámite; el sistema reingresa la prenda al stock vendible o la manda a merma por falla, y acredita automáticamente el saldo correspondiente en la billetera virtual del cliente (`Store Wallet`).
+##### Regla de Navegación e Integración UI
+1. **Seguimiento Activo en la Pantalla Principal (Web y App Móvil):**
+   - Cuando el cliente tenga un pedido en curso (`in_transit` o `shipped`), la **pantalla principal (Home)** desplegará una **Tarjeta de Seguimiento en Vivo (*Active Delivery Card*)** destacada en la parte superior.
+   - Mostrará el estado en tiempo real (ej. *"Tu pedido va en camino"*), el nombre del repartidor y el **Código PIN de seguridad de 4 dígitos** que el cliente debe mostrar para recibir su paquete.
+2. **Opción en la Sección de Perfil:**
+   - En la sección del perfil donde se listan "Mis reservas" y "Mis pedidos", debe agregarse la opción **"Mis Envíos" / "Mis Deliverys"** tanto en la web (`/app/cliente/deliveries`) como en la app móvil (`ProfilePage`), permitiendo ver el historial completo de envíos a domicilio.
 
-#### CU22 – PWA y soporte Offline (Web y App móvil)
-* **Actor principal:** Todos (Cliente, Cajero, Encargado, Administrador).
-* **Estado:** Pendiente.
-* **Descripción:** Implementación de Service Workers y Web App Manifest en la aplicación web para permitir instalación como PWA y navegación del catálogo sin internet. En la aplicación móvil Flutter, integración de base de datos local embebida con cola de sincronización diferida para permitir registrar ventas, pedidos o consultas de inventario en sucursales ante caídas de conectividad, sincronizando los datos al restablecerse la red.
+##### Endpoints Backend
+```http
+POST /api/delivery/quotes
+Headers: Authorization: Bearer <client_jwt>
+Request Body:
+{
+  "branch_id": "branch_central",
+  "destination_address": "Av. San Martín 450",
+  "latitude": -17.7833,
+  "longitude": -63.1821
+}
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Cotización de envío calculada",
+  "data": {
+    "distance_km": 4.2,
+    "shipping_cost": 15.00,
+    "estimated_minutes": 35
+  }
+}
+
+Response 422 Unprocessable Entity:
+{
+  "statusCode": 422,
+  "message": "La dirección de entrega se encuentra fuera del radio de cobertura",
+  "error": "HTTPException"
+}
+```
+```http
+GET /api/delivery/routes
+Headers: Authorization: Bearer <delivery_jwt>
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Hoja de ruta del día obtenida",
+  "data": [
+    {
+      "order_id": "ord_5521",
+      "client_name": "Lucía Méndez",
+      "address": "Av. San Martín 450",
+      "status": "in_transit"
+    }
+  ]
+}
+```
+```http
+POST /api/delivery/confirm-delivery
+Headers: Authorization: Bearer <delivery_jwt>
+Request Body:
+{
+  "order_id": "ord_5521",
+  "security_pin": "8492"
+}
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Entrega confirmada y registrada exitosamente",
+  "data": { "delivered_at": "2026-04-10T16:45:00Z" }
+}
+
+Response 400 Bad Request:
+{
+  "statusCode": 400,
+  "message": "El código PIN de seguridad es incorrecto",
+  "error": "HTTPException"
+}
+
+Response 400 Bad Request:
+{
+  "statusCode": 400,
+  "message": "La orden no se encuentra en estado en tránsito para ser entregada",
+  "error": "HTTPException"
+}
+```
+```http
+GET /api/delivery/my-orders
+```
+
+##### Ubicación en Frontend (Angular & Móvil)
+* **Páginas y Vistas Web:**
+  - Carrito de compras (sección flete): `frontend/src/app/features/cliente/pages/cart-page.component.ts`
+  - Tarjeta de seguimiento en Home: `frontend/src/app/features/cliente/components/active-delivery-card.component.ts` (en `cliente-home-page.component.html`)
+  - Listado de envíos en Perfil: `frontend/src/app/features/cliente/pages/my-deliveries-page.component.ts` (`/app/cliente/deliveries`)
+  - Hoja de ruta para Delivery: `frontend/src/app/features/delivery/pages/delivery-routes-page.component.ts` (`/app/delivery/routes`)
+* **Servicio API:** `frontend/src/app/features/shared/services/delivery-api.service.ts`
+* **Modelo TypeScript:** `frontend/src/app/features/shared/models/delivery.model.ts`
+* **Móvil Flutter:**
+  - Tarjeta de seguimiento activo en `mobile/lib/features/catalog/catalog_page.dart` (Home).
+  - Ítem "Mis Envíos" en `mobile/lib/features/profile/profile_page.dart` hacia `deliveries_page.dart`.
+* **Mensajes en UI:** El toast proyecta `res.message`: `"Entrega confirmada y registrada exitosamente"` o `"El código PIN de seguridad es incorrecto"` según la respuesta del backend.
+
+##### Checklist de Implementación
+- [ ] Backend: Modelar tablas `delivery_addresses` y `delivery_orders` con generación de `security_pin` de 4 dígitos.
+- [ ] Backend: Servicio de cotización de flete geográfico y endpoint `/api/delivery/confirm-delivery`.
+- [ ] Frontend: Implementar `ActiveDeliveryCardComponent` en `cliente-home-page`.
+- [ ] Frontend: Añadir página `my-deliveries-page` y enlace en el menú de perfil / sidebar.
+- [ ] Frontend: Pantalla de hoja de ruta y validación de PIN para el rol delivery (`delivery-routes-page`).
+- [ ] Móvil: Tarjeta en Home de pedido en curso con PIN visible y listado en Menú de Perfil.
+- [ ] Verificación: Crear pedido con delivery, verificar tarjeta activa en Home y confirmar con PIN correcto/incorrecto.
 
 ---
 
-## 4. Cuadro Resumen de Entregables para el Segundo Parcial
+#### CU21 – Solicitar y procesar cambios y devoluciones (RMA)
+* **Módulo:** M6: Logística y Posventa
+* **Actor Principal:** Cliente (solicita), Encargado de sucursal / Administrador (inspecciona y resuelve)
+* **Estado:** Pendiente | **Plataforma:** Ambas
+* **Descripción Funcional:** Circuito de logística inversa (RMA). El cliente solicita el cambio o devolución de una prenda dentro de los 30 días posteriores a la compra. El encargado inspecciona la prenda en sucursal y la aprueba o rechaza; el sistema reingresa la prenda a stock (o merma) y acredita automáticamente el reembolso en la billetera virtual (`Store Wallet`).
+
+##### Endpoints Backend
+```http
+POST /api/rma/requests
+Headers: Authorization: Bearer <client_jwt>
+Request Body:
+{
+  "order_id": "ord_8812",
+  "order_item_id": "item_221",
+  "reason": "wrong_size",
+  "customer_notes": "Me quedó chico de hombros, solicito crédito en tienda",
+  "preferred_resolution": "store_credit"
+}
+Response 201 Created:
+{
+  "statusCode": 201,
+  "message": "Solicitud de devolución registrada exitosamente",
+  "data": {
+    "rma_number": "RMA-2026-0914",
+    "status": "pending_inspection"
+  }
+}
+
+Response 400 Bad Request:
+{
+  "statusCode": 400,
+  "message": "La prenda supera el plazo máximo permitido de 30 días para cambios y devoluciones",
+  "error": "HTTPException"
+}
+```
+```http
+PATCH /api/rma/requests/{rma_id}/status
+Headers: Authorization: Bearer <encargado_jwt>
+Request Body:
+{
+  "status": "approved",
+  "inspection_notes": "Prenda en perfecto estado con etiqueta original",
+  "return_to_inventory": true,
+  "branch_id": "branch_central"
+}
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Devolución aprobada. Se acreditó el saldo en la billetera digital del cliente y se restauró el stock.",
+  "data": { "rma_id": "rma_9901", "credited_wallet_amount": 140.00 }
+}
+
+Response 409 Conflict:
+{
+  "statusCode": 409,
+  "message": "La solicitud de devolución para este ítem ya fue procesada anteriormente",
+  "error": "HTTPException"
+}
+```
+```http
+GET /api/rma/requests
+```
+
+##### Ubicación en Frontend (Angular & Móvil)
+* **Páginas y Vistas Web:**
+  - Solicitud desde historial de órdenes: `frontend/src/app/features/cliente/pages/rma-request-page.component.ts` (`/app/cliente/returns`)
+  - Panel de dictamen para Encargado: `frontend/src/app/features/encargado/pages/rma-review-page.component.ts` (`/app/encargado/returns`)
+* **Servicio API:** `frontend/src/app/features/shared/services/rma-api.service.ts`
+* **Modelo TypeScript:** `frontend/src/app/features/shared/models/rma.model.ts`
+* **Móvil Flutter:** `mobile/lib/features/orders/rma_request_dialog.dart`
+* **Mensajes en UI:** Toast proyecta `res.message`: `"Devolución aprobada. Se acreditó el saldo en la billetera digital del cliente y se restauró el stock."`.
+
+##### Checklist de Implementación
+- [ ] Backend: Modelar tabla `rma_requests` con estados (`pending_inspection`, `approved`, `rejected`).
+- [ ] Backend: Transacción atómica en aprobación para restaurar stock y acreditar `Store Wallet` (CU19).
+- [ ] Frontend: Desarrollar pantalla `rma-request-page` para clientes y `rma-review-page` para encargados.
+- [ ] Móvil: Botón "Solicitar devolución" en el detalle de pedido de Flutter.
+- [ ] Verificación: Aprobar devolución y constatar el incremento de stock y del balance en la billetera virtual.
+
+---
+
+#### CU22 – PWA y soporte Offline (Web y App móvil)
+* **Módulo:** M6: Logística y Posventa
+* **Actor Principal:** Todos (Cliente, Cajero, Encargado, Administrador)
+* **Estado:** Pendiente | **Plataforma:** Ambas
+* **Descripción Funcional:** Service Workers y Web App Manifest en la aplicación web para instalación PWA y catálogo cacheado. Persistencia local y cola de sincronización diferida (*Sync Queue*) en app móvil y módulo de caja para operar sin conexión y sincronizar al recuperar internet.
+
+##### Endpoints Backend
+```http
+GET /api/offline/catalog-sync?last_sync_timestamp=2026-04-09T00:00:00Z
+Headers: Authorization: Bearer <jwt>
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Delta de catálogo para sincronización offline obtenido",
+  "data": {
+    "server_timestamp": "2026-04-10T12:00:00Z",
+    "updated_products": [ ... ],
+    "removed_product_ids": [ ... ]
+  }
+}
+```
+```http
+POST /api/offline/queue-sync
+Headers: Authorization: Bearer <jwt>
+Request Body:
+{
+  "queued_operations": [
+    {
+      "operation_id": "op_local_01",
+      "entity": "sale",
+      "action": "create",
+      "payload": { "branch_id": "b1", "total": 120.00 },
+      "created_at_offline": "2026-04-10T11:20:00Z"
+    }
+  ]
+}
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Sincronización completada. Se procesaron 1 operaciones locales.",
+  "data": { "processed_count": 1, "conflicts": [] }
+}
+
+Response 400 Bad Request:
+{
+  "statusCode": 400,
+  "message": "Conflicto en sincronización: una o más operaciones offline no pudieron ser aplicadas por inconsistencia de datos",
+  "error": "HTTPException"
+}
+```
+
+##### Ubicación en Frontend (Angular & Móvil)
+* **Service Worker y Manifest:** `frontend/src/service-worker.js`, `frontend/public/manifest.webmanifest`
+* **Servicio de Sincronización:** `frontend/src/app/core/services/offline-sync.service.ts`
+* **Banner de Conexión:** `frontend/src/app/features/shared/components/offline-indicator-banner.component.ts`
+* **Móvil Flutter:** Base de datos SQLite y `SyncManager` en `mobile/lib/core/services/offline_sync_service.dart`.
+* **Mensajes en UI:** Banner: `"Estás trabajando en modo sin conexión. Tus ventas y cambios se sincronizarán al recuperar internet."` Toast: `"Sincronización completada. Se procesaron 1 operaciones locales."`.
+
+##### Checklist de Implementación
+- [ ] Backend: Endpoints `/api/offline/catalog-sync` y `/api/offline/queue-sync` para sincronización delta y por lotes.
+- [ ] Frontend: Configuración de `@angular/pwa`, cache de catálogo estático y soporte IndexedDB.
+- [ ] Frontend: Escucha de eventos `online` / `offline` para mostrar `OfflineIndicatorBannerComponent`.
+- [ ] Móvil: Cola de mutaciones locales en SQLite con sincronización automática en reconexión.
+- [ ] Verificación: Registrar venta en caja sin conexión, reconectar y validar guardado exitoso en base de datos.
+
+---
+
+## 5. Cuadro Resumen de Entregables para el Segundo Parcial
 
 | Módulo | Casos de Uso Implementados (Base) | Casos de Uso Nuevos a Desarrollar | Total |
 | :--- | :---: | :---: | :---: |
