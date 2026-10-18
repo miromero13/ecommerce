@@ -80,6 +80,14 @@ El sistema utiliza la función utilitaria `response(...)` de `backend/app/utils/
 * En **Flutter (Móvil)**:
   - Deserializar la respuesta con `ApiResponse.fromJson(...)` y mostrar `response.message` en el `AppSnackBar.showSuccess(context, message)` o `AppSnackBar.showError(context, message)`.
 
+### 1.5. Alcance Mandatorio de la Transformación Multi-Tenant (Migración Integral de Todo el Software)
+* **La arquitectura multi-tenant NO se limita a crear la tabla `tenants` y nuevos endpoints.** Requiere una **migración integral y transversal de todo el software preexistente** en sus tres capas (Base de Datos, Backend y Frontend/Móvil):
+  1. **Migración de Base de Datos y Modelos:** Toda tabla existente y futura (`users`, `branches`, `products`, `inventories`, `orders`, `sales`, `promotions`, `reservations`, `carts`, `notifications`, etc.) debe ser migrada para contener la columna `tenant_id` (`UUID`, FK hacia `tenants.id`, indexada, `nullable=False`). Se debe aplicar una migración con Alembic que siembre un *Tenant Inicial por Defecto* y asigne todos los datos preexistentes a este tenant antes de bloquear la nulabilidad.
+  2. **Refactorización de Servicios y Consultas (Backend):** Todos los servicios existentes (`catalog_service.py`, `inventory_service.py`, `order_service.py`, `sales_service.py`, `cart_service.py`, `branch_service.py`, `user_service.py`, `promotion_service.py`, `dashboard_service.py`, `report_service.py`, `recommendation_service.py`, `chatbot_service.py`, etc.) deben ser refactorizados para inyectar y filtrar estrictamente por `tenant_id` en cada consulta `SELECT`, `UPDATE`, `INSERT` y `DELETE`. Ninguna operación transaccional puede quedar sin aislamiento de tenant, previniendo fuga de datos (*Data Leakage*) entre marcas.
+  3. **Middleware de Aislamiento y Contexto:** Middleware en FastAPI que captura cada petición entrante, resuelve el `tenant_id` a partir del subdominio (`{tenant}.plataforma.com`) o encabezado `X-Tenant-ID`, y lo inyecta en el contexto de base de datos.
+  4. **Autenticación y Tokens JWT:** El token JWT debe incluir el claim `tenant_id` para asociar inequívocamente a cada usuario con su empresa correspondiente (exceptuando al Superadministrador que posee visión global de la plataforma).
+  5. **Frontend y Aplicación Móvil:** Los clientes HTTP (`ApiService`) e interceptores deben transmitir automáticamente el identificador de tenant y soportar la parametrización de marca (nombre comercial, logotipo, moneda y colores corporativos) según la organización activa.
+
 ---
 
 ## 2. Orden General de Implementación de un Nuevo Caso de Uso
@@ -160,7 +168,13 @@ Para mantener la cohesión y respetar **estrictamente la estructura existente de
 * **Módulo:** M1: Plataforma SaaS y Seguridad
 * **Actor Principal:** Superadministrador
 * **Estado:** Pendiente | **Plataforma:** Web
-* **Descripción Funcional:** Gestión integral de organizaciones (`tenants`) bajo arquitectura multitenant compartida con aislamiento a nivel de fila (*Row-Level Multi-Tenancy* mediante `tenant_id`). Cada marca cuenta con subdominio personalizado (`marca.plataforma.com`), aislamiento de catálogos, usuarios, pedidos e inventarios.
+* **Descripción Funcional y Alcance de Migración:**
+  Transición y migración estructural de **todo el software existente** a un modelo SaaS Multi-Inquilino (*Row-Level Multi-Tenancy* mediante `tenant_id`). **No consiste únicamente en crear tablas nuevas**, sino en migrar de forma integral la base de datos preexistente, refactorizar la totalidad de los servicios del backend para aislar consultas, e instrumentar el frontend y app móvil:
+  1. **Migración de Datos y Base de Datos:** Se crea la tabla `tenants` y se siembra un *Tenant Inicial por Defecto* (ej. "Tenant Principal / WomenStyle"). Mediante migraciones incrementales de Alembic, **se altera cada tabla del sistema** agregando `tenant_id` (`UUID`, FK a `tenants.id`, indexada). Se asignan todos los registros preexistentes a este tenant inicial y posteriormente se impone la restricción `nullable=False`.
+  2. **Refactorización Completa de Servicios Backend:** Cada uno de los servicios existentes (`catalog_service.py`, `inventory_service.py`, `cart_service.py`, `order_service.py`, `sales_service.py`, `branch_service.py`, `user_service.py`, `promotion_service.py`, `dashboard_service.py`, `report_service.py`, `recommendation_service.py`, `chatbot_service.py`) debe ser refactorizado para exigir e inyectar el filtro `tenant_id == current_tenant_id` en cada consulta `SELECT`, `UPDATE`, `INSERT` y `DELETE`, imposibilitando filtraciones cruzadas de información entre marcas.
+  3. **Resolución de Contexto y Middleware:** Implementación de un middleware en FastAPI que determina el `tenant_id` en cada petición entrante a partir del subdominio (`marca.plataforma.com`) o encabezado `X-Tenant-ID`.
+  4. **Autenticación Multi-Tenant:** El login valida la existencia del usuario en el tenant específico y el token JWT incluye el claim `tenant_id` (el Superadministrador es la única entidad global con capacidad de operar sobre múltiples organizaciones).
+  5. **Frontend y Móvil:** El cliente HTTP (`ApiService`) inyecta automáticamente el contexto de tenant en todas las solicitudes y la interfaz adopta el branding personalizado (logotipo, nombre de empresa, moneda y colores).
 
 ##### Endpoints Backend
 ```http
@@ -226,13 +240,17 @@ PATCH /api/saas/tenants/{tenant_id}
 * **Integración en Menú:** Ítem `"Empresas / Tenants"` en `sidebarSections` de Superadministrador en `app-shell.component.ts`.
 * **Mensajes en UI:** La vista consume y muestra directamente el `message` del backend vía `toast.success(res.message)` o `toast.error(getErrorMessage(err, 'No se pudo crear la empresa'))`.
 
-##### Checklist de Implementación
-- [ ] Backend: Crear modelo SQLAlchemy `Tenant` y migración Alembic agregando `tenant_id` a tablas maestras.
-- [ ] Backend: Implementar middleware de resolución de tenant por subdominio / encabezado `X-Tenant-ID`.
-- [ ] Backend: Crear endpoints CRUD `/api/saas/tenants` en `tenant_routes.py` y registrarlo en `main.py`.
-- [ ] Frontend: Crear `TenantApiService` con métodos `list()`, `create()`, `update()`.
-- [ ] Frontend: Desarrollar pantalla `tenant-management-page` con tabla de tenants, modal de alta y mensajes dinámicos.
-- [ ] Verificación: Probar aislamiento estricto de catálogos y órdenes entre dos tenants distintos.
+##### Checklist de Implementación y Migración Integral
+- [ ] Backend (Modelo SaaS): Crear modelo SQLAlchemy `Tenant` con campos de organización, subdominio, contacto y estado.
+- [ ] Backend (Migración de BD Existente): Crear migración Alembic que agregue la columna `tenant_id` (FK a `tenants.id`, indexada) en TODAS las tablas existentes del sistema (`users`, `user_profiles`, `branches`, `categories`, `collections`, `seasons`, `products`, `product_variants`, `sizes`, `colors`, `inventories`, `inventory_movements`, `carts`, `cart_items`, `reservations`, `reservation_items`, `orders`, `order_items`, `payment_attempts`, `sales`, `sale_items`, `promotion_codes`, `promotion_code_usages`, `replenishment_requests`, `recommendations`, `chat_conversations`, `chat_messages`, `notifications`, `user_device_tokens`).
+- [ ] Backend (Migración de Datos): Ejecutar script de datos para sembrar el Tenant Inicial por defecto ("Tenant Principal / WomenStyle") y vincular todos los registros preexistentes a dicho tenant antes de aplicar la restricción `nullable=False`.
+- [ ] Backend (Middleware de Aislamiento): Implementar middleware de contexto multi-tenant que extraiga el `tenant_id` del subdominio de la petición o encabezado HTTP `X-Tenant-ID`.
+- [ ] Backend (Refactorización de Servicios): Refactorizar la totalidad de los servicios existentes del backend (`catalog_service.py`, `inventory_service.py`, `cart_service.py`, `order_service.py`, `sales_service.py`, `branch_service.py`, `user_service.py`, `promotion_service.py`, `dashboard_service.py`, `report_service.py`, `recommendation_service.py`, `chatbot_service.py`) para filtrar y aislar obligatoriamente todas las consultas SQL por `tenant_id`.
+- [ ] Backend (Autenticación y JWT): Modificar el servicio de autenticación y generación de tokens JWT para inyectar el claim `tenant_id` y restringir el acceso del usuario a su organización.
+- [ ] Backend (Endpoints de Administración): Implementar endpoints CRUD `/api/saas/tenants` para provisionamiento y configuración de organizaciones por el Superadministrador.
+- [ ] Frontend: Configurar `ApiService` e interceptores HTTP para resolver subdominios o adjuntar el encabezado `X-Tenant-ID` en todas las peticiones salientes.
+- [ ] Frontend: Desarrollar pantalla `tenant-management-page` con listado de organizaciones, formulario de alta y estados de suscripción.
+- [ ] Verificación: Comprobar que los datos preexistentes permanecen operativos bajo el tenant inicial y que un nuevo tenant registrado inicia con su base de datos completamente limpia e inaccesible desde otros tenants.
 
 ---
 
