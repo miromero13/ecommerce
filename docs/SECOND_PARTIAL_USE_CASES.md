@@ -140,7 +140,7 @@ Para mantener la cohesión y respetar **estrictamente la estructura existente de
 | **CU5** | **Usar vestidor virtual en tiempo real** | M2: Inteligencia Artificial | **Hecho** | Cliente | Móvil / Web |
 | **CU6** | **Recibir recomendaciones de catálogo** | M2: Inteligencia Artificial | **Hecho** | Cliente | Ambas |
 | **CU7** | **Consultar asistente virtual / Chatbot** | M2: Inteligencia Artificial | **Hecho** | Cliente | Ambas |
-| **CU8** | **Generar reportes por voz y lenguaje natural** | M2: Inteligencia Artificial | **Hecho** | Administrador | Web |
+| **CU8** | **Generar reportes inteligentes con IA y Machine Learning** | M2: Inteligencia Artificial | **Pendiente** | Administrador | Web |
 | **CU9** | **Reabastecimiento automático de stock (Sistema Experto)** | M2: Inteligencia Artificial | **Pendiente** | Administrador, Sistema | Web |
 | **CU10** | **Ingesta de mercadería con RPA e IA** | M2: Inteligencia Artificial | **Pendiente** | Proveedor, Sistema | Web |
 | **CU11** | **Traspaso manual de inventario** | M3: Inventario y Operaciones | **Hecho** | Administrador, Encargado | Web |
@@ -676,11 +676,15 @@ GET /api/chatbot/messages
 
 ---
 
-#### CU8 – Generar reportes por voz y lenguaje natural
-* **Rama de IA:** **Procesamiento de Lenguaje Natural (PLN)** + **IA Generativa** (*Text-to-Filters* con Gemini)
+#### CU8 – Generar reportes inteligentes con IA y Machine Learning
+* **Rama de IA:** **Procesamiento de Lenguaje Natural (PLN)** + **IA Generativa** (*Text-to-Filters* con Gemini) + **Machine Learning** (Supervisado y No Supervisado con Scikit-Learn)
 * **Actor Principal:** Administrador
-* **Estado:** **Hecho** (Implementado en `backend/app/services/natural_report_service.py` y `report_routes.py`) | **Plataforma:** Web
-* **Descripción Funcional:** Interpretación de consultas analíticas formuladas por voz o texto coloquial, extrayendo parámetros estructurados (sucursal, fechas, categorías) y ejecutando el reporte al instante.
+* **Estado:** **Pendiente** (Base de lenguaje natural implementada; pendiente evolución de modelos de Machine Learning, exportación a Excel/PDF y demostración de 4 tipos de reportes) | **Plataforma:** Web
+* **Descripción Funcional:** Motor analítico avanzado para la generación de reportes empresariales inteligentes acorde al Desafío V del examen. Permite a usuarios autorizados formular solicitudes en lenguaje natural escrito o por voz (Web Speech API), interpretando intenciones para generar tanto reportes convencionales como reportes predictivos y de patrones:
+  1. **Reportes Descriptivos e Históricos (NLP con Gemini):** Traducción de consultas en lenguaje natural a filtros SQL parametrizados y seguros contra datos reales de PostgreSQL, garantizando la demostración de al menos cuatro tipos de reportes (ventas por sucursal, ranking de productos más vendidos, existencias críticas/inventario bajo, y comparativas de ventas entre sucursales).
+  2. **Reportes Predictivos con Machine Learning Supervisado:** Invocación de un modelo de regresión (entrenado con datos sintéticos y reales) para predecir variables objetivo como la demanda de prendas o la proyección de ventas de la próxima temporada, reportando métricas de evaluación ($R^2$, MSE).
+  3. **Reportes de Patrones con Machine Learning No Supervisado:** Invocación de un modelo de clustering (K-Means) para descubrir patrones de compra o segmentar clientes según frecuencia y volumen de compra, reportando métricas de calidad (Silhouette Score).
+  4. **Exportación Dinámica:** Capacidad de visualizar resultados en tablas o gráficos dinámicos y exportar los reportes generados a archivos formateados de **Excel (.xlsx)** y **PDF**.
 
 ##### Endpoints Backend
 ```http
@@ -695,6 +699,7 @@ Response 200 OK:
   "statusCode": 200,
   "message": "Consulta en lenguaje natural interpretada exitosamente",
   "data": {
+    "report_kind": "descriptive_sql",
     "interpreted_filters": {
       "branch_name": "Sucursal Centro",
       "category": "Blusas",
@@ -713,18 +718,68 @@ Response 422 Unprocessable Entity:
   "error": "HTTPException"
 }
 ```
+```http
+POST /api/reports/ml/predict-demand
+Headers: Authorization: Bearer <admin_jwt>
+Request Body:
+{
+  "branch_id": "branch_central",
+  "target_period_weeks": 4
+}
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Predicción de demanda con modelo supervisado generada exitosamente",
+  "data": {
+    "model_type": "Supervised Regression",
+    "evaluation_metrics": { "r2_score": 0.884, "mse": 12.4 },
+    "forecast": [
+      { "week": "2026-W18", "predicted_units": 140, "confidence_lower": 125, "confidence_upper": 155 }
+    ]
+  }
+}
+```
+```http
+POST /api/reports/ml/customer-clusters
+Headers: Authorization: Bearer <admin_jwt>
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Segmentación de clientes con modelo no supervisado generada",
+  "data": {
+    "model_type": "K-Means Clustering",
+    "clusters_count": 3,
+    "evaluation_metrics": { "silhouette_score": 0.72 },
+    "segments": [
+      { "cluster_id": 0, "name": "Compradores Frecuentes Alto Ticket", "size": 120, "avg_spend": 450.00 },
+      { "cluster_id": 1, "name": "Cazadores de Ofertas", "size": 340, "avg_spend": 95.00 },
+      { "cluster_id": 2, "name": "Clientes Ocasionales", "size": 510, "avg_spend": 130.00 }
+    ]
+  }
+}
+```
+```http
+GET /api/reports/export/excel?type=sales&start_date=2026-04-01&end_date=2026-04-10
+GET /api/reports/export/pdf?type=sales&start_date=2026-04-01&end_date=2026-04-10
+```
 
 ##### Ubicación en Frontend (Angular)
 * **Página y Vista:** `frontend/src/app/features/admin/pages/admin-reports-page.component.ts` (`admin-reports-page.component.html`)
 * **Servicio API:** `frontend/src/app/features/shared/services/reports-api.service.ts`
 * **Ruta Angular:** `/app/admin/reports`
-* **Mensajes en UI:** El toast proyecta `res.message`: `"Consulta en lenguaje natural interpretada exitosamente"`.
+* **Mensajes en UI:** El toast proyecta `res.message`: `"Consulta en lenguaje natural interpretada exitosamente"` y los mensajes de estado del modelo.
 
 ##### Checklist de Implementación
-- [x] Backend: Servicio `natural_report_service.py` con prompt estructurado JSON hacia Gemini.
-- [x] Backend: Endpoint `/api/reports/natural-query` con ejecución de consultas dinámicas.
+- [x] Backend: Servicio `natural_report_service.py` con prompt estructurado JSON hacia Gemini para interpretar intenciones.
+- [x] Backend: Endpoint `/api/reports/natural-query` con ejecución de consultas dinámicas de ventas, inventario y movimientos.
 - [x] Frontend: Barra de consulta por voz/texto en `admin-reports-page` con Web Speech API.
-- [x] Verificación: Ejecución de consultas de ventas mediante dictado de voz.
+- [ ] Backend (Datos Sintéticos): Implementar generador de datos sintéticos (`synthetic_data_generator.py`) para entrenamiento y validación de los modelos de Machine Learning.
+- [ ] Backend (ML Supervisado): Desarrollar y entrenar modelo supervisado de regresión para proyección de demanda y ventas con cálculo de métricas ($R^2$ / MSE).
+- [ ] Backend (ML No Supervisado): Desarrollar y entrenar modelo no supervisado de clustering (K-Means) para segmentación de clientes y detección de patrones de compra con Silhouette Score.
+- [ ] Backend (Exportación Excel/PDF): Implementar generación y exportación de reportes dinámicos a Excel (.xlsx con `openpyxl`) y PDF formateado.
+- [ ] Backend (4 Tipos de Reportes): Probar y asegurar la demostración de los 4 tipos de reportes obligatorios con datos reales (ventas por sucursal, top 10 productos, inventario con menor stock, y comparativa temporal/proyección).
+- [ ] Frontend: Visualización de gráficos para clusters y proyecciones en `admin-reports-page` y botones de exportación a Excel y PDF.
+- [ ] Verificación: Ejecutar en vivo consultas por voz y texto demostrando reportes históricos de PostgreSQL, reportes predictivos de ML supervisado y segmentaciones de ML no supervisado.
 
 ---
 
@@ -1760,9 +1815,9 @@ Response 400 Bad Request:
 | Módulo | Casos de Uso Implementados (Base) | Casos de Uso Nuevos a Desarrollar | Total |
 | :--- | :---: | :---: | :---: |
 | **M1: Plataforma SaaS y Seguridad** | 0 | 4 (`CU1`, `CU2`, `CU3`, `CU4`) | 4 |
-| **M2: Inteligencia Artificial** | 4 (`CU5`, `CU6`, `CU7`, `CU8`) | 2 (`CU9`, `CU10`) | 6 |
+| **M2: Inteligencia Artificial** | 3 (`CU5`, `CU6`, `CU7`) | 3 (`CU8`, `CU9`, `CU10`) | 6 |
 | **M3: Inventario y Operaciones** | 2 (`CU11`, `CU12`) | 0 | 2 |
 | **M4: Business Intelligence** | 2 (`CU13`, `CU14`) | 0 | 2 |
 | **M5: Promociones y Fidelización** | 1 (`CU15`) | 4 (`CU16`, `CU17`, `CU18`, `CU19`) | 5 |
 | **M6: Logística y Posventa** | 0 | 4 (`CU20`, `CU21`, `CU22`, `CU23`) | 4 |
-| **TOTALES** | **9 HECHOS** | **14 PENDIENTES** | **23** |
+| **TOTALES** | **8 HECHOS** | **15 PENDIENTES** | **23** |
