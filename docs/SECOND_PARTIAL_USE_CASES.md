@@ -129,7 +129,7 @@ Para mantener la cohesión y respetar **estrictamente la estructura existente de
 
 ---
 
-## 3. Matriz General de Casos de Uso (CU1 al CU22)
+## 3. Matriz General de Casos de Uso (CU1 al CU23)
 
 | **ID** | **Caso de uso** | **Módulo** | **Estado en Código** | **Actor(es) principal** | **Plataforma** |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -154,7 +154,8 @@ Para mantener la cohesión y respetar **estrictamente la estructura existente de
 | **CU19** | **Gestionar billetera digital (*Store Wallet*)** | M5: Promociones y Fidelización | **Pendiente** | Cliente, Cajero | Ambas |
 | **CU20** | **Delivery y despacho a domicilio** | M6: Logística y Posventa | **Pendiente** | Cliente, Delivery | Ambas |
 | **CU21** | **Solicitar y procesar cambios y devoluciones (RMA)** | M6: Logística y Posventa | **Pendiente** | Cliente, Encargado, Admin | Ambas |
-| **CU22** | **PWA y soporte Offline (Web y App móvil)** | M6: Logística y Posventa | **Pendiente** | Todos | Ambas |
+| **CU22** | **Progressive Web App (PWA) e Instalabilidad** | M6: Logística y Posventa | **Pendiente** | Cliente, Todos | Web |
+| **CU23** | **Modo Offline y Sincronización Diferida (Offline-First)** | M6: Logística y Posventa | **Pendiente** | Cajero, Cliente, Delivery | Ambas |
 
 ---
 
@@ -1637,11 +1638,58 @@ GET /api/rma/requests
 
 ---
 
-#### CU22 – PWA y soporte Offline (Web y App móvil)
+#### CU22 – Progressive Web App (PWA) e Instalabilidad
 * **Módulo:** M6: Logística y Posventa
-* **Actor Principal:** Todos (Cliente, Cajero, Encargado, Administrador)
+* **Actor Principal:** Cliente, Administrador, Encargado, Cajero (Usuarios Web)
+* **Estado:** Pendiente | **Plataforma:** Web
+* **Descripción Funcional:** Transformación del frontend Angular en una Progressive Web App (PWA) instalable y de alto rendimiento. Implementa Web App Manifest dinámico/estático (`manifest.webmanifest`), Service Worker con estrategias de caché (`ngsw-config.json` para assets estáticos, fuentes, íconos y vistas del shell), soporte de instalación en pantalla de inicio (*Add to Home Screen* / A2HS), captura del evento `beforeinstallprompt` con prompt personalizado, y detección automática de nuevas versiones para actualizar la app en segundo plano sin fricción.
+
+##### Endpoints Backend
+```http
+GET /api/pwa/manifest
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Configuración de manifiesto PWA obtenida",
+  "data": {
+    "name": "Boutique Elegance",
+    "short_name": "Elegance",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#111827",
+    "icons": [
+      { "src": "/icons/icon-192x192.png", "sizes": "192x192", "type": "image/png" },
+      { "src": "/icons/icon-512x512.png", "sizes": "512x512", "type": "image/png" }
+    ]
+  }
+}
+```
+
+##### Ubicación en Frontend (Angular)
+* **Manifiesto y Configuración:** `frontend/public/manifest.webmanifest`, `frontend/ngsw-config.json`
+* **Servicio PWA:** `frontend/src/app/core/services/pwa.service.ts`
+* **Componente Prompt de Instalación:** `frontend/src/app/features/shared/components/pwa-install-prompt.component.ts`
+* **Componente Notificador de Actualización:** `frontend/src/app/features/shared/components/pwa-update-prompt.component.ts`
+* **Mensajes en UI:**
+  - Banner de instalación: `"Instalá nuestra app en tu dispositivo para un acceso rápido y directo."`
+  - Alerta de actualización: `"Hay una nueva versión disponible de la plataforma. Hacé clic para actualizar."`
+
+##### Checklist de Implementación
+- [ ] Frontend: Configurar paquete `@angular/pwa` y archivo de configuración `ngsw-config.json` con grupos de recursos de aplicación y assets.
+- [ ] Frontend: Diseñar y registrar `manifest.webmanifest` con iconos en múltiples resoluciones (192x192, 512x512, maskable) y colores corporativos.
+- [ ] Frontend: Implementar `PwaService` para interceptar el evento `beforeinstallprompt` del navegador y exponer el trigger de instalación.
+- [ ] Frontend: Desarrollar componente `pwa-install-prompt` integrado de forma no invasiva en el layout principal (`app-shell.component.html`).
+- [ ] Frontend: Suscribirse a `SwUpdate.versionUpdates` para notificar al usuario cuando haya un nuevo release desplegado y forzar la recarga limpia.
+- [ ] Verificación: Realizar auditoría Lighthouse PWA validando que cumple los criterios de instalabilidad y probar la instalación en escritorio y navegador móvil.
+
+---
+
+#### CU23 – Modo Offline y Sincronización Diferida (Offline-First)
+* **Módulo:** M6: Logística y Posventa
+* **Actor Principal:** Cajero, Cliente, Encargado, Delivery
 * **Estado:** Pendiente | **Plataforma:** Ambas
-* **Descripción Funcional:** Service Workers y Web App Manifest en la aplicación web para instalación PWA y catálogo cacheado. Persistencia local y cola de sincronización diferida (*Sync Queue*) en app móvil y módulo de caja para operar sin conexión y sincronizar al recuperar internet.
+* **Descripción Funcional:** Arquitectura de tolerancia a desconexión (*Offline-First*). Permite consultar el catálogo cacheado sin conexión a internet y, fundamentalmente, habilita al cajero en la terminal POS de sucursal física (o repartidor en entrega) para registrar ventas y cobros en contingencia. Las transacciones se encolan localmente en IndexedDB (Web) y SQLite (Móvil) con identificadores únicos locales (`operation_id`). Al restablecerse la red, un despachador en segundo plano sincroniza automáticamente los lotes pendientes contra el backend, gestionando el impacto en inventario y resolviendo potenciales conflictos.
 
 ##### Endpoints Backend
 ```http
@@ -1689,18 +1737,21 @@ Response 400 Bad Request:
 ```
 
 ##### Ubicación en Frontend (Angular & Móvil)
-* **Service Worker y Manifest:** `frontend/src/service-worker.js`, `frontend/public/manifest.webmanifest`
 * **Servicio de Sincronización:** `frontend/src/app/core/services/offline-sync.service.ts`
+* **Persistencia Local Web (IndexedDB):** `frontend/src/app/core/services/indexeddb.service.ts`
 * **Banner de Conexión:** `frontend/src/app/features/shared/components/offline-indicator-banner.component.ts`
+* **Módulo de Caja (Modo Contingencia):** `frontend/src/app/features/cajero/pages/caja-page.component.ts`
 * **Móvil Flutter:** Base de datos SQLite y `SyncManager` en `mobile/lib/core/services/offline_sync_service.dart`.
-* **Mensajes en UI:** Banner: `"Estás trabajando en modo sin conexión. Tus ventas y cambios se sincronizarán al recuperar internet."` Toast: `"Sincronización completada. Se procesaron 1 operaciones locales."`.
+* **Mensajes en UI:** Banner: `"Estás trabajando en modo sin conexión. Tus ventas y cambios se guardan localmente y se sincronizarán al recuperar internet."` Toast: `"Sincronización completada. Se procesaron 1 operaciones locales."`.
 
 ##### Checklist de Implementación
-- [ ] Backend: Endpoints `/api/offline/catalog-sync` y `/api/offline/queue-sync` para sincronización delta y por lotes.
-- [ ] Frontend: Configuración de `@angular/pwa`, cache de catálogo estático y soporte IndexedDB.
-- [ ] Frontend: Escucha de eventos `online` / `offline` para mostrar `OfflineIndicatorBannerComponent`.
+- [ ] Backend: Endpoints `/api/offline/catalog-sync` y `/api/offline/queue-sync` con procesamiento atómico de lotes e idempotencia por `operation_id`.
+- [ ] Frontend: Servicio `IndexedDbService` para cachear catálogo de productos y almacenar la cola `pending_sales_queue`.
+- [ ] Frontend: Habilitar emisión de ventas en modo contingencia en `caja-page.component.ts` cuando `navigator.onLine == false`.
+- [ ] Frontend: Escucha reactiva de eventos `online` / `offline` para mostrar `OfflineIndicatorBannerComponent`.
+- [ ] Frontend: Despacho automático de la cola en `offline-sync.service.ts` en cuanto se restablece la conexión.
 - [ ] Móvil: Cola de mutaciones locales en SQLite con sincronización automática en reconexión.
-- [ ] Verificación: Registrar venta en caja sin conexión, reconectar y validar guardado exitoso en base de datos.
+- [ ] Verificación: Registrar venta en caja sin conexión, reconectar y validar guardado exitoso en base de datos sin duplicados.
 
 ---
 
@@ -1713,5 +1764,5 @@ Response 400 Bad Request:
 | **M3: Inventario y Operaciones** | 2 (`CU11`, `CU12`) | 0 | 2 |
 | **M4: Business Intelligence** | 2 (`CU13`, `CU14`) | 0 | 2 |
 | **M5: Promociones y Fidelización** | 1 (`CU15`) | 4 (`CU16`, `CU17`, `CU18`, `CU19`) | 5 |
-| **M6: Logística y Posventa** | 0 | 3 (`CU20`, `CU21`, `CU22`) | 3 |
-| **TOTALES** | **9 HECHOS** | **13 PENDIENTES** | **22** |
+| **M6: Logística y Posventa** | 0 | 4 (`CU20`, `CU21`, `CU22`, `CU23`) | 4 |
+| **TOTALES** | **9 HECHOS** | **14 PENDIENTES** | **23** |
