@@ -3,12 +3,14 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
+from uuid import UUID
 
 import pandas as pd
 from sqlalchemy import inspect, select
 
 from app.auth.hash import hash_password
 from app.core.database import SessionLocal, engine
+from app.models.tenant import Tenant
 from app.models.branch import Branch
 from app.models.cart import Cart
 from app.models.cart_item import CartItem
@@ -40,7 +42,7 @@ from app.models.promotion_code_usage import PromotionCodeUsage
 from app.schemas.catalog_enums import ProductStatusEnum
 from app.schemas.cart_schema import CartStatusEnum
 from app.schemas.inventory_schema import InventoryMovementTypeEnum
-from app.schemas.enums import GenderEnum, ProviderStatusEnum, RolEnum
+from app.schemas.enums import GenderEnum, ProviderStatusEnum, RolEnum, TenantStatusEnum
 from app.schemas.order_schema import OrderStatusEnum, PaymentMethodEnum, PaymentStatusEnum
 from app.schemas.reservation_schema import ReservationStatusEnum
 from app.schemas.replenishment_schema import ReplenishmentStatusEnum
@@ -59,6 +61,12 @@ from app.services.recommendation_service import (
 PASSWORD = "Fashion123!"
 RECOMMENDATION_DEMO_EMAIL = "cliente01.demo@fashionstore.bo"
 RECOMMENDATION_DEMO_CATALOG_PATH = "/app/cliente/catalog"
+
+TENANT_1_ID = UUID("11111111-1111-1111-1111-111111111111")
+TENANT_2_ID = UUID("22222222-2222-2222-2222-222222222222")
+TENANT_3_ID = UUID("33333333-3333-3333-3333-333333333333")
+SUPERADMIN_ID = UUID("00000000-0000-0000-0000-000000000001")
+SUPERADMIN_EMAIL = "superadmin@fashionstore.com"
 RECOMMENDATION_DEMO_INTERACTIONS = (
     (0, VIEW, (0, 1, 2)),
     (0, ADD_TO_CART, (0, 2)),
@@ -98,6 +106,7 @@ def main() -> None:
     session = SessionLocal()
     try:
         _reset_demo_data(session)
+        tenants = _seed_tenants(session)
         branches = _seed_branches(session)
         users = _seed_users(session, branches)
         providers = _seed_providers(session)
@@ -140,6 +149,7 @@ def main() -> None:
         )
         session.commit()
         print("Seeder demo ejecutado correctamente")
+        print(f"- Tenants creados: {len(tenants)}")
         print(f"- Sucursales: {len(branches)}")
         print(f"- Usuarios: {len(users)}")
         print(f"- Proveedores: {len(providers)}")
@@ -158,6 +168,7 @@ def main() -> None:
 
 def _ensure_tables() -> None:
     required_tables = {
+        "tenants",
         "branches",
         "users",
         "providers",
@@ -326,6 +337,7 @@ def _verify_seed(
     promotion_usages: list[PromotionCodeUsage],
 ) -> None:
     models = [
+        Tenant,
         Branch,
         User,
         Provider,
@@ -456,15 +468,49 @@ def _verify_amounts(
             raise RuntimeError(f"Total inconsistente en {parent_key}={parent['id']}")
 
 
+def _seed_tenants(session) -> list[Tenant]:
+    tenants_payload = [
+        {"id": TENANT_1_ID, "name": "Aura Moda", "slug": "aura-moda", "contact_email": "contacto@auramoda.bo", "currency": "BOB", "country": "Bolivia", "status": TenantStatusEnum.active},
+        {"id": TENANT_2_ID, "name": "UrbanStyle", "slug": "urban-style", "contact_email": "contacto@urbanstyle.bo", "currency": "BOB", "country": "Bolivia", "status": TenantStatusEnum.active},
+        {"id": TENANT_3_ID, "name": "NovaWear", "slug": "nova-wear", "contact_email": "contacto@novawear.bo", "currency": "BOB", "country": "Bolivia", "status": TenantStatusEnum.active},
+    ]
+    tenants: list[Tenant] = []
+    for payload in tenants_payload:
+        tenant, _ = _get_or_create(session, Tenant, {"id": payload["id"]}, payload)
+        for k, v in payload.items():
+            setattr(tenant, k, v)
+        tenants.append(tenant)
+
+    superadmin, _ = _get_or_create(
+        session,
+        User,
+        {"email": SUPERADMIN_EMAIL},
+        {
+            "name": "Super Administrador",
+            "gender": GenderEnum.femenino,
+            "rol": RolEnum.superadministrador,
+            "branch_id": None,
+            "tenant_id": None,
+            "hashed_password": hash_password("SuperAdmin2026!"),
+        },
+    )
+    superadmin.rol = RolEnum.superadministrador
+    superadmin.tenant_id = None
+    superadmin.branch_id = None
+    superadmin.hashed_password = hash_password("SuperAdmin2026!")
+    return tenants
+
+
 def _seed_branches(session) -> list[Branch]:
     branches_payload = [
-        {"name": "Sucursal Central La Paz", "city": "La Paz", "is_default": True},
-        {"name": "Sucursal Norte Santa Cruz", "city": "Santa Cruz", "is_default": False},
-        {"name": "Sucursal Centro Cochabamba", "city": "Cochabamba", "is_default": False},
+        {"name": "Sucursal Central La Paz", "city": "La Paz", "is_default": True, "tenant_id": TENANT_1_ID},
+        {"name": "Sucursal Norte Santa Cruz", "city": "Santa Cruz", "is_default": False, "tenant_id": TENANT_1_ID},
+        {"name": "Sucursal Centro Cochabamba", "city": "Cochabamba", "is_default": False, "tenant_id": TENANT_1_ID},
     ]
     branches: list[Branch] = []
     for payload in branches_payload:
         branch, _ = _get_or_create(session, Branch, {"name": payload["name"]}, payload)
+        branch.tenant_id = payload["tenant_id"]
         branches.append(branch)
     return branches
 
@@ -498,9 +544,11 @@ def _seed_users(session, branches: list[Branch]) -> list[User]:
                 "gender": payload["gender"],
                 "rol": payload["rol"],
                 "branch_id": payload["branch_id"],
+                "tenant_id": TENANT_1_ID,
                 "hashed_password": password,
             },
         )
+        user.tenant_id = TENANT_1_ID
         if payload["rol"] == RolEnum.administrador:
             user.branch_id = None
         users.append(user)
@@ -532,9 +580,12 @@ def _seed_users(session, branches: list[Branch]) -> list[User]:
                 "gender": gender,
                 "rol": RolEnum.cliente,
                 "branch_id": None,
+                "tenant_id": None,
                 "hashed_password": password,
             },
         )
+        user.tenant_id = None
+        user.branch_id = None
         users.append(user)
 
     return users
@@ -583,9 +634,11 @@ def _seed_providers(session) -> list[Provider]:
                 "gender": payload["gender"],
                 "rol": RolEnum.proveedor,
                 "branch_id": None,
+                "tenant_id": TENANT_1_ID,
                 "hashed_password": _hash_password(),
             },
         )
+        user.tenant_id = TENANT_1_ID
 
         provider, _ = _get_or_create(
             session,
@@ -596,12 +649,14 @@ def _seed_providers(session) -> list[Provider]:
                 "contact_name": payload["contact"],
                 "phone": payload["phone"],
                 "status": ProviderStatusEnum.active,
+                "tenant_id": TENANT_1_ID,
             },
         )
         provider.business_name = payload["name"]
         provider.contact_name = payload["contact"]
         provider.phone = payload["phone"]
         provider.status = ProviderStatusEnum.active
+        provider.tenant_id = TENANT_1_ID
         providers.append(provider)
 
     return providers
@@ -628,10 +683,12 @@ def _seed_promotions(
             "valid_until": start + timedelta(days=365),
             "is_active": True,
             "created_at": start,
+            "tenant_id": TENANT_1_ID,
         }
         code, _ = _get_or_create(session, PromotionCode, {"code": payload["code"]}, defaults)
         for key, value in defaults.items():
             setattr(code, key, value)
+        code.tenant_id = TENANT_1_ID
         codes.append(code)
 
     used_at = start + timedelta(days=14)
@@ -683,11 +740,12 @@ def _seed_replenishments(
             session,
             ReplenishmentRequest,
             {"provider_id": provider.id, "branch_id": branch.id, "requested_by": requester.id},
-            {"status": ReplenishmentStatusEnum.requested, "created_at": request_time, "updated_at": request_time},
+            {"status": ReplenishmentStatusEnum.requested, "created_at": request_time, "updated_at": request_time, "tenant_id": TENANT_1_ID},
         )
         request.status = ReplenishmentStatusEnum.requested
         request.created_at = request_time
         request.updated_at = request_time
+        request.tenant_id = TENANT_1_ID
         variant = assigned_variants[index % len(assigned_variants)]
         item, _ = _get_or_create(
             session,
@@ -704,7 +762,7 @@ def _seed_categories(session) -> list[Category]:
     names = ["Blusas", "Vestidos", "Faldas", "Pantalones", "Chaquetas", "Tops"]
     items = []
     for name in names:
-        item, _ = _get_or_create(session, Category, {"name": name})
+        item, _ = _get_or_create(session, Category, {"name": name, "tenant_id": TENANT_1_ID})
         items.append(item)
     return items
 
@@ -742,7 +800,7 @@ def _seed_seasons(session) -> list[Season]:
     names = ["Primavera-Verano", "Otoño-Invierno"]
     items = []
     for name in names:
-        item, _ = _get_or_create(session, Season, {"name": name})
+        item, _ = _get_or_create(session, Season, {"name": name, "tenant_id": TENANT_1_ID})
         items.append(item)
     return items
 
@@ -756,8 +814,14 @@ def _seed_collections(session, seasons: list[Season]) -> list[Collection]:
     ]
     items = []
     for payload in collection_payload:
-        item, _ = _get_or_create(session, Collection, {"name": payload["name"]}, {"season_id": payload["season"].id})
+        item, _ = _get_or_create(
+            session,
+            Collection,
+            {"name": payload["name"], "tenant_id": TENANT_1_ID},
+            {"season_id": payload["season"].id, "tenant_id": TENANT_1_ID},
+        )
         item.season_id = payload["season"].id
+        item.tenant_id = TENANT_1_ID
         items.append(item)
     return items
 
@@ -787,18 +851,20 @@ def _seed_products(
             product, _ = _get_or_create(
                 session,
                 Product,
-                {"name": row.productDisplayName},
+                {"name": row.productDisplayName, "tenant_id": TENANT_1_ID},
                 {
                     "description": f"{row.articleType} para mujer en color {row.baseColour}.",
                     "provider_id": providers[0].id if product_number % 3 == 0 else None,
                     "category_id": category.id,
                     "collection_id": collection.id,
+                    "tenant_id": TENANT_1_ID,
                 },
             )
             product.description = f"{row.articleType} para mujer en color {row.baseColour}."
             product.provider_id = providers[0].id if product_number % 3 == 0 else None
             product.category_id = category.id
             product.collection_id = collection.id
+            product.tenant_id = TENANT_1_ID
             products_by_number[product_number] = product
 
         variant, _ = _get_or_create(
@@ -813,6 +879,7 @@ def _seed_products(
                 "status": ProductStatusEnum.active,
                 "image_url": row.image_url,
                 "image_public_id": None,
+                "tenant_id": TENANT_1_ID,
             },
         )
         variant.product_id = product.id
@@ -822,6 +889,7 @@ def _seed_products(
         variant.status = ProductStatusEnum.active
         variant.image_url = row.image_url
         variant.image_public_id = None
+        variant.tenant_id = TENANT_1_ID
         all_products.append((product, variant))
 
     return all_products
@@ -935,10 +1003,11 @@ def _seed_inventory(
                 session,
                 Inventory,
                 {"variant_id": variant.id, "branch_id": branch.id},
-                {"quantity": quantity, "reserved_quantity": reserved_quantity},
+                {"quantity": quantity, "reserved_quantity": reserved_quantity, "tenant_id": TENANT_1_ID},
             )
             inventory.quantity = quantity
             inventory.reserved_quantity = reserved_quantity
+            inventory.tenant_id = TENANT_1_ID
 
             inventory_by_key[(str(variant.id), str(branch.id))] = inventory
             variant_rows.append((branch, inventory, quantity))
@@ -958,6 +1027,7 @@ def _seed_inventory(
                     "reference_branch_id": None,
                     "note": f"Carga inicial de inventario para {product.name}",
                     "created_by": creator_id,
+                    "tenant_id": TENANT_1_ID,
                 },
             )
 
@@ -975,6 +1045,7 @@ def _seed_inventory(
                         "reference_branch_id": None,
                         "note": f"Salida simulada por venta de {product.name}",
                         "created_by": creator_id,
+                        "tenant_id": TENANT_1_ID,
                     },
                 )
 
@@ -997,6 +1068,7 @@ def _seed_inventory(
                         "reference_branch_id": target_branch.id,
                         "note": f"Traslado hacia {target_branch.name}",
                         "created_by": creator_id,
+                        "tenant_id": TENANT_1_ID,
                     },
                 )
                 _get_or_create(
@@ -1010,6 +1082,7 @@ def _seed_inventory(
                         "reference_branch_id": branch.id,
                         "note": f"Ingreso por traslado desde {branch.name}",
                         "created_by": creator_id,
+                        "tenant_id": TENANT_1_ID,
                     },
                 )
 
@@ -1064,9 +1137,10 @@ def _seed_carts(session, clients: list[User], branches: list[Branch], product_va
             session,
             Cart,
             {"user_id": client.id},
-            {"status": cart_statuses[index % len(cart_statuses)]},
+            {"status": cart_statuses[index % len(cart_statuses)], "tenant_id": TENANT_1_ID},
         )
         cart.status = cart_statuses[index % len(cart_statuses)]
+        cart.tenant_id = TENANT_1_ID
 
         used_variant_ids: set[str] = set()
         selected_items: list[tuple[Inventory, int]] = []
@@ -1128,10 +1202,11 @@ def _seed_reservations(
                 session,
                 Reservation,
                 {"branch_id": branch.id, "user_id": client.id, "visit_date": visit_date},
-                {"expires_at": expires_at, "status": status_cycle[len(reservations) % len(status_cycle)]},
+                {"expires_at": expires_at, "status": status_cycle[len(reservations) % len(status_cycle)], "tenant_id": TENANT_1_ID},
             )
             reservation.expires_at = expires_at
             reservation.status = status_cycle[len(reservations) % len(status_cycle)]
+            reservation.tenant_id = TENANT_1_ID
 
             picked = _pick_available_inventory(session, branch)
             if not picked:
@@ -1184,6 +1259,7 @@ def _seed_orders(
                 "stripe_payment_intent_id": f"pi_demo_{index + 1:03d}" if payment_method == PaymentMethodEnum.stripe else None,
                 "cash_reference": f"CASH-ORD-{index + 1:03d}" if payment_method == PaymentMethodEnum.cash else None,
                 "currency": "usd",
+                "tenant_id": TENANT_1_ID,
             },
         )
         order.status = OrderStatusEnum.paid
@@ -1192,6 +1268,7 @@ def _seed_orders(
         order.pickup_branch_id = branch.id
         order.stripe_payment_intent_id = f"pi_demo_{index + 1:03d}" if payment_method == PaymentMethodEnum.stripe else None
         order.cash_reference = f"CASH-ORD-{index + 1:03d}" if payment_method == PaymentMethodEnum.cash else None
+        order.tenant_id = TENANT_1_ID
 
         used_variant_ids: set[str] = set()
         selected_items: list[ProductVariant] = []
@@ -1272,6 +1349,7 @@ def _seed_sales(
                 "payment_status": PaymentStatusEnum.paid,
                 "cash_reference": reference,
                 "currency": "usd",
+                "tenant_id": TENANT_1_ID,
             },
         )
         sale.branch_id = branch.id
@@ -1282,6 +1360,7 @@ def _seed_sales(
         sale.payment_status = PaymentStatusEnum.paid
         sale.cash_reference = reference
         sale.currency = "usd"
+        sale.tenant_id = TENANT_1_ID
         sale.created_at = datetime(2026, 2, 1, tzinfo=timezone.utc) + timedelta(days=sale_index)
 
         subtotal = Decimal("0")

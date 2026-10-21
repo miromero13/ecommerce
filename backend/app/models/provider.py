@@ -10,6 +10,7 @@ class Provider(Base):
     __tablename__ = "providers"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, unique=True, index=True)
     business_name = Column(String, nullable=False)
     contact_name = Column(String, nullable=False)

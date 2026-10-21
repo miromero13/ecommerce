@@ -150,6 +150,7 @@ def _create_sale_from_items(
     user_id: UUID,
     payload: SaleCreate,
     normalized_items: dict[UUID, int],
+    tenant_id: UUID | None = None,
 ):
     reservation = None
     reservation_should_adjust_inventory = False
@@ -160,6 +161,7 @@ def _create_sale_from_items(
         reservation_should_adjust_inventory = reservation.status in {ReservationStatusEnum.pending, ReservationStatusEnum.confirmed}
 
     sale = Sale(
+        tenant_id=tenant_id,
         branch_id=branch_id,
         user_id=user_id,
         reservation_id=payload.reservation_id,
@@ -229,6 +231,7 @@ def _create_sale_from_items(
         if not payload.reservation_id or reservation_should_adjust_inventory:
             db.add(
                 InventoryMovement(
+                    tenant_id=tenant_id or (inventory.tenant_id if inventory else None),
                     variant_id=variant_id,
                     branch_id=branch_id,
                     movement_type=InventoryMovementTypeEnum.outcome,
@@ -249,11 +252,11 @@ def _create_sale_from_items(
     return sale
 
 
-def create_sale(db: Session, user_id: UUID, payload: SaleCreate, branch_id: UUID):
+def create_sale(db: Session, user_id: UUID, payload: SaleCreate, branch_id: UUID, tenant_id: UUID | None = None):
     try:
         normalized_items = _resolve_items(db, payload, branch_id)
         with db.begin_nested():
-            sale = _create_sale_from_items(db, branch_id, user_id, payload, normalized_items)
+            sale = _create_sale_from_items(db, branch_id, user_id, payload, normalized_items, tenant_id=tenant_id)
         db.commit()
         db.refresh(sale)
         for variant_id in normalized_items:
@@ -270,8 +273,15 @@ def create_sale(db: Session, user_id: UUID, payload: SaleCreate, branch_id: UUID
         raise
 
 
-def list_sales_by_branch(db: Session, branch_id: UUID | None = None, user_id: UUID | None = None):
+def list_sales_by_branch(
+    db: Session,
+    branch_id: UUID | None = None,
+    user_id: UUID | None = None,
+    tenant_id: UUID | None = None,
+):
     query = db.query(Sale)
+    if tenant_id is not None:
+        query = query.filter(Sale.tenant_id == tenant_id)
     if branch_id is not None:
         query = query.filter(Sale.branch_id == branch_id)
     if user_id is not None:
@@ -279,6 +289,8 @@ def list_sales_by_branch(db: Session, branch_id: UUID | None = None, user_id: UU
     sales = [_serialize_sale(db, sale).model_dump() for sale in query.order_by(Sale.created_at.desc()).all()]
 
     orders_query = db.query(Order).filter(Order.status == "paid", Order.pickup_branch_id.is_not(None))
+    if tenant_id is not None:
+        orders_query = orders_query.filter(Order.tenant_id == tenant_id)
     if branch_id is not None:
         orders_query = orders_query.filter(Order.pickup_branch_id == branch_id)
     orders = []
@@ -314,8 +326,16 @@ def list_sales_by_branch(db: Session, branch_id: UUID | None = None, user_id: UU
     return sorted(sales + orders, key=lambda sale: sale["created_at"], reverse=True)
 
 
-def get_sale(db: Session, branch_id: UUID | None, sale_id: UUID, user_id: UUID | None = None):
+def get_sale(
+    db: Session,
+    branch_id: UUID | None,
+    sale_id: UUID,
+    user_id: UUID | None = None,
+    tenant_id: UUID | None = None,
+):
     query = db.query(Sale).filter(Sale.id == sale_id)
+    if tenant_id is not None:
+        query = query.filter(Sale.tenant_id == tenant_id)
     if branch_id is not None:
         query = query.filter(Sale.branch_id == branch_id)
     if user_id is not None:

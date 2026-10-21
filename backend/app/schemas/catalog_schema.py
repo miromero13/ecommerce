@@ -68,6 +68,17 @@ class ProductVariantGarmentPointsUpdate(BaseModel):
         return points
 
 
+class BranchStockInfo(BaseModel):
+    branch_id: UUID
+    branch_name: str
+    city: str
+    quantity: int
+
+    model_config = {
+        "from_attributes": True,
+    }
+
+
 class ProductVariantRead(BaseModel):
     id: UUID
     product_id: UUID
@@ -83,6 +94,8 @@ class ProductVariantRead(BaseModel):
     status: ProductStatusEnum
     branch_quantity: int | None = None
     provider_quantity: int | None = None
+    branch_stocks: list[BranchStockInfo] = Field(default_factory=list)
+    total_stock: int = 0
 
     model_config = {
         "from_attributes": True,
@@ -91,6 +104,8 @@ class ProductVariantRead(BaseModel):
 
 class ProductRead(BaseModel):
     id: UUID
+    tenant_id: UUID | None = None
+    tenant_name: str | None = None
     name: str
     description: str | None = None
     discount_type: DiscountTypeEnum | None = None

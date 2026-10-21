@@ -10,6 +10,7 @@ class Inventory(Base):
     __tablename__ = "inventory"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
     variant_id = Column(UUID(as_uuid=True), ForeignKey("product_variants.id"), nullable=False, index=True)
     branch_id = Column(UUID(as_uuid=True), ForeignKey("branches.id"), nullable=False, index=True)
     quantity = Column(Integer, nullable=False, default=0)

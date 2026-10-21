@@ -12,6 +12,8 @@ from app.models.product_variant import ProductVariant
 from app.models.provider_variant_availability import ProviderVariantAvailability
 from app.models.season import Season
 from app.models.size import Size
+from app.models.branch import Branch
+from app.models.tenant import Tenant
 from app.schemas.catalog_schema import (
     NameCreate,
     ColorCreate,
@@ -21,6 +23,7 @@ from app.schemas.catalog_schema import (
     ProductVariantGarmentPointsUpdate,
     ProductRead,
     ProductVariantRead,
+    BranchStockInfo,
 )
 from app.schemas.catalog_enums import ProductStatusEnum
 from app.schemas.catalog_schema import DiscountTypeEnum
@@ -332,25 +335,43 @@ def available_quantity(quantity: int | None, reserved_quantity: int | None = 0) 
     return max(int(quantity or 0) - int(reserved_quantity or 0), 0)
 
 
-def _product_to_read(product: Product, variants: list[ProductVariant], branch_quantity_map: dict | None = None, provider_quantity_map: dict | None = None):
+def _product_to_read(
+    product: Product,
+    variants: list[ProductVariant],
+    branch_quantity_map: dict | None = None,
+    provider_quantity_map: dict | None = None,
+    branch_stocks_map: dict | None = None,
+    tenant_name: str | None = None,
+):
     variant_reads = []
     total_quantity = 0
     primary = None
 
     for variant in variants:
-        branch_quantity = None
-        provider_quantity = None if provider_quantity_map is None else provider_quantity_map.get(variant.id, 0)
+        variant_stocks = branch_stocks_map.get(variant.id, []) if branch_stocks_map is not None else []
+        variant_total_stock = sum(s.get("quantity", 0) for s in variant_stocks)
+
         if branch_quantity_map is not None:
             branch_quantity = branch_quantity_map.get(variant.id, 0)
             total_quantity += branch_quantity
+        else:
+            branch_quantity = variant_total_stock
+            total_quantity += variant_total_stock
+
+        provider_quantity = None if provider_quantity_map is None else provider_quantity_map.get(variant.id, 0)
+
+        disc_amt = discount_amount(variant.price, product.discount_type, product.discount_value)
+        eff_price = discounted_price(variant.price, product.discount_type, product.discount_value)
+        orig_price = variant.price if (disc_amt > Decimal("0.00") and eff_price < variant.price) else None
+
         variant_data = ProductVariantRead.model_validate(
             {
                 "id": variant.id,
                 "product_id": product.id,
                 "sku": variant.sku,
-                "price": discounted_price(variant.price, product.discount_type, product.discount_value),
-                "original_price": variant.price,
-                "discount_amount": discount_amount(variant.price, product.discount_type, product.discount_value),
+                "price": eff_price,
+                "original_price": orig_price,
+                "discount_amount": disc_amt,
                 "size_id": variant.size_id,
                 "color_id": variant.color_id,
                 "image_url": variant.image_url,
@@ -359,6 +380,8 @@ def _product_to_read(product: Product, variants: list[ProductVariant], branch_qu
                 "status": variant.status,
                 "branch_quantity": branch_quantity,
                 "provider_quantity": provider_quantity,
+                "branch_stocks": variant_stocks,
+                "total_stock": variant_total_stock,
             }
         ).model_dump()
         variant_reads.append(variant_data)
@@ -371,6 +394,8 @@ def _product_to_read(product: Product, variants: list[ProductVariant], branch_qu
     return ProductRead.model_validate(
         {
             "id": product.id,
+            "tenant_id": product.tenant_id,
+            "tenant_name": tenant_name,
             "name": product.name,
             "description": product.description,
             "provider_id": product.provider_id,
@@ -384,7 +409,7 @@ def _product_to_read(product: Product, variants: list[ProductVariant], branch_qu
             "status": primary["status"],
             "size_id": primary["size_id"],
             "color_id": primary["color_id"],
-            "branch_quantity": total_quantity if branch_quantity_map is not None else None,
+            "branch_quantity": total_quantity if (branch_quantity_map is not None or branch_stocks_map is not None) else None,
             "variants": variant_reads,
         }
     ).model_dump()
@@ -394,7 +419,9 @@ def serialize_product(db: Session, product_id):
     product = db.query(Product).options(selectinload(Product.variants)).filter(Product.id == product_id).first()
     if not product:
         return None
-    return _product_to_read(product, product.variants)
+    tenant = db.query(Tenant).filter(Tenant.id == product.tenant_id).first()
+    tenant_name = tenant.name if tenant else None
+    return _product_to_read(product, product.variants, None, None, None, tenant_name)
 
 
 def get_public_product(db: Session, product_id, branch_id=None):
@@ -406,17 +433,43 @@ def get_public_product(db: Session, product_id, branch_id=None):
     if not variants:
         return None
 
+    variant_ids = [variant.id for variant in variants]
+
     branch_quantity_map = None
     if branch_id:
         inventories = db.query(Inventory).filter(
-            Inventory.variant_id.in_([variant.id for variant in variants]),
+            Inventory.variant_id.in_(variant_ids),
             Inventory.branch_id == branch_id,
         ).all()
         branch_quantity_map = {
             inventory.variant_id: available_quantity(inventory.quantity, inventory.reserved_quantity)
             for inventory in inventories
         }
-    return _product_to_read(product, variants, branch_quantity_map)
+
+    branch_stocks_map = {}
+    all_inventories = (
+        db.query(Inventory, Branch)
+        .join(Branch, Inventory.branch_id == Branch.id)
+        .filter(
+            Inventory.variant_id.in_(variant_ids),
+            Branch.is_active == True,
+        )
+        .all()
+    )
+    for inv, br in all_inventories:
+        avail = available_quantity(inv.quantity, inv.reserved_quantity)
+        if avail > 0:
+            branch_stocks_map.setdefault(inv.variant_id, []).append({
+                "branch_id": br.id,
+                "branch_name": br.name,
+                "city": br.city,
+                "quantity": avail,
+            })
+
+    tenant = db.query(Tenant).filter(Tenant.id == product.tenant_id).first()
+    tenant_name = tenant.name if tenant else None
+
+    return _product_to_read(product, variants, branch_quantity_map, None, branch_stocks_map, tenant_name)
 
 
 def list_public_products(
@@ -428,8 +481,11 @@ def list_public_products(
     season_id=None,
     collection_id=None,
     q=None,
+    tenant_id=None,
 ):
     query = db.query(Product).options(selectinload(Product.variants))
+    if tenant_id:
+        query = query.filter(Product.tenant_id == tenant_id)
     if category_id:
         query = query.filter(Product.category_id == category_id)
     if season_id:
@@ -437,31 +493,78 @@ def list_public_products(
     if collection_id:
         query = query.filter(Product.collection_id == collection_id)
     if q:
-        query = query.filter(Product.name.ilike(f"%{q}%"))
+        query = query.outerjoin(Tenant, Product.tenant_id == Tenant.id).filter(
+            Product.name.ilike(f"%{q}%") | Tenant.name.ilike(f"%{q}%")
+        )
 
     products = query.order_by(Product.name.asc()).all()
-    result = []
+    if not products:
+        return []
+
+    tenant_ids = {p.tenant_id for p in products if p.tenant_id}
+    tenants = db.query(Tenant).filter(Tenant.id.in_(tenant_ids)).all() if tenant_ids else []
+    tenant_name_map = {t.id: t.name for t in tenants}
+
+    all_active_variants = []
+    product_variants_map = {}
     for product in products:
         variants = [variant for variant in product.variants if variant.status == ProductStatusEnum.active]
         if size_id:
             variants = [variant for variant in variants if variant.size_id == size_id]
         if color_id:
             variants = [variant for variant in variants if variant.color_id == color_id]
+        if variants:
+            product_variants_map[product.id] = variants
+            all_active_variants.extend(variants)
+
+    if not all_active_variants:
+        return []
+
+    all_variant_ids = [v.id for v in all_active_variants]
+
+    branch_stocks_map = {}
+    all_inventories = (
+        db.query(Inventory, Branch)
+        .join(Branch, Inventory.branch_id == Branch.id)
+        .filter(
+            Inventory.variant_id.in_(all_variant_ids),
+            Branch.is_active == True,
+        )
+        .all()
+    )
+    for inv, br in all_inventories:
+        avail = available_quantity(inv.quantity, inv.reserved_quantity)
+        if avail > 0:
+            branch_stocks_map.setdefault(inv.variant_id, []).append({
+                "branch_id": br.id,
+                "branch_name": br.name,
+                "city": br.city,
+                "quantity": avail,
+            })
+
+    branch_quantity_map = None
+    if branch_id:
+        branch_quantity_map = {}
+        for inv, _ in all_inventories:
+            if inv.branch_id == branch_id:
+                branch_quantity_map[inv.variant_id] = available_quantity(inv.quantity, inv.reserved_quantity)
+
+    result = []
+    for product in products:
+        variants = product_variants_map.get(product.id)
         if not variants:
             continue
-
-        branch_quantity_map = None
-        if branch_id:
-            inventories = db.query(Inventory).filter(
-                Inventory.variant_id.in_([variant.id for variant in variants]),
-                Inventory.branch_id == branch_id,
-            ).all()
-            branch_quantity_map = {
-                inventory.variant_id: available_quantity(inventory.quantity, inventory.reserved_quantity)
-                for inventory in inventories
-            }
-
-        result.append(_product_to_read(product, variants, branch_quantity_map))
+        tenant_name = tenant_name_map.get(product.tenant_id)
+        read_obj = _product_to_read(
+            product,
+            variants,
+            branch_quantity_map,
+            None,
+            branch_stocks_map,
+            tenant_name,
+        )
+        if read_obj:
+            result.append(read_obj)
     return result
 
 

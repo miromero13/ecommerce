@@ -9,6 +9,7 @@ from app.schemas.replenishment_schema import ReplenishmentStatusEnum
 class ReplenishmentRequest(Base):
     __tablename__ = "replenishment_requests"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
     provider_id = Column(UUID(as_uuid=True), ForeignKey("providers.id"), nullable=False, index=True)
     branch_id = Column(UUID(as_uuid=True), ForeignKey("branches.id"), nullable=False, index=True)
     requested_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)

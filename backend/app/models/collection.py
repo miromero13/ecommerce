@@ -9,5 +9,6 @@ class Collection(Base):
     __tablename__ = "collections"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    name = Column(String, nullable=False, unique=True)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String, nullable=False)
     season_id = Column(UUID(as_uuid=True), ForeignKey("seasons.id"), nullable=True, index=True)

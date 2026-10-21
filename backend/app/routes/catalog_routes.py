@@ -261,6 +261,7 @@ async def delete_collection_route(collection_id: UUID, db: Session = Depends(get
 async def list_products(
     db: Session = Depends(get_db),
     q: str | None = None,
+    tenant_id: UUID | None = None,
     branch_id: UUID | None = None,
     category_id: UUID | None = None,
     size_id: UUID | None = None,
@@ -268,7 +269,7 @@ async def list_products(
     season_id: UUID | None = None,
     collection_id: UUID | None = None,
 ):
-    rows = list_public_products(db, branch_id, category_id, size_id, color_id, season_id, collection_id, q)
+    rows = list_public_products(db, branch_id, category_id, size_id, color_id, season_id, collection_id, q, tenant_id)
     return response(status_code=200, message="Productos obtenidos exitosamente", data=rows)
 
 

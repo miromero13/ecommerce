@@ -57,16 +57,19 @@ def create_user(db: Session, user: UserCreate) -> User:
         raise ValueError("El correo ya está registrado")
 
 
-def create_admin_user(db: Session, user: AdminUserCreate) -> User:
+def create_admin_user(db: Session, user: AdminUserCreate, tenant_id: UUID | None = None) -> User:
     scoped_roles = {RolEnum.encargado, RolEnum.cajero, RolEnum.delivery}
     if user.rol == RolEnum.administrador:
         branch_id = None
     elif user.rol in scoped_roles:
         if user.branch_id is None:
             raise ValueError("Este rol debe tener una sucursal asignada")
-        branch = db.query(Branch).filter(Branch.id == user.branch_id, Branch.is_active.is_(True)).first()
+        branch_query = db.query(Branch).filter(Branch.id == user.branch_id, Branch.is_active.is_(True))
+        if tenant_id is not None:
+            branch_query = branch_query.filter(Branch.tenant_id == tenant_id)
+        branch = branch_query.first()
         if branch is None:
-            raise ValueError("La sucursal no existe o está inactiva")
+            raise ValueError("La sucursal no existe o está inactiva en esta empresa")
         branch_id = user.branch_id
     else:
         raise ValueError("Este formulario solo permite crear usuarios internos")
@@ -79,6 +82,7 @@ def create_admin_user(db: Session, user: AdminUserCreate) -> User:
         rol=user.rol,
         hashed_password=pwd_context.hash(user.password),
         branch_id=branch_id,
+        tenant_id=tenant_id,
         is_active=user.is_active,
     )
     db.add(db_user)
@@ -94,15 +98,19 @@ def get_user(db: Session, user_id: UUID) -> User | None:  # 👈 Cambia int → 
     result = db.execute(select(User).where(User.id == user_id))
     return result.scalars().first()
 
-def get_users(db: Session, skip: int = 0, limit: int = 10, branch_id: UUID | None = None):
+def get_users(db: Session, skip: int = 0, limit: int = 10, branch_id: UUID | None = None, tenant_id: UUID | None = None):
     query = select(User)
+    if tenant_id is not None:
+        query = query.where(User.tenant_id == tenant_id)
     if branch_id is not None:
         query = query.where(or_(User.branch_id == branch_id, User.rol == RolEnum.cliente))
     result = db.execute(query.offset(skip).limit(limit))
     return result.scalars().all()
 
-def get_users_count(db: Session, branch_id: UUID | None = None):
+def get_users_count(db: Session, branch_id: UUID | None = None, tenant_id: UUID | None = None):
     query = select(func.count(User.id))
+    if tenant_id is not None:
+        query = query.where(User.tenant_id == tenant_id)
     if branch_id is not None:
         query = query.where(or_(User.branch_id == branch_id, User.rol == RolEnum.cliente))
     result = db.execute(query)

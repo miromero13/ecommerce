@@ -10,6 +10,7 @@ class BranchCreate(BaseModel):
 
 class BranchRead(BaseModel):
     id: UUID
+    tenant_id: UUID | None = None
     name: str
     city: str
     is_default: bool

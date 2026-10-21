@@ -33,6 +33,19 @@ cd mobile && flutter pub get && flutter run
 
 ---
 
+## 🔑 Test Credentials
+
+All pre-seeded demo accounts (Superadmin, Store Admins, Cashiers, Branch Managers, Providers, and Global Customers) are documented in:
+👉 **[`TEST_CREDENTIALS.md`](./TEST_CREDENTIALS.md)**
+
+Quick access:
+* **Superadmin:** `superadmin@fashionstore.com` / `SuperAdmin2026!`
+* **Store Admin (Aura Moda):** `admin.global@fashionstore.bo` / `Fashion123!`
+* **Cashier (La Paz):** `cajera.lp@fashionstore.bo` / `Fashion123!`
+* **Customer:** `cliente01.demo@fashionstore.bo` / `Fashion123!`
+
+---
+
 ## 👤 Author
 
 Developed by **María Ilse Romero Saavedra** ([@miromero13](https://github.com/miromero13)).

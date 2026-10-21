@@ -18,6 +18,7 @@ class AdminUserCreate(BaseModel):
     password: str = Field(min_length=8)
     gender: GenderEnum
     rol: RolEnum
+    tenant_id: UUID | None = None
     branch_id: UUID | None = None
     is_active: bool = True
 
@@ -25,7 +26,7 @@ class AdminUserCreate(BaseModel):
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
-    rol: RolEnum
+    rol: RolEnum | None = None
 
 #  Para leer usuario en respuestas (registro, perfil)
 class UserOut(BaseModel):
@@ -34,6 +35,7 @@ class UserOut(BaseModel):
     email: EmailStr
     gender: GenderEnum
     rol: RolEnum
+    tenant_id: UUID | None = None
     branch_id: UUID | None = None
     is_active: bool
 
@@ -48,6 +50,7 @@ class UserRead(BaseModel):
     email: EmailStr
     gender: GenderEnum
     rol: RolEnum
+    tenant_id: UUID | None = None
     branch_id: UUID | None = None
     is_active: bool
 
@@ -61,6 +64,7 @@ class UsersPaginatedResponse(BaseModel):
     
 class UserUpdateRol(BaseModel):
     rol: RolEnum
+    tenant_id: UUID | None = None
     branch_id: UUID | None = None
 
 
@@ -72,6 +76,7 @@ class UserUpdate(BaseModel):
     name: str
     email: EmailStr
     gender: GenderEnum
+    tenant_id: UUID | None = None
     branch_id: UUID | None = None
     is_active: bool = True
 

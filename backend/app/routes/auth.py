@@ -22,6 +22,7 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
         data={
             "sub": str(db_user.id),
             "rol": db_user.rol.value,
+            "tenant_id": str(db_user.tenant_id) if db_user.tenant_id else None,
             "branch_id": str(db_user.branch_id) if db_user.branch_id else None,
         }
     )
@@ -38,7 +39,7 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
         },
     )
 
-@router.post("/login", summary="Inicio de sesión por rol")
+@router.post("/login", summary="Inicio de sesión unificado")
 def login(user_data: UserLogin, db: Session = Depends(get_db)):
     normalized_email = user_data.email.strip().lower()
     user = db.query(User).filter(User.email == normalized_email).first()
@@ -52,7 +53,7 @@ def login(user_data: UserLogin, db: Session = Depends(get_db)):
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Usuario inactivo",
         )
-    if user.rol != user_data.rol:
+    if user_data.rol is not None and user.rol != user_data.rol:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="El usuario no pertenece al rol solicitado",
@@ -61,6 +62,7 @@ def login(user_data: UserLogin, db: Session = Depends(get_db)):
         data={
             "sub": str(user.id),
             "rol": user.rol.value,
+            "tenant_id": str(user.tenant_id) if user.tenant_id else None,
             "branch_id": str(user.branch_id) if user.branch_id else None,
         }
     )

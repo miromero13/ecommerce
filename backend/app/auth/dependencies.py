@@ -97,7 +97,7 @@ def require_roles(*allowed_roles: RolEnum) -> Callable:
 
 
 def get_current_branch_id(payload: dict = Depends(get_current_payload)) -> UUID | None:
-    if payload.get("rol") == RolEnum.administrador.value:
+    if payload.get("rol") in [RolEnum.administrador.value, RolEnum.superadministrador.value]:
         return None
 
     branch_id = payload.get("branch_id")
@@ -105,3 +105,68 @@ def get_current_branch_id(payload: dict = Depends(get_current_payload)) -> UUID 
         return None
 
     return UUID(branch_id)
+
+
+def get_current_tenant_id(payload: dict = Depends(get_current_payload)) -> UUID | None:
+    rol = payload.get("rol")
+    tenant_id_str = payload.get("tenant_id")
+    if rol in [RolEnum.superadministrador.value, RolEnum.cliente.value]:
+        return UUID(tenant_id_str) if tenant_id_str else None
+
+    if not tenant_id_str:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Usuario sin empresa asociada",
+        )
+    return UUID(tenant_id_str)
+
+
+def get_tenant_and_branch_scope(
+    payload: dict = Depends(get_current_payload),
+) -> tuple[UUID | None, UUID | None]:
+    """
+    Retorna (tenant_id, branch_id) para consultas jerárquicas:
+    1. Si el usuario tiene branch_id (cajero, encargado, delivery):
+       retorna (tenant_id, branch_id) -> filtra estrictamente por ambos.
+    2. Si solo tiene tenant_id (administrador, proveedor):
+       retorna (tenant_id, None) -> filtra por empresa completa (consolidado).
+    3. Si es superadministrador o cliente:
+       retorna (None, None) -> visión global sin restricción obligatoria.
+    """
+    rol = payload.get("rol")
+    tenant_id_str = payload.get("tenant_id")
+    branch_id_str = payload.get("branch_id")
+    tenant_id = UUID(tenant_id_str) if tenant_id_str else None
+    branch_id = UUID(branch_id_str) if branch_id_str else None
+
+    if rol in [RolEnum.superadministrador.value, RolEnum.cliente.value]:
+        return (None, None)
+
+    if not tenant_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Usuario sin empresa asociada",
+        )
+
+    if rol in [RolEnum.cajero.value, RolEnum.encargado.value, RolEnum.delivery.value]:
+        if not branch_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Usuario operativo sin sucursal asignada",
+            )
+        return (tenant_id, branch_id)
+
+    # Administrador o proveedor (gobierno a nivel empresa)
+    return (tenant_id, None)
+
+
+def validate_tenant_access(
+    resource_tenant_id: UUID | None,
+    current_tenant_id: UUID | None,
+) -> None:
+    """Garantiza que un empleado de Empresa A no pueda ver ni mutar recursos de Empresa B."""
+    if current_tenant_id is not None and resource_tenant_id != current_tenant_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tenés permisos para acceder a los datos de esta empresa",
+        )

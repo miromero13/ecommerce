@@ -11,6 +11,7 @@ class ProductVariant(Base):
     __tablename__ = "product_variants"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
     product_id = Column(UUID(as_uuid=True), ForeignKey("products.id"), nullable=False, index=True)
     sku = Column(String, nullable=False, unique=True, index=True)
     price = Column(Numeric(10, 2), nullable=False)

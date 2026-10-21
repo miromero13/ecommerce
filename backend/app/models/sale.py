@@ -14,6 +14,7 @@ class Sale(Base):
     __tablename__ = "sales"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
     branch_id = Column(UUID(as_uuid=True), ForeignKey("branches.id"), nullable=False, index=True)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
     reservation_id = Column(UUID(as_uuid=True), ForeignKey("reservations.id"), nullable=True, unique=True, index=True)

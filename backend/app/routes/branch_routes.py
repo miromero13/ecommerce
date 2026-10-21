@@ -1,9 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from uuid import UUID
 
-from app.auth.dependencies import require_roles
-from app.auth.dependencies import get_current_branch_id
+from app.auth.dependencies import require_roles, get_current_branch_id, get_current_tenant_id
 from app.core.database import get_db
 from app.models.user import User
 from app.schemas.branch_schema import BranchCreate, BranchRead, BranchUpdate, BranchActiveUpdate
@@ -18,10 +17,20 @@ router = APIRouter(prefix="/branches", tags=["Branches"])
 @router.get("/")
 async def list_branches_route(
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_roles(RolEnum.administrador)),
+    current_user: dict = Depends(
+        require_roles(
+            RolEnum.superadministrador,
+            RolEnum.administrador,
+            RolEnum.encargado,
+            RolEnum.cajero,
+            RolEnum.delivery,
+            RolEnum.proveedor,
+        )
+    ),
     current_branch_id: UUID | None = Depends(get_current_branch_id),
+    current_tenant_id: UUID | None = Depends(get_current_tenant_id),
 ):
-    branches = get_branches(db, current_branch_id)
+    branches = get_branches(db, current_branch_id, current_tenant_id)
     branches_data = [BranchRead.model_validate(branch).model_dump() for branch in branches]
     return response(
         status_code=status.HTTP_200_OK,
@@ -36,12 +45,13 @@ async def create_branch_route(
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_roles(RolEnum.administrador)),
     current_branch_id: UUID | None = Depends(get_current_branch_id),
+    current_tenant_id: UUID | None = Depends(get_current_tenant_id),
 ):
     if current_branch_id is not None:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No puedes crear sucursales desde una sucursal asignada")
 
     try:
-        db_branch = create_branch(db, branch)
+        db_branch = create_branch(db, branch, current_tenant_id)
     except Exception as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
@@ -54,8 +64,11 @@ async def create_branch_route(
 
 
 @router.get("/public")
-async def list_public_branches_route(db: Session = Depends(get_db)):
-    branches = get_branches(db)
+async def list_public_branches_route(
+    db: Session = Depends(get_db),
+    tenant_id: UUID | None = Query(default=None),
+):
+    branches = get_branches(db, tenant_id=tenant_id)
     branches_data = [BranchRead.model_validate(branch).model_dump() for branch in branches]
     return response(
         status_code=status.HTTP_200_OK,
@@ -71,12 +84,13 @@ async def update_branch_route(
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_roles(RolEnum.administrador)),
     current_branch_id: UUID | None = Depends(get_current_branch_id),
+    current_tenant_id: UUID | None = Depends(get_current_tenant_id),
 ):
     if current_branch_id is not None:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No puedes editar sucursales desde una sucursal asignada")
 
     try:
-        db_branch = update_branch(db, branch_id, branch)
+        db_branch = update_branch(db, branch_id, branch, current_tenant_id)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
@@ -93,11 +107,12 @@ async def update_branch_active_route(
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_roles(RolEnum.administrador)),
     current_branch_id: UUID | None = Depends(get_current_branch_id),
+    current_tenant_id: UUID | None = Depends(get_current_tenant_id),
 ):
     if current_branch_id is not None:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No puedes cambiar el estado de sucursales desde una sucursal asignada")
 
-    db_branch = set_branch_active(db, branch_id, update_data.is_active)
+    db_branch = set_branch_active(db, branch_id, update_data.is_active, current_tenant_id)
     if not db_branch:
         raise HTTPException(status_code=404, detail=f"Sucursal con id {branch_id} no encontrada")
 
@@ -110,12 +125,13 @@ async def delete_branch_route(
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_roles(RolEnum.administrador)),
     current_branch_id: UUID | None = Depends(get_current_branch_id),
+    current_tenant_id: UUID | None = Depends(get_current_tenant_id),
 ):
     if current_branch_id is not None:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No puedes eliminar sucursales desde una sucursal asignada")
 
     try:
-        deleted = delete_branch(db, branch_id)
+        deleted = delete_branch(db, branch_id, current_tenant_id)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 

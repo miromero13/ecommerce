@@ -12,6 +12,7 @@ class PromotionCode(Base):
     __tablename__ = "promotion_codes"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
     code = Column(String(40), nullable=False, unique=True, index=True)
     discount_type = Column(String(20), nullable=False)
     discount_value = Column(Numeric(10, 2), nullable=False)

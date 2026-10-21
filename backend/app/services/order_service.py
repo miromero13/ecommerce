@@ -77,9 +77,12 @@ def list_orders(db: Session, user_id: UUID):
     return [_serialize_order(db, order).model_dump() for order in db.query(Order).filter(Order.user_id == user_id).order_by(Order.created_at.desc()).all()]
 
 
-def list_orders_by_branch(db: Session, branch_id: UUID):
+def list_orders_by_branch(db: Session, branch_id: UUID, tenant_id: UUID | None = None):
     expire_due_orders(db)
-    orders = db.query(Order).filter(Order.pickup_branch_id == branch_id).order_by(Order.created_at.desc()).all()
+    query = db.query(Order).filter(Order.pickup_branch_id == branch_id)
+    if tenant_id is not None:
+        query = query.filter(Order.tenant_id == tenant_id)
+    orders = query.order_by(Order.created_at.desc()).all()
     return [_serialize_order(db, order).model_dump() for order in orders]
 
 
@@ -89,8 +92,11 @@ def get_order(db: Session, user_id: UUID, order_id: UUID):
     return _serialize_order(db, order).model_dump() if order else None
 
 
-def mark_order_ready(db: Session, order_id: UUID, branch_id: UUID):
-    order = db.query(Order).filter(Order.id == order_id, Order.pickup_branch_id == branch_id).with_for_update().first()
+def mark_order_ready(db: Session, order_id: UUID, branch_id: UUID, tenant_id: UUID | None = None):
+    query = db.query(Order).filter(Order.id == order_id, Order.pickup_branch_id == branch_id)
+    if tenant_id is not None:
+        query = query.filter(Order.tenant_id == tenant_id)
+    order = query.with_for_update().first()
     if not order:
         return None
     if order.payment_status != PaymentStatusEnum.paid:
@@ -142,12 +148,24 @@ def _new_order(db: Session, cart: Cart, user_id: UUID, branch_id: UUID, method: 
     subtotal = sum(Decimal(str(row.original_unit_price)) * row.quantity for row in rows)
     discount = Decimal(str(cart.discount_amount or 0))
     expires = datetime.now(timezone.utc) + timedelta(minutes=STRIPE_RESERVATION_MINUTES if method == PaymentMethodEnum.stripe else CASH_RESERVATION_HOURS * 60)
-    order = Order(user_id=user_id, status=OrderStatusEnum.pending, payment_method=method,
-                   payment_status=PaymentStatusEnum.pending, pickup_branch_id=branch_id, pickup_expires_at=expires,
-                   promotion_code_id=cart.promotion_code_id,
-                  pickup_code=secrets.token_urlsafe(9), fulfillment_status=FulfillmentStatusEnum.pending_pickup,
-                  subtotal=subtotal, discount_amount=discount, total_amount=max(subtotal - discount, Decimal("0.00")),
-                  currency=settings.stripe_currency.lower())
+    branch = db.query(Branch).filter(Branch.id == branch_id).first()
+    tenant_id = branch.tenant_id if branch else None
+    order = Order(
+        tenant_id=tenant_id,
+        user_id=user_id,
+        status=OrderStatusEnum.pending,
+        payment_method=method,
+        payment_status=PaymentStatusEnum.pending,
+        pickup_branch_id=branch_id,
+        pickup_expires_at=expires,
+        promotion_code_id=cart.promotion_code_id,
+        pickup_code=secrets.token_urlsafe(9),
+        fulfillment_status=FulfillmentStatusEnum.pending_pickup,
+        subtotal=subtotal,
+        discount_amount=discount,
+        total_amount=max(subtotal - discount, Decimal("0.00")),
+        currency=settings.stripe_currency.lower(),
+    )
     db.add(order)
     db.flush()
     for row in rows:
@@ -352,9 +370,15 @@ def _consume_order(db: Session, order: Order, collected_by: UUID | None = None) 
         inventory = db.query(Inventory).filter(Inventory.variant_id == item.variant_id, Inventory.branch_id == order.pickup_branch_id).with_for_update().one()
         inventory.quantity -= item.quantity
         inventory.reserved_quantity -= item.quantity
-        db.add(InventoryMovement(variant_id=item.variant_id, branch_id=order.pickup_branch_id,
-               movement_type=InventoryMovementTypeEnum.outcome, quantity=item.quantity, created_by=collected_by,
-               note=f"Pedido {order.id}"))
+        db.add(InventoryMovement(
+            tenant_id=order.tenant_id,
+            variant_id=item.variant_id,
+            branch_id=order.pickup_branch_id,
+            movement_type=InventoryMovementTypeEnum.outcome,
+            quantity=item.quantity,
+            created_by=collected_by,
+            note=f"Pedido {order.id}",
+        ))
     order.payment_status = PaymentStatusEnum.paid
     order.status = OrderStatusEnum.paid
     order.fulfillment_status = FulfillmentStatusEnum.collected if collected_by else FulfillmentStatusEnum.pending_pickup
@@ -399,9 +423,12 @@ def cancel_order(db: Session, user_id: UUID, order_id: UUID):
         raise
 
 
-def collect_cash(db: Session, order_id: UUID, pickup_code: str, cashier_branch_id: UUID | None, cashier_id: UUID):
+def collect_cash(db: Session, order_id: UUID, pickup_code: str, cashier_branch_id: UUID | None, cashier_id: UUID, tenant_id: UUID | None = None):
     try:
-        order = db.query(Order).filter(Order.id == order_id).with_for_update().first()
+        query = db.query(Order).filter(Order.id == order_id)
+        if tenant_id is not None:
+            query = query.filter(Order.tenant_id == tenant_id)
+        order = query.with_for_update().first()
         if not order or cashier_branch_id != order.pickup_branch_id:
             raise ValueError("Pedido no encontrado")
         if order.payment_method != PaymentMethodEnum.cash or order.pickup_code != pickup_code:

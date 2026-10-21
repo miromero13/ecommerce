@@ -6,7 +6,7 @@ from app.schemas.user_schema import AdminUserCreate, UserCreate, UserRead, Users
 from app.services.user_service import create_admin_user, create_user, get_user, get_users, get_users_count, update_user_rol, update_user_branch, update_user_full, delete_user, set_user_active, update_user_profile
 from app.core.database import get_db
 from app.utils.response import response
-from app.auth.dependencies import get_current_user, get_current_branch_id, require_roles
+from app.auth.dependencies import get_current_user, get_current_branch_id, get_current_tenant_id, require_roles
 from app.models.user import User
 from app.schemas.enums import RolEnum
 
@@ -32,10 +32,11 @@ async def create_user_route(user: UserCreate, db: Session = Depends(get_db)):
 async def create_admin_user_route(
     user: AdminUserCreate,
     db: Session = Depends(get_db),
+    current_tenant_id: UUID | None = Depends(get_current_tenant_id),
     _: dict = Depends(require_roles(RolEnum.administrador)),
 ):
     try:
-        db_user = create_admin_user(db, user)
+        db_user = create_admin_user(db, user, tenant_id=current_tenant_id)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
@@ -81,9 +82,12 @@ async def get_user_route(
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_roles(RolEnum.administrador)),
     current_branch_id: UUID | None = Depends(get_current_branch_id),
+    current_tenant_id: UUID | None = Depends(get_current_tenant_id),
 ):
     db_user = get_user(db, user_id)
     if not db_user:
+        raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
+    if current_tenant_id is not None and db_user.tenant_id is not None and db_user.tenant_id != current_tenant_id:
         raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
     if current_branch_id is not None and db_user.rol != RolEnum.cliente and db_user.branch_id != current_branch_id:
         raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
@@ -102,9 +106,10 @@ async def get_users_route(
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_roles(RolEnum.administrador)),
     current_branch_id: UUID | None = Depends(get_current_branch_id),
+    current_tenant_id: UUID | None = Depends(get_current_tenant_id),
 ):
-    users = get_users(db, skip, limit, current_branch_id)
-    total = get_users_count(db, current_branch_id)
+    users = get_users(db, skip, limit, current_branch_id, tenant_id=current_tenant_id)
+    total = get_users_count(db, current_branch_id, tenant_id=current_tenant_id)
 
     users_data = [UserRead.model_validate(user).model_dump() for user in users]
 
@@ -121,9 +126,12 @@ async def update_user_rol_route(
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_roles(RolEnum.administrador)),
     current_branch_id: UUID | None = Depends(get_current_branch_id),
+    current_tenant_id: UUID | None = Depends(get_current_tenant_id),
 ):
     target_user = get_user(db, user_id)
     if not target_user:
+        raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
+    if current_tenant_id is not None and target_user.tenant_id is not None and target_user.tenant_id != current_tenant_id:
         raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
     if current_branch_id is not None and target_user.rol != RolEnum.cliente and target_user.branch_id != current_branch_id:
         raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
@@ -150,10 +158,13 @@ async def update_user_branch_route(
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_roles(RolEnum.administrador)),
     current_branch_id: UUID | None = Depends(get_current_branch_id),
+    current_tenant_id: UUID | None = Depends(get_current_tenant_id),
 ):
     try:
         target_user = get_user(db, user_id)
         if not target_user:
+            raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
+        if current_tenant_id is not None and target_user.tenant_id is not None and target_user.tenant_id != current_tenant_id:
             raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
         if current_branch_id is not None and target_user.rol != RolEnum.cliente and target_user.branch_id != current_branch_id:
             raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
@@ -179,9 +190,12 @@ async def update_user_full_route(
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_roles(RolEnum.administrador)),
     current_branch_id: UUID | None = Depends(get_current_branch_id),
+    current_tenant_id: UUID | None = Depends(get_current_tenant_id),
 ):
     target_user = get_user(db, user_id)
     if not target_user:
+        raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
+    if current_tenant_id is not None and target_user.tenant_id is not None and target_user.tenant_id != current_tenant_id:
         raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
     if current_branch_id is not None and target_user.rol != RolEnum.cliente and target_user.branch_id != current_branch_id:
         raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
@@ -208,9 +222,12 @@ async def update_user_active_route(
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_roles(RolEnum.administrador)),
     current_branch_id: UUID | None = Depends(get_current_branch_id),
+    current_tenant_id: UUID | None = Depends(get_current_tenant_id),
 ):
     target_user = get_user(db, user_id)
     if not target_user:
+        raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
+    if current_tenant_id is not None and target_user.tenant_id is not None and target_user.tenant_id != current_tenant_id:
         raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
     if current_branch_id is not None and target_user.rol != RolEnum.cliente and target_user.branch_id != current_branch_id:
         raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
@@ -232,9 +249,12 @@ async def delete_user_route(
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_roles(RolEnum.administrador)),
     current_branch_id: UUID | None = Depends(get_current_branch_id),
+    current_tenant_id: UUID | None = Depends(get_current_tenant_id),
 ):
     target_user = get_user(db, user_id)
     if not target_user:
+        raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
+    if current_tenant_id is not None and target_user.tenant_id is not None and target_user.tenant_id != current_tenant_id:
         raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
     if current_branch_id is not None and target_user.rol != RolEnum.cliente and target_user.branch_id != current_branch_id:
         raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
