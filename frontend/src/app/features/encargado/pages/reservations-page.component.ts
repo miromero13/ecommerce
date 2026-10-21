@@ -16,6 +16,7 @@ import { Reservation } from '../../shared/models/reservation.model';
 import { CatalogApiService } from '../../shared/services/catalog-api.service';
 import { ReservationApiService } from '../../shared/services/reservation-api.service';
 import { SessionService } from '../../shared/services/session.service';
+import { AdminBranchService } from '../../admin/services/admin-branch.service';
 
 @Component({
   selector: 'app-encargado-reservations-page',
@@ -25,6 +26,7 @@ import { SessionService } from '../../shared/services/session.service';
 })
 export class ReservationsPageComponent {
   private readonly catalogApi = inject(CatalogApiService);
+  private readonly branchApi = inject(AdminBranchService);
   private readonly reservationApi = inject(ReservationApiService);
   private readonly session = inject(SessionService);
 
@@ -127,8 +129,8 @@ export class ReservationsPageComponent {
   private async loadData(): Promise<void> {
     this.loading.set(true);
     try {
-      const [branches] = await Promise.all([firstValueFrom(this.catalogApi.listPublicBranches())]);
-      this.branches.set(branches.data ?? []);
+      const [branches] = await Promise.all([firstValueFrom(this.branchApi.listBranches())]);
+      this.branches.set((branches.data ?? []) as unknown as CatalogBranch[]);
       await this.loadReservations();
     } catch (error) {
       toast.error(getErrorMessage(error, 'No se pudieron cargar las reservas de sucursal.'));

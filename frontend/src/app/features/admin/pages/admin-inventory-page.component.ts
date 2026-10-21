@@ -27,6 +27,7 @@ import { InventoryApiService } from '../../shared/services/inventory-api.service
 import { SessionService } from '../../shared/services/session.service';
 import { ReportsApiService } from '../../shared/services/reports-api.service';
 import { requestWithToast } from '../../../core/utils/request-toast.util';
+import { AdminBranchService } from '../services/admin-branch.service';
 
 type InventoryTab = 'consolidated' | 'branch' | 'movements';
 type InventoryMovementType = 'income' | 'outcome';
@@ -80,6 +81,7 @@ const REPORT_COLUMNS: Record<InventoryReportType, ReportColumn[]> = {
 export class AdminInventoryPageComponent {
   private readonly catalogApi = inject(CatalogApiService);
   private readonly inventoryApi = inject(InventoryApiService);
+  private readonly branchApi = inject(AdminBranchService);
   private readonly fb = inject(FormBuilder);
   private readonly element = inject(ElementRef<HTMLElement>);
   private readonly session = inject(SessionService);
@@ -539,9 +541,9 @@ export class AdminInventoryPageComponent {
   private async loadData(): Promise<void> {
     this.loading.set(true);
     try {
-      const branches = await firstValueFrom(this.catalogApi.listPublicBranches());
+      const branches = await firstValueFrom(this.branchApi.listBranches());
 
-      this.branches.set(branches.data ?? []);
+      this.branches.set((branches.data ?? []) as unknown as CatalogBranch[]);
       if (this.isAdmin() || this.isManager()) {
         try {
           const products = await firstValueFrom(this.isAdmin() ? this.catalogApi.listAdminProducts() : this.catalogApi.listProducts());

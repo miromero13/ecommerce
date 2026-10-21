@@ -2,37 +2,23 @@
   <section class="flex items-center justify-center px-4 py-10 sm:px-8 lg:px-12">
     <section class="mx-auto w-full max-w-md space-y-5 p-6 backdrop-blur sm:p-8">
       <div hlmCardContent class="space-y-8 p-0">
-          <hlm-tabs [tab]="activeRole()" class="w-full" (tabActivated)="selectRole($event)">
-            <hlm-tabs-list aria-label="Seleccionar rol">
-              <button hlmTabsTrigger="cliente" type="button">
-                <span>Cliente</span>
-              </button>
+        <hlm-tabs [tab]="activeTab()" class="w-full" (tabActivated)="selectTab($event)">
+          <hlm-tabs-list class="grid w-full grid-cols-2" aria-label="Tipo de acceso">
+            <button hlmTabsTrigger="cliente" type="button" class="w-full">
+              <span>Clientes</span>
+            </button>
 
-              <button hlmTabsTrigger="proveedor" type="button">
-                <span>Proveedor</span>
-              </button>
-
-              <button hlmTabsTrigger="encargado" type="button">
-                <span>Encargado</span>
-              </button>
-
-              <button hlmTabsTrigger="cajero" type="button">
-                <span>Cajero</span>
-              </button>
-
-              <button hlmTabsTrigger="delivery" type="button">
-                <span>Delivery</span>
-              </button>
-
-            <button hlmTabsTrigger="administrador" type="button">
-              <span>Administrador</span>
+            <button hlmTabsTrigger="administrativo" type="button" class="w-full">
+              <span>Administrativos</span>
             </button>
           </hlm-tabs-list>
         </hlm-tabs>
 
-        <div class="space-y-2 text-center p-0">
-          <h1 class="text-3xl font-bold">Iniciar sesión</h1>
-          <p class="text-gray-500">Accede al panel de asistencia.</p>
+        <div class="space-y-1 text-center p-0">
+          <h1 class="text-3xl font-bold tracking-tight text-slate-900">Iniciar sesión</h1>
+          <p class="text-sm text-slate-500">
+            {{ activeTab() === 'cliente' ? 'Ingresa para explorar prendas y hacer pedidos.' : 'Acceso para tiendas y administración SaaS.' }}
+          </p>
         </div>
 
         <form class="space-y-6 text-left" [formGroup]="form" (ngSubmit)="submit()">
@@ -51,14 +37,12 @@
             </div>
           </div>
 
-          <input type="hidden" formControlName="rol" />
-
           <button hlmBtn class="w-full cursor-pointer" type="submit" [disabled]="form.invalid || loading()">
             {{ loading() ? 'Ingresando...' : 'Ingresar' }}
           </button>
         </form>
 
-        @if (activeRole() === 'cliente') {
+        @if (activeTab() === 'cliente') {
           <p class="text-center text-sm text-slate-600">
             ¿No tienes cuenta?
             <a routerLink="/auth/register" class="font-medium text-slate-900 underline">Regístrate</a>

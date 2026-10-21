@@ -3,7 +3,7 @@ import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
 import { ApiResponse } from '../../../core/models/api.model';
-import { AuthResponse, RegisterRequest, RolUsuario, UsuarioAuth } from '../models/auth.model';
+import { AuthResponse, LoginRequest, RegisterRequest, RolUsuario, UsuarioAuth } from '../models/auth.model';
 import { AuthApiService } from './auth-api.service';
 import { UserApiService } from './user-api.service';
 
@@ -47,10 +47,14 @@ export class SessionService {
     }
   }
 
-  async login(email: string, password: string, rol: RolUsuario): Promise<void> {
+  async login(email: string, password: string, rol?: RolUsuario): Promise<void> {
     this.loadingSignal.set(true);
     try {
-      const response = await firstValueFrom(this.authApi.login({ email: this.normalizeEmail(email), password, rol }));
+      const payload: LoginRequest = { email: this.normalizeEmail(email), password };
+      if (rol) {
+        payload.rol = rol;
+      }
+      const response = await firstValueFrom(this.authApi.login(payload));
       this.applyAuthResponse(response);
     } finally {
       this.loadingSignal.set(false);

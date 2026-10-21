@@ -9,11 +9,13 @@ import { ReplenishmentApiService } from '../services/replenishment-api.service';
 import { ReplenishmentRequest, ReplenishmentStatus } from '../models/replenishment.model';
 import { SessionService } from '../services/session.service';
 import { CatalogApiService } from '../services/catalog-api.service';
+import { AdminBranchService } from '../../admin/services/admin-branch.service';
 
 @Component({ selector: 'app-replenishment-page', standalone: true, imports: [CommonModule, HlmButton], templateUrl: './replenishment-page.component.html' })
 export class ReplenishmentPageComponent {
   private readonly api = inject(ReplenishmentApiService);
   private readonly catalogApi = inject(CatalogApiService);
+  private readonly branchApi = inject(AdminBranchService);
   protected readonly session = inject(SessionService);
   protected readonly requests = signal<ReplenishmentRequest[]>([]);
   protected readonly branches = signal<Array<{ id: string; name: string }>>([]);
@@ -32,8 +34,8 @@ export class ReplenishmentPageComponent {
   }
   private async load(): Promise<void> {
     try {
-      const [requests, branches] = await Promise.all([firstValueFrom(this.api.list()), firstValueFrom(this.catalogApi.listPublicBranches())]);
-      this.requests.set(requests.data ?? []); this.branches.set(branches.data ?? []);
+      const [requests, branches] = await Promise.all([firstValueFrom(this.api.list()), firstValueFrom(this.branchApi.listBranches())]);
+      this.requests.set(requests.data ?? []); this.branches.set((branches.data ?? []) as any[]);
     } catch (error) { toast.error(getErrorMessage(error, 'No se pudieron cargar las solicitudes.')); }
   }
 }

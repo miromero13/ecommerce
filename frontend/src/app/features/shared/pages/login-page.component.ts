@@ -26,18 +26,15 @@ export class LoginPageComponent {
   private readonly router = inject(Router);
 
   protected readonly loading = signal(false);
-  protected readonly activeRole = signal<RolUsuario>('cliente');
+  protected readonly activeTab = signal<'cliente' | 'administrativo'>('cliente');
 
   protected readonly form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required]],
-    rol: ['cliente' as RolUsuario, [Validators.required]],
   });
 
-  protected selectRole(role: RolUsuario | string): void {
-    const selectedRole = role as RolUsuario;
-    this.activeRole.set(selectedRole);
-    this.form.controls.rol.setValue(selectedRole);
+  protected selectTab(tab: string): void {
+    this.activeTab.set(tab as 'cliente' | 'administrativo');
   }
 
   protected normalizeEmailInput(event: Event): void {
@@ -56,7 +53,8 @@ export class LoginPageComponent {
 
     this.loading.set(true);
     try {
-      const { email, password, rol } = this.form.getRawValue();
+      const { email, password } = this.form.getRawValue();
+      const rol = this.activeTab() === 'cliente' ? ('cliente' as RolUsuario) : undefined;
       const request = this.session.login(email.trim().toLowerCase(), password, rol);
       toast.promise(request, {
         loading: 'Iniciando sesión...',

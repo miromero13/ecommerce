@@ -26,6 +26,7 @@ type SelectedSaleItem = {
   original_unit_price: string;
   quantity: number;
   image_url: string | null;
+  max_stock?: number;
 };
 
 @Component({
@@ -72,9 +73,19 @@ export class CajaPageComponent {
   }
 
   protected addVariant(product: CatalogProduct, variant: CatalogProductVariant): void {
+    const stock = variant.branch_quantity ?? 0;
+    if (stock <= 0) {
+      toast.warning('No hay stock disponible de esta prenda en esta sucursal.');
+      return;
+    }
+
     const items = [...this.selectedItems()];
     const existing = items.find((item) => item.variant_id === variant.id);
     if (existing) {
+      if (existing.quantity >= stock) {
+        toast.warning(`Solo hay ${stock} unidades disponibles en esta sucursal.`);
+        return;
+      }
       existing.quantity += 1;
       this.selectedItems.set(items);
       return;
@@ -90,12 +101,22 @@ export class CajaPageComponent {
       original_unit_price: variant.original_price ?? variant.price,
       quantity: 1,
       image_url: variant.image_url ?? product.image_url ?? null,
+      max_stock: stock,
     });
     this.selectedItems.set(items);
   }
 
   protected increaseItem(variantId: string): void {
-    const items = this.selectedItems().map((item) => item.variant_id === variantId ? { ...item, quantity: item.quantity + 1 } : item);
+    const items = this.selectedItems().map((item) => {
+      if (item.variant_id === variantId) {
+        if (item.max_stock !== undefined && item.quantity >= item.max_stock) {
+          toast.warning(`Stock máximo disponible alcanzado (${item.max_stock} u.)`);
+          return item;
+        }
+        return { ...item, quantity: item.quantity + 1 };
+      }
+      return item;
+    });
     this.selectedItems.set(items);
   }
 

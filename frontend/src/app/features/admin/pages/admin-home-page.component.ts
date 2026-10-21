@@ -17,6 +17,7 @@ import { CatalogBranch } from '../../shared/models/catalog.model';
 import { DashboardData, DashboardPeriod, DashboardQuery } from '../../shared/models/dashboard.model';
 import { CatalogApiService } from '../../shared/services/catalog-api.service';
 import { DashboardApiService } from '../../shared/services/dashboard-api.service';
+import { AdminBranchService } from '../services/admin-branch.service';
 
 type MovementTab = 'income' | 'outcome' | 'transfers';
 
@@ -29,6 +30,7 @@ type MovementTab = 'income' | 'outcome' | 'transfers';
 export class AdminHomePageComponent {
   private readonly catalogApi = inject(CatalogApiService);
   private readonly dashboardApi = inject(DashboardApiService);
+  private readonly branchApi = inject(AdminBranchService);
 
   protected readonly branches = signal<CatalogBranch[]>([]);
   protected readonly selectedBranchId = signal('');
@@ -159,13 +161,11 @@ export class AdminHomePageComponent {
   private async loadData(): Promise<void> {
     this.loading.set(true);
     try {
-      const branchesResponse = await firstValueFrom(this.catalogApi.listPublicBranches());
-      this.branches.set(branchesResponse.data ?? []);
+      const branchesResponse = await firstValueFrom(this.branchApi.listBranches());
+      this.branches.set((branchesResponse.data ?? []) as unknown as CatalogBranch[]);
 
-      if (!this.selectedBranchId()) {
-        const defaultBranch = this.branches().find((branch) => branch.is_default) ?? this.branches()[0] ?? null;
-        this.selectedBranchId.set(defaultBranch?.id ?? '');
-      }
+      // Por defecto siempre 'Todas las sucursales' ('')
+      this.selectedBranchId.set('');
 
       await this.loadDashboard();
     } catch (error) {

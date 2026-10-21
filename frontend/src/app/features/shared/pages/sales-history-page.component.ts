@@ -18,6 +18,7 @@ import { CatalogApiService } from '../services/catalog-api.service';
 import { ReportsApiService } from '../services/reports-api.service';
 import { SalesApiService } from '../services/sales-api.service';
 import { SessionService } from '../services/session.service';
+import { AdminBranchService } from '../../admin/services/admin-branch.service';
 
 type ReportFormat = 'pdf' | 'html' | 'csv';
 type ReportColumn = { key: string; label: string };
@@ -61,6 +62,7 @@ const SALES_REPORT_COLUMNS: ReportColumn[] = [
 export class SalesHistoryPageComponent {
   private readonly salesApi = inject(SalesApiService);
   private readonly catalogApi = inject(CatalogApiService);
+  private readonly branchApi = inject(AdminBranchService);
   private readonly reportsApi = inject(ReportsApiService);
   private readonly session = inject(SessionService);
   private speechRecognition: SpeechRecognitionLike | null = null;
@@ -265,8 +267,8 @@ export class SalesHistoryPageComponent {
 
   private async loadBranches(): Promise<void> {
     try {
-      const response = await firstValueFrom(this.catalogApi.listPublicBranches());
-      this.branches.set(response.data ?? []);
+      const response = await firstValueFrom(this.branchApi.listBranches());
+      this.branches.set((response.data ?? []) as unknown as CatalogBranch[]);
     } catch {
       this.branches.set([]);
     }

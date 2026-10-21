@@ -42,7 +42,13 @@
                  <div class="overflow-x-auto">
                    <table class="w-full text-left text-sm">
                      <thead class="text-xs uppercase tracking-wide text-slate-500">
-                       <tr><th class="pb-2">Producto</th><th class="pb-2">SKU</th><th class="pb-2">Precio</th><th class="pb-2 text-right">Agregar</th></tr>
+                       <tr>
+                         <th class="pb-2">Producto</th>
+                         <th class="pb-2">SKU</th>
+                         <th class="pb-2">Precio</th>
+                         <th class="pb-2 text-center">Stock en Sucursal</th>
+                         <th class="pb-2 text-right">Agregar</th>
+                       </tr>
                      </thead>
                      <tbody>
                    @for (variant of product.variants ?? []; track variant.id) {
@@ -50,7 +56,30 @@
                         <td class="py-2"><div class="flex items-center gap-2"><img [src]="variant.image_url ?? product.image_url ?? 'assets/login-fashion.png'" [alt]="product.name" class="h-10 w-10 rounded object-cover" /><span>{{ product.name }}</span></div></td>
                        <td class="py-2 text-slate-500">{{ variant.sku }}</td>
                        <td class="py-2 font-medium">{{ variant.price }}</td>
-                       <td class="py-2 text-right"><button hlmBtn type="button" variant="outline" class="h-8 w-8 px-0" (click)="addVariant(product, variant)" [attr.aria-label]="'Agregar ' + variant.sku">+</button></td>
+                       <td class="py-2 text-center">
+                         @if ((variant.branch_quantity ?? 0) > 0) {
+                           <span class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                             {{ variant.branch_quantity }} u.
+                           </span>
+                         } @else {
+                           <span class="inline-flex items-center rounded-full bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-700">
+                             Agotado (0)
+                           </span>
+                         }
+                       </td>
+                       <td class="py-2 text-right">
+                         <button
+                           hlmBtn
+                           type="button"
+                           variant="outline"
+                           class="h-8 w-8 px-0 cursor-pointer"
+                           [disabled]="(variant.branch_quantity ?? 0) <= 0"
+                           (click)="addVariant(product, variant)"
+                           [attr.aria-label]="'Agregar ' + variant.sku"
+                         >
+                           +
+                         </button>
+                       </td>
                      </tr>
                    }
                      </tbody>
