@@ -39,8 +39,16 @@ class Tenant(Base):
 
     users = relationship("User", back_populates="tenant", cascade="all, delete-orphan")
     branches = relationship("Branch", back_populates="tenant", cascade="all, delete-orphan")
+    subscriptions = relationship(
+        "TenantSubscription",
+        back_populates="tenant",
+        cascade="all, delete-orphan",
+        order_by="desc(TenantSubscription.created_at)",
+    )
 
 
 # Register the related mappers whenever the Tenant model is imported.
 from app.models.user import User  # noqa: E402, F401
 from app.models.branch import Branch  # noqa: E402, F401
+from app.models.tenant_subscription import TenantSubscription  # noqa: E402, F401
+

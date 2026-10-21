@@ -23,3 +23,22 @@ class TenantStatusEnum(str, Enum):
     active = "active"
     trial = "trial"
     suspended = "suspended"
+
+
+class SubscriptionStatusEnum(str, Enum):
+    active = "active"
+    trialing = "trialing"
+    past_due = "past_due"
+    canceled = "canceled"
+
+
+class BillingCycleEnum(str, Enum):
+    monthly = "monthly"
+    yearly = "yearly"
+
+
+class SubscriptionPaymentMethodEnum(str, Enum):
+    simulated_card = "simulated_card"
+    cash = "cash"
+    stripe = "stripe"
+

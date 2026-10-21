@@ -6,6 +6,8 @@ from app.models.user import Base
 from app.models.conversation import Conversation  # noqa: F401
 from app.models.conversation_message import ConversationMessage  # noqa: F401
 from app.models.notification import DeviceToken, Notification  # noqa: F401
+from app.models.subscription_plan import SubscriptionPlan  # noqa: F401
+from app.models.tenant_subscription import TenantSubscription  # noqa: F401
 from app.core.config import settings
 
 from alembic import context

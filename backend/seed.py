@@ -11,6 +11,8 @@ from sqlalchemy import inspect, select
 from app.auth.hash import hash_password
 from app.core.database import SessionLocal, engine
 from app.models.tenant import Tenant
+from app.models.subscription_plan import SubscriptionPlan
+from app.models.tenant_subscription import TenantSubscription
 from app.models.branch import Branch
 from app.models.cart import Cart
 from app.models.cart_item import CartItem
@@ -42,7 +44,15 @@ from app.models.promotion_code_usage import PromotionCodeUsage
 from app.schemas.catalog_enums import ProductStatusEnum
 from app.schemas.cart_schema import CartStatusEnum
 from app.schemas.inventory_schema import InventoryMovementTypeEnum
-from app.schemas.enums import GenderEnum, ProviderStatusEnum, RolEnum, TenantStatusEnum
+from app.schemas.enums import (
+    BillingCycleEnum,
+    GenderEnum,
+    ProviderStatusEnum,
+    RolEnum,
+    SubscriptionPaymentMethodEnum,
+    SubscriptionStatusEnum,
+    TenantStatusEnum,
+)
 from app.schemas.order_schema import OrderStatusEnum, PaymentMethodEnum, PaymentStatusEnum
 from app.schemas.reservation_schema import ReservationStatusEnum
 from app.schemas.replenishment_schema import ReplenishmentStatusEnum
@@ -363,6 +373,8 @@ def _verify_seed(
         SaleItem,
         PromotionCode,
         PromotionCodeUsage,
+        SubscriptionPlan,
+        TenantSubscription,
     ]
     frames: dict[str, pd.DataFrame] = {}
     for model in models:
@@ -498,7 +510,89 @@ def _seed_tenants(session) -> list[Tenant]:
     superadmin.tenant_id = None
     superadmin.branch_id = None
     superadmin.hashed_password = hash_password("SuperAdmin2026!")
+
+    _seed_plans_and_subscriptions(session, tenants)
+
     return tenants
+
+
+def _seed_plans_and_subscriptions(session, tenants: list[Tenant]) -> None:
+    plans_payload = [
+        {
+            "id": "plan_basic",
+            "name": "Básico",
+            "slug": "basic",
+            "description": "Ideal para boutiques iniciales con catálogo, ventas POS presenciales e inventario unificado.",
+            "price_monthly": Decimal("49.00"),
+            "price_yearly": Decimal("490.00"),
+            "max_branches": 2,
+            "max_garments": 500,
+            "features": ["catalog", "pos", "inventory", "reservations", "standard_reports"],
+            "is_active": True,
+        },
+        {
+            "id": "plan_pro",
+            "name": "Profesional",
+            "slug": "pro",
+            "description": "Para marcas en crecimiento que requieren vestidor virtual 2D con fotos y reportes asistidos por IA.",
+            "price_monthly": Decimal("129.00"),
+            "price_yearly": Decimal("1290.00"),
+            "max_branches": 5,
+            "max_garments": 3000,
+            "features": [
+                "catalog", "pos", "inventory", "reservations", "standard_reports",
+                "chatbot", "virtual_try_on_2d", "ai_text_reports"
+            ],
+            "is_active": True,
+        },
+        {
+            "id": "plan_enterprise",
+            "name": "Enterprise",
+            "slug": "enterprise",
+            "description": "Para grandes cadenas con vestidor virtual 3D en Realidad Aumentada y analítica predictiva con Machine Learning.",
+            "price_monthly": Decimal("299.00"),
+            "price_yearly": Decimal("2990.00"),
+            "max_branches": 10,
+            "max_garments": 10000,
+            "features": [
+                "catalog", "pos", "inventory", "reservations", "standard_reports",
+                "chatbot", "virtual_try_on_2d", "virtual_try_on_3d_ar",
+                "ai_text_reports", "ai_ml_smart_reports"
+            ],
+            "is_active": True,
+        },
+    ]
+    for p_data in plans_payload:
+        plan, _ = _get_or_create(session, SubscriptionPlan, {"id": p_data["id"]}, p_data)
+        for k, v in p_data.items():
+            setattr(plan, k, v)
+
+    tenant_plan_map = {
+        TENANT_1_ID: "plan_enterprise",
+        TENANT_2_ID: "plan_pro",
+        TENANT_3_ID: "plan_basic",
+    }
+    now = datetime.now(timezone.utc)
+    for tenant in tenants:
+        plan_id = tenant_plan_map.get(str(tenant.id), "plan_basic")
+        sub = session.execute(
+            select(TenantSubscription).where(
+                TenantSubscription.tenant_id == tenant.id,
+                TenantSubscription.status == SubscriptionStatusEnum.active,
+            )
+        ).scalars().first()
+        if not sub:
+            sub = TenantSubscription(
+                tenant_id=tenant.id,
+                plan_id=plan_id,
+                billing_cycle=BillingCycleEnum.monthly,
+                status=SubscriptionStatusEnum.active,
+                payment_method=SubscriptionPaymentMethodEnum.cash,
+                start_date=now,
+                end_date=now + timedelta(days=365),
+            )
+            session.add(sub)
+
 
 
 def _seed_branches(session) -> list[Branch]:
