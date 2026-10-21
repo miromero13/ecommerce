@@ -3,7 +3,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideBell, lucideBuilding2, lucideCalendarDays, lucideClipboardList, lucideLayoutDashboard, lucideLogOut, lucidePackageSearch, lucideShield, lucideShoppingCart, lucideTicket, lucideUser, lucideUserRound, lucideUsers } from '@ng-icons/lucide';
+import { lucideBell, lucideBuilding2, lucideCalendarDays, lucideClipboardList, lucideLayoutDashboard, lucideLogOut, lucideMail, lucidePackageSearch, lucideShield, lucideShoppingCart, lucideTicket, lucideUser, lucideUserRound, lucideUsers } from '@ng-icons/lucide';
 
 import {
   HlmSidebar,
@@ -62,6 +62,7 @@ type SidebarSection = {
       lucideBuilding2,
       lucideLayoutDashboard,
       lucideLogOut,
+      lucideMail,
       lucideCalendarDays,
       lucideClipboardList,
       lucidePackageSearch,

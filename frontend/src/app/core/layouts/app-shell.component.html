@@ -37,28 +37,19 @@
         <li hlmSidebarMenuItem>
           <a
             hlmSidebarMenuButton
-            [routerLink]="profileItem.route"
-            routerLinkActive
-            #profileActive="routerLinkActive"
-            [isActive]="profileActive.isActive"
-            [routerLinkActiveOptions]="{ exact: profileItem.exact }"
+            href="mailto:soporte@acifashion.com?subject=Soporte%20ACI%20Web"
+            tooltip="Contactar a soporte"
           >
-            <ng-icon [name]="profileItem.icon"></ng-icon>
-            <span>{{ profileItem.label }}</span>
+            <ng-icon name="lucideMail"></ng-icon>
+            <span>Contactar a soporte</span>
           </a>
-        </li>
-        <li hlmSidebarMenuItem>
-          <button hlmSidebarMenuButton type="button" class="cursor-pointer" (click)="logout()">
-            <ng-icon name="lucideLogOut"></ng-icon>
-            <span>Cerrar sesión</span>
-          </button>
         </li>
       </ul>
     </footer>
   </hlm-sidebar>
 
-  <main hlmSidebarInset class="min-h-svh min-w-0 overflow-x-hidden bg-sidebar-primary-foreground text-background p-0 m-0">
-    <header class="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-slate-200 bg-background px-4 text-foreground backdrop-blur sm:px-6">
+  <main hlmSidebarInset class="flex h-svh min-w-0 flex-col overflow-hidden bg-sidebar-primary-foreground text-background p-0 m-0">
+    <header class="sticky top-0 z-20 flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-background px-4 text-foreground sm:px-6">
       <div class="flex items-center gap-3">
         <button hlmSidebarTrigger type="button" class="md:hidden" aria-label="Abrir navegación"></button>
       </div>
@@ -148,7 +139,7 @@
       </div>
     </header>
 
-    <div class="min-w-0 p-4 sm:p-6">
+    <div class="flex-1 min-w-0 overflow-y-auto p-4 sm:p-6">
       <router-outlet />
     </div>
   </main>
