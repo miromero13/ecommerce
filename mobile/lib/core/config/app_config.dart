@@ -1,7 +1,3 @@
-import 'dart:io' show Platform;
-
-import 'package:flutter/foundation.dart' show kIsWeb;
-
 class AppConfig {
   const AppConfig._();
 
@@ -9,16 +5,12 @@ class AppConfig {
 
   /// Resolves the backend base URL:
   /// - Environment override if passed via --dart-define=BACKEND_URL=...
-  /// - On Android Emulator: http://10.0.2.2:8000 (points to host localhost)
-  /// - On iOS Simulator / Desktop: http://127.0.0.1:8000
+  /// - Local network IP of host machine for physical device & emulator: http://192.168.0.5:8000
   static String get backendUrl {
     if (_envBackendUrl.isNotEmpty) {
       return _envBackendUrl;
     }
-    if (!kIsWeb && Platform.isAndroid) {
-      return 'http://10.0.2.2:8000';
-    }
-    return 'http://127.0.0.1:8000';
+    return 'http://192.168.0.5:8000';
   }
 
   // The emulator default targets the local frontend; deployed/device builds
