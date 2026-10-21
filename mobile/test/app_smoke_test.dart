@@ -40,8 +40,11 @@ void main() {
 
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(app.theme?.useMaterial3, isTrue);
-    expect(app.theme?.colorScheme.primary, AppColors.coral);
-    expect(app.theme?.scaffoldBackgroundColor, AppColors.white);
+    expect(app.themeMode, ThemeMode.light);
+    expect(app.theme?.colorScheme.primary, AppColors.primary);
+    expect(app.theme?.scaffoldBackgroundColor, AppColors.background);
+    expect(app.darkTheme?.colorScheme.primary, AppDarkColors.primary);
+    expect(app.darkTheme?.scaffoldBackgroundColor, AppDarkColors.background);
   });
 
   testWidgets('navega a superficies privadas sin bloquear el catálogo', (

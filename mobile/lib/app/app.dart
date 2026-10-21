@@ -20,12 +20,14 @@ class MobileApp extends StatefulWidget {
     this.catalogController,
     this.notificationController,
     this.pushService,
+    this.themeMode = ThemeMode.light,
   });
 
   final AuthController? authController;
   final CatalogController? catalogController;
   final NotificationController? notificationController;
   final NotificationPushService? pushService;
+  final ThemeMode themeMode;
 
   @override
   State<MobileApp> createState() => _MobileAppState();
@@ -70,6 +72,8 @@ class _MobileAppState extends State<MobileApp> {
       title: 'FashionStore',
       navigatorKey: _navigatorKey,
       theme: buildAppTheme(),
+      darkTheme: buildAppDarkTheme(),
+      themeMode: widget.themeMode,
       home: _AuthGate(
         authController: _authController,
         catalogController: widget.catalogController,

@@ -12,7 +12,7 @@ class SplashPage extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.checkroom_outlined, size: 56, color: AppColors.coral),
+            Icon(Icons.checkroom_outlined, size: 56, color: AppColors.primary),
             const SizedBox(height: 16),
             Text(
               'FashionStore',

@@ -153,4 +153,122 @@ void main() {
     expect(creationArguments!.items.last.variantId, 'variant-2');
     expect(creationArguments!.items.last.quantity, 2);
   });
+
+  testWidgets('abre el bottom sheet de filtros desde abajo y permite cerrarlo', (
+    tester,
+  ) async {
+    final controller = CatalogController()..status = CatalogStatus.ready;
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildAppTheme(),
+        home: Scaffold(body: CatalogPage(controller: controller)),
+      ),
+    );
+
+    // Encuentra el botón para abrir filtros
+    final filterButtonFinder = find.byIcon(Icons.tune_rounded);
+    expect(filterButtonFinder, findsOneWidget);
+    await tester.tap(filterButtonFinder);
+    await tester.pumpAndSettle();
+
+    // Verifica que el bottom sheet está visible con su título y opciones
+    expect(find.text('Filtros'), findsNWidgets(2));
+    expect(find.text('Categoría'), findsOneWidget);
+    expect(find.text('Talla'), findsOneWidget);
+    expect(find.text('Sucursal física'), findsNothing);
+
+    // Cierra el bottom sheet
+    await tester.tap(find.byTooltip('Cerrar'));
+    await tester.pumpAndSettle();
+
+    // Ya no debe mostrarse el modal
+    expect(find.text('Filtros'), findsOneWidget);
+    expect(find.text('Categoría'), findsNothing);
+  });
+
+  testWidgets('selecciona y deselecciona chips de filtros en el bottom sheet', (
+    tester,
+  ) async {
+    final controller = CatalogController()
+      ..status = CatalogStatus.ready
+      ..categories = const [Category(id: 'cat-1', name: 'Vestidos')]
+      ..sizes = const [Size(id: 'sz-1', name: 'M')]
+      ..colors = const [CatalogColor(id: 'col-1', name: 'Rojo', hexCode: '#FF0000')];
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildAppTheme(),
+        home: Scaffold(body: CatalogPage(controller: controller)),
+      ),
+    );
+
+    // Abrir bottom sheet
+    await tester.tap(find.byIcon(Icons.tune_rounded));
+    await tester.pumpAndSettle();
+
+    // Seleccionar la categoría 'Vestidos'
+    expect(find.text('Vestidos'), findsOneWidget);
+    await tester.tap(find.text('Vestidos'));
+    await tester.pumpAndSettle();
+    expect(controller.categoryId, 'cat-1');
+
+    // Seleccionar la talla 'M'
+    expect(find.text('M'), findsOneWidget);
+    await tester.tap(find.text('M'));
+    await tester.pumpAndSettle();
+    expect(controller.sizeId, 'sz-1');
+
+    // Deseleccionar categoría pulsando 'Todas'
+    final todasCategory = find.widgetWithText(ChoiceChip, 'Todas').first;
+    await tester.tap(todasCategory);
+    await tester.pumpAndSettle();
+    expect(controller.categoryId, isNull);
+  });
+
+  testWidgets('lista las sucursales al seleccionar una marca con scroll y badge', (
+    tester,
+  ) async {
+    final controller = CatalogController()
+      ..status = CatalogStatus.ready
+      ..tenants = const [Tenant(id: 't-1', name: 'Zara', slug: 'zara')]
+      ..branches = const [
+        Branch(id: 'b-1', tenantId: 't-1', name: 'Central', city: 'La Paz', isDefault: true, isActive: true),
+        Branch(id: 'b-2', tenantId: 't-1', name: 'Sur', city: 'Santa Cruz', isDefault: false, isActive: true),
+      ];
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildAppTheme(),
+        home: Scaffold(body: CatalogPage(controller: controller)),
+      ),
+    );
+
+    // Inicialmente no hay marca seleccionada, por lo que no se muestran sucursales
+    expect(find.text('Sucursales'), findsNothing);
+
+    // Seleccionar la tienda 'Zara'
+    await tester.tap(find.text('Zara'));
+    await tester.pumpAndSettle();
+
+    // Ahora se lista la fila de sucursales con su badge
+    expect(find.text('Sucursales'), findsOneWidget);
+    expect(find.text('2'), findsOneWidget);
+    expect(find.text('Todas las sucursales'), findsOneWidget);
+    expect(find.text('Central (La Paz)'), findsOneWidget);
+    expect(find.text('Sur (Santa Cruz)'), findsOneWidget);
+
+    // Seleccionar la sucursal 'Central (La Paz)'
+    await tester.tap(find.text('Central (La Paz)'));
+    await tester.pumpAndSettle();
+    expect(controller.branchId, 'b-1');
+
+    // Deseleccionar pulsando 'Todas las sucursales'
+    await tester.tap(find.text('Todas las sucursales'));
+    await tester.pumpAndSettle();
+    expect(controller.branchId, isNull);
+  });
 }
