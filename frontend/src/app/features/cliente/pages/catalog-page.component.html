@@ -1,402 +1,697 @@
-<section class="min-w-0 max-w-full space-y-5 overflow-x-hidden">
+<section class="min-w-0 max-w-full space-y-6 overflow-x-hidden">
+  <!-- Encabezado de la página -->
   <header>
     <div class="flex items-center justify-between gap-4">
-      <h1 class="text-2xl font-semibold">Catálogo</h1>
-      <a
-        hlmBtn
-        routerLink="/app/cliente/cart"
-        variant="outline"
-        aria-label="Ir al carrito"
-        title="Ir al carrito"
-      >
-        <ng-icon name="lucideShoppingCart" />
-      </a>
+      <h1 class="text-2xl font-bold tracking-tight text-slate-900">Catálogo de Moda</h1>
+      <div class="flex items-center gap-2">
+        <a
+          hlmBtn
+          variant="outline"
+          size="icon"
+          routerLink="/app/cliente/reservations"
+          aria-label="Ir a reservas"
+          title="Ver mi reserva"
+          class="relative text-slate-800 hover:text-slate-950 cursor-pointer"
+        >
+          <ng-icon name="lucideCalendar" class="text-slate-800" />
+          @if (reservationDraft.count() > 0) {
+            <span class="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-slate-900 px-1 text-[9px] font-bold text-white shadow-xs">
+              {{ reservationDraft.count() }}
+            </span>
+          }
+        </a>
+
+        <a
+          hlmBtn
+          variant="outline"
+          size="icon"
+          routerLink="/app/cliente/cart"
+          aria-label="Ir al carrito"
+          title="Ir al carrito"
+          class="text-slate-800 hover:text-slate-950 cursor-pointer"
+        >
+          <ng-icon name="lucideShoppingCart" class="text-slate-800" />
+        </a>
+      </div>
     </div>
-    <p class="text-sm text-slate-500">Consulta productos y disponibilidad por sucursal.</p>
+    <p class="text-sm text-slate-500">Explorá prendas exclusivas por tienda, sucursal o categoría.</p>
   </header>
 
-  <form
-    hlmCard
-    class="grid min-w-0 max-w-full gap-3 bg-white p-4 mx-1 shadow-sm md:grid-cols-6"
-    [formGroup]="form"
-    (ngSubmit)="search()"
-  >
-    <div hlmField class="md:col-span-2">
-      <!-- <label hlmFieldLabel for="catalog-search">Buscar producto</label> -->
-      <input id="catalog-search" hlmInput placeholder="Buscar producto" formControlName="q" />
-    </div>
-    <div
-      hlmSelect
-      formControlName="branch_id"
-      [itemToString]="branchSelectLabel"
-      (valueChange)="updateBranchAvailability()"
-    >
-      <hlm-select-trigger>
-        <span hlmSelectValue placeholder="Sucursal"></span>
-      </hlm-select-trigger>
-      <hlm-select-content>
-        <hlm-select-item value="">Sucursal</hlm-select-item>
-        @for (branch of branches(); track branch.id) {
-          <hlm-select-item [value]="branch.id"
-            >{{ branch.name }} - {{ branch.city }}</hlm-select-item
-          >
-        }
-      </hlm-select-content>
-    </div>
-    <div
-      hlmSelect
-      formControlName="category_id"
-      [itemToString]="categorySelectLabel"
-      (valueChange)="search()"
-    >
-      <hlm-select-trigger>
-        <span hlmSelectValue placeholder="Categoría"></span>
-      </hlm-select-trigger>
-      <hlm-select-content>
-        <hlm-select-item value="">Categoría</hlm-select-item>
-        @for (category of categories(); track category.id) {
-          <hlm-select-item [value]="category.id">{{ category.name }}</hlm-select-item>
-        }
-      </hlm-select-content>
-    </div>
-    <div
-      hlmSelect
-      formControlName="size_id"
-      [itemToString]="sizeSelectLabel"
-      (valueChange)="search()"
-    >
-      <hlm-select-trigger>
-        <span hlmSelectValue placeholder="Talla"></span>
-      </hlm-select-trigger>
-      <hlm-select-content>
-        <hlm-select-item value="">Talla</hlm-select-item>
-        @for (size of sizes(); track size.id) {
-          <hlm-select-item [value]="size.id">{{ size.name }}</hlm-select-item>
-        }
-      </hlm-select-content>
-    </div>
-    <div
-      hlmSelect
-      formControlName="color_id"
-      [itemToString]="colorSelectLabel"
-      (valueChange)="search()"
-    >
-      <hlm-select-trigger>
-        <span hlmSelectValue placeholder="Color"></span>
-      </hlm-select-trigger>
-      <hlm-select-content>
-        <hlm-select-item value="">Color</hlm-select-item>
-        @for (color of colors(); track color.id) {
-          <hlm-select-item [value]="color.id">{{ color.name }}</hlm-select-item>
-        }
-      </hlm-select-content>
-    </div>
-    <div
-      hlmSelect
-      formControlName="season_id"
-      [itemToString]="seasonSelectLabel"
-      (valueChange)="search()"
-    >
-      <hlm-select-trigger>
-        <span hlmSelectValue placeholder="Temporada"></span>
-      </hlm-select-trigger>
-      <hlm-select-content>
-        <hlm-select-item value="">Temporada</hlm-select-item>
-        @for (season of seasons(); track season.id) {
-          <hlm-select-item [value]="season.id">{{ season.name }}</hlm-select-item>
-        }
-      </hlm-select-content>
-    </div>
-    <div
-      hlmSelect
-      formControlName="collection_id"
-      [itemToString]="collectionSelectLabel"
-      (valueChange)="search()"
-    >
-      <hlm-select-trigger>
-        <span hlmSelectValue placeholder="Colección"></span>
-      </hlm-select-trigger>
-      <hlm-select-content>
-        <hlm-select-item value="">Colección</hlm-select-item>
-        @for (collection of collections(); track collection.id) {
-          <hlm-select-item [value]="collection.id">{{ collection.name }}</hlm-select-item>
-        }
-      </hlm-select-content>
-    </div>
-    <button hlmBtn class="md:col-span-6" type="submit" [disabled]="loading()">
-      {{ loading() ? 'Buscando...' : 'Buscar' }}
-    </button>
-  </form>
-
-  @if (recommendedProducts().length > 0) {
-  <section aria-labelledby="recommendations-heading" class="relative space-y-3 rounded-2xl border border-slate-100 bg-slate-50/50 p-5 backdrop-blur-sm">
-    
-    <div class="flex items-center justify-between px-1">
-      <div>
-        <h2 id="recommendations-heading" class="text-lg font-bold tracking-tight text-slate-900">
-          Recomendaciones para ti
-        </h2>
-        <p class="text-xs text-slate-500">Inspirado en tus gustos y compras anteriores</p>
-      </div>
-
-      <div class="flex items-center gap-1.5 text-xs font-medium text-slate-400">
-        <span>Desliza</span>
-        <svg class="h-4 w-4 animate-pulse text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-        </svg>
-      </div>
-    </div>
-
-    <!-- Carrusel -->
-    <div 
-      class="flex min-w-0 max-w-full snap-x snap-mandatory gap-4 overflow-x-auto overflow-y-hidden py-2 px-1 scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden" 
-      role="list"
-    >
-      @for (product of recommendedProducts(); track product.id) {
-        <article 
-          hlmCard 
-          class="group w-56 shrink-0 snap-start overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-md p-0" 
-          role="listitem"
-          (click)="recordProductView(product.id)" 
+  <!-- Filtros y Tiendas (Estilo Shadcn limpio y minimalista) -->
+  <div class="space-y-3 pt-1">
+    <!-- Pestañas de Tiendas/Marcas -->
+    <div class="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-xs">
+      <button
+        type="button"
+        (click)="selectTenant('')"
+        class="inline-flex cursor-pointer items-center rounded-md px-3.5 py-1.5 font-medium transition-all shrink-0 border"
+        [ngClass]="selectedTenantId() === '' ? 'bg-slate-900 text-white border-slate-900 shadow-xs' : 'bg-white text-slate-700 border-slate-200 hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900'"
+      >
+        Todas las tiendas
+      </button>
+      @for (tenant of tenants(); track tenant.id) {
+        <button
+          type="button"
+          (click)="selectTenant(tenant.id)"
+          class="inline-flex cursor-pointer items-center rounded-md px-3.5 py-1.5 font-medium transition-all shrink-0 border"
+          [ngClass]="selectedTenantId() === tenant.id ? 'bg-slate-900 text-white border-slate-900 shadow-xs' : 'bg-white text-slate-700 border-slate-200 hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900'"
         >
-          <!-- Contenedor de Imagen -->
-          <div class="relative h-56 w-full overflow-hidden bg-slate-100">
-            @if (currentProductImage(product); as image) {
-              <img
-                [src]="image"
-                [alt]="product.name"
-                class="h-full w-full object-cover object-center transition-transform duration-500 ease-out group-hover:scale-105"
-              />
-            } @else {
-              <div class="flex h-full items-center justify-center text-xs text-slate-400">
-                Sin imagen
-              </div>
-            }
-
-            <!-- Botón flotante -->
-             <a
-               hlmBtn
-               variant="outline"
-               [routerLink]="['/app/cliente/products', product.id]"
-               [queryParams]="{ from: productDetailOrigin(), branch_id: form.controls.branch_id.value || undefined }"
-               (click)="$event.stopPropagation(); recordProductView(product.id)"
-               class="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 p-0"
-               title="Ver producto"
-             >
-               <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-               </svg>
-             </a>
-          </div>
-
-          <!-- Información del Producto -->
-          <div hlmCardContent class="flex flex-col justify-between p-3.5 space-y-3">
-            <div class="space-y-1">
-              <h3 class="line-clamp-1 text-xs font-semibold text-slate-700 transition-colors group-hover:text-black">
-                {{ product.name }}
-              </h3>
-              <p class="text-sm font-extrabold text-slate-900">
-                {{ selectedVariant(product)?.price ? (selectedVariant(product)?.price | currency) : 'Sin precio' }}
-              </p>
-            </div>
-
-            <!-- Botón Agregar al Carrito -->
-             <a
-               hlmBtn
-               variant="outline"
-               [routerLink]="['/app/cliente/products', product.id]"
-               [queryParams]="{ from: productDetailOrigin(), branch_id: form.controls.branch_id.value || undefined }"
-               (click)="$event.stopPropagation(); recordProductView(product.id)"
-               class="w-full text-xs font-medium py-2 rounded-lg"
-             >
-               Ver producto
-             </a>
-             <button
-               hlmBtn
-               type="button"
-               class="w-full text-xs font-medium py-2 rounded-lg transition-all cursor-pointer z-10 relative"
-              (click)="$event.stopPropagation(); addSelectedVariantToCart(product)"
-              [disabled]="isAddingToCart(product.id)"
-            >
-              {{ isAddingToCart(product.id) ? 'Agregando...' : 'Agregar al carrito' }}
-            </button>
-          </div>
-        </article>
+          {{ tenant.name }}
+        </button>
       }
     </div>
-  </section>
-}
 
-  <div class="grid min-w-0 mx-1 max-w-full gap-5 md:grid-cols-2 xl:grid-cols-3">
-    @for (product of products(); track product.id) {
-      <article 
-        hlmCard 
-        class="group flex flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-md p-0"
-        (click)="recordProductView(product.id)"
+    <!-- Sucursales Físicas (Solo si se seleccionó una tienda y tiene sucursales) -->
+    @if (selectedTenantId() && filteredBranches().length > 0) {
+      <div class="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar pl-1 text-xs">
+        <span class="text-slate-400 font-medium shrink-0">Sucursal:</span>
+        <button
+          type="button"
+          (click)="selectBranch('')"
+          class="inline-flex cursor-pointer items-center rounded-md px-2.5 py-1 text-[11px] font-medium transition-all shrink-0 border"
+          [ngClass]="selectedBranchId() === '' ? 'bg-slate-800 text-white border-slate-800 shadow-2xs' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900'"
+        >
+          Todas
+        </button>
+        @for (branch of filteredBranches(); track branch.id) {
+          <button
+            type="button"
+            (click)="selectBranch(branch.id)"
+            class="inline-flex cursor-pointer items-center rounded-md px-2.5 py-1 text-[11px] font-medium transition-all shrink-0 border"
+            [ngClass]="selectedBranchId() === branch.id ? 'bg-slate-800 text-white border-slate-800 shadow-2xs' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900'"
+          >
+            {{ branch.name }} ({{ branch.city }})
+          </button>
+        }
+      </div>
+    }
+
+    <!-- Barra de Búsqueda y Filtros de Atributos (Shadcn toolbar) -->
+    <form [formGroup]="form" class="flex flex-wrap items-center gap-2">
+      <!-- Buscador -->
+      <div class="relative w-full sm:w-64 md:w-72">
+        <ng-icon
+          name="lucideSearch"
+          class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+          style="--ng-icon__size: 15px;"
+        />
+        <input
+          id="catalog-search"
+          hlmInput
+          placeholder="Buscar prendas..."
+          formControlName="q"
+          class="h-9 w-full rounded-md border border-slate-200 bg-white pl-9 pr-8 text-xs font-normal text-slate-900 placeholder:text-slate-400 shadow-2xs transition-colors focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+        />
+        @if (form.controls.q.value) {
+          <button
+            type="button"
+            (click)="clearSearchInput()"
+            class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer"
+            title="Borrar búsqueda"
+          >
+            <ng-icon name="lucideX" style="--ng-icon__size: 14px;" />
+          </button>
+        }
+      </div>
+
+      <!-- Select: Categoría -->
+      <div hlmSelect formControlName="category_id" [itemToString]="categorySelectLabel" class="w-36 sm:w-44">
+        <hlm-select-trigger buttonId="catalog-category">
+          <span hlmSelectValue placeholder="Categoría"></span>
+        </hlm-select-trigger>
+        <hlm-select-content>
+          <hlm-select-item value="">Todas las categorías</hlm-select-item>
+          @for (category of categories(); track category.id) {
+            <hlm-select-item [value]="category.id">{{ category.name }}</hlm-select-item>
+          }
+        </hlm-select-content>
+      </div>
+
+      <!-- Select: Talla -->
+      <div hlmSelect formControlName="size_id" [itemToString]="sizeSelectLabel" class="w-28 sm:w-32">
+        <hlm-select-trigger buttonId="catalog-size">
+          <span hlmSelectValue placeholder="Talla"></span>
+        </hlm-select-trigger>
+        <hlm-select-content>
+          <hlm-select-item value="">Todas las tallas</hlm-select-item>
+          @for (size of sizes(); track size.id) {
+            <hlm-select-item [value]="size.id">{{ size.name }}</hlm-select-item>
+          }
+        </hlm-select-content>
+      </div>
+
+      <!-- Select: Color -->
+      <div hlmSelect formControlName="color_id" [itemToString]="colorSelectLabel" class="w-28 sm:w-32">
+        <hlm-select-trigger buttonId="catalog-color">
+          <span hlmSelectValue placeholder="Color"></span>
+        </hlm-select-trigger>
+        <hlm-select-content>
+          <hlm-select-item value="">Todos los colores</hlm-select-item>
+          @for (color of colors(); track color.id) {
+            <hlm-select-item [value]="color.id">{{ color.name }}</hlm-select-item>
+          }
+        </hlm-select-content>
+      </div>
+
+      <!-- Select: Temporada -->
+      <div hlmSelect formControlName="season_id" [itemToString]="seasonSelectLabel" class="w-36 sm:w-40">
+        <hlm-select-trigger buttonId="catalog-season">
+          <span hlmSelectValue placeholder="Temporada"></span>
+        </hlm-select-trigger>
+        <hlm-select-content>
+          <hlm-select-item value="">Todas las temporadas</hlm-select-item>
+          @for (season of seasons(); track season.id) {
+            <hlm-select-item [value]="season.id">{{ season.name }}</hlm-select-item>
+          }
+        </hlm-select-content>
+      </div>
+
+      <!-- Select: Colección -->
+      <div hlmSelect formControlName="collection_id" [itemToString]="collectionSelectLabel" class="w-36 sm:w-44">
+        <hlm-select-trigger buttonId="catalog-collection">
+          <span hlmSelectValue placeholder="Colección"></span>
+        </hlm-select-trigger>
+        <hlm-select-content>
+          <hlm-select-item value="">Todas las colecciones</hlm-select-item>
+          @for (collection of collections(); track collection.id) {
+            <hlm-select-item [value]="collection.id">{{ collection.name }}</hlm-select-item>
+          }
+        </hlm-select-content>
+      </div>
+
+      <!-- Botón Limpiar filtros (Ghost Button estilo Shadcn) -->
+      @if (hasActiveFilters()) {
+        <button
+          type="button"
+          (click)="resetFilters()"
+          class="h-9 inline-flex items-center gap-1.5 px-3 rounded-md text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+        >
+          <ng-icon name="lucideX" style="--ng-icon__size: 14px;" />
+          <span>Limpiar filtros</span>
+        </button>
+      }
+    </form>
+  </div>
+
+  <!-- Carrusel de Recomendaciones Personalizadas con IA (si existen) -->
+  @if (recommendedProducts().length > 0) {
+    <section aria-labelledby="recommendations-heading" class="relative space-y-3 rounded-2xl border border-slate-100 bg-slate-50/50 p-5 backdrop-blur-sm">
+      <div class="flex items-center justify-between px-1">
+        <div>
+          <h2 id="recommendations-heading" class="text-lg font-bold tracking-tight text-slate-900">
+            Recomendaciones para ti
+          </h2>
+          <p class="text-xs text-slate-500">Inspirado en tus gustos y compras anteriores</p>
+        </div>
+        <div class="flex items-center gap-1.5 text-xs font-medium text-slate-400">
+          <span>Desliza</span>
+          <svg class="h-4 w-4 animate-pulse text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+          </svg>
+        </div>
+      </div>
+
+      <div 
+        class="flex min-w-0 max-w-full snap-x snap-mandatory gap-4 overflow-x-auto py-2 px-1 scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden" 
+        role="list"
       >
-        <div class="relative h-72 w-full overflow-hidden bg-slate-100">
-          @if (productImages(product).length > 0) {
-            <img
-              [src]="currentProductImage(product)!"
-              [alt]="product.name"
-              class="h-full w-full object-cover object-center transition-transform duration-500 ease-out group-hover:scale-105"
-            />
-            @if (productImages(product).length > 1) {
+        @for (product of recommendedProducts(); track product.id) {
+          <article 
+            hlmCard 
+            class="group w-64 shrink-0 snap-start overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs transition-all duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-md p-0 flex flex-col justify-between"
+            role="listitem"
+          >
+            <!-- Imagen con ojito flotante -->
+            <div class="relative h-60 w-full overflow-hidden bg-slate-100">
+              @if (currentProductImage(product); as image) {
+                <img
+                  [src]="image"
+                  [alt]="product.name"
+                  class="h-full w-full object-cover object-center transition-transform duration-500 ease-out group-hover:scale-105"
+                />
+              } @else {
+                <div class="flex h-full items-center justify-center text-xs text-slate-400">
+                  Sin imagen
+                </div>
+              }
+
+              <!-- Botón flotante Ojito en la esquina superior derecha -->
+              <a
+                [routerLink]="['/app/cliente/products', product.id]"
+                [queryParams]="{ from: productDetailOrigin(), branch_id: selectedBranchId() || undefined }"
+                (click)="$event.stopPropagation(); recordProductView(product.id)"
+                class="absolute right-2.5 top-2.5 z-20 flex size-8 cursor-pointer items-center justify-center rounded-full bg-white/90 text-slate-700 shadow-sm backdrop-blur-sm transition-all hover:bg-white hover:scale-110 hover:text-slate-900"
+                title="Ver detalle del producto"
+                aria-label="Ver detalle del producto"
+              >
+                <ng-icon name="lucideEye" style="--ng-icon__size: 16px;"></ng-icon>
+              </a>
+            </div>
+
+            <!-- Información del Producto -->
+            <div class="flex flex-1 flex-col justify-between p-3.5 space-y-2">
+              <div class="space-y-1">
+                <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-semibold text-slate-700">
+                  🏪 {{ product.tenant_name || 'Tienda' }}
+                </span>
+                <h3 class="line-clamp-1 text-xs font-semibold text-slate-800 transition-colors group-hover:text-black">
+                  {{ product.name }}
+                </h3>
+              </div>
+              <div class="flex items-center justify-between pt-1 border-t border-slate-100">
+                @if (selectedVariant(product); as variant) {
+                  @if (hasDiscount(variant)) {
+                    <span class="space-x-1">
+                      <s class="text-[10px] text-slate-400">{{ variant.original_price }}</s>
+                      <span class="text-xs font-bold text-emerald-700">{{ variant.price }}</span>
+                    </span>
+                  } @else {
+                    <span class="text-xs font-bold text-slate-900">{{ variant.price }}</span>
+                  }
+                } @else {
+                  <span class="text-xs text-slate-400">Sin precio</span>
+                }
+              </div>
+            </div>
+
+            <!-- Botónes de Acción: Carrito y Reserva -->
+            <div class="border-t border-slate-100 bg-slate-50/75 p-2.5 rounded-b-2xl space-y-1.5">
               <button
-                type="button"
                 hlmBtn
-                variant="secondary"
-                class="absolute left-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 p-0 text-slate-800 backdrop-blur-sm transition-all hover:bg-white hover:scale-110 shadow-sm cursor-pointer z-10"
-                (click)="$event.stopPropagation(); previousProductImage(product.id, productImages(product).length)"
+                type="button"
+                class="w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-1.5 rounded-xl cursor-pointer transition-all shadow-xs"
+                (click)="$event.stopPropagation(); addSelectedVariantToCart(product)"
+                [disabled]="isAddingToCart(product.id)"
               >
-                ‹
+                <ng-icon name="lucideShoppingCart" style="--ng-icon__size: 14px;"></ng-icon>
+                <span>{{ isAddingToCart(product.id) ? 'Agregando...' : 'Agregar al carrito' }}</span>
               </button>
+
               <button
-                type="button"
                 hlmBtn
-                variant="secondary"
-                class="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 p-0 text-slate-800 backdrop-blur-sm transition-all hover:bg-white hover:scale-110 shadow-sm cursor-pointer z-10"
-                (click)="$event.stopPropagation(); nextProductImage(product.id, productImages(product).length)"
+                variant="outline"
+                type="button"
+                class="w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-1.5 rounded-xl cursor-pointer transition-all shadow-xs border-slate-200 hover:bg-slate-100 text-slate-700"
+                (click)="$event.stopPropagation(); addToReservation(product)"
               >
-                ›
+                <ng-icon name="lucideBookmark" style="--ng-icon__size: 14px;"></ng-icon>
+                <span>{{ getReservationCount(product) > 0 ? 'En reserva (' + getReservationCount(product) + ')' : 'Agregar para reservar' }}</span>
               </button>
-              <div
-                class="absolute bottom-3 right-3 rounded-full bg-slate-950/70 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur-md"
+            </div>
+          </article>
+        }
+      </div>
+    </section>
+  }
+
+  <!-- ========================================================================= -->
+  <!-- CASO 1: VISTA EN GRILLA (SIN CARRUSEL) CUANDO SELECCIONÓ UNA SUCURSAL ESPECÍFICA -->
+  <!-- ========================================================================= -->
+  @if (selectedBranchId()) {
+    <section class="space-y-4">
+      <!-- Encabezado de la Sucursal Seleccionada -->
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between rounded-2xl bg-white p-4 border border-slate-200/80 shadow-xs">
+        <div>
+          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Sucursal Seleccionada</span>
+          <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+            <span>🏬</span>
+            <span>{{ currentBranchDisplay() }}</span>
+          </h2>
+          <p class="text-xs text-slate-500">Mostrando catálogo completo de prendas disponibles en esta sucursal física.</p>
+        </div>
+        <button
+          hlmBtn
+          variant="outline"
+          size="sm"
+          class="cursor-pointer flex items-center gap-1.5 self-start sm:self-auto"
+          (click)="selectBranch('')"
+        >
+          <span>✕</span>
+          <span>Volver a ver todas las sucursales</span>
+        </button>
+      </div>
+
+      <!-- Grilla estándar sin carrusel -->
+      <div class="grid min-w-0 mx-1 max-w-full gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        @for (product of currentBranchProducts(); track product.id) {
+          <article 
+            hlmCard 
+            class="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs transition-all duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-md p-0"
+          >
+            <!-- Imagen con ojito en esquina superior derecha -->
+            <div class="relative h-64 w-full overflow-hidden bg-slate-100">
+              @if (productImages(product).length > 0) {
+                <img
+                  [src]="currentProductImage(product)!"
+                  [alt]="product.name"
+                  class="h-full w-full object-cover object-center transition-transform duration-500 ease-out group-hover:scale-105"
+                />
+                @if (productImages(product).length > 1) {
+                  <button
+                    type="button"
+                    hlmBtn
+                    variant="secondary"
+                    class="absolute left-2.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 p-0 text-slate-800 backdrop-blur-sm transition-all hover:bg-white hover:scale-110 shadow-xs cursor-pointer z-10"
+                    (click)="$event.stopPropagation(); previousProductImage(product.id, productImages(product).length)"
+                  >
+                    ‹
+                  </button>
+                  <button
+                    type="button"
+                    hlmBtn
+                    variant="secondary"
+                    class="absolute right-2.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 p-0 text-slate-800 backdrop-blur-sm transition-all hover:bg-white hover:scale-110 shadow-xs cursor-pointer z-10"
+                    (click)="$event.stopPropagation(); nextProductImage(product.id, productImages(product).length)"
+                  >
+                    ›
+                  </button>
+                  <div class="absolute bottom-2.5 right-2.5 rounded-full bg-slate-950/70 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-md">
+                    {{ currentProductImageIndex(product) + 1 }}/{{ productImages(product).length }}
+                  </div>
+                }
+              } @else {
+                <div class="flex h-full items-center justify-center text-xs text-slate-400">
+                  Sin imagen
+                </div>
+              }
+
+              <!-- Botón Ojito para Ver Detalle del Producto -->
+              <a
+                [routerLink]="['/app/cliente/products', product.id]"
+                [queryParams]="{ from: productDetailOrigin(), branch_id: selectedBranchId() || undefined }"
+                (click)="$event.stopPropagation(); recordProductView(product.id)"
+                class="absolute right-3 top-3 z-20 flex size-9 cursor-pointer items-center justify-center rounded-full bg-white/90 text-slate-700 shadow-md backdrop-blur-sm transition-all hover:bg-white hover:scale-110 hover:text-slate-900"
+                title="Ver detalle del producto"
+                aria-label="Ver detalle del producto"
               >
-                {{ currentProductImageIndex(product) + 1 }} / {{ productImages(product).length }}
+                <ng-icon name="lucideEye" style="--ng-icon__size: 18px;"></ng-icon>
+              </a>
+            </div>
+
+            <!-- Cuerpo de la tarjeta -->
+            <div class="flex flex-1 flex-col justify-between p-4">
+              <div class="space-y-1">
+                <div class="flex items-center justify-between gap-1">
+                  <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
+                    🏪 {{ product.tenant_name || 'Tienda' }}
+                  </span>
+                  <span hlmBadge class="bg-slate-900 text-white text-[9px] px-2 py-0.5 font-medium rounded-full uppercase tracking-wider">
+                    {{ selectedVariant(product)?.status ?? 'active' }}
+                  </span>
+                </div>
+                <h3 class="font-bold text-sm text-slate-900 line-clamp-1 group-hover:text-primary transition-colors">
+                  {{ product.name }}
+                </h3>
+                <p class="text-xs text-slate-500 line-clamp-2">
+                  {{ product.description ?? 'Sin descripción' }}
+                </p>
+              </div>
+
+              <!-- Precio -->
+              <div class="pt-2 mt-2 border-t border-slate-100 flex items-center justify-between">
+                @if (selectedVariant(product); as variant) {
+                  @if (hasDiscount(variant)) {
+                    <div class="flex items-baseline gap-1.5">
+                      <s class="text-xs text-slate-400">{{ variant.original_price }}</s>
+                      <span class="text-base font-extrabold text-emerald-700">{{ variant.price }}</span>
+                      <span class="inline-flex items-center rounded-md bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-800">
+                        OFERTA
+                      </span>
+                    </div>
+                  } @else {
+                    <span class="text-base font-extrabold text-slate-900">{{ variant.price }}</span>
+                  }
+                } @else {
+                  <span class="text-xs text-slate-400">Sin precio</span>
+                }
+              </div>
+            </div>
+
+            <!-- Footer con Botones Agregar al Carrito y Agregar para Reservar -->
+            <div class="border-t border-slate-100 bg-slate-50/75 p-3 rounded-b-2xl space-y-2">
+              <button
+                hlmBtn
+                type="button"
+                class="w-full flex items-center justify-center gap-2 text-xs font-semibold py-2 rounded-xl cursor-pointer transition-all shadow-xs"
+                (click)="$event.stopPropagation(); addSelectedVariantToCart(product)"
+                [disabled]="isAddingToCart(product.id)"
+              >
+                <ng-icon name="lucideShoppingCart" style="--ng-icon__size: 16px;"></ng-icon>
+                <span>{{ isAddingToCart(product.id) ? 'Agregando...' : 'Agregar al carrito' }}</span>
+              </button>
+
+              <button
+                hlmBtn
+                variant="outline"
+                type="button"
+                class="w-full flex items-center justify-center gap-2 text-xs font-semibold py-2 rounded-xl cursor-pointer transition-all shadow-xs border-slate-200 hover:bg-slate-100 text-slate-700"
+                (click)="$event.stopPropagation(); addToReservation(product, selectedBranchId())"
+              >
+                <ng-icon name="lucideBookmark" style="--ng-icon__size: 15px;"></ng-icon>
+                <span>{{ getReservationCount(product) > 0 ? 'En reserva (' + getReservationCount(product) + ')' : 'Agregar para reservar' }}</span>
+              </button>
+            </div>
+          </article>
+        } @empty {
+          <div class="col-span-full rounded-2xl border border-dashed border-slate-200 bg-white p-12 text-center text-sm text-slate-500">
+            No hay productos disponibles en esta sucursal para los filtros seleccionados.
+          </div>
+        }
+      </div>
+    </section>
+  } @else {
+    <!-- ========================================================================= -->
+    <!-- CASO 2: VISTA EN CARRUSELES: AGRUPADOS POR EMPRESA - SUCURSAL -->
+    <!-- ========================================================================= -->
+    <section class="space-y-8">
+      @for (section of branchSections(); track section.branchId) {
+        <div class="space-y-3 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
+          <!-- Encabezado de la Sucursal -->
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+              <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-semibold text-slate-700">
+                🏪 {{ section.tenantName }}
+              </span>
+              <h2 class="text-base font-bold text-slate-900 mt-1 flex items-center gap-1.5">
+                <span>🏬</span>
+                <span>{{ section.tenantName }} — {{ section.branchName }} ({{ section.cityName }})</span>
+              </h2>
+            </div>
+            <button
+              type="button"
+              (click)="selectBranch(section.branchId)"
+              class="flex items-center gap-1 text-xs font-semibold text-slate-700 hover:text-slate-900 hover:underline cursor-pointer"
+            >
+              <span>Ver sucursal</span>
+              <span>→</span>
+            </button>
+          </div>
+
+          <!-- Carrusel Horizontal de Prendas de esta Sucursal -->
+          <div
+            class="flex min-w-0 max-w-full snap-x snap-mandatory gap-4 overflow-x-auto py-2 px-1 scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+            role="list"
+          >
+            @for (product of section.products; track product.id) {
+              <div class="w-72 shrink-0 snap-start">
+                <article 
+                  hlmCard 
+                  class="group relative flex h-full flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs transition-all duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-md p-0"
+                >
+                  <!-- Imagen con ojito en esquina superior derecha -->
+                  <div class="relative h-60 w-full overflow-hidden bg-slate-100">
+                    @if (productImages(product).length > 0) {
+                      <img
+                        [src]="currentProductImage(product)!"
+                        [alt]="product.name"
+                        class="h-full w-full object-cover object-center transition-transform duration-500 ease-out group-hover:scale-105"
+                      />
+                      @if (productImages(product).length > 1) {
+                        <button
+                          type="button"
+                          hlmBtn
+                          variant="secondary"
+                          class="absolute left-2.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 p-0 text-slate-800 backdrop-blur-sm transition-all hover:bg-white hover:scale-110 shadow-xs cursor-pointer z-10"
+                          (click)="$event.stopPropagation(); previousProductImage(product.id, productImages(product).length)"
+                        >
+                          ‹
+                        </button>
+                        <button
+                          type="button"
+                          hlmBtn
+                          variant="secondary"
+                          class="absolute right-2.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 p-0 text-slate-800 backdrop-blur-sm transition-all hover:bg-white hover:scale-110 shadow-xs cursor-pointer z-10"
+                          (click)="$event.stopPropagation(); nextProductImage(product.id, productImages(product).length)"
+                        >
+                          ›
+                        </button>
+                        <div class="absolute bottom-2.5 right-2.5 rounded-full bg-slate-950/70 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-md">
+                          {{ currentProductImageIndex(product) + 1 }}/{{ productImages(product).length }}
+                        </div>
+                      }
+                    } @else {
+                      <div class="flex h-full items-center justify-center text-xs text-slate-400">
+                        Sin imagen
+                      </div>
+                    }
+
+                    <!-- Botón Ojito para Ver Detalle del Producto -->
+                    <a
+                      [routerLink]="['/app/cliente/products', product.id]"
+                      [queryParams]="{ from: productDetailOrigin(), branch_id: section.branchId }"
+                      (click)="$event.stopPropagation(); recordProductView(product.id)"
+                      class="absolute right-3 top-3 z-20 flex size-9 cursor-pointer items-center justify-center rounded-full bg-white/90 text-slate-700 shadow-md backdrop-blur-sm transition-all hover:bg-white hover:scale-110 hover:text-slate-900"
+                      title="Ver detalle del producto"
+                      aria-label="Ver detalle del producto"
+                    >
+                      <ng-icon name="lucideEye" style="--ng-icon__size: 18px;"></ng-icon>
+                    </a>
+                  </div>
+
+                  <!-- Información de la Prenda -->
+                  <div class="flex flex-1 flex-col justify-between p-4">
+                    <div class="space-y-1">
+                      <div class="flex items-center justify-between gap-1">
+                        <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
+                          🏪 {{ section.tenantName }}
+                        </span>
+                        <span hlmBadge class="bg-slate-900 text-white text-[9px] px-2 py-0.5 font-medium rounded-full uppercase tracking-wider">
+                          {{ selectedVariant(product)?.status ?? 'active' }}
+                        </span>
+                      </div>
+                      <h3 class="font-bold text-sm text-slate-900 line-clamp-1 group-hover:text-primary transition-colors">
+                        {{ product.name }}
+                      </h3>
+                      <p class="text-xs text-slate-500 line-clamp-2">
+                        {{ product.description ?? 'Sin descripción' }}
+                      </p>
+                    </div>
+
+                    <!-- Precio -->
+                    <div class="pt-2 mt-2 border-t border-slate-100 flex items-center justify-between">
+                      @if (selectedVariant(product); as variant) {
+                        @if (hasDiscount(variant)) {
+                          <div class="flex items-baseline gap-1.5">
+                            <s class="text-xs text-slate-400">{{ variant.original_price }}</s>
+                            <span class="text-base font-extrabold text-emerald-700">{{ variant.price }}</span>
+                            <span class="inline-flex items-center rounded-md bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-800">
+                              OFERTA
+                            </span>
+                          </div>
+                        } @else {
+                          <span class="text-base font-extrabold text-slate-900">{{ variant.price }}</span>
+                        }
+                      } @else {
+                        <span class="text-xs text-slate-400">Sin precio</span>
+                      }
+                    </div>
+                  </div>
+
+                  <!-- Footer con Botones Agregar al Carrito y Agregar para Reservar -->
+                  <div class="border-t border-slate-100 bg-slate-50/75 p-3 rounded-b-2xl space-y-2">
+                    <button
+                      hlmBtn
+                      type="button"
+                      class="w-full flex items-center justify-center gap-2 text-xs font-semibold py-2 rounded-xl cursor-pointer transition-all shadow-xs"
+                      (click)="$event.stopPropagation(); addSelectedVariantToCart(product, section.branchId)"
+                      [disabled]="isAddingToCart(product.id)"
+                    >
+                      <ng-icon name="lucideShoppingCart" style="--ng-icon__size: 16px;"></ng-icon>
+                      <span>{{ isAddingToCart(product.id) ? 'Agregando...' : 'Agregar al carrito' }}</span>
+                    </button>
+
+                    <button
+                      hlmBtn
+                      variant="outline"
+                      type="button"
+                      class="w-full flex items-center justify-center gap-2 text-xs font-semibold py-2 rounded-xl cursor-pointer transition-all shadow-xs border-slate-200 hover:bg-slate-100 text-slate-700"
+                      (click)="$event.stopPropagation(); addToReservation(product, section.branchId)"
+                    >
+                      <ng-icon name="lucideBookmark" style="--ng-icon__size: 15px;"></ng-icon>
+                      <span>{{ getReservationCount(product) > 0 ? 'En reserva (' + getReservationCount(product) + ')' : 'Agregar para reservar' }}</span>
+                    </button>
+                  </div>
+                </article>
               </div>
             }
+          </div>
+        </div>
+      } @empty {
+        <div class="rounded-2xl border border-dashed border-slate-200 bg-white p-12 text-center text-sm text-slate-500">
+          No se encontraron productos para los filtros seleccionados.
+        </div>
+      }
+    </section>
+  }
+
+  <!-- ========================================================================= -->
+  <!-- MODAL DE CAMBIO DE SUCURSAL / TIENDA (ESTILO PEDIDOSYA) -->
+  <!-- ========================================================================= -->
+  @if (conflictModal(); as modal) {
+    <div
+      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm animate-in fade-in duration-200"
+      (click)="closeConflictModal()"
+    >
+      <section
+        hlmCard
+        class="w-full max-w-md bg-white shadow-2xl rounded-2xl p-6 space-y-4"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="flex items-center gap-3">
+          <div class="flex size-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 shadow-2xs shrink-0">
+            <ng-icon name="lucideAlertTriangle" style="--ng-icon__size: 24px;" />
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-slate-900">
+              {{ modal.type === 'cart' ? '¿Deseás cambiar de sucursal de compra?' : '¿Deseás cambiar de sucursal de reserva?' }}
+            </h3>
+            <p class="text-xs text-slate-500">
+              Las prendas están sujetas al stock físico de cada tienda.
+            </p>
+          </div>
+        </div>
+
+        <div class="rounded-xl border border-amber-200/60 bg-amber-50/50 p-3.5 text-xs text-slate-700 space-y-1.5 leading-relaxed">
+          @if (modal.type === 'cart') {
+            <p>
+              Tu carrito actual contiene prendas de <strong>{{ modal.currentName }}</strong>.
+            </p>
+            <p>
+              Si agregás esta prenda, se vaciará el carrito anterior para comenzar tu compra en:
+              <span class="block mt-1 font-bold text-slate-900">🏪 {{ modal.newTenantName }} — {{ modal.newBranchName }}</span>
+            </p>
           } @else {
-            <div class="flex h-full items-center justify-center text-xs text-slate-400">
-              Sin imagen
-            </div>
+            <p>
+              Tu reserva actual contiene prendas apartadas en <strong>{{ modal.currentName }}</strong>.
+            </p>
+            <p>
+              Si agregás esta prenda, se iniciará una nueva reserva en:
+              <span class="block mt-1 font-bold text-slate-900">🏪 {{ modal.newTenantName }} — {{ modal.newBranchName }}</span>
+            </p>
           }
         </div>
 
-        <!-- Encabezado -->
-        <div hlmCardHeader class="space-y-1 p-5 pb-2">
-          <h2 hlmCardTitle class="text-base font-bold text-slate-900 group-hover:text-primary transition-colors line-clamp-1">
-            {{ product.name }}
-          </h2>
-          <p hlmCardDescription class="text-xs text-slate-500 line-clamp-2">
-            {{ product.description ?? 'Sin descripción' }}
-          </p>
+        <div class="flex items-center justify-end gap-2.5 pt-2">
+          <button
+            hlmBtn
+            variant="outline"
+            type="button"
+            class="cursor-pointer text-xs"
+            (click)="closeConflictModal()"
+          >
+            {{ modal.type === 'cart' ? 'Mantener carrito actual' : 'Mantener reserva actual' }}
+          </button>
+
+          <button
+            hlmBtn
+            type="button"
+            class="cursor-pointer bg-slate-900 text-white text-xs font-bold"
+            (click)="confirmConflictSwitch()"
+          >
+            {{ modal.type === 'cart' ? 'Vaciar y cambiar sucursal' : 'Iniciar nueva reserva' }}
+          </button>
         </div>
-
-        <!-- Contenido y Metadatos -->
-        <div hlmCardContent class="flex flex-1 flex-col justify-between p-5 pt-0 space-y-4">
-          <div class="space-y-3">
-            <!-- Bloque de Categorías y Precios -->
-            <div class="space-y-2.5 rounded-xl border border-slate-100 bg-slate-50/70 p-3.5">
-              <div class="grid gap-1.5 md:grid-cols-2">
-                <p class="text-[11px] text-slate-500">
-                  <strong class="font-medium text-slate-700">Categoría:</strong> {{ categoryName(product.category_id) }}
-                </p>
-                <p class="text-[11px] text-slate-500">
-                  <strong class="font-medium text-slate-700">Colección:</strong> {{ collectionName(product.collection_id) }}
-                </p>
-                <p class="text-[11px] text-slate-500 col-span-2">
-                  <strong class="font-medium text-slate-700">Temporada:</strong> {{ collectionSeasonName(product.collection_id) }}
-                </p>
-              </div>
-
-              <div class="flex items-center justify-between pt-1 border-t border-slate-200/60">
-                @if (selectedVariant(product); as variant) {
-                  @if (variant.original_price; as originalPrice) {
-                    <span class="space-x-2"
-                      ><s class="text-xs text-slate-400">{{ originalPrice }}</s
-                      ><span class="text-base font-bold text-emerald-700">{{ variant.price }}</span></span
-                    >
-                  } @else {
-                    <span class="text-base font-bold text-slate-900">{{ variant.price }}</span>
-                  }
-                } @else {
-                  <span class="text-sm font-medium text-slate-400">Sin precio</span>
-                }
-                <span hlmBadge class="bg-slate-900 text-white text-[10px] px-2 py-0.5 font-medium rounded-full uppercase tracking-wider">
-                  {{ selectedVariant(product)?.status ?? 'active' }}
-                </span>
-              </div>
-            </div>
-
-            <!-- Selector de Variante -->
-            <div class="space-y-1.5" (click)="$event.stopPropagation()">
-              <label class="text-[11px] font-semibold text-slate-600 uppercase tracking-wider">Variante</label>
-              <div
-                hlmSelect
-                class="w-full cursor-pointer"
-                [value]="selectedVariant(product)?.id"
-                [itemToString]="variantSelectLabel(product)"
-                (valueChange)="setSelectedVariant(product.id, $event)"
-              >
-                <hlm-select-trigger size="sm" class="rounded-lg border-slate-200">
-                  <span hlmSelectValue placeholder="Variante"></span>
-                </hlm-select-trigger>
-                <hlm-select-content>
-                  @for (variant of productVariants(product); track variant.id) {
-                    <hlm-select-item [value]="variant.id"
-                      >{{ variantLabel(variant) }} - {{ variant.price }}</hlm-select-item
-                    >
-                  }
-                </hlm-select-content>
-              </div>
-            </div>
-
-            <!-- Información de Sucursal y Stock -->
-            <div class="rounded-xl border border-slate-100 bg-white p-3 text-[11px] text-slate-500 space-y-1">
-              <p><strong class="font-medium text-slate-700">Sucursal:</strong> {{ branchName(form.controls.branch_id.value || null) }}</p>
-              <p>
-                <strong class="font-medium text-slate-700">Disponibilidad:</strong>
-                {{
-                  availabilityLabel(selectedVariant(product), form.controls.branch_id.value || null)
-                }}
-              </p>
-              <p><strong class="font-medium text-slate-700">SKU:</strong> {{ selectedVariant(product)?.sku ?? 'Sin SKU' }}</p>
-            </div>
-          </div>
-
-          <!-- Botones de Acción -->
-          <div class="flex items-center justify-between gap-2 pt-2" (click)="$event.stopPropagation()">
-            <!-- Botón Ver Producto con Ícono de Ojito -->
-             <a
-               hlmBtn 
-               variant="outline" 
-               class="flex h-9 w-9 items-center justify-center rounded-lg p-0 cursor-pointer hover:bg-slate-100 transition-colors text-slate-700"
-               [routerLink]="['/app/cliente/products', product.id]"
-               [queryParams]="{ from: productDetailOrigin(), branch_id: form.controls.branch_id.value || undefined }"
-              title="Ver producto"
-              (click)="$event.stopPropagation(); recordProductView(product.id)"
-            >
-              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-             </a>
-
-            <!-- Botón Agregar al Carrito (Ocupa el espacio principal) -->
-            <button
-              hlmBtn
-              type="button"
-              class="flex-1 text-xs font-semibold rounded-lg cursor-pointer"
-              (click)="$event.stopPropagation(); addSelectedVariantToCart(product)"
-              [disabled]="isAddingToCart(product.id)"
-            >
-              {{ isAddingToCart(product.id) ? 'Agregando...' : 'Agregar al carrito' }}
-            </button>
-
-            <!-- Botón Ir al Carrito -->
-            <a 
-              hlmBtn 
-              variant="outline" 
-              routerLink="/app/cliente/cart"
-              class="text-xs rounded-lg cursor-pointer hover:bg-slate-50"
-            >
-              Ver carrito
-            </a>
-          </div>
-        </div>
-      </article>
-    }
-  </div>
+      </section>
+    </div>
+  }
 </section>

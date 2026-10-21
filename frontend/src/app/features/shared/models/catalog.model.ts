@@ -2,6 +2,7 @@ import { ApiResponse } from '../../../core/models/api.model';
 
 export interface CatalogBranch {
   id: string;
+  tenant_id?: string | null;
   name: string;
   city: string;
   is_default: boolean;
@@ -24,6 +25,13 @@ export type ProductStatus = 'pending' | 'active' | 'inactive';
 export type DiscountType = 'percentage' | 'fixed';
 export type Point = { x: number; y: number };
 
+export interface BranchStockInfo {
+  branch_id: string;
+  branch_name: string;
+  city: string;
+  quantity: number;
+}
+
 export interface CatalogProductVariant {
   id: string;
   product_id: string;
@@ -39,6 +47,8 @@ export interface CatalogProductVariant {
   status: ProductStatus;
   branch_quantity?: number | null;
   provider_quantity?: number | null;
+  branch_stocks?: BranchStockInfo[];
+  total_stock?: number;
 }
 
 export interface CatalogGarmentResponse {
@@ -48,6 +58,8 @@ export interface CatalogGarmentResponse {
 
 export interface CatalogProduct {
   id: string;
+  tenant_id?: string | null;
+  tenant_name?: string | null;
   name: string;
   description: string | null;
   discount_type?: DiscountType | null;

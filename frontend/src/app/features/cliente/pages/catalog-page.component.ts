@@ -1,10 +1,21 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { firstValueFrom } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { debounceTime, distinctUntilChanged, firstValueFrom } from 'rxjs';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideShoppingCart } from '@ng-icons/lucide';
+import {
+  lucideAlertTriangle,
+  lucideBookmark,
+  lucideCalendar,
+  lucideChevronDown,
+  lucideEye,
+  lucideRotateCcw,
+  lucideSearch,
+  lucideShoppingCart,
+  lucideX,
+} from '@ng-icons/lucide';
 
 import { toast } from '@spartan-ng/brain/sonner';
 
@@ -17,6 +28,7 @@ import { HlmSelectImports } from '../../../components/select/src';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
 import { requestWithToast } from '../../../core/utils/request-toast.util';
 import {
+  BranchStockInfo,
   CatalogBranch,
   CatalogCollectionItem,
   CatalogColorItem,
@@ -27,6 +39,18 @@ import {
 import { CatalogApiService } from '../../shared/services/catalog-api.service';
 import { CartApiService } from '../../shared/services/cart-api.service';
 import { SessionService } from '../../shared/services/session.service';
+import { TenantApiService } from '../../shared/services/tenant-api.service';
+import { ReservationDraftService } from '../../shared/services/reservation-draft.service';
+
+export interface StoreConflictModal {
+  type: 'cart' | 'reservation';
+  product: CatalogProduct;
+  variant: CatalogProductVariant;
+  newBranchId: string;
+  newBranchName: string;
+  newTenantName: string;
+  currentName: string;
+}
 
 @Component({
   selector: 'app-catalog-page',
@@ -43,7 +67,19 @@ import { SessionService } from '../../shared/services/session.service';
     ...HlmFieldImports,
     ...HlmSelectImports,
   ],
-  providers: [provideIcons({ lucideShoppingCart })],
+  providers: [
+    provideIcons({
+      lucideShoppingCart,
+      lucideEye,
+      lucideCalendar,
+      lucideBookmark,
+      lucideAlertTriangle,
+      lucideSearch,
+      lucideX,
+      lucideRotateCcw,
+      lucideChevronDown,
+    }),
+  ],
   templateUrl: './catalog-page.component.html',
 })
 export class CatalogPageComponent {
@@ -51,8 +87,13 @@ export class CatalogPageComponent {
   private readonly api = inject(CatalogApiService);
   private readonly cartApi = inject(CartApiService);
   private readonly session = inject(SessionService);
+  private readonly tenantApi = inject(TenantApiService);
+  protected readonly reservationDraft = inject(ReservationDraftService);
   private readonly router = inject(Router);
 
+  protected readonly tenants = signal<Array<{ id: string; name: string; slug: string; currency: string; country: string }>>([]);
+  protected readonly selectedTenantId = signal<string>('');
+  protected readonly selectedBranchId = signal<string>('');
   protected readonly branches = signal<CatalogBranch[]>([]);
   protected readonly categories = signal<CatalogNameItem[]>([]);
   protected readonly sizes = signal<CatalogNameItem[]>([]);
@@ -67,14 +108,95 @@ export class CatalogPageComponent {
   protected readonly loading = signal(false);
   private recommendationsRequestVersion = 0;
 
+  protected readonly filteredBranches = computed(() => {
+    const tenantId = this.selectedTenantId();
+    if (!tenantId) return this.branches();
+    return this.branches().filter((b: any) => !b.tenant_id || b.tenant_id === tenantId);
+  });
+
+  protected readonly currentBranchDisplay = computed(() => {
+    const bId = this.selectedBranchId();
+    if (!bId) return '';
+    const b = this.branches().find((item) => item.id === bId);
+    if (!b) return '';
+    const tenant = this.tenants().find((t) => t.id === b.tenant_id);
+    return `${tenant?.name || 'Tienda'} — ${b.name} (${b.city})`;
+  });
+
+  protected readonly currentBranchProducts = computed(() => {
+    const bId = this.selectedBranchId();
+    if (!bId) return this.products();
+    return this.products().filter((p) => {
+      return (p.variants ?? []).some((v) => {
+        const stock = (v.branch_stocks ?? []).find((s) => s.branch_id === bId);
+        return stock ? stock.quantity > 0 : true;
+      });
+    });
+  });
+
+  protected readonly branchSections = computed<Array<{
+    branchId: string;
+    branchName: string;
+    cityName: string;
+    tenantName: string;
+    products: CatalogProduct[];
+  }>>(() => {
+    const targetBranches = this.filteredBranches();
+    const allProducts = this.products();
+    const sections: Array<{
+      branchId: string;
+      branchName: string;
+      cityName: string;
+      tenantName: string;
+      products: CatalogProduct[];
+    }> = [];
+
+    for (const b of targetBranches) {
+      const prods = allProducts.filter((p) => {
+        if (b.tenant_id && p.tenant_id && b.tenant_id !== p.tenant_id) {
+          return false;
+        }
+        return (p.variants ?? []).some((v) => {
+          const stock = (v.branch_stocks ?? []).find((s) => s.branch_id === b.id);
+          return stock ? stock.quantity > 0 : true;
+        });
+      });
+
+      if (prods.length > 0) {
+        const tenant = this.tenants().find((t) => t.id === b.tenant_id);
+        sections.push({
+          branchId: b.id,
+          branchName: b.name,
+          cityName: b.city,
+          tenantName: tenant?.name || prods[0]?.tenant_name || 'Tienda',
+          products: prods,
+        });
+      }
+    }
+    return sections;
+  });
+
   protected readonly form = this.fb.nonNullable.group({
     q: [''],
-    branch_id: [''],
     category_id: [''],
     size_id: [''],
     color_id: [''],
     season_id: [''],
     collection_id: [''],
+  });
+
+  protected readonly formFilterValues = signal(this.form.getRawValue());
+
+  protected readonly hasActiveFilters = computed(() => {
+    const v = this.formFilterValues();
+    return !!(
+      v.q?.trim() ||
+      v.category_id ||
+      v.size_id ||
+      v.color_id ||
+      v.season_id ||
+      v.collection_id
+    );
   });
 
   protected readonly branchSelectLabel = (branchId: string | null | undefined): string => {
@@ -116,33 +238,82 @@ export class CatalogPageComponent {
 
   constructor() {
     void this.loadData();
+
+    this.form.valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => {
+        this.formFilterValues.set(this.form.getRawValue());
+      });
+
+    this.form.valueChanges
+      .pipe(
+        debounceTime(250),
+        distinctUntilChanged((prev, curr) => JSON.stringify(prev) === JSON.stringify(curr)),
+        takeUntilDestroyed(),
+      )
+      .subscribe(() => {
+        void this.search(true);
+      });
   }
 
-  protected async search(): Promise<void> {
+  protected selectTenant(tenantId: string): void {
+    this.selectedTenantId.set(tenantId);
+    this.selectedBranchId.set('');
+    void this.search(true);
+  }
+
+  protected selectBranch(branchId: string): void {
+    this.selectedBranchId.set(branchId);
+    void this.search(true);
+  }
+
+  protected resetFilters(): void {
+    this.form.reset({
+      q: '',
+      category_id: '',
+      size_id: '',
+      color_id: '',
+      season_id: '',
+      collection_id: '',
+    });
+  }
+
+  protected clearSearchInput(): void {
+    this.form.controls.q.setValue('');
+  }
+
+  protected async search(silent = false): Promise<void> {
     this.loading.set(true);
     try {
       const value = this.form.getRawValue();
-      const response = await requestWithToast(
-        this.api.listProducts({
-          q: value.q || undefined,
-          branch_id: value.branch_id || undefined,
-          category_id: value.category_id || undefined,
-          size_id: value.size_id || undefined,
-          color_id: value.color_id || undefined,
-          season_id: value.season_id || undefined,
-          collection_id: value.collection_id || undefined,
-        }),
-        {
-          loading: 'Consultando catálogo...',
-          success: 'Catálogo actualizado.',
-          error: 'No se pudo consultar el catálogo.',
-        },
-      );
+      const params = {
+        q: value.q?.trim() || undefined,
+        tenant_id: this.selectedTenantId() || undefined,
+        branch_id: this.selectedBranchId() || undefined,
+        category_id: value.category_id || undefined,
+        size_id: value.size_id || undefined,
+        color_id: value.color_id || undefined,
+        season_id: value.season_id || undefined,
+        collection_id: value.collection_id || undefined,
+      };
+
+      const response = silent
+        ? await firstValueFrom(this.api.listProducts(params))
+        : await requestWithToast(
+            this.api.listProducts(params),
+            {
+              loading: 'Consultando catálogo...',
+              success: 'Catálogo actualizado.',
+              error: 'No se pudo consultar el catálogo.',
+            },
+          );
       this.products.set(response.data ?? []);
       this.ensureSelectedVariants();
       void this.loadRecommendations();
-    } catch {
-      // El toast de error ya se mostró con requestWithToast
+    } catch (error) {
+      if (silent) {
+        toast.error(getErrorMessage(error, 'No se pudo consultar el catálogo.'));
+      }
     } finally {
       this.loading.set(false);
     }
@@ -152,21 +323,164 @@ export class CatalogPageComponent {
     await this.search();
   }
 
-  protected async addSelectedVariantToCart(product: CatalogProduct): Promise<void> {
+  protected readonly conflictModal = signal<StoreConflictModal | null>(null);
+
+  protected resolveBranchInfo(
+    product: CatalogProduct,
+    variant: CatalogProductVariant,
+    preferredBranchId?: string,
+  ): { branchId: string; branchName: string; tenantName: string } {
+    const bId = preferredBranchId || this.selectedBranchId();
+    if (bId) {
+      const b = this.branches().find((item) => item.id === bId);
+      const bName = b ? `${b.name} (${b.city})` : 'Sucursal';
+      const tName =
+        (b ? this.tenants().find((t) => t.id === b.tenant_id)?.name : null) ||
+        product.tenant_name ||
+        'Tienda';
+      return { branchId: bId, branchName: bName, tenantName: tName };
+    }
+    const stock =
+      (variant.branch_stocks ?? []).find((s) => s.quantity > 0) ||
+      variant.branch_stocks?.[0];
+    if (stock) {
+      const b = this.branches().find((item) => item.id === stock.branch_id);
+      const tName =
+        (b ? this.tenants().find((t) => t.id === b.tenant_id)?.name : null) ||
+        product.tenant_name ||
+        'Tienda';
+      return {
+        branchId: stock.branch_id,
+        branchName: `${stock.branch_name} (${stock.city})`,
+        tenantName: tName,
+      };
+    }
+    const defB = this.filteredBranches()[0] || this.branches()[0];
+    const bName = defB ? `${defB.name} (${defB.city})` : 'Sucursal';
+    const tName = product.tenant_name || 'Tienda';
+    return { branchId: defB?.id || '', branchName: bName, tenantName: tName };
+  }
+
+  private getCartBranchId(): string {
+    try {
+      return localStorage.getItem('fashionstore_cart_branch_id') || '';
+    } catch {
+      return '';
+    }
+  }
+
+  private getCartBranchName(): string {
+    try {
+      return localStorage.getItem('fashionstore_cart_branch_name') || '';
+    } catch {
+      return '';
+    }
+  }
+
+  private setCartBranch(branchId: string, branchName: string): void {
+    try {
+      localStorage.setItem('fashionstore_cart_branch_id', branchId);
+      localStorage.setItem('fashionstore_cart_branch_name', branchName);
+    } catch {}
+  }
+
+  private clearCartBranch(): void {
+    try {
+      localStorage.removeItem('fashionstore_cart_branch_id');
+      localStorage.removeItem('fashionstore_cart_branch_name');
+    } catch {}
+  }
+
+  protected addToReservation(product: CatalogProduct, preferredBranchId?: string): void {
+    const variant = this.selectedVariant(product);
+    if (!variant) {
+      toast.warning('No se pudo identificar la variante.');
+      return;
+    }
+    const info = this.resolveBranchInfo(product, variant, preferredBranchId);
+    if (this.reservationDraft.hasBranchConflict(info.branchId)) {
+      const currentName = this.reservationDraft.selectedBranchName()
+        ? `${this.reservationDraft.selectedTenantName()} — ${this.reservationDraft.selectedBranchName()}`
+        : 'otra sucursal';
+      this.conflictModal.set({
+        type: 'reservation',
+        product,
+        variant,
+        newBranchId: info.branchId,
+        newBranchName: info.branchName,
+        newTenantName: info.tenantName,
+        currentName,
+      });
+      return;
+    }
+
+    this.reservationDraft.addItem(
+      product,
+      variant,
+      info.branchId,
+      info.branchName,
+      info.tenantName,
+    );
+  }
+
+  protected getReservationCount(product: CatalogProduct): number {
+    return this.reservationDraft.getQuantityForProduct(product);
+  }
+
+  protected async addSelectedVariantToCart(
+    product: CatalogProduct,
+    preferredBranchId?: string,
+  ): Promise<void> {
     const variant = this.selectedVariant(product);
     if (!variant) {
       toast.warning('Selecciona una variante primero.');
       return;
     }
 
+    const info = this.resolveBranchInfo(product, variant, preferredBranchId);
+    const cartBranchId = this.getCartBranchId();
+
+    if (cartBranchId && info.branchId && cartBranchId !== info.branchId) {
+      const currentName = this.getCartBranchName() || 'otra sucursal';
+      this.conflictModal.set({
+        type: 'cart',
+        product,
+        variant,
+        newBranchId: info.branchId,
+        newBranchName: info.branchName,
+        newTenantName: info.tenantName,
+        currentName,
+      });
+      return;
+    }
+
+    await this.executeAddToCart(product, variant, info.branchId, info.branchName);
+  }
+
+  protected async executeAddToCart(
+    product: CatalogProduct,
+    variant: CatalogProductVariant,
+    branchId: string,
+    branchName: string,
+  ): Promise<void> {
     this.addingToCartByProduct.update((current) => ({ ...current, [product.id]: true }));
     try {
       void this.recordProductView(product.id);
-      await requestWithToast(this.cartApi.addItem({ variant_id: variant.id, branch_id: this.form.getRawValue().branch_id || undefined, quantity: 1 }), {
-        loading: 'Agregando al carrito...',
-        success: 'Producto agregado al carrito.',
-        error: 'No se pudo agregar al carrito.',
-      });
+      await requestWithToast(
+        this.cartApi.addItem({
+          variant_id: variant.id,
+          branch_id: branchId || undefined,
+          quantity: 1,
+        }),
+        {
+          loading: 'Agregando al carrito...',
+          success: 'Producto agregado al carrito.',
+          error: 'No se pudo agregar al carrito.',
+        },
+      );
+      if (branchId) {
+        this.setCartBranch(branchId, branchName);
+      }
     } catch {
       // El toast de error ya se mostró con requestWithToast
     } finally {
@@ -174,9 +488,47 @@ export class CatalogPageComponent {
     }
   }
 
+  protected closeConflictModal(): void {
+    this.conflictModal.set(null);
+  }
+
+  protected async confirmConflictSwitch(): Promise<void> {
+    const modal = this.conflictModal();
+    if (!modal) return;
+
+    if (modal.type === 'reservation') {
+      this.reservationDraft.resetAndAddItem(
+        modal.product,
+        modal.variant,
+        modal.newBranchId,
+        modal.newBranchName,
+        modal.newTenantName,
+      );
+      this.closeConflictModal();
+      return;
+    }
+
+    if (modal.type === 'cart') {
+      try {
+        await firstValueFrom(this.cartApi.clearCart());
+        this.clearCartBranch();
+        this.closeConflictModal();
+        await this.executeAddToCart(
+          modal.product,
+          modal.variant,
+          modal.newBranchId,
+          modal.newBranchName,
+        );
+      } catch (err) {
+        toast.error(getErrorMessage(err, 'No se pudo vaciar el carrito.'));
+        this.closeConflictModal();
+      }
+    }
+  }
+
   private async loadData(): Promise<void> {
     try {
-      const [branches, categories, sizes, colors, seasons, collections, products] =
+      const [branches, categories, sizes, colors, seasons, collections, products, tenants] =
         await Promise.all([
           firstValueFrom(this.api.listPublicBranches()),
           firstValueFrom(this.api.listCategories()),
@@ -185,6 +537,7 @@ export class CatalogPageComponent {
           firstValueFrom(this.api.listSeasons()),
           firstValueFrom(this.api.listCollections()),
           firstValueFrom(this.api.listProducts()),
+          firstValueFrom(this.tenantApi.listPublicTenants()),
         ]);
       this.branches.set(branches.data ?? []);
       this.categories.set(categories.data ?? []);
@@ -193,6 +546,7 @@ export class CatalogPageComponent {
       this.seasons.set(seasons.data ?? []);
       this.collections.set(collections.data ?? []);
       this.products.set(products.data ?? []);
+      this.tenants.set(tenants.data ?? []);
       this.ensureSelectedVariants();
       void this.loadRecommendations();
     } catch (error) {
@@ -276,17 +630,29 @@ export class CatalogPageComponent {
     };
   }
 
+  protected hasDiscount(variant: CatalogProductVariant | null): boolean {
+    if (!variant || !variant.original_price) return false;
+    return Number(variant.original_price) > Number(variant.price);
+  }
+
   protected availabilityLabel(
     variant: CatalogProductVariant | null,
     branchId: string | null,
   ): string {
-    if (!branchId) {
-      return 'Selecciona una sucursal para ver stock';
-    }
     if (!variant) {
       return 'Sin variante seleccionada';
     }
-    return `${variant.branch_quantity ?? 0} unidades`;
+    if (branchId) {
+      return `${this.branchName(branchId)}: ${variant.branch_quantity ?? 0} unidades`;
+    }
+    const stocks = variant.branch_stocks ?? [];
+    if (stocks.length === 0) {
+      return (variant.branch_quantity ?? 0) > 0
+        ? `${variant.branch_quantity} unidades`
+        : 'Agotado en todas las sucursales';
+    }
+    const details = stocks.map((s) => `${s.branch_name} (${s.quantity} u.)`).join(' · ');
+    return `${details} (Total: ${variant.total_stock ?? variant.branch_quantity ?? 0} u.)`;
   }
 
   protected variantStock(variant: CatalogProductVariant | null): number | null {
@@ -360,10 +726,10 @@ export class CatalogPageComponent {
     try {
       const response = await firstValueFrom(
         this.api.getCollaborativeRecommendations(user.id, {
-          branch_id: this.form.getRawValue().branch_id || undefined,
+          branch_id: this.selectedBranchId() || undefined,
         }),
       );
-      const catalog = await firstValueFrom(this.api.listProducts({ branch_id: this.form.getRawValue().branch_id || undefined }));
+      const catalog = await firstValueFrom(this.api.listProducts({ branch_id: this.selectedBranchId() || undefined }));
       const productById = new Map((catalog.data ?? []).map((product) => [product.id, product]));
       if (requestVersion !== this.recommendationsRequestVersion) return;
       this.recommendedProducts.set(
@@ -382,7 +748,7 @@ export class CatalogPageComponent {
       const product = this.products().find((item) => item.id === productId);
       await firstValueFrom(this.api.recordProductView(productId, {
         variant_id: product ? this.selectedVariant(product)?.id : undefined,
-        branch_id: this.form.getRawValue().branch_id || undefined,
+        branch_id: this.selectedBranchId() || undefined,
       }));
     } catch {
       // View telemetry must never block the normal cart flow.
