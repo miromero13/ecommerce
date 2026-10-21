@@ -32,7 +32,7 @@ export class HlmSelectItem {
   constructor() {
     classes(
       () =>
-        "data-highlighted:bg-accent data-highlighted::text-accent-foreground not-data-[variant=destructive]:data-highlighted:**:text-accent-foreground relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-disabled:pointer-events-none data-disabled:opacity-50 [&_ng-icon]:pointer-events-none [&_ng-icon]:shrink-0 [&_ng-icon:not([class*='text-'])]:text-base *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
+        "text-slate-900 bg-white hover:bg-slate-100 hover:text-slate-900 data-highlighted:bg-slate-100 data-highlighted:text-slate-900 not-data-[variant=destructive]:data-highlighted:**:text-slate-900 relative flex w-full cursor-pointer items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-disabled:pointer-events-none data-disabled:opacity-50 [&_ng-icon]:pointer-events-none [&_ng-icon]:shrink-0 [&_ng-icon:not([class*='text-'])]:text-base *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
     );
   }
 }
