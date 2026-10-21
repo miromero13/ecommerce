@@ -161,10 +161,10 @@ El desarrollo del segundo parcial atiende a cuatro problemáticas operativas y d
 
 | **ID** | **Caso de Uso** | **Módulo** | **Estado** | **Actor Principal** | **Plataforma** |
 | :--- | :--- | :--- | :---: | :--- | :--- |
-| **CU1** | **Plataforma Multi-Tenant (Migración Integral)** | M1: SaaS y Seguridad | Pendiente | Superadministrador | Web |
-| **CU2** | **Gestión de Planes y Suscripciones B2B** | M1: SaaS y Seguridad | Pendiente | Superadmin, Admin Tenant | Web |
+| **CU1** | **Plataforma Multi-Tenant (Migración Integral)** | M1: SaaS y Seguridad | **Hecho** | Superadministrador | Web |
+| **CU2** | **Gestión de Planes y Suscripciones B2B** | M1: SaaS y Seguridad | **Hecho** | Superadmin, Admin Tenant | Web |
 | **CU3** | **Gestión Granular de Roles y Permisos (RBAC)** | M1: SaaS y Seguridad | Pendiente | Superadmin, Admin Tenant | Web |
-| **CU4** | **Landing Page y Catálogo de Planes** | M1: SaaS y Seguridad | Pendiente | Prospecto B2B | Web |
+| **CU4** | **Landing Page y Catálogo de Planes** | M1: SaaS y Seguridad | **Hecho** | Prospecto B2B | Web |
 | **CU5** | **Usar Vestidor Virtual en Tiempo Real** | M2: Inteligencia Artificial | **Hecho** | Cliente | Móvil / Web |
 | **CU6** | **Recibir Recomendaciones de Catálogo** | M2: Inteligencia Artificial | **Hecho** | Cliente | Ambas |
 | **CU7** | **Consultar Asistente Virtual / Chatbot** | M2: Inteligencia Artificial | **Hecho** | Cliente | Ambas |

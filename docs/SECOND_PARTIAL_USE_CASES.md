@@ -134,9 +134,9 @@ Para mantener la cohesión y respetar **estrictamente la estructura existente de
 | **ID** | **Caso de uso** | **Módulo** | **Estado en Código** | **Actor(es) principal** | **Plataforma** |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **CU1** | **Plataforma Multi-Tenant (Multi-empresa)** | M1: Plataforma SaaS y Seguridad | **Hecho** | Superadministrador | Web |
-| **CU2** | **Gestión de planes y suscripciones B2B** | M1: Plataforma SaaS y Seguridad | **Pendiente** | Superadministrador, Administrador | Web |
+| **CU2** | **Gestión de planes y suscripciones B2B** | M1: Plataforma SaaS y Seguridad | **Hecho** | Superadministrador, Administrador | Web |
 | **CU3** | **Gestión granular de roles y permisos (RBAC)** | M1: Plataforma SaaS y Seguridad | **Pendiente** | Superadministrador, Administrador | Web |
-| **CU4** | **Landing page y catálogo de planes** | M1: Plataforma SaaS y Seguridad | **Pendiente** | Prospecto / Marca B2B | Web |
+| **CU4** | **Landing page y catálogo de planes** | M1: Plataforma SaaS y Seguridad | **Hecho** | Prospecto / Marca B2B | Web |
 | **CU5** | **Usar vestidor virtual en tiempo real** | M2: Inteligencia Artificial | **Hecho** | Cliente | Móvil / Web |
 | **CU6** | **Recibir recomendaciones de catálogo** | M2: Inteligencia Artificial | **Hecho** | Cliente | Ambas |
 | **CU7** | **Consultar asistente virtual / Chatbot** | M2: Inteligencia Artificial | **Hecho** | Cliente | Ambas |
@@ -258,7 +258,7 @@ PATCH /api/saas/tenants/{tenant_id}
 #### CU2 – Gestión de planes y suscripciones B2B
 * **Módulo:** M1: Plataforma SaaS y Seguridad
 * **Actor Principal:** Superadministrador (crea planes), Administrador de Tenant (contrata y paga)
-* **Estado:** Pendiente | **Plataforma:** Web
+* **Estado:** **Hecho** | **Plataforma:** Web
 * **Descripción Funcional:** Gestión de tiers de suscripción mensual/anual con límites operativos (número de sucursales, prendas y acceso a vestidor virtual IA) e integración con Stripe Checkout y Webhooks.
 
 ##### Endpoints Backend
@@ -341,12 +341,12 @@ Response 200 OK:
 * **Mensajes en UI:** Notificación de éxito: `"Suscripción activada con éxito."` Alerta de límite: `"Límite de sucursales alcanzado para el plan actual. Actualizá tu suscripción."` (obtenida directamente del `response.message`).
 
 ##### Checklist de Implementación
-- [ ] Backend: Crear tablas `saas_plans` y `tenant_subscriptions` con foreign key `tenant_id`.
-- [ ] Backend: Implementar cliente de Stripe Billing y endpoint webhook para confirmación de pagos.
-- [ ] Backend: Validador de límites del plan activo antes de permitir crear sucursales o prendas.
-- [ ] Frontend: Crear `SubscriptionApiService` y componente de tarjetas comparativas de precios.
-- [ ] Frontend: Desarrollar pantalla `subscription-page` con estado actual de la suscripción y botón a Stripe.
-- [ ] Verificación: Simular pago en sandbox de Stripe y corroborar activación de límites en la cuenta.
+- [x] Backend: Crear tablas `saas_plans` y `tenant_subscriptions` con foreign key `tenant_id`.
+- [x] Backend: Implementar cliente de Mailtrap API, servicio de onboarding y pasarela de pago simulada (Sandbox) con creación atómica de tenant y admin aleatorio.
+- [x] Backend: Validador de límites del plan activo antes de permitir crear sucursales (`max_branches`) o prendas (`max_garments`).
+- [x] Frontend: Crear `SubscriptionApiService` y componente de tarjetas comparativas de precios con 3 planes escalonados (Básico, Profesional con 2D, Enterprise con 3D AR).
+- [x] Frontend: Desarrollar pantalla `subscription-page` con estado actual de la suscripción, barras de cuotas y enlace a planes.
+- [x] Verificación: Simular pago en sandbox, validar alta directa en superadmin y corroborar activación de límites en la cuenta.
 
 ---
 
@@ -435,7 +435,7 @@ POST /api/rbac/users/{user_id}/roles
 #### CU4 – Landing page y catálogo de planes
 * **Módulo:** M1: Plataforma SaaS y Seguridad
 * **Actor Principal:** Prospecto / Marca B2B (Visitante público)
-* **Estado:** Pendiente | **Plataforma:** Web
+* **Estado:** **Hecho** | **Plataforma:** Web
 * **Descripción Funcional:** Portal web público institucional para captación comercial de marcas B2B. Presenta los diferenciales del software (IA, Vestidor Virtual, Omnicanalidad), tabla comparativa de planes y formulario para iniciar prueba gratuita de 14 días (*Free Trial*).
 
 ##### Endpoints Backend
@@ -497,10 +497,10 @@ Response 422 Unprocessable Entity:
 * **Mensajes en UI:** La alerta de éxito muestra el mensaje del backend: `"Prueba gratuita iniciada. Te enviamos un correo con los datos de acceso."`
 
 ##### Checklist de Implementación
-- [ ] Backend: Endpoint público `/api/public/register-tenant-trial` con creación automática de tenant en estado `trial`.
-- [ ] Frontend: Desarrollar página pública `landing-page` responsiva con sección hero, features y tabla de precios.
-- [ ] Frontend: Formulario reactivo de registro de prueba con validación inmediata de subdominio.
-- [ ] Verificación: Registrar una nueva organización desde la landing y verificar inicio de sesión en su subdominio.
+- [x] Backend: Endpoints públicos `/api/saas/plans` y `/api/saas/subscriptions/purchase-simulated` con aprovisionamiento atómico y credenciales por correo.
+- [x] Frontend: Desarrollar página pública `landing-page` responsiva con sección hero, features, spotlight del vestidor virtual 2D/3D y tabla de precios.
+- [x] Frontend: Flujo de onboarding reactivo con selección de plan, ciclo, datos de empresa/admin y pasarela simulada.
+- [x] Verificación: Registrar una nueva organización desde la landing/onboarding y verificar inicio de sesión con las credenciales generadas.
 
 ---
 
