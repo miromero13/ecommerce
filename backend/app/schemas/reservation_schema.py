@@ -3,7 +3,7 @@ from decimal import Decimal
 from enum import Enum
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class ReservationStatusEnum(str, Enum):
@@ -26,6 +26,19 @@ class ReservationCreate(BaseModel):
     branch_id: UUID
     visit_date: date
     items: list[ReservationItemCreate] = Field(min_length=1)
+
+    @field_validator("visit_date", mode="before")
+    @classmethod
+    def parse_visit_date(cls, v):
+        if isinstance(v, str):
+            if "T" in v:
+                v = v.split("T")[0]
+            elif " " in v:
+                v = v.split(" ")[0]
+            return date.fromisoformat(v)
+        if isinstance(v, datetime):
+            return v.date()
+        return v
 
 
 class ReservationDecisionRequest(BaseModel):

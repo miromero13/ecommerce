@@ -266,6 +266,7 @@ def create_reservation(db: Session, user_id: UUID, payload: ReservationCreate):
 
     with db.begin_nested():
         reservation = Reservation(
+            tenant_id=branch.tenant_id,
             branch_id=payload.branch_id,
             user_id=user_id,
             visit_date=payload.visit_date,
