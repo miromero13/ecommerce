@@ -15,6 +15,7 @@ enum UserGender {
 }
 
 enum UserRole {
+  superadministrador('superadministrador'),
   administrador('administrador'),
   cliente('cliente'),
   proveedor('proveedor'),
@@ -93,7 +94,6 @@ class LoginRequest {
     return {
       'email': email.trim(),
       'password': password,
-      'rol': UserRole.cliente.value,
     };
   }
 }

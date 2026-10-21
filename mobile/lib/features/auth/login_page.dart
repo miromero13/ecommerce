@@ -189,6 +189,9 @@ class _LoginPageState extends State<LoginPage> {
   void _continueAsGuest() {
     widget.controller.continueAsGuest();
     widget.onGuest?.call();
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop(false);
+    }
   }
 
   Future<void> _submit() async {
@@ -203,33 +206,46 @@ class _LoginPageState extends State<LoginPage> {
       _errorMessage = null;
     });
 
-    final success = _registering
-        ? await widget.controller.register(
-            RegisterRequest(
-              name: _nameController.text,
-              email: _emailController.text,
-              password: _passwordController.text,
-              gender: _gender,
-            ),
-          )
-        : await widget.controller.login(
-            LoginRequest(
-              email: _emailController.text,
-              password: _passwordController.text,
-            ),
-          );
+    try {
+      final success = _registering
+          ? await widget.controller.register(
+              RegisterRequest(
+                name: _nameController.text,
+                email: _emailController.text,
+                password: _passwordController.text,
+                gender: _gender,
+              ),
+            )
+          : await widget.controller.login(
+              LoginRequest(
+                email: _emailController.text,
+                password: _passwordController.text,
+              ),
+            );
 
-    if (!mounted) return;
-    if (success) {
-      Navigator.of(context).pop(true);
-      return;
+      if (!mounted) return;
+      if (success) {
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop(true);
+        }
+        return;
+      }
+
+      setState(() {
+        _errorMessage =
+            widget.controller.errorMessage ?? 'No se pudo autenticar.';
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Error de conexión: $e';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _submitting = false);
+      }
     }
-
-    setState(() {
-      _submitting = false;
-      _errorMessage =
-          widget.controller.errorMessage ?? 'No se pudo autenticar.';
-    });
   }
 
   String? _validate() {

@@ -141,7 +141,8 @@ class AuthController extends ChangeNotifier {
       _clearMemory();
       _setState(
         AuthStatus.error,
-        errorMessage: 'La sesión no pertenece a un cliente activo.',
+        errorMessage:
+            'Esta aplicación móvil es exclusiva para clientes. Para administración, ingresa desde la plataforma web.',
       );
       return false;
     }
