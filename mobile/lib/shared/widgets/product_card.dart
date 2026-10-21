@@ -19,6 +19,7 @@ class ProductCard extends StatelessWidget {
     this.onAddToCart,
     this.onReserve,
     this.isAddingToCart = false,
+    this.imageAspectRatio = 1.2,
   });
 
   final String name;
@@ -32,6 +33,7 @@ class ProductCard extends StatelessWidget {
   final VoidCallback? onAddToCart;
   final VoidCallback? onReserve;
   final bool isAddingToCart;
+  final double imageAspectRatio;
 
   @override
   Widget build(BuildContext context) {
@@ -42,11 +44,12 @@ class ProductCard extends StatelessWidget {
       padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Stack(
             children: [
               AspectRatio(
-                aspectRatio: 1,
+                aspectRatio: imageAspectRatio,
                 child: ProductImage(
                   imageUrl: imageUrl,
                   imageUrls: variantImageUrls,
@@ -57,8 +60,8 @@ class ProductCard extends StatelessWidget {
               ),
               if (badge != null || hasDiscount)
                 Positioned(
-                  top: 10,
-                  left: 10,
+                  top: 8,
+                  left: 8,
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -75,8 +78,8 @@ class ProductCard extends StatelessWidget {
                   ),
                 ),
               Positioned(
-                top: 8,
-                right: 8,
+                top: 6,
+                right: 6,
                 child: Material(
                   color: Colors.white.withValues(alpha: 0.9),
                   shape: const CircleBorder(),
@@ -85,10 +88,10 @@ class ProductCard extends StatelessWidget {
                     customBorder: const CircleBorder(),
                     onTap: onTap,
                     child: const Padding(
-                      padding: EdgeInsets.all(6),
+                      padding: EdgeInsets.all(5),
                       child: Icon(
                         Icons.visibility_outlined,
-                        size: 18,
+                        size: 16,
                         color: Colors.black87,
                       ),
                     ),
@@ -98,9 +101,10 @@ class ProductCard extends StatelessWidget {
             ],
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+            padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 if (tenantName != null && tenantName!.isNotEmpty) ...[
                   Container(
@@ -114,51 +118,56 @@ class ProductCard extends StatelessWidget {
                     ),
                     child: Text(
                       '🏪 $tenantName',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 10,
+                        fontSize: 9.5,
                         fontWeight: FontWeight.w600,
                         color: Colors.grey.shade700,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 3),
                 ],
                 Text(
                   name,
-                  maxLines: 2,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(
                     context,
-                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                  ).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
                 ProductPrice(price: price, originalPrice: originalPrice),
                 if (onAddToCart != null || onReserve != null) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   if (onAddToCart != null)
                     SizedBox(
                       width: double.infinity,
-                      height: 32,
+                      height: 28,
                       child: FilledButton.icon(
                         style: FilledButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
                           textStyle: const TextStyle(
-                            fontSize: 11,
+                            fontSize: 10.5,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                         onPressed: isAddingToCart ? null : onAddToCart,
                         icon: isAddingToCart
                             ? const SizedBox(
-                                width: 12,
-                                height: 12,
+                                width: 10,
+                                height: 10,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
                                 ),
                               )
                             : const Icon(
                                 Icons.shopping_cart_outlined,
-                                size: 14,
+                                size: 13,
                               ),
                         label: Text(
                           isAddingToCart ? 'Agregando...' : 'Al carrito',
@@ -169,19 +178,19 @@ class ProductCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     SizedBox(
                       width: double.infinity,
-                      height: 30,
+                      height: 28,
                       child: OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
                           textStyle: const TextStyle(
-                            fontSize: 11,
+                            fontSize: 10.5,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                         onPressed: onReserve,
                         icon: const Icon(
                           Icons.bookmark_border_outlined,
-                          size: 14,
+                          size: 13,
                         ),
                         label: const Text('Reservar'),
                       ),

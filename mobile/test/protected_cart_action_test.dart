@@ -90,6 +90,11 @@ class _FakeCartApi extends CartApi {
   int? quantity;
 
   @override
+  Future<CartOperationResult> getCurrent() async {
+    return CartOperationResult(cart: _cart, message: '');
+  }
+
+  @override
   Future<CartOperationResult> addItem({
     required String variantId,
     required int quantity,

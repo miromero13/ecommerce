@@ -154,6 +154,7 @@ class _CatalogPageState extends State<CatalogPage> {
         Expanded(
           child: AppButton(
             label: 'Reservas',
+            variant: AppButtonVariant.outlined,
             icon: const Icon(Icons.event_available_outlined),
             onPressed: () => Navigator.of(context).pushNamed(
               AppRoutes.reservationCreate,
@@ -418,7 +419,9 @@ class _CatalogPageState extends State<CatalogPage> {
               message: 'No encontramos productos con esos filtros.',
             ),
           )
-        else if (hasSpecificBranch || hasSearchOrFilters) ...[
+        else if (hasSpecificBranch ||
+            hasSearchOrFilters ||
+            _controller.branchSections.isEmpty) ...[
           if (hasSpecificBranch) ...[
             _selectedBranchHeader(),
             const SizedBox(height: 16),
@@ -553,13 +556,13 @@ class _CatalogPageState extends State<CatalogPage> {
 
   Widget _branchSectionCarousel(CatalogBranchSection section) {
     return SizedBox(
-      height: 330,
+      height: 350,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: section.products.length,
         separatorBuilder: (_, _) => const SizedBox(width: 14),
         itemBuilder: (context, index) => SizedBox(
-          width: 210,
+          width: 195,
           child: _productCard(
             section.products[index],
             preferredBranchId: section.branchId,
@@ -571,13 +574,13 @@ class _CatalogPageState extends State<CatalogPage> {
 
   Widget _recommendationCarousel() {
     return SizedBox(
-      height: 330,
+      height: 350,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: _recommendedProducts.length,
         separatorBuilder: (_, _) => const SizedBox(width: 14),
         itemBuilder: (context, index) => SizedBox(
-          width: 210,
+          width: 195,
           child: _productCard(_recommendedProducts[index]),
         ),
       ),
@@ -589,10 +592,10 @@ class _CatalogPageState extends State<CatalogPage> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 260,
-        mainAxisSpacing: 16,
-        crossAxisSpacing: 16,
-        childAspectRatio: 0.52,
+        maxCrossAxisExtent: 240,
+        mainAxisSpacing: 14,
+        crossAxisSpacing: 14,
+        childAspectRatio: 0.58,
       ),
       itemCount: _controller.products.length,
       itemBuilder: (context, index) => _productCard(

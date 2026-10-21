@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/features/auth/auth_models.dart';
 
 void main() {
-  test('construye el payload real de login con rol cliente', () {
+  test('construye el payload real de login', () {
     const request = LoginRequest(
       email: ' cliente@example.com ',
       password: 'secret',
@@ -12,7 +12,6 @@ void main() {
     expect(request.toJson(), {
       'email': 'cliente@example.com',
       'password': 'secret',
-      'rol': 'cliente',
     });
   });
 

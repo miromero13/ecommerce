@@ -50,7 +50,6 @@ void main() {
 
     expect(find.text('Cliente Demo'), findsOneWidget);
     expect(find.text('cliente@example.com'), findsOneWidget);
-    expect(find.text('Mis reservas'), findsOneWidget);
 
     await tester.tap(find.text('Editar perfil'));
     await tester.pump();

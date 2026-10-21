@@ -142,7 +142,7 @@ void main() {
     );
 
     await tester.tap(find.text('Agregar desde detalle'));
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(find.text('Prenda agregada a la reserva.'), findsOneWidget);
 
     await tester.tap(find.widgetWithText(OutlinedButton, 'Reservas'));
