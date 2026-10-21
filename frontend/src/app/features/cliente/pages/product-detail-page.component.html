@@ -1,99 +1,177 @@
 <section class="mx-auto max-w-5xl space-y-5">
-  <button hlmBtn type="button" variant="default" (click)="goBack()">
-    ← Volver
-  </button>
+  <!-- Barra Superior: Volver al Catálogo + Íconos de Reservas y Carrito con space-between -->
+  <div class="flex items-center justify-between gap-4">
+    <button hlmBtn type="button" (click)="goBack()">
+      ← Volver al catálogo
+    </button>
+
+    <div class="flex items-center gap-2">
+      <a
+        hlmBtn
+        variant="outline"
+        size="icon"
+        routerLink="/app/cliente/reservations"
+        aria-label="Ir a reservas"
+        title="Ver mi reserva"
+        class="relative text-slate-800 hover:text-slate-950 cursor-pointer"
+      >
+        <ng-icon name="lucideCalendar" class="text-slate-800" />
+        @if (reservationDraft.count() > 0) {
+          <span class="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-slate-900 px-1 text-[9px] font-bold text-white shadow-xs">
+            {{ reservationDraft.count() }}
+          </span>
+        }
+      </a>
+
+      <a
+        hlmBtn
+        variant="outline"
+        size="icon"
+        routerLink="/app/cliente/cart"
+        aria-label="Ir al carrito"
+        title="Ir al carrito"
+        class="text-slate-800 hover:text-slate-950 cursor-pointer"
+      >
+        <ng-icon name="lucideShoppingCart" class="text-slate-800" />
+      </a>
+    </div>
+  </div>
 
   @if (loading()) {
-    <p class="text-sm text-slate-500">Cargando producto...</p>
+    <div class="rounded-2xl border border-slate-200 bg-white p-12 text-center text-sm text-slate-500 shadow-xs">
+      Cargando prenda...
+    </div>
   } @else if (product(); as product) {
-    <article hlmCard class="bg-white shadow-sm">
-      <div class="grid gap-6 px-6 lg:grid-cols-2 lg:items-start">
+    <article hlmCard class="bg-white shadow-sm rounded-2xl border border-slate-200/80 p-0 overflow-hidden">
+      <div class="grid gap-8 p-6 lg:grid-cols-2 lg:items-start">
 
         <!-- Imagen: arriba en móvil, derecha en escritorio -->
-        <div class="order-1 lg:order-2 rounded-xl shadow-sm border border-slate-200 bg-slate-50">
+        <div class="order-1 lg:order-2 rounded-2xl overflow-hidden shadow-sm border border-slate-200 bg-slate-50">
           @if (selectedVariant()?.image_url; as image) {
             <img
               [src]="image"
               [alt]="product.name"
-              class="h-100 w-full rounded-xl object-cover"
+              class="h-[440px] w-full object-cover object-center"
             />
+          } @else {
+            <div class="flex h-[440px] w-full items-center justify-center text-sm text-slate-400">
+              Sin imagen disponible
+            </div>
           }
         </div>
 
         <!-- Información: abajo en móvil, izquierda en escritorio -->
-        <div class="order-2 space-y-5 lg:order-1">
-          <div>
-            <h1 hlmCardTitle class="text-2xl">
+        <div class="order-2 space-y-6 lg:order-1">
+          <!-- Bloque de Cabecera: Marca, Título y Descripción -->
+          <div class="space-y-2">
+            @if (product.tenant_name) {
+              <div>
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-800">
+                  🏪 {{ product.tenant_name }}
+                </span>
+              </div>
+            }
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
               {{ product.name }}
             </h1>
 
-            <p hlmCardDescription>
-              {{ product.description ?? 'Sin descripción' }}
+            <p class="text-sm text-slate-600 leading-relaxed">
+              {{ product.description ?? 'Prenda confeccionada con materiales de alta calidad.' }}
             </p>
-          </div>
 
-          <div class="space-y-2">
-            <h2 class="font-semibold">Variantes</h2>
-
-            <div class="grid gap-3 sm:grid-cols-2">
-              @for (variant of variants(); track variant.id) {
-                <button
-                  type="button"
-                  class="rounded-xl border p-3 text-left transition-colors cursor-pointer"
-                  [class.border-slate-900]="selectedVariant()?.id === variant.id"
-                  [class.bg-slate-50]="selectedVariant()?.id === variant.id"
-                  (click)="selectVariant(variant.id)"
-                >
-                  <div class="flex items-center justify-between gap-2">
-                    <span class="font-medium">
-                      {{ variantLabel(variant) }}
-                    </span>
-
-                    <span hlmBadge>
-                      {{ variant.status }}
-                    </span>
-                  </div>
-
-                  <p class="mt-1 text-sm text-slate-500">
-                    SKU: {{ variant.sku }}
-                  </p>
-
-                  <p class="text-lg font-semibold">
-                    {{ variant.price }}
-                  </p>
-
-                  <p class="text-sm text-slate-500">
-                    Disponibilidad:
-                    {{
-                      variant.branch_quantity === null ||
-                      variant.branch_quantity === undefined
-                        ? 'Selecciona una sucursal'
-                        : variant.branch_quantity + ' unidades'
-                    }}
-                  </p>
-                </button>
-              }
+            <div class="flex items-center gap-4 text-xs text-slate-500 pt-3 border-t border-slate-100">
+              <p><strong class="font-semibold text-slate-700">Categoría:</strong> {{ categoryName() }}</p>
+              <span>·</span>
+              <p><strong class="font-semibold text-slate-700">Colección:</strong> {{ collectionName() }}</p>
             </div>
           </div>
 
+          <!-- Bloque de Precio y Disponibilidad (UN SOLO LUGAR, SIN DUPLICADOS) -->
           @if (selectedVariant(); as variant) {
-            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm">
-              <p>
-                <strong>Variante seleccionada:</strong>
-                {{ variantLabel(variant) }}
-              </p>
+            <div class="rounded-2xl bg-slate-50/80 p-4 border border-slate-100 flex items-center justify-between">
+              <div>
+                <span class="text-xs uppercase font-bold text-slate-400 tracking-wider">Precio</span>
+                <div class="flex items-baseline gap-2 mt-0.5">
+                  @if (hasDiscount(variant)) {
+                    <s class="text-sm text-slate-400">{{ variant.original_price }}</s>
+                    <span class="text-2xl font-black text-emerald-700">{{ variant.price }}</span>
+                    <span class="inline-flex items-center rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                      OFERTA
+                    </span>
+                  } @else {
+                    <span class="text-2xl font-black text-slate-900">{{ variant.price }}</span>
+                  }
+                </div>
+              </div>
 
-              <p>
-                <strong>SKU:</strong>
-                {{ variant.sku }}
-              </p>
-
-              <p>
-                <strong>Precio:</strong>
-                {{ variant.price }}
-              </p>
+              <!-- Disponibilidad y SKU en un solo lugar -->
+              <div class="text-right">
+                <div class="flex items-center justify-end gap-1.5">
+                  <span
+                    class="size-2 rounded-full"
+                    [class.bg-emerald-500]="getVariantQuantity(variant) > 0"
+                    [class.bg-rose-500]="getVariantQuantity(variant) <= 0"
+                  ></span>
+                  <span
+                    class="text-xs font-bold"
+                    [class.text-emerald-700]="getVariantQuantity(variant) > 0"
+                    [class.text-rose-600]="getVariantQuantity(variant) <= 0"
+                  >
+                    {{ availabilityText(variant) }}
+                  </span>
+                </div>
+                <p class="text-[11px] font-mono text-slate-400 mt-0.5">SKU: {{ variant.sku }}</p>
+              </div>
             </div>
-            <div class="space-y-5 gap-4 space-x-1">
+
+            <!-- Selector de Variantes (Píldoras interactivas limpias de Talla / Color) -->
+            <div class="space-y-2.5">
+              <label class="text-xs font-bold uppercase tracking-wider text-slate-700">Talla y Color</label>
+
+              <div class="flex flex-wrap gap-2 pt-4">
+                @for (v of variants(); track v.id) {
+                  <button
+                    type="button"
+                    (click)="selectVariant(v.id)"
+                    class="inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer shadow-xs"
+                    [ngClass]="selectedVariant()?.id === v.id ? 'border-slate-900 bg-slate-900 text-white shadow-sm ring-1 ring-slate-900' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'"
+                  >
+                    <span>{{ variantLabel(v) }}</span>
+                    @if (getVariantQuantity(v) <= 0) {
+                      <span class="text-[10px] text-rose-500 font-normal">(Agotado)</span>
+                    }
+                  </button>
+                }
+              </div>
+            </div>
+
+            <!-- Botones de Acción: Carrito y Reserva -->
+            <div class="space-y-2">
+              <button
+                hlmBtn
+                type="button"
+                class="w-full flex items-center justify-center gap-2 cursor-pointer"
+                [disabled]="addingToCart() || getVariantQuantity(variant) <= 0"
+                (click)="addToCart()"
+              >
+                <ng-icon name="lucideShoppingCart"></ng-icon>
+                <span>{{ addingToCart() ? 'Agregando...' : (getVariantQuantity(variant) > 0 ? 'Agregar al carrito' : 'Agotado') }}</span>
+              </button>
+
+              <button
+                hlmBtn
+                variant="outline"
+                type="button"
+                class="w-full flex items-center justify-center gap-2 cursor-pointer border-slate-200 hover:bg-slate-50 text-slate-700 shadow-xs"
+                (click)="addToReservation()"
+              >
+                <ng-icon name="lucideBookmark" style="--ng-icon__size: 16px;"></ng-icon>
+                <span>{{ getReservationCount() > 0 ? 'En reserva (' + getReservationCount() + ')' : 'Agregar para reservar' }}</span>
+              </button>
+            </div>
+
+            <!-- Módulos de IA y Probador Virtual -->
+            <div class="flex flex-row gap-4 justify-center items-center">
               <app-virtual-try-on [productName]="product.name" [garmentImageUrl]="variant.image_url ?? product.image_url ?? null" />
               <app-detector-ropa [variantId]="variant.id" [garmentPoints]="variant.garment_points" [garmentImageUrl]="variant.image_url ?? product.image_url ?? null" />
               <app-detector-mediapipe [variantId]="variant.id" [garmentPoints]="variant.garment_points" [garmentImageUrl]="variant.image_url ?? product.image_url ?? null" />
@@ -104,8 +182,79 @@
       </div>
     </article>
   } @else {
-    <p class="text-sm text-slate-500">
+    <div class="rounded-2xl border border-slate-200 bg-white p-12 text-center text-sm text-slate-500 shadow-xs">
       Producto no encontrado.
-    </p>
+    </div>
+  }
+
+  <!-- ========================================================================= -->
+  <!-- MODAL DE CAMBIO DE SUCURSAL / TIENDA (ESTILO PEDIDOSYA) -->
+  <!-- ========================================================================= -->
+  @if (conflictModal(); as modal) {
+    <div
+      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm animate-in fade-in duration-200"
+      (click)="closeConflictModal()"
+    >
+      <section
+        hlmCard
+        class="w-full max-w-md bg-white shadow-2xl rounded-2xl p-6 space-y-4"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="flex items-center gap-3">
+          <div class="flex size-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 shadow-2xs shrink-0">
+            <ng-icon name="lucideAlertTriangle" style="--ng-icon__size: 24px;" />
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-slate-900">
+              {{ modal.type === 'cart' ? '¿Deseás cambiar de sucursal de compra?' : '¿Deseás cambiar de sucursal de reserva?' }}
+            </h3>
+            <p class="text-xs text-slate-500">
+              Las prendas están sujetas al stock físico de cada tienda.
+            </p>
+          </div>
+        </div>
+
+        <div class="rounded-xl border border-amber-200/60 bg-amber-50/50 p-3.5 text-xs text-slate-700 space-y-1.5 leading-relaxed">
+          @if (modal.type === 'cart') {
+            <p>
+              Tu carrito actual contiene prendas de <strong>{{ modal.currentName }}</strong>.
+            </p>
+            <p>
+              Si agregás esta prenda, se vaciará el carrito anterior para comenzar tu compra en:
+              <span class="block mt-1 font-bold text-slate-900">🏪 {{ modal.newTenantName }} — {{ modal.newBranchName }}</span>
+            </p>
+          } @else {
+            <p>
+              Tu reserva actual contiene prendas apartadas en <strong>{{ modal.currentName }}</strong>.
+            </p>
+            <p>
+              Si agregás esta prenda, se iniciará una nueva reserva en:
+              <span class="block mt-1 font-bold text-slate-900">🏪 {{ modal.newTenantName }} — {{ modal.newBranchName }}</span>
+            </p>
+          }
+        </div>
+
+        <div class="flex items-center justify-end gap-2.5 pt-2">
+          <button
+            hlmBtn
+            variant="outline"
+            type="button"
+            class="cursor-pointer text-xs"
+            (click)="closeConflictModal()"
+          >
+            {{ modal.type === 'cart' ? 'Mantener carrito actual' : 'Mantener reserva actual' }}
+          </button>
+
+          <button
+            hlmBtn
+            type="button"
+            class="cursor-pointer bg-slate-900 text-white text-xs font-bold"
+            (click)="confirmConflictSwitch()"
+          >
+            {{ modal.type === 'cart' ? 'Vaciar y cambiar sucursal' : 'Iniciar nueva reserva' }}
+          </button>
+        </div>
+      </section>
+    </div>
   }
 </section>

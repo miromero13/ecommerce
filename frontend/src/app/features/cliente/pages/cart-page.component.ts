@@ -17,6 +17,8 @@ import { downloadSimplePdf } from '../../../core/utils/simple-pdf.util';
 import { Cart } from '../../shared/models/cart.model';
 import { CatalogBranch } from '../../shared/models/catalog.model';
 import { CartApiService } from '../../shared/services/cart-api.service';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideMapPin, lucideStore } from '@ng-icons/lucide';
 import { CatalogApiService } from '../../shared/services/catalog-api.service';
 import { Order } from '../../shared/models/order.model';
 import { CheckoutApiService } from '../../shared/services/checkout-api.service';
@@ -30,7 +32,17 @@ type StripeCheckout = {
 @Component({
   selector: 'app-cart-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, HlmButton, HlmTable, ...HlmBadgeImports, ...HlmCardImports, ...HlmInputImports],
+  imports: [
+    CommonModule,
+    RouterLink,
+    NgIcon,
+    HlmButton,
+    HlmTable,
+    ...HlmBadgeImports,
+    ...HlmCardImports,
+    ...HlmInputImports,
+  ],
+  providers: [provideIcons({ lucideStore, lucideMapPin })],
   templateUrl: './cart-page.component.html',
 })
 export class CartPageComponent {
@@ -46,6 +58,9 @@ export class CartPageComponent {
     if (host && this.stripePaymentElement) this.stripePaymentElement.mount(host.nativeElement);
   }
 
+  protected readonly cartBranchId = signal<string>(this.getCartBranchId());
+  protected readonly cartBranchName = signal<string>(this.getCartBranchName());
+
   protected readonly cart = signal<Cart | null>(null);
   protected readonly branches = signal<CatalogBranch[]>([]);
   protected readonly lastOrder = signal<Order | null>(null);
@@ -54,7 +69,7 @@ export class CartPageComponent {
   protected readonly loading = signal(false);
   protected readonly updatingItemId = signal<string | null>(null);
   protected readonly checkoutMethod = signal<'cash' | 'stripe'>('cash');
-  protected readonly pickupBranchId = signal('');
+  protected readonly pickupBranchId = signal(this.getCartBranchId());
   protected readonly checkingOut = signal(false);
   protected readonly couponCode = signal('');
 
@@ -112,6 +127,7 @@ export class CartPageComponent {
         this.cartApi.clearCart(),
         { loading: 'Vaciando carrito...', success: 'Carrito vaciado.', error: 'No se pudo vaciar el carrito.' },
       );
+      this.clearCartBranch();
       this.cart.set(response.data ?? null);
     } catch {
       // toast handled by requestWithToast
@@ -167,6 +183,7 @@ export class CartPageComponent {
         );
         this.lastOrder.set(response.data ?? null);
         this.clearStripeCheckout();
+        this.clearCartBranch();
       } else {
         await this.startStripeCheckout(pickupBranchId);
       }
@@ -281,10 +298,40 @@ export class CartPageComponent {
   private async loadBranches(): Promise<void> {
     try {
       const response = await firstValueFrom(this.catalogApi.listPublicBranches());
-      this.branches.set(response.data ?? []);
+      const branchList = response.data ?? [];
+      this.branches.set(branchList);
+      if (this.cartBranchId() && branchList.some((b) => b.id === this.cartBranchId())) {
+        this.pickupBranchId.set(this.cartBranchId());
+      }
     } catch (error) {
       toast.error(getErrorMessage(error, 'No se pudieron cargar las sucursales.'));
     }
+  }
+
+  private getCartBranchId(): string {
+    try {
+      return localStorage.getItem('fashionstore_cart_branch_id') || '';
+    } catch {
+      return '';
+    }
+  }
+
+  private getCartBranchName(): string {
+    try {
+      return localStorage.getItem('fashionstore_cart_branch_name') || '';
+    } catch {
+      return '';
+    }
+  }
+
+  protected clearCartBranch(): void {
+    try {
+      localStorage.removeItem('fashionstore_cart_branch_id');
+      localStorage.removeItem('fashionstore_cart_branch_name');
+    } catch {}
+    this.cartBranchId.set('');
+    this.cartBranchName.set('');
+    this.pickupBranchId.set('');
   }
 
   private async startStripeCheckout(pickupBranchId: string): Promise<void> {
