@@ -76,6 +76,7 @@ class Product {
     this.sizeId,
     this.colorId,
     this.branchQuantity,
+    this.tenantId,
     this.variants,
   });
 
@@ -93,6 +94,7 @@ class Product {
   final String? sizeId;
   final String? colorId;
   final int? branchQuantity;
+  final String? tenantId;
   final List<ProductVariant>? variants;
 
   factory Product.fromJson(Map<String, dynamic> json) {
@@ -114,6 +116,7 @@ class Product {
       sizeId: _optionalString(json, 'size_id'),
       colorId: _optionalString(json, 'color_id'),
       branchQuantity: _optionalInt(json, 'branch_quantity'),
+      tenantId: _optionalString(json, 'tenant_id'),
       variants: rawVariants == null
           ? null
           : _parseList(rawVariants, ProductVariant.fromJson),
@@ -228,6 +231,35 @@ class Collection {
   }
 }
 
+class Tenant {
+  const Tenant({
+    required this.id,
+    required this.name,
+    required this.slug,
+    this.country,
+    this.currency,
+    this.logoUrl,
+  });
+
+  final String id;
+  final String name;
+  final String slug;
+  final String? country;
+  final String? currency;
+  final String? logoUrl;
+
+  factory Tenant.fromJson(Map<String, dynamic> json) {
+    return Tenant(
+      id: _requiredString(json, 'id'),
+      name: _requiredString(json, 'name'),
+      slug: _requiredString(json, 'slug'),
+      country: _optionalString(json, 'country'),
+      currency: _optionalString(json, 'currency'),
+      logoUrl: _optionalString(json, 'logo_url'),
+    );
+  }
+}
+
 class Branch {
   const Branch({
     required this.id,
@@ -235,6 +267,7 @@ class Branch {
     required this.city,
     required this.isDefault,
     required this.isActive,
+    this.tenantId,
   });
 
   final String id;
@@ -242,6 +275,7 @@ class Branch {
   final String city;
   final bool isDefault;
   final bool isActive;
+  final String? tenantId;
 
   factory Branch.fromJson(Map<String, dynamic> json) {
     return Branch(
@@ -250,6 +284,7 @@ class Branch {
       city: _requiredString(json, 'city'),
       isDefault: _requiredBool(json, 'is_default'),
       isActive: _requiredBool(json, 'is_active'),
+      tenantId: _optionalString(json, 'tenant_id'),
     );
   }
 }

@@ -9,8 +9,41 @@ class SessionStorage {
   static const _accessTokenKey = 'access_token';
   static const _userKey = 'session_user';
   static const _roleKey = 'session_role';
+  static const _cartBranchIdKey = 'cart_branch_id';
+  static const _cartBranchNameKey = 'cart_branch_name';
+  static const _cartTenantNameKey = 'cart_tenant_name';
 
   final FlutterSecureStorage _storage;
+
+  Future<void> saveCartContext({
+    required String branchId,
+    required String branchName,
+    required String tenantName,
+  }) async {
+    await _storage.write(key: _cartBranchIdKey, value: branchId);
+    await _storage.write(key: _cartBranchNameKey, value: branchName);
+    await _storage.write(key: _cartTenantNameKey, value: tenantName);
+  }
+
+  Future<Map<String, String>?> readCartContext() async {
+    final branchId = await _storage.read(key: _cartBranchIdKey);
+    if (branchId == null || branchId.isEmpty) return null;
+    final branchName = await _storage.read(key: _cartBranchNameKey) ?? '';
+    final tenantName = await _storage.read(key: _cartTenantNameKey) ?? '';
+    return {
+      'branch_id': branchId,
+      'branch_name': branchName,
+      'tenant_name': tenantName,
+    };
+  }
+
+  Future<void> clearCartContext() async {
+    await Future.wait([
+      _storage.delete(key: _cartBranchIdKey),
+      _storage.delete(key: _cartBranchNameKey),
+      _storage.delete(key: _cartTenantNameKey),
+    ]);
+  }
 
   Future<void> saveSession({
     required String accessToken,
@@ -56,6 +89,9 @@ class SessionStorage {
       _storage.delete(key: _accessTokenKey),
       _storage.delete(key: _userKey),
       _storage.delete(key: _roleKey),
+      _storage.delete(key: _cartBranchIdKey),
+      _storage.delete(key: _cartBranchNameKey),
+      _storage.delete(key: _cartTenantNameKey),
     ]);
   }
 

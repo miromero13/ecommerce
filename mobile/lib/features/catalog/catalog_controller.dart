@@ -14,6 +14,7 @@ class CatalogController extends ChangeNotifier {
   CatalogStatus status = CatalogStatus.idle;
   String? errorMessage;
   List<Product> products = const [];
+  List<Tenant> tenants = const [];
   List<Category> categories = const [];
   List<Size> sizes = const [];
   List<CatalogColor> colors = const [];
@@ -21,6 +22,7 @@ class CatalogController extends ChangeNotifier {
   List<Collection> collections = const [];
   List<Branch> branches = const [];
   String searchQuery = '';
+  String? tenantId;
   String? branchId;
   String? categoryId;
   String? sizeId;
@@ -28,17 +30,36 @@ class CatalogController extends ChangeNotifier {
   String? seasonId;
   String? collectionId;
 
+  List<Branch> get filteredBranches {
+    if (tenantId == null || tenantId!.isEmpty) {
+      return branches;
+    }
+    return branches.where((b) => b.tenantId == tenantId).toList(growable: false);
+  }
+
+  bool get hasActiveFilters =>
+      searchQuery.isNotEmpty ||
+      (tenantId != null && tenantId!.isNotEmpty) ||
+      (branchId != null && branchId!.isNotEmpty) ||
+      (categoryId != null && categoryId!.isNotEmpty) ||
+      (sizeId != null && sizeId!.isNotEmpty) ||
+      (colorId != null && colorId!.isNotEmpty) ||
+      (seasonId != null && seasonId!.isNotEmpty) ||
+      (collectionId != null && collectionId!.isNotEmpty);
+
   Future<void> load() async {
     status = CatalogStatus.loading;
     errorMessage = null;
     notifyListeners();
 
     try {
-      branches = await _api.getBranches();
-      branchId ??= branches
-          .where((branch) => branch.isDefault && branch.isActive)
-          .firstOrNull
-          ?.id;
+      final initialResults = await Future.wait([
+        _api.getTenants(),
+        _api.getBranches(),
+      ]);
+      tenants = initialResults[0] as List<Tenant>;
+      branches = initialResults[1] as List<Branch>;
+
       await Future.wait([_loadProducts(), _loadFilters()]);
       status = CatalogStatus.ready;
       notifyListeners();
@@ -50,6 +71,7 @@ class CatalogController extends ChangeNotifier {
   }
 
   Future<void> updateFilters({
+    String? tenantId,
     String? branchId,
     String? categoryId,
     String? sizeId,
@@ -57,12 +79,41 @@ class CatalogController extends ChangeNotifier {
     String? seasonId,
     String? collectionId,
   }) async {
-    this.branchId = branchId;
+    if (tenantId != this.tenantId) {
+      this.tenantId = tenantId;
+      // If branch does not belong to new tenant, reset branch
+      if (branchId == null && this.branchId != null) {
+        final matches = filteredBranches.any((b) => b.id == this.branchId);
+        if (!matches) {
+          this.branchId = null;
+        }
+      } else {
+        this.branchId = branchId;
+      }
+    } else {
+      this.branchId = branchId;
+    }
+
     this.categoryId = categoryId;
     this.sizeId = sizeId;
     this.colorId = colorId;
     this.seasonId = seasonId;
     this.collectionId = collectionId;
+    await _reloadProducts();
+  }
+
+  Future<void> selectTenant(String? id) async {
+    final newTenantId = (id == null || id.isEmpty) ? null : id;
+    if (newTenantId == tenantId) return;
+    tenantId = newTenantId;
+    branchId = null;
+    await _reloadProducts();
+  }
+
+  Future<void> selectBranch(String? id) async {
+    final newBranchId = (id == null || id.isEmpty) ? null : id;
+    if (newBranchId == branchId) return;
+    branchId = newBranchId;
     await _reloadProducts();
   }
 
@@ -73,12 +124,20 @@ class CatalogController extends ChangeNotifier {
 
   Future<void> clearFilters() {
     searchQuery = '';
-    return updateFilters();
+    tenantId = null;
+    branchId = null;
+    categoryId = null;
+    sizeId = null;
+    colorId = null;
+    seasonId = null;
+    collectionId = null;
+    return _reloadProducts();
   }
 
   Future<void> _loadProducts() async {
     products = await _api.getProducts(
       query: searchQuery,
+      tenantId: tenantId,
       branchId: branchId,
       categoryId: categoryId,
       sizeId: sizeId,

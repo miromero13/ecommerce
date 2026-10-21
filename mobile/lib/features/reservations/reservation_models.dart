@@ -160,9 +160,17 @@ class ReservationDraftItem {
 }
 
 class ReservationArguments {
-  const ReservationArguments({this.items = const []});
+  const ReservationArguments({
+    this.items = const [],
+    this.branchId,
+    this.branchName,
+    this.tenantName,
+  });
 
   final List<ReservationDraftItem> items;
+  final String? branchId;
+  final String? branchName;
+  final String? tenantName;
 }
 
 String formatReservationDate(DateTime date) {

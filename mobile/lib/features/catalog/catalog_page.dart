@@ -88,7 +88,9 @@ class _CatalogPageState extends State<CatalogPage> {
               ),
               const SizedBox(height: 20),
               _shortcuts(),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
+              _tenantSelector(),
+              const SizedBox(height: 16),
               _searchField(),
               const SizedBox(height: 12),
               _branchSelector(),
@@ -156,12 +158,78 @@ class _CatalogPageState extends State<CatalogPage> {
     );
   }
 
+  Widget _tenantSelector() {
+    if (_controller.tenants.isEmpty) return const SizedBox.shrink();
+
+    final isAllSelected =
+        _controller.tenantId == null || _controller.tenantId!.isEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Tiendas y Marcas',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey,
+          ),
+        ),
+        const SizedBox(height: 8),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: FilterChip(
+                  label: const Text('Todas las tiendas'),
+                  selected: isAllSelected,
+                  onSelected: (_) => _controller.selectTenant(null),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    side: BorderSide(
+                      color: isAllSelected
+                          ? Theme.of(context).colorScheme.primary
+                          : Colors.grey.shade300,
+                    ),
+                  ),
+                ),
+              ),
+              for (final tenant in _controller.tenants)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: FilterChip(
+                    label: Text(tenant.name),
+                    selected: _controller.tenantId == tenant.id,
+                    onSelected: (_) => _controller.selectTenant(tenant.id),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      side: BorderSide(
+                        color: _controller.tenantId == tenant.id
+                            ? Theme.of(context).colorScheme.primary
+                            : Colors.grey.shade300,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _branchSelector() {
+    final branches = _controller.filteredBranches;
+    if (branches.isEmpty) return const SizedBox.shrink();
+
     return DropdownButtonFormField<String>(
+      key: ValueKey('${_controller.tenantId}_${_controller.branchId}'),
       initialValue: _controller.branchId ?? '',
       isExpanded: true,
       decoration: const InputDecoration(
-        labelText: 'Sucursal',
+        labelText: 'Sucursal física',
         prefixIcon: Icon(Icons.location_on_outlined),
       ),
       items: [
@@ -169,7 +237,7 @@ class _CatalogPageState extends State<CatalogPage> {
           value: '',
           child: Text('Todas las sucursales', overflow: TextOverflow.ellipsis),
         ),
-        ..._controller.branches.map(
+        ...branches.map(
           (branch) => DropdownMenuItem(
             value: branch.id,
             child: Text(
@@ -181,7 +249,7 @@ class _CatalogPageState extends State<CatalogPage> {
       ],
       onChanged: _controller.status == CatalogStatus.loading
           ? null
-          : (value) => _updateFilters(branchId: value),
+          : (value) => _controller.selectBranch(value),
     );
   }
 
@@ -431,6 +499,7 @@ class _CatalogPageState extends State<CatalogPage> {
         sizes: _controller.sizes,
         colors: _controller.colors,
         branches: _controller.branches,
+        tenants: _controller.tenants,
         branchId: _controller.branchId,
         reservationArguments: ReservationArguments(
           items: List.of(_reservationItems),

@@ -10,6 +10,7 @@ import '../../shared/widgets/app_snack_bar.dart';
 import '../../shared/widgets/product_image.dart';
 import '../auth/auth_controller.dart';
 import '../auth/login_dialog.dart';
+import '../catalog/catalog_models.dart';
 import 'reservation_controller.dart';
 import 'reservation_models.dart';
 
@@ -47,6 +48,7 @@ class _ReservationCreatePageState extends State<ReservationCreatePage> {
         widget.controller ??
         ReservationController(authController: widget.authController);
     _items = [...?widget.arguments?.items];
+    _branchId = widget.arguments?.branchId;
     widget.authController.addListener(_handleAuthChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) => _handleAuthChanged());
   }
@@ -138,30 +140,85 @@ class _ReservationCreatePageState extends State<ReservationCreatePage> {
         children: [
           _summaryCard(context),
           const SizedBox(height: 16),
-          AppCard(
-            child: DropdownButtonFormField<String>(
-              isExpanded: true,
-              initialValue: branches.any((branch) => branch.id == _branchId)
-                  ? _branchId
-                  : null,
-              decoration: const InputDecoration(
-                labelText: 'Sucursal para visitar',
-                prefixIcon: Icon(Icons.store_outlined),
-              ),
-              hint: const Text('Selecciona una sucursal'),
-              items: [
-                for (final branch in branches)
-                  DropdownMenuItem(
-                    value: branch.id,
-                    child: Text(
-                      '${branch.name} · ${branch.city}',
-                      overflow: TextOverflow.ellipsis,
+          if (widget.arguments?.branchId != null)
+            AppCard(
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.storefront_outlined,
+                    color: Theme.of(context).colorScheme.primary,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.arguments?.tenantName ?? 'Tienda afiliada',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Sucursal: ${widget.arguments?.branchName ?? _resolvedBranchName(branches)}',
+                          style: TextStyle(
+                            color: Colors.grey.shade700,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-              ],
-              onChanged: (value) => setState(() => _branchId = value),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: Colors.green.shade300),
+                    ),
+                    child: const Text(
+                      'Fijada',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.green,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            AppCard(
+              child: DropdownButtonFormField<String>(
+                isExpanded: true,
+                initialValue: branches.any((branch) => branch.id == _branchId)
+                    ? _branchId
+                    : null,
+                decoration: const InputDecoration(
+                  labelText: 'Sucursal para visitar',
+                  prefixIcon: Icon(Icons.store_outlined),
+                ),
+                hint: const Text('Selecciona una sucursal'),
+                items: [
+                  for (final branch in branches)
+                    DropdownMenuItem(
+                      value: branch.id,
+                      child: Text(
+                        '${branch.name} · ${branch.city}',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                ],
+                onChanged: (value) => setState(() => _branchId = value),
+              ),
             ),
-          ),
           const SizedBox(height: 12),
           AppCard(
             onTap: _selectDate,
@@ -243,6 +300,14 @@ class _ReservationCreatePageState extends State<ReservationCreatePage> {
         ],
       ),
     );
+  }
+
+  String _resolvedBranchName(Iterable<Branch> branches) {
+    final targetId = widget.arguments?.branchId;
+    if (targetId == null) return 'Sucursal seleccionada';
+    final branch = branches.where((b) => b.id == targetId).firstOrNull;
+    if (branch != null) return '${branch.name} · ${branch.city}';
+    return targetId;
   }
 
   void _goToCatalog() {

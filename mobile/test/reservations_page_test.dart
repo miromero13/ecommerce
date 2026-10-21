@@ -101,9 +101,11 @@ void main() {
     expect(find.text('Blusa demo'), findsOneWidget);
     expect(find.text('Pantalón demo'), findsOneWidget);
     await tester.tap(find.text('Selecciona una sucursal'));
-    await tester.pump();
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Sucursal Central · La Paz'));
-    await tester.pump();
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView).first, const Offset(0, -300));
+    await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, 'Confirmar reserva'));
     await tester.pumpAndSettle();
 
@@ -131,23 +133,30 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: buildAppTheme(),
-        home: ReservationCreatePage(
-          authController: authController,
-          controller: controller,
-          arguments: const ReservationArguments(
-            items: [
-              ReservationDraftItem(
-                variantId: 'variant-id',
-                quantity: 1,
-                productName: 'Blusa demo',
-              ),
-            ],
-          ),
-        ),
+        initialRoute: '/create',
         onGenerateRoute: (settings) {
           routeName = settings.name;
-          arguments = settings.arguments as ReservationArguments;
+          if (settings.name == '/create') {
+            return MaterialPageRoute<void>(
+              settings: settings,
+              builder: (_) => ReservationCreatePage(
+                authController: authController,
+                controller: controller,
+                arguments: const ReservationArguments(
+                  items: [
+                    ReservationDraftItem(
+                      variantId: 'variant-id',
+                      quantity: 1,
+                      productName: 'Blusa demo',
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+          arguments = settings.arguments as ReservationArguments?;
           return MaterialPageRoute<void>(
+            settings: settings,
             builder: (_) => const SizedBox.shrink(),
           );
         },
@@ -155,7 +164,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Agregar otra prenda'));
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Agregar otra prenda'));
     await tester.pumpAndSettle();
 
     expect(routeName, AppRoutes.catalog);
@@ -257,7 +266,7 @@ class _FakeCatalogApi extends CatalogApi {
   _FakeCatalogApi() : super();
 
   @override
-  Future<List<Branch>> getBranches() async => const [
+  Future<List<Branch>> getBranches({String? tenantId}) async => const [
     Branch(
       id: 'branch-id',
       name: 'Sucursal Central',

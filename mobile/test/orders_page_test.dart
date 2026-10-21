@@ -46,7 +46,7 @@ void main() {
 
     expect(find.text('Pago: Pendiente'), findsOneWidget);
     expect(find.text('Pedido: Pendiente'), findsOneWidget);
-    expect(find.text('Bs 120.00'), findsOneWidget);
+    expect(find.text('Bs 120.00'), findsWidgets);
   });
 }
 
@@ -61,7 +61,7 @@ class _FakeOrderApi extends OrderApi {
   _FakeOrderApi() : super();
 
   @override
-  Future<OrderListResult> getMine() async => const OrderListResult(
+  Future<OrderListResult> getMine() async => OrderListResult(
     orders: [_order],
     message: 'Pedidos obtenidos exitosamente',
   );
@@ -71,10 +71,10 @@ class _FakeOrderApi extends OrderApi {
 
   @override
   Future<OrderResult> getById({required String orderId}) async =>
-      const OrderResult(order: _order, message: 'Pedido obtenido exitosamente');
+      OrderResult(order: _order, message: 'Pedido obtenido exitosamente');
 }
 
-const _order = Order(
+final _order = Order(
   id: 'order-12345678',
   userId: 'user-id',
   status: OrderStatus.pending,

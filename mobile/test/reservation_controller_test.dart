@@ -84,7 +84,7 @@ class _FakeCatalogApi extends CatalogApi {
   _FakeCatalogApi() : super();
 
   @override
-  Future<List<Branch>> getBranches() async => const [
+  Future<List<Branch>> getBranches({String? tenantId}) async => const [
     Branch(
       id: 'branch-id',
       name: 'Sucursal Central',

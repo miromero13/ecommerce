@@ -125,6 +125,8 @@ void main() {
           status: ProductStatus.active,
           branchQuantity: 4,
           imageUrl: 'variant-image',
+          sizeId: 'size-m',
+          colorId: 'color-red',
         ),
       ],
     );
@@ -180,6 +182,9 @@ void main() {
     await tester.drag(find.byType(ListView).first, const Offset(0, -700));
     await tester.pump();
     await tester.tap(find.text('M · Rojo · SKU-2'));
+    await tester.pump();
+    await tester.drag(find.byType(ListView).first, const Offset(0, -300));
+    await tester.pump();
     await tester.tap(find.byTooltip('Aumentar cantidad'));
     await tester.tap(find.widgetWithText(OutlinedButton, 'Reservar prenda'));
     await tester.pumpAndSettle();

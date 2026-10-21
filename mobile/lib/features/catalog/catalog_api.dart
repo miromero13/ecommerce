@@ -17,6 +17,7 @@ class CatalogApi {
 
   Future<List<Product>> getProducts({
     String? query,
+    String? tenantId,
     String? branchId,
     String? categoryId,
     String? sizeId,
@@ -29,12 +30,27 @@ class CatalogApi {
     if (trimmedQuery != null && trimmedQuery.isNotEmpty) {
       queryParameters['q'] = trimmedQuery;
     }
-    if (branchId != null) queryParameters['branch_id'] = branchId;
-    if (categoryId != null) queryParameters['category_id'] = categoryId;
-    if (sizeId != null) queryParameters['size_id'] = sizeId;
-    if (colorId != null) queryParameters['color_id'] = colorId;
-    if (seasonId != null) queryParameters['season_id'] = seasonId;
-    if (collectionId != null) queryParameters['collection_id'] = collectionId;
+    if (tenantId != null && tenantId.isNotEmpty) {
+      queryParameters['tenant_id'] = tenantId;
+    }
+    if (branchId != null && branchId.isNotEmpty) {
+      queryParameters['branch_id'] = branchId;
+    }
+    if (categoryId != null && categoryId.isNotEmpty) {
+      queryParameters['category_id'] = categoryId;
+    }
+    if (sizeId != null && sizeId.isNotEmpty) {
+      queryParameters['size_id'] = sizeId;
+    }
+    if (colorId != null && colorId.isNotEmpty) {
+      queryParameters['color_id'] = colorId;
+    }
+    if (seasonId != null && seasonId.isNotEmpty) {
+      queryParameters['season_id'] = seasonId;
+    }
+    if (collectionId != null && collectionId.isNotEmpty) {
+      queryParameters['collection_id'] = collectionId;
+    }
 
     return _getList(
       'catalog/products',
@@ -108,8 +124,20 @@ class CatalogApi {
     return _getList('catalog/collections', parser: Collection.fromJson);
   }
 
-  Future<List<Branch>> getBranches() {
-    return _getList('branches/public', parser: Branch.fromJson);
+  Future<List<Tenant>> getTenants() {
+    return _getList('saas/tenants/public', parser: Tenant.fromJson);
+  }
+
+  Future<List<Branch>> getBranches({String? tenantId}) {
+    final queryParameters = <String, dynamic>{};
+    if (tenantId != null && tenantId.isNotEmpty) {
+      queryParameters['tenant_id'] = tenantId;
+    }
+    return _getList(
+      'branches/public',
+      queryParameters: queryParameters.isEmpty ? null : queryParameters,
+      parser: Branch.fromJson,
+    );
   }
 
   Future<List<T>> _getList<T>(

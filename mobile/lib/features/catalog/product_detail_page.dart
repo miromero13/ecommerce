@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/network/api_exception.dart';
+import '../../core/storage/session_storage.dart';
 import '../auth/auth_controller.dart';
 import '../auth/login_dialog.dart';
 import '../cart/cart_api.dart';
@@ -22,6 +23,7 @@ class ProductDetailArguments {
     this.sizes = const [],
     this.colors = const [],
     this.branches = const [],
+    this.tenants = const [],
     this.branchId,
     this.reservationArguments,
   });
@@ -30,6 +32,7 @@ class ProductDetailArguments {
   final List<Size> sizes;
   final List<CatalogColor> colors;
   final List<Branch> branches;
+  final List<Tenant> tenants;
   final String? branchId;
   final ReservationArguments? reservationArguments;
 }
@@ -310,10 +313,84 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     return widget.authController != null && product != null && variant != null;
   }
 
-  void _reserveGarment() {
+  Branch? _resolveBranch() {
+    final args = widget.arguments;
+    if (args == null) return null;
+    if (args.branchId != null) {
+      final match =
+          args.branches.where((b) => b.id == args.branchId).firstOrNull;
+      if (match != null) return match;
+    }
+    final productTenantId = _product?.tenantId;
+    if (productTenantId != null) {
+      final match =
+          args.branches.where((b) => b.tenantId == productTenantId).firstOrNull;
+      if (match != null) return match;
+    }
+    return args.branches.firstOrNull;
+  }
+
+  String _resolveTenantName(Branch? branch) {
+    final args = widget.arguments;
+    final tenantId = _product?.tenantId ?? branch?.tenantId;
+    if (tenantId != null && args != null) {
+      final match = args.tenants.where((t) => t.id == tenantId).firstOrNull;
+      if (match != null) return match.name;
+    }
+    return 'Tienda';
+  }
+
+  Future<void> _reserveGarment() async {
     final product = _product;
     final variant = _selectedVariant;
     if (!_canReserve(product, variant)) return;
+
+    final branch = _resolveBranch();
+    final tenantName = _resolveTenantName(branch);
+    final targetBranchId = branch?.id;
+    final targetBranchName =
+        branch != null ? '${branch.name} (${branch.city})' : 'Sucursal';
+
+    final reservationArgs = widget.arguments?.reservationArguments;
+    final currentBranchId = reservationArgs?.branchId;
+    final currentBranchName = reservationArgs?.branchName;
+    final currentTenantName = reservationArgs?.tenantName;
+
+    List<ReservationDraftItem> items = [...?reservationArgs?.items];
+
+    if (items.isNotEmpty &&
+        currentBranchId != null &&
+        targetBranchId != null &&
+        currentBranchId != targetBranchId) {
+      final currentFullName =
+          currentTenantName != null && currentTenantName.isNotEmpty
+              ? '$currentTenantName — $currentBranchName'
+              : (currentBranchName ?? 'otra sucursal');
+
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (dialogCtx) => AlertDialog(
+          title: const Text('¿Cambiar de sucursal?'),
+          content: Text(
+            'Ya tenés prendas para reservar en $currentFullName.\n\n'
+            'Si continuás, se reiniciará tu reserva con la nueva sucursal $tenantName — $targetBranchName.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogCtx).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogCtx).pop(true),
+              child: const Text('Cambiar y reservar'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirm != true) return;
+      items = [];
+    }
 
     final selectedItem = ReservationDraftItem(
       variantId: variant!.id,
@@ -322,7 +399,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       variantSku: variant.sku.isEmpty ? product.sku : variant.sku,
       imageUrl: variant.imageUrl ?? product.imageUrl,
     );
-    final items = [...?widget.arguments?.reservationArguments?.items];
+
     final existingIndex = items.indexWhere(
       (item) => item.variantId == selectedItem.variantId,
     );
@@ -339,7 +416,13 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       );
     }
 
-    final updatedArguments = ReservationArguments(items: items);
+    final updatedArguments = ReservationArguments(
+      items: items,
+      branchId: targetBranchId ?? currentBranchId,
+      branchName: targetBranchName,
+      tenantName: tenantName,
+    );
+    if (!mounted) return;
     Navigator.of(context).pop(updatedArguments);
   }
 
@@ -348,6 +431,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     final variant = _selectedVariant;
     final authController = widget.authController;
     if (product == null || variant == null || authController == null) return;
+
+    final branch = _resolveBranch();
+    final tenantName = _resolveTenantName(branch);
+    final targetBranchId = branch?.id;
+    final targetBranchName =
+        branch != null ? '${branch.name} (${branch.city})' : 'Sucursal';
 
     setState(() => _addingToCart = true);
     try {
@@ -361,16 +450,74 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         }
       }
 
+      final sessionStorage = const SessionStorage();
+      final cartContext = await sessionStorage.readCartContext();
+      final cartBranchId = cartContext?['branch_id'];
+      final cartBranchName = cartContext?['branch_name'];
+      final cartTenantName = cartContext?['tenant_name'];
+
       final api =
           widget.cartApi ??
           CartApi(
             tokenProvider: () => authController.accessToken,
             onUnauthorized: authController.handleUnauthorized,
           );
+
+      final currentCartResult = await api.getCurrent();
+      final currentCart = currentCartResult.cart;
+
+      if (!mounted) return;
+
+      if (currentCart.items.isNotEmpty &&
+          cartBranchId != null &&
+          targetBranchId != null &&
+          cartBranchId != targetBranchId) {
+        final currentFullName =
+            cartTenantName != null && cartTenantName.isNotEmpty
+                ? '$cartTenantName — $cartBranchName'
+                : (cartBranchName ?? 'otra sucursal');
+
+        final confirm = await showDialog<bool>(
+          context: context,
+          builder: (dialogCtx) => AlertDialog(
+            title: const Text('¿Cambiar de sucursal?'),
+            content: Text(
+              'Tenés productos de $currentFullName en tu carrito.\n\n'
+              'Si continuás, se vaciará el carrito actual para comprar en $tenantName — $targetBranchName.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogCtx).pop(false),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(dialogCtx).pop(true),
+                child: const Text('Vaciar y agregar'),
+              ),
+            ],
+          ),
+        );
+
+        if (!mounted || confirm != true) {
+          return;
+        }
+
+        await api.clear();
+      }
+
       final result = await api.addItem(
         variantId: variant.id,
         quantity: _quantity,
       );
+
+      if (targetBranchId != null) {
+        await sessionStorage.saveCartContext(
+          branchId: targetBranchId,
+          branchName: targetBranchName,
+          tenantName: tenantName,
+        );
+      }
+
       if (mounted) {
         AppSnackBar.show(
           context,

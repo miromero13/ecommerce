@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../app/theme.dart';
+import '../../core/storage/session_storage.dart';
 import '../../shared/widgets/app_button.dart';
 import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/app_empty_view.dart';
@@ -134,7 +135,9 @@ class _CartPageState extends State<CartPage> {
             title: 'Tu carrito',
             subtitle: _itemCountLabel(cart.itemCount),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
+          _originBanner(context),
+          const SizedBox(height: 12),
           for (final item in cart.items) ...[
             _CartItemCard(
               item: item,
@@ -165,6 +168,72 @@ class _CartPageState extends State<CartPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _originBanner(BuildContext context) {
+    return FutureBuilder<Map<String, String>?>(
+      future: const SessionStorage().readCartContext(),
+      builder: (context, snapshot) {
+        final contextData = snapshot.data;
+        if (contextData == null) return const SizedBox.shrink();
+        final branchName = contextData['branch_name'] ?? '';
+        final tenantName = contextData['tenant_name'] ?? '';
+        if (branchName.isEmpty && tenantName.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        final title =
+            tenantName.isNotEmpty ? 'Comprando en: $tenantName' : 'Comprando';
+
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: Theme.of(
+              context,
+            ).colorScheme.primaryContainer.withValues(alpha: 0.35),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: 0.25),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.storefront_outlined,
+                size: 22,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                    if (branchName.isNotEmpty)
+                      Text(
+                        'Sucursal: $branchName',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
