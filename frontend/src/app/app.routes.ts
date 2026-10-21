@@ -25,6 +25,31 @@ export const routes: Routes = [
     canActivate: [publicOnlyGuard],
   },
   {
+    path: '',
+    pathMatch: 'full',
+    loadComponent: () =>
+      import('./features/shared/pages/landing-page.component').then(
+        (m) => m.LandingPageComponent,
+      ),
+  },
+  {
+    path: 'landing',
+    redirectTo: '',
+    pathMatch: 'full',
+  },
+  {
+    path: 'planes',
+    redirectTo: '',
+    pathMatch: 'full',
+  },
+  {
+    path: 'onboarding',
+    loadComponent: () =>
+      import('./features/shared/pages/onboarding-page.component').then(
+        (m) => m.OnboardingPageComponent,
+      ),
+  },
+  {
     path: 'app',
     component: AppShellComponent,
     canActivate: [authenticatedGuard],
@@ -257,6 +282,13 @@ export const routes: Routes = [
             path: 'replenishment',
             loadComponent: () => import('./features/shared/pages/replenishment-page.component').then((m) => m.ReplenishmentPageComponent),
           },
+          {
+            path: 'subscription',
+            loadComponent: () =>
+              import('./features/admin/pages/subscription-page.component').then(
+                (m) => m.SubscriptionPageComponent,
+              ),
+          },
         ],
       },
     ],
@@ -266,12 +298,7 @@ export const routes: Routes = [
     redirectTo: 'app/notifications',
   },
   {
-    path: '',
-    pathMatch: 'full',
-    redirectTo: 'app',
-  },
-  {
     path: '**',
-    redirectTo: 'app',
+    redirectTo: '',
   },
 ];

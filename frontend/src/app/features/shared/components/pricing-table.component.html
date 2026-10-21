@@ -1,0 +1,188 @@
+<div class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <!-- Cycle Selector -->
+  <div class="flex justify-center mb-12">
+    <div class="inline-flex items-center p-1.5 bg-muted rounded-full border border-border">
+      <button
+        type="button"
+        (click)="setBillingCycle('monthly')"
+        [class.bg-card]="billingCycle() === 'monthly'"
+        [class.text-foreground]="billingCycle() === 'monthly'"
+        [class.shadow-xs]="billingCycle() === 'monthly'"
+        [class.text-muted-foreground]="billingCycle() !== 'monthly'"
+        class="px-5 py-2 text-sm font-semibold rounded-full transition-all cursor-pointer"
+      >
+        Facturación Mensual
+      </button>
+      <button
+        type="button"
+        (click)="setBillingCycle('yearly')"
+        [class.bg-card]="billingCycle() === 'yearly'"
+        [class.text-foreground]="billingCycle() === 'yearly'"
+        [class.shadow-xs]="billingCycle() === 'yearly'"
+        [class.text-muted-foreground]="billingCycle() !== 'yearly'"
+        class="px-5 py-2 text-sm font-semibold rounded-full transition-all flex items-center gap-2 cursor-pointer"
+      >
+        Facturación Anual
+        <span class="inline-block bg-primary/10 text-primary border border-primary/20 text-xs px-2.5 py-0.5 rounded-full font-bold">
+          2 meses gratis
+        </span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Plans Loading Skeleton -->
+  <div *ngIf="loading()" class="grid grid-cols-1 md:grid-cols-3 gap-8">
+    <div *ngFor="let item of [1, 2, 3]" class="h-96 rounded-2xl bg-muted/50 animate-pulse border border-border p-8"></div>
+  </div>
+
+  <!-- Plans Grid -->
+  <div *ngIf="!loading()" class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
+    <!-- Plan Card Loop -->
+    <div
+      *ngFor="let plan of plans()"
+      class="relative flex flex-col rounded-3xl transition-all duration-200 bg-card text-card-foreground"
+      [ngClass]="{
+        'border-2 border-primary shadow-xl lg:-translate-y-2 ring-2 ring-primary/20': plan.id === 'plan_pro',
+        'border border-border shadow-xs hover:border-primary/40 hover:shadow-md': plan.id !== 'plan_pro'
+      }"
+    >
+      <!-- Popular Badge -->
+      <div *ngIf="plan.id === 'plan_pro'" class="absolute -top-4 left-1/2 -translate-x-1/2">
+        <span class="bg-primary text-primary-foreground text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-1.5">
+          <ng-icon name="lucideSparkles" class="w-3.5 h-3.5"></ng-icon>
+          Más Popular
+        </span>
+      </div>
+
+      <div class="p-8 flex-1 flex flex-col">
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-xl font-bold text-foreground">{{ plan.name }}</h3>
+          <span
+            *ngIf="plan.id === 'plan_enterprise'"
+            class="bg-primary/10 text-primary border border-primary/20 text-xs px-2.5 py-1 rounded-md font-semibold flex items-center gap-1"
+          >
+            <ng-icon name="lucideCrown" class="w-3.5 h-3.5"></ng-icon>
+            Enterprise
+          </span>
+        </div>
+
+        <p class="text-sm text-muted-foreground mb-6 min-h-[40px]">{{ plan.description }}</p>
+
+        <!-- Price -->
+        <div class="mb-8 pb-6 border-b border-border">
+          <div class="flex items-baseline gap-1">
+            <span class="text-4xl font-extrabold text-foreground">{{ getPrice(plan) }} Bs.</span>
+            <span class="text-sm font-medium text-muted-foreground">
+              / {{ billingCycle() === 'yearly' ? 'año' : 'mes' }}
+            </span>
+          </div>
+          <p class="text-xs text-muted-foreground mt-1">Facturación en Bolivianos (Bs.)</p>
+        </div>
+
+        <!-- Limits Highlights -->
+        <div class="space-y-3 mb-6 bg-muted/40 p-4 rounded-xl border border-border">
+          <div class="flex items-center justify-between text-sm">
+            <span class="text-muted-foreground font-medium flex items-center gap-2">
+              <ng-icon name="lucideStore" class="w-4 h-4 text-primary"></ng-icon>
+              Sucursales permitidas:
+            </span>
+            <span class="font-bold text-foreground">Hasta {{ plan.max_branches }}</span>
+          </div>
+          <div class="flex items-center justify-between text-sm">
+            <span class="text-muted-foreground font-medium flex items-center gap-2">
+              <ng-icon name="lucideZap" class="w-4 h-4 text-primary"></ng-icon>
+              Capacidad de catálogo:
+            </span>
+            <span class="font-bold text-foreground">{{ plan.max_garments | number }} prendas</span>
+          </div>
+        </div>
+
+        <!-- Feature List -->
+        <div class="space-y-3 flex-1 mb-8">
+          <p class="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Módulos Incluidos</p>
+
+          <!-- Core modules always included -->
+          <div class="flex items-start gap-3 text-sm">
+            <ng-icon name="lucideCheck" class="w-4 h-4 text-primary mt-0.5 shrink-0"></ng-icon>
+            <span class="text-foreground">Catálogo Web y Móvil sincronizado</span>
+          </div>
+          <div class="flex items-start gap-3 text-sm">
+            <ng-icon name="lucideCheck" class="w-4 h-4 text-primary mt-0.5 shrink-0"></ng-icon>
+            <span class="text-foreground">Punto de Venta (POS) y caja física</span>
+          </div>
+          <div class="flex items-start gap-3 text-sm">
+            <ng-icon name="lucideCheck" class="w-4 h-4 text-primary mt-0.5 shrink-0"></ng-icon>
+            <span class="text-foreground">Control de inventario por sucursal</span>
+          </div>
+          <div class="flex items-start gap-3 text-sm">
+            <ng-icon name="lucideCheck" class="w-4 h-4 text-primary mt-0.5 shrink-0"></ng-icon>
+            <span class="text-foreground">Reservas presenciales con horario</span>
+          </div>
+
+          <!-- Virtual Try-On tier comparison -->
+          <div class="flex items-start gap-3 text-sm pt-2">
+            <ng-container *ngIf="plan.id === 'plan_basic'">
+              <ng-icon name="lucideX" class="w-4 h-4 text-muted-foreground/40 mt-0.5 shrink-0"></ng-icon>
+              <span class="text-muted-foreground">Vestidor Virtual (No disponible)</span>
+            </ng-container>
+            <ng-container *ngIf="plan.id === 'plan_pro'">
+              <ng-icon name="lucideCamera" class="w-4 h-4 text-primary mt-0.5 shrink-0"></ng-icon>
+              <span class="text-foreground font-semibold">
+                Vestidor Virtual 2D
+                <span class="block text-xs font-normal text-muted-foreground">Subir foto personal y probar prendas superpuestas</span>
+              </span>
+            </ng-container>
+            <ng-container *ngIf="plan.id === 'plan_enterprise'">
+              <ng-icon name="lucideSparkles" class="w-4 h-4 text-primary mt-0.5 shrink-0"></ng-icon>
+              <span class="text-foreground font-semibold">
+                Vestidor Virtual 3D con Realidad Aumentada
+                <span class="block text-xs font-normal text-muted-foreground">Tracking en vivo con cámara web y móvil en tiempo real</span>
+              </span>
+            </ng-container>
+          </div>
+
+          <!-- AI & Reports tier comparison -->
+          <div class="flex items-start gap-3 text-sm pt-1">
+            <ng-container *ngIf="plan.id === 'plan_basic'">
+              <ng-icon name="lucideCheck" class="w-4 h-4 text-primary mt-0.5 shrink-0"></ng-icon>
+              <span class="text-foreground">Reportes estándar (PDF / Excel)</span>
+            </ng-container>
+            <ng-container *ngIf="plan.id === 'plan_pro'">
+              <ng-icon name="lucideBrainCircuit" class="w-4 h-4 text-primary mt-0.5 shrink-0"></ng-icon>
+              <span class="text-foreground font-semibold">
+                Reportes con IA Generativa (NLP)
+                <span class="block text-xs font-normal text-muted-foreground">Consultas en lenguaje natural por texto y voz + Chatbot</span>
+              </span>
+            </ng-container>
+            <ng-container *ngIf="plan.id === 'plan_enterprise'">
+              <ng-icon name="lucideBrainCircuit" class="w-4 h-4 text-primary mt-0.5 shrink-0"></ng-icon>
+              <span class="text-foreground font-semibold">
+                Reportes Inteligentes con Machine Learning
+                <span class="block text-xs font-normal text-muted-foreground">Modelos supervisados de demanda y segmentación RFM</span>
+              </span>
+            </ng-container>
+          </div>
+        </div>
+
+        <!-- Action Button -->
+        <button
+          type="button"
+          (click)="onChoose(plan)"
+          [class.bg-primary]="plan.id === 'plan_pro'"
+          [class.hover:bg-primary/90]="plan.id === 'plan_pro'"
+          [class.text-primary-foreground]="plan.id === 'plan_pro'"
+          [class.bg-secondary]="plan.id !== 'plan_pro'"
+          [class.hover:bg-secondary/80]="plan.id !== 'plan_pro'"
+          [class.text-secondary-foreground]="plan.id !== 'plan_pro'"
+          [class.border-border]="plan.id !== 'plan_pro'"
+          [class.border]="plan.id !== 'plan_pro'"
+          class="w-full py-3.5 px-4 rounded-xl font-bold text-sm transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+        >
+          <span>Elegir Plan {{ plan.name }}</span>
+          <ng-icon name="lucideZap" class="w-4 h-4"></ng-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

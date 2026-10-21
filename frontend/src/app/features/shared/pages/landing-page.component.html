@@ -1,0 +1,267 @@
+<div class="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-primary selection:text-primary-foreground">
+  <!-- Top Navigation Bar (Fixed / Sticky Header) -->
+  <header class="sticky top-0 z-50 bg-background/90 backdrop-blur-md border-b border-border h-20 shrink-0">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center justify-between">
+      <!-- Brand Logo -->
+      <a routerLink="/" (click)="scrollToTop($event)" class="flex items-center gap-2.5 cursor-pointer">
+        <div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground shadow-sm">
+          <ng-icon name="lucideSparkles" class="w-5 h-5 text-primary-foreground"></ng-icon>
+        </div>
+        <div class="flex flex-col">
+          <span class="text-xl font-extrabold tracking-tight text-foreground">FashionStore</span>
+          <span class="text-[10px] uppercase tracking-widest text-primary font-semibold -mt-1">SaaS Platform</span>
+        </div>
+      </a>
+
+      <!-- Navigation Links -->
+      <nav class="hidden md:flex items-center gap-8 text-sm font-semibold text-muted-foreground">
+        <button type="button" (click)="scrollToSection('features')" class="hover:text-foreground transition-colors cursor-pointer">
+          Características
+        </button>
+        <button type="button" (click)="scrollToSection('vestidor')" class="hover:text-foreground transition-colors cursor-pointer">
+          Vestidor Virtual
+        </button>
+        <button type="button" (click)="scrollToSection('pricing')" class="hover:text-foreground transition-colors cursor-pointer">
+          Planes y Precios
+        </button>
+      </nav>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center gap-3">
+        <ng-container *ngIf="!isAuthenticated()">
+          <a
+            routerLink="/auth/login"
+            class="px-4 py-2 text-sm font-semibold text-foreground hover:bg-muted rounded-xl transition-all cursor-pointer border border-border"
+          >
+            Iniciar Sesión
+          </a>
+          <button
+            type="button"
+            (click)="scrollToSection('pricing')"
+            class="hidden sm:inline-flex px-5 py-2.5 text-sm font-bold text-primary-foreground bg-primary hover:bg-primary/90 rounded-xl shadow-sm transition-all cursor-pointer items-center gap-2"
+          >
+            <span>Empezar Ahora</span>
+            <ng-icon name="lucideArrowRight" class="w-4 h-4"></ng-icon>
+          </button>
+        </ng-container>
+
+        <ng-container *ngIf="isAuthenticated()">
+          <a
+            routerLink="/app"
+            class="px-5 py-2.5 text-sm font-bold text-primary-foreground bg-primary hover:bg-primary/90 rounded-xl shadow-sm transition-all cursor-pointer inline-flex items-center gap-2"
+          >
+            <span>Ir a mi Panel</span>
+            <ng-icon name="lucideArrowRight" class="w-4 h-4"></ng-icon>
+          </a>
+        </ng-container>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section (Takes full viewport height without spilling) -->
+  <section class="relative overflow-hidden min-h-[calc(100vh-5rem)] lg:h-[calc(100vh-5rem)] flex flex-col justify-center py-6 sm:py-8 bg-gradient-to-b from-muted/40 via-background to-background">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10 w-full my-auto">
+      <!-- Badge -->
+      <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-xs font-semibold text-primary mb-4 shadow-xs">
+        <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+        <span>Plataforma SaaS Multi-Tenant para Marcas de Moda</span>
+      </div>
+
+      <!-- Headline -->
+      <h1 class="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-foreground max-w-4xl mx-auto leading-tight">
+        Llevá tu marca de indumentaria al <span class="text-primary">siguiente nivel</span>
+      </h1>
+
+      <p class="mt-4 text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+        Gestioná sucursales múltiples, catálogo omnicanal, punto de venta offline, probador virtual 2D/3D con Realidad Aumentada y analítica predictiva con IA.
+      </p>
+
+      <!-- CTA Buttons -->
+      <div class="mt-6 flex flex-col sm:flex-row items-center justify-center gap-4">
+        <button
+          type="button"
+          (click)="scrollToSection('pricing')"
+          class="w-full sm:w-auto px-7 py-3.5 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-2xl shadow-md transition-all flex items-center justify-center gap-2.5 text-sm sm:text-base cursor-pointer"
+        >
+          <span>Conocer Planes y Precios</span>
+          <ng-icon name="lucideArrowRight" class="w-4 h-4 sm:w-5 sm:h-5"></ng-icon>
+        </button>
+      </div>
+
+      <!-- Key Pillars Pills -->
+      <div class="mt-8 pt-6 border-t border-border grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-4xl mx-auto text-left">
+        <div class="flex items-center gap-2.5 p-2 rounded-xl bg-card/60 border border-border">
+          <div class="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <ng-icon name="lucideShieldCheck" class="w-4 h-4"></ng-icon>
+          </div>
+          <div>
+            <h4 class="font-bold text-xs sm:text-sm text-foreground">Multi-Tenant</h4>
+            <p class="text-[11px] text-muted-foreground">Datos aislados</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2.5 p-2 rounded-xl bg-card/60 border border-border">
+          <div class="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <ng-icon name="lucideCamera" class="w-4 h-4"></ng-icon>
+          </div>
+          <div>
+            <h4 class="font-bold text-xs sm:text-sm text-foreground">Vestidor 2D & 3D</h4>
+            <p class="text-[11px] text-muted-foreground">Montaje y AR</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2.5 p-2 rounded-xl bg-card/60 border border-border">
+          <div class="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <ng-icon name="lucideSparkles" class="w-4 h-4"></ng-icon>
+          </div>
+          <div>
+            <h4 class="font-bold text-xs sm:text-sm text-foreground">IA & ML</h4>
+            <p class="text-[11px] text-muted-foreground">Text-to-Report</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2.5 p-2 rounded-xl bg-card/60 border border-border">
+          <div class="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <ng-icon name="lucideWifiOff" class="w-4 h-4"></ng-icon>
+          </div>
+          <div>
+            <h4 class="font-bold text-xs sm:text-sm text-foreground">Offline-First</h4>
+            <p class="text-[11px] text-muted-foreground">Ventas en caja</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section (Takes full viewport height with scroll offset) -->
+  <section id="features" class="min-h-[calc(100vh-5rem)] flex flex-col justify-center py-12 sm:py-16 bg-card border-t border-border scroll-mt-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full my-auto">
+      <div class="text-center max-w-3xl mx-auto mb-10">
+        <h2 class="text-xs font-bold uppercase tracking-widest text-primary mb-2">Ecosistema Completo</h2>
+        <h3 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-foreground tracking-tight">
+          Diseñado para la operación real del retail de moda
+        </h3>
+        <p class="mt-3 text-sm sm:text-base text-muted-foreground">
+          Unificá todos los canales comerciales de tu empresa en una sola plataforma robusta, escalable y segura.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Feature 1 -->
+        <div class="p-6 sm:p-8 rounded-3xl border border-border bg-background hover:border-primary/50 transition-all flex flex-col shadow-xs">
+          <div class="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-5">
+            <ng-icon name="lucideStore" class="w-6 h-6"></ng-icon>
+          </div>
+          <h4 class="text-lg sm:text-xl font-bold text-foreground mb-2">Gestión Multi-Sucursal y Stock</h4>
+          <p class="text-xs sm:text-sm text-muted-foreground leading-relaxed flex-1">
+            Controlá el inventario físico en tiempo real por cada sucursal. Traspasos entre tiendas, reposición inteligente y auditoría de movimientos de stock.
+          </p>
+        </div>
+
+        <!-- Feature 2 -->
+        <div class="p-6 sm:p-8 rounded-3xl border border-border bg-background hover:border-primary/50 transition-all flex flex-col shadow-xs">
+          <div class="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-5">
+            <ng-icon name="lucideBot" class="w-6 h-6"></ng-icon>
+          </div>
+          <h4 class="text-lg sm:text-xl font-bold text-foreground mb-2">Inteligencia Artificial Omnicanal</h4>
+          <p class="text-xs sm:text-sm text-muted-foreground leading-relaxed flex-1">
+            Asistente virtual conversacional, recomendación colaborativa de prendas personalizadas y generación de reportes gerenciales a partir de lenguaje natural.
+          </p>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="p-6 sm:p-8 rounded-3xl border border-border bg-background hover:border-primary/50 transition-all flex flex-col shadow-xs">
+          <div class="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-5">
+            <ng-icon name="lucideWifiOff" class="w-6 h-6"></ng-icon>
+          </div>
+          <h4 class="text-lg sm:text-xl font-bold text-foreground mb-2">Terminal POS Offline-First</h4>
+          <p class="text-xs sm:text-sm text-muted-foreground leading-relaxed flex-1">
+            Si la red colapsa, tus tiendas siguen facturando en efectivo con Progressive Web App e IndexedDB, sincronizando automáticamente al restablecerse la conexión.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Vestidor Virtual Spotlight (Takes full viewport height with scroll offset) -->
+  <section id="vestidor" class="min-h-[calc(100vh-5rem)] flex flex-col justify-center py-12 sm:py-16 bg-background border-t border-border scroll-mt-20 relative overflow-hidden">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full my-auto">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+        <div>
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-semibold text-primary mb-4">
+            <ng-icon name="lucideSparkles" class="w-3.5 h-3.5"></ng-icon>
+            <span>Diferencial de Conversión B2B</span>
+          </div>
+          <h2 class="text-2xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight text-foreground">
+            Vestidor Virtual 2D sobre foto y 3D con Realidad Aumentada
+          </h2>
+          <p class="mt-4 text-sm sm:text-base text-muted-foreground leading-relaxed">
+            Permití que tus clientes se prueben las prendas antes de comprar. Ofrecé vestidor 2D en tu plan profesional para montar ropa sobre fotografías, o vestidor 3D con Realidad Aumentada en tiempo real para tu tienda insignia.
+          </p>
+
+          <div class="mt-6 space-y-3">
+            <div class="flex items-start gap-3">
+              <div class="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+                <ng-icon name="lucideCheckCircle2" class="w-3.5 h-3.5"></ng-icon>
+              </div>
+              <span class="text-xs sm:text-sm text-foreground"><strong>Plan Profesional:</strong> Vestidor 2D subiendo foto de cuerpo entero con ajuste inteligente de prendas.</span>
+            </div>
+            <div class="flex items-start gap-3">
+              <div class="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+                <ng-icon name="lucideCheckCircle2" class="w-3.5 h-3.5"></ng-icon>
+              </div>
+              <span class="text-xs sm:text-sm text-foreground"><strong>Plan Enterprise:</strong> Tracking de pose en vivo con cámara web y móvil mediante visión artificial y Realidad Aumentada.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="relative">
+          <div class="w-full aspect-square max-w-sm sm:max-w-md mx-auto rounded-3xl bg-muted/40 p-6 sm:p-8 border border-border shadow-md flex flex-col justify-center items-center text-center">
+            <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4 sm:mb-6">
+              <ng-icon name="lucideCamera" class="w-8 h-8 sm:w-10 sm:h-10"></ng-icon>
+            </div>
+            <h3 class="text-xl sm:text-2xl font-bold text-foreground mb-2">Experiencia Inmersiva</h3>
+            <p class="text-xs sm:text-sm text-muted-foreground max-w-xs">
+              Reduce la tasa de devoluciones y aumenta la conversión comercial de tu catálogo digital.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing Section (Pricing Table Component - Can be larger) -->
+  <section id="pricing" class="py-24 bg-muted/20 border-t border-border scroll-mt-20 flex flex-col justify-center">
+    <div class="text-center max-w-3xl mx-auto px-4 mb-12">
+      <h2 class="text-xs font-bold uppercase tracking-widest text-primary mb-3">Suscripciones Transparentes</h2>
+      <h3 class="text-3xl sm:text-4xl font-extrabold text-foreground tracking-tight">
+        Elegí el plan perfecto para la escala de tu empresa
+      </h3>
+      <p class="mt-4 text-base text-muted-foreground">
+        Sin contratos forzosos. Cambiá de plan o cancelá cuando lo necesites.
+      </p>
+    </div>
+
+    <!-- Embedded Pricing Table Component -->
+    <app-pricing-table (selectPlan)="onPlanSelected($event)"></app-pricing-table>
+  </section>
+
+  <!-- Footer -->
+  <footer class="mt-auto bg-card text-muted-foreground text-sm py-12 border-t border-border shrink-0">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center">
+          <ng-icon name="lucideSparkles" class="w-4 h-4"></ng-icon>
+        </div>
+        <span class="font-bold text-foreground">FashionStore SaaS</span>
+        <span class="text-xs text-muted-foreground">| Plataforma Multi-Tenant</span>
+      </div>
+
+      <div class="flex items-center gap-6 text-xs">
+        <a routerLink="/auth/login" class="hover:text-foreground transition-colors">Acceso Empresas</a>
+        <button type="button" (click)="scrollToSection('pricing')" class="hover:text-foreground transition-colors cursor-pointer">Planes</button>
+      </div>
+
+      <p class="text-xs text-muted-foreground">
+        © 2026 FashionStore. Todos los derechos reservados.
+      </p>
+    </div>
+  </footer>
+</div>
