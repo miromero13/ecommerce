@@ -24,6 +24,7 @@ import { HlmBadgeImports } from '../../../components/badge/src';
 import { HlmSelectImports } from '../../../components/select/src';
 import { Tenant, TenantStatus } from '../../shared/models/tenant.model';
 import { TenantApiService } from '../../shared/services/tenant-api.service';
+import { SubscriptionApiService } from '../../shared/services/subscription-api.service';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
 import {
   COUNTRIES_LIST,
@@ -64,6 +65,7 @@ import {
 export class TenantManagementPageComponent {
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(TenantApiService);
+  private readonly subscriptionApi = inject(SubscriptionApiService);
 
   protected readonly countries: CountryOption[] = COUNTRIES_LIST;
   protected readonly currencies: string[] = CURRENCIES_LIST;
@@ -108,6 +110,9 @@ export class TenantManagementPageComponent {
     contact_email: ['', [Validators.required, Validators.email]],
     country: ['Bolivia', [Validators.required]],
     currency: ['BOB', [Validators.required]],
+    admin_name: ['', [Validators.required, Validators.minLength(2)]],
+    plan_id: ['plan_basic', [Validators.required]],
+    billing_cycle: ['monthly', [Validators.required]],
   });
 
   protected readonly metrics = computed(() => {
@@ -179,6 +184,9 @@ export class TenantManagementPageComponent {
       contact_email: '',
       country: 'Bolivia',
       currency: 'BOB',
+      admin_name: '',
+      plan_id: 'plan_basic',
+      billing_cycle: 'monthly',
     });
     this.modalOpen.set(true);
   }
@@ -241,13 +249,16 @@ export class TenantManagementPageComponent {
     const val = this.createForm.getRawValue();
     try {
       await firstValueFrom(
-        this.api.createTenant({
+        this.subscriptionApi.createTenantWithSubscription({
           name: val.name,
           slug: val.slug,
           contact_email: val.contact_email,
           currency: val.currency,
           country: val.country,
-          status: 'active',
+          admin_name: val.admin_name,
+          plan_id: val.plan_id,
+          billing_cycle: val.billing_cycle as 'monthly' | 'yearly',
+          payment_method: 'cash',
         }),
       );
       this.closeModal();

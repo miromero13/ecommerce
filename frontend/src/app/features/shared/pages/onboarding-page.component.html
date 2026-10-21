@@ -1,0 +1,372 @@
+<div class="min-h-screen bg-background text-foreground font-sans pb-16">
+  <!-- Minimal Header -->
+  <header class="bg-card border-b border-border">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <a routerLink="/" class="flex items-center gap-2 cursor-pointer">
+        <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground">
+          <ng-icon name="lucideSparkles" class="w-4 h-4"></ng-icon>
+        </div>
+        <span class="font-extrabold text-base tracking-tight text-foreground">FashionStore SaaS</span>
+      </a>
+      <a
+        routerLink="/"
+        class="text-xs font-semibold text-muted-foreground hover:text-foreground flex items-center gap-1.5 cursor-pointer"
+      >
+        <ng-icon name="lucideArrowLeft" class="w-3.5 h-3.5"></ng-icon>
+        <span>Volver a Planes</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-6xl mx-auto px-4 pt-10">
+    <!-- SUCCESS SCREEN -->
+    <div *ngIf="completed()" class="max-w-xl mx-auto py-12">
+      <div class="bg-card text-card-foreground rounded-3xl p-8 sm:p-10 border border-border shadow-xl text-center">
+        <div class="w-20 h-20 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-6 shadow-xs">
+          <ng-icon name="lucideCheckCircle2" class="w-12 h-12"></ng-icon>
+        </div>
+
+        <span class="inline-block bg-primary/10 text-primary border border-primary/20 text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wider mb-3">
+          ¡Suscripción Activada!
+        </span>
+
+        <h1 class="text-3xl font-extrabold text-foreground tracking-tight">
+          ¡Bienvenido a FashionStore!
+        </h1>
+
+        <p class="mt-3 text-muted-foreground text-sm leading-relaxed">
+          Tu empresa <strong>{{ createdInfo()?.tenant_name || companyName }}</strong> fue aprovisionada con éxito bajo el plan <strong>{{ createdInfo()?.plan_name || selectedPlan?.name }}</strong>.
+        </p>
+
+        <div class="mt-6 p-5 rounded-2xl bg-muted/40 border border-border text-left space-y-2.5">
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-muted-foreground font-medium">Empresa registrada:</span>
+            <span class="font-bold text-foreground">{{ createdInfo()?.tenant_name || companyName }}</span>
+          </div>
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-muted-foreground font-medium">Subdominio / Slug:</span>
+            <span class="font-mono font-bold text-foreground">{{ createdInfo()?.tenant_slug || slug }}</span>
+          </div>
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-muted-foreground font-medium">Correo Administrador:</span>
+            <span class="font-bold text-foreground">{{ createdInfo()?.admin_email || adminEmail }}</span>
+          </div>
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-muted-foreground font-medium">Estado del servicio:</span>
+            <span class="font-bold text-primary">Activo (Facturación confirmada)</span>
+          </div>
+        </div>
+
+        <div class="mt-6 p-4 rounded-xl bg-primary/10 border border-primary/20 flex items-start gap-3 text-left">
+          <ng-icon name="lucideMail" class="w-5 h-5 text-primary shrink-0 mt-0.5"></ng-icon>
+          <div class="text-xs text-foreground leading-relaxed">
+            <strong>Credenciales despachadas:</strong> Generamos una contraseña aleatoria segura y la enviamos a <strong>{{ createdInfo()?.admin_email || adminEmail }}</strong> vía Mailtrap. Revisá tu bandeja de entrada para ingresar.
+          </div>
+        </div>
+
+        <div class="mt-8">
+          <a
+            routerLink="/auth/login"
+            class="w-full py-4 px-6 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer text-sm"
+          >
+            <span>Ir a Iniciar Sesión</span>
+            <ng-icon name="lucideArrowRight" class="w-4 h-4"></ng-icon>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- FORM SCREEN -->
+    <div *ngIf="!completed()" class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <!-- Left Column: Registration Form -->
+      <div class="lg:col-span-7 space-y-8">
+        <!-- Title & Intro -->
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-primary">Alta y Suscripción B2B</span>
+          <h1 class="text-3xl font-extrabold text-foreground tracking-tight mt-1">Configurá tu empresa y plan</h1>
+          <p class="text-sm text-muted-foreground mt-1">Completá los datos requeridos para aprovisionar tu entorno en FashionStore SaaS.</p>
+        </div>
+
+        <!-- Section 1: Plan Picker -->
+        <div class="bg-card text-card-foreground rounded-2xl p-6 border border-border shadow-xs space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-base font-bold text-foreground flex items-center gap-2">
+              <ng-icon name="lucideSparkles" class="w-4 h-4 text-primary"></ng-icon>
+              <span>1. Plan de Suscripción</span>
+            </h2>
+            <div class="flex items-center gap-2 bg-muted p-1 rounded-lg text-xs font-semibold">
+              <button
+                type="button"
+                (click)="billingCycle = 'monthly'"
+                [class.bg-card]="billingCycle === 'monthly'"
+                [class.text-foreground]="billingCycle === 'monthly'"
+                [class.shadow-xs]="billingCycle === 'monthly'"
+                [class.text-muted-foreground]="billingCycle !== 'monthly'"
+                class="px-2.5 py-1 rounded-md transition-all cursor-pointer"
+              >
+                Mensual
+              </button>
+              <button
+                type="button"
+                (click)="billingCycle = 'yearly'"
+                [class.bg-card]="billingCycle === 'yearly'"
+                [class.text-foreground]="billingCycle === 'yearly'"
+                [class.shadow-xs]="billingCycle === 'yearly'"
+                [class.text-muted-foreground]="billingCycle !== 'yearly'"
+                class="px-2.5 py-1 rounded-md transition-all cursor-pointer"
+              >
+                Anual (-15%)
+              </button>
+            </div>
+          </div>
+
+          <!-- Plans selection pills -->
+          <div class="grid grid-cols-3 gap-3">
+            <button
+              *ngFor="let p of plans()"
+              type="button"
+              (click)="selectedPlanId = p.id"
+              [class.border-primary]="selectedPlanId === p.id"
+              [class.bg-primary/5]="selectedPlanId === p.id"
+              [class.ring-2]="selectedPlanId === p.id"
+              [class.ring-primary/20]="selectedPlanId === p.id"
+              [class.border-border]="selectedPlanId !== p.id"
+              class="p-3 rounded-xl border text-left transition-all cursor-pointer relative"
+            >
+              <div class="text-xs font-bold text-foreground">{{ p.name }}</div>
+              <div class="text-lg font-extrabold text-foreground mt-0.5">
+                {{ billingCycle === 'yearly' ? p.price_yearly : p.price_monthly }} Bs.
+              </div>
+              <div class="text-[11px] text-muted-foreground">
+                /{{ billingCycle === 'yearly' ? 'año' : 'mes' }}
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Section 2: Company Data -->
+        <div class="bg-card text-card-foreground rounded-2xl p-6 border border-border shadow-xs space-y-4">
+          <h2 class="text-base font-bold text-foreground flex items-center gap-2">
+            <ng-icon name="lucideBuilding2" class="w-4 h-4 text-primary"></ng-icon>
+            <span>2. Datos de la Empresa</span>
+          </h2>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="space-y-1.5">
+              <label class="text-xs font-bold text-foreground">Nombre Comercial</label>
+              <input
+                type="text"
+                [(ngModel)]="companyName"
+                (ngModelChange)="onCompanyNameChange()"
+                placeholder="Ej. Aura Moda"
+                class="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            <div class="space-y-1.5">
+              <label class="text-xs font-bold text-foreground">Identificador / Slug</label>
+              <input
+                type="text"
+                [(ngModel)]="slug"
+                placeholder="aura-moda"
+                class="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm font-mono text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="space-y-1.5">
+              <label class="text-xs font-bold text-foreground">País de Operación</label>
+              <select
+                [(ngModel)]="country"
+                (ngModelChange)="onCountryChange()"
+                class="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring cursor-pointer"
+              >
+                <option *ngFor="let c of countries" [value]="c.name">{{ c.name }}</option>
+              </select>
+            </div>
+            <div class="space-y-1.5">
+              <label class="text-xs font-bold text-foreground">Moneda Contable</label>
+              <input
+                type="text"
+                [(ngModel)]="currency"
+                placeholder="BOB"
+                class="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm font-bold uppercase focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: Administrator Data -->
+        <div class="bg-card text-card-foreground rounded-2xl p-6 border border-border shadow-xs space-y-4">
+          <h2 class="text-base font-bold text-foreground flex items-center gap-2">
+            <ng-icon name="lucideUser" class="w-4 h-4 text-primary"></ng-icon>
+            <span>3. Administrador de la Cuenta</span>
+          </h2>
+          <p class="text-xs text-muted-foreground">Se le asignará el rol de Administrador y recibirá la contraseña aleatoria por correo.</p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="space-y-1.5">
+              <label class="text-xs font-bold text-foreground">Nombre Completo</label>
+              <input
+                type="text"
+                [(ngModel)]="adminName"
+                placeholder="Ej. Valeria Gómez"
+                class="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            <div class="space-y-1.5">
+              <label class="text-xs font-bold text-foreground">Correo Electrónico</label>
+              <input
+                type="email"
+                [(ngModel)]="adminEmail"
+                placeholder="valeria@auramoda.bo"
+                class="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 4: Simulated Payment Gateway -->
+        <div class="bg-card text-card-foreground rounded-2xl p-6 border border-border shadow-xs space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-base font-bold text-foreground flex items-center gap-2">
+              <ng-icon name="lucideCreditCard" class="w-4 h-4 text-primary"></ng-icon>
+              <span>4. Pasarela de Pago Simulada (Sandbox)</span>
+            </h2>
+            <button
+              type="button"
+              (click)="useTestCard()"
+              class="text-xs font-bold text-primary hover:underline bg-primary/10 px-2.5 py-1 rounded-md transition-all cursor-pointer"
+            >
+              Usar tarjeta de prueba
+            </button>
+          </div>
+
+          <div class="space-y-3">
+            <div class="space-y-1.5">
+              <label class="text-xs font-bold text-foreground">Número de Tarjeta</label>
+              <div class="relative">
+                <input
+                  type="text"
+                  [(ngModel)]="cardNumber"
+                  placeholder="4242 4242 4242 4242"
+                  class="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+                <span class="absolute right-3 top-2.5 text-xs font-bold text-muted-foreground">TEST</span>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-1.5">
+                <label class="text-xs font-bold text-foreground">Titular de la Tarjeta</label>
+                <input
+                  type="text"
+                  [(ngModel)]="cardHolder"
+                  placeholder="Valeria Gómez"
+                  class="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <div class="space-y-1.5">
+                  <label class="text-xs font-bold text-foreground">Expiración</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="cardExp"
+                    placeholder="12/28"
+                    class="w-full px-3 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm text-center font-mono focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+                <div class="space-y-1.5">
+                  <label class="text-xs font-bold text-foreground">CVC</label>
+                  <input
+                    type="password"
+                    [(ngModel)]="cardCvv"
+                    placeholder="123"
+                    class="w-full px-3 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm text-center font-mono focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Order Summary & Confirmation -->
+      <div class="lg:col-span-5 sticky top-24 space-y-6">
+        <div class="bg-card text-card-foreground rounded-3xl p-6 sm:p-8 border border-border shadow-md">
+          <h3 class="text-lg font-bold text-foreground mb-4 pb-4 border-b border-border flex items-center justify-between">
+            <span>Resumen del Pedido</span>
+            <span class="text-xs font-semibold bg-primary/10 text-primary border border-primary/20 px-2.5 py-0.5 rounded-full">
+              SaaS B2B
+            </span>
+          </h3>
+
+          <!-- Selected Plan Specs -->
+          <div *ngIf="selectedPlan" class="space-y-3 mb-6">
+            <div class="flex items-center justify-between text-sm">
+              <span class="font-bold text-foreground text-base">Plan {{ selectedPlan.name }}</span>
+              <span class="font-extrabold text-foreground text-base">{{ planPrice }} Bs.</span>
+            </div>
+            <p class="text-xs text-muted-foreground">{{ selectedPlan.description }}</p>
+
+            <div class="py-3 border-y border-border space-y-2 text-xs">
+              <div class="flex items-center justify-between text-muted-foreground">
+                <span>Sucursales incluidas:</span>
+                <span class="font-bold text-foreground">Hasta {{ selectedPlan.max_branches }}</span>
+              </div>
+              <div class="flex items-center justify-between text-muted-foreground">
+                <span>Capacidad de prendas:</span>
+                <span class="font-bold text-foreground">{{ selectedPlan.max_garments | number }}</span>
+              </div>
+              <div class="flex items-center justify-between text-muted-foreground">
+                <span>Modalidad Vestidor:</span>
+                <span class="font-bold text-foreground">
+                  {{ selectedPlan.id === 'plan_enterprise' ? '3D con Realidad Aumentada' : (selectedPlan.id === 'plan_pro' ? '2D sobre Foto' : 'Deshabilitado') }}
+                </span>
+              </div>
+              <div class="flex items-center justify-between text-muted-foreground">
+                <span>Analítica & IA:</span>
+                <span class="font-bold text-foreground">
+                  {{ selectedPlan.id === 'plan_enterprise' ? 'ML Predictivo & RFM' : (selectedPlan.id === 'plan_pro' ? 'Generativo NLP' : 'Estándar') }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Total Calculation -->
+          <div class="pt-2 mb-6">
+            <div class="flex items-baseline justify-between">
+              <span class="text-base font-bold text-foreground">Total a Pagar:</span>
+              <div class="text-right">
+                <span class="text-3xl font-extrabold text-foreground">{{ planPrice }} Bs.</span>
+                <span class="text-xs text-muted-foreground block">Facturación {{ billingCycle === 'yearly' ? 'anual' : 'mensual' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Submit Button -->
+          <button
+            type="button"
+            (click)="submitOrder()"
+            [disabled]="submitting()"
+            class="w-full py-4 px-6 bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-foreground font-bold rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer text-sm"
+          >
+            <ng-container *ngIf="!submitting()">
+              <ng-icon name="lucideLock" class="w-4 h-4"></ng-icon>
+              <span>Confirmar y Activar Suscripción</span>
+            </ng-container>
+            <ng-container *ngIf="submitting()">
+              <div class="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin"></div>
+              <span>Aprovisionando cuenta...</span>
+            </ng-container>
+          </button>
+
+          <p class="text-[11px] text-muted-foreground text-center mt-4">
+            Al confirmar, se creará tu empresa y tu cuenta de administrador. Las credenciales se enviarán por correo electrónico.
+          </p>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>

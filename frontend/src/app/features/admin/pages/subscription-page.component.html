@@ -1,0 +1,220 @@
+<div class="p-6 max-w-6xl mx-auto space-y-8 font-sans bg-background text-foreground">
+  <!-- Page Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-border">
+    <div>
+      <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary mb-1">
+        <ng-icon name="lucideShieldCheck" class="w-4 h-4 text-primary"></ng-icon>
+        <span>Gestión de Empresa B2B</span>
+      </div>
+      <h1 class="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">Suscripción y Cuotas</h1>
+      <p class="text-sm text-muted-foreground mt-1">Supervisá tu plan comercial, límites operativos y módulos de Inteligencia Artificial habilitados.</p>
+    </div>
+
+    <div>
+      <a
+        routerLink="/"
+        class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm shadow-xs transition-all cursor-pointer"
+      >
+        <span>Mejorar Plan</span>
+        <ng-icon name="lucideArrowUpRight" class="w-4 h-4"></ng-icon>
+      </a>
+    </div>
+  </div>
+
+  <!-- Loading Skeleton -->
+  <div *ngIf="loading()" class="space-y-6">
+    <div class="h-48 rounded-2xl bg-muted/40 animate-pulse border border-border"></div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="h-40 rounded-2xl bg-muted/40 animate-pulse border border-border"></div>
+      <div class="h-40 rounded-2xl bg-muted/40 animate-pulse border border-border"></div>
+    </div>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="!loading() && error()" class="p-6 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive">
+    <div class="flex items-center gap-3">
+      <ng-icon name="lucideShieldAlert" class="w-6 h-6 text-destructive shrink-0"></ng-icon>
+      <div>
+        <h3 class="font-bold text-base">Error al cargar suscripción</h3>
+        <p class="text-sm mt-0.5">{{ error() }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div *ngIf="!loading() && summary()" class="space-y-8">
+    <!-- Active Plan Overview Banner -->
+    <div class="bg-card text-card-foreground rounded-3xl p-8 border-2 border-primary/30 shadow-md relative overflow-hidden">
+      <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+          <div class="flex items-center gap-3 mb-3">
+            <span class="bg-primary/10 text-primary border border-primary/20 text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wider flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+              {{ summary()?.subscription?.status === 'active' ? 'Suscripción Activa' : summary()?.subscription?.status }}
+            </span>
+            <span class="bg-muted text-foreground text-xs px-3 py-1 rounded-full font-semibold border border-border">
+              Ciclo {{ summary()?.subscription?.billing_cycle === 'yearly' ? 'Anual' : 'Mensual' }}
+            </span>
+          </div>
+
+          <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight flex items-center gap-3 text-foreground">
+            <span>{{ summary()?.plan?.name }}</span>
+            <ng-icon
+              *ngIf="summary()?.plan?.id === 'plan_enterprise'"
+              name="lucideCrown"
+              class="w-7 h-7 text-primary"
+            ></ng-icon>
+            <ng-icon
+              *ngIf="summary()?.plan?.id === 'plan_pro'"
+              name="lucideSparkles"
+              class="w-7 h-7 text-primary"
+            ></ng-icon>
+          </h2>
+
+          <p class="text-muted-foreground text-sm mt-2 max-w-xl">
+            {{ summary()?.plan?.description }}
+          </p>
+
+          <div class="flex items-center gap-6 mt-6 text-xs text-muted-foreground">
+            <div class="flex items-center gap-2">
+              <ng-icon name="lucideCalendar" class="w-4 h-4 text-primary"></ng-icon>
+              <span>Inicio: {{ summary()?.subscription?.start_date | date:'dd/MM/yyyy' }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <ng-icon name="lucideCreditCard" class="w-4 h-4 text-primary"></ng-icon>
+              <span>Vencimiento: {{ summary()?.subscription?.end_date | date:'dd/MM/yyyy' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="text-right md:border-l md:border-border md:pl-8">
+          <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Importe Actual</span>
+          <div class="text-4xl font-black text-foreground mt-1">
+            {{ summary()?.subscription?.billing_cycle === 'yearly' ? summary()?.plan?.price_yearly : summary()?.plan?.price_monthly }} Bs.
+          </div>
+          <span class="text-xs text-muted-foreground block mt-0.5">
+            / {{ summary()?.subscription?.billing_cycle === 'yearly' ? 'año' : 'mes' }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Usage Quotas & Limits Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Sucursales Quota -->
+      <div class="bg-card text-card-foreground rounded-2xl p-6 border border-border shadow-xs flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2.5">
+              <div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                <ng-icon name="lucideStore" class="w-5 h-5"></ng-icon>
+              </div>
+              <div>
+                <h3 class="font-bold text-foreground text-base">Sucursales Físicas</h3>
+                <span class="text-xs text-muted-foreground">Límite operativo de tiendas</span>
+              </div>
+            </div>
+            <span class="text-lg font-black text-foreground">
+              {{ summary()?.usage?.branches_count }} / {{ summary()?.usage?.branches_max }}
+            </span>
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="w-full bg-muted rounded-full h-3 mb-2 overflow-hidden border border-border">
+            <div
+              class="h-3 rounded-full transition-all duration-500 bg-primary"
+              [style.width.%]="getBranchPercentage()"
+            ></div>
+          </div>
+        </div>
+
+        <p class="text-xs text-muted-foreground mt-4">
+          Has utilizado el <strong class="text-foreground">{{ getBranchPercentage() }}%</strong> de las sucursales permitidas en tu plan.
+        </p>
+      </div>
+
+      <!-- Prendas Quota -->
+      <div class="bg-card text-card-foreground rounded-2xl p-6 border border-border shadow-xs flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2.5">
+              <div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                <ng-icon name="lucideZap" class="w-5 h-5"></ng-icon>
+              </div>
+              <div>
+                <h3 class="font-bold text-foreground text-base">Capacidad de Prendas</h3>
+                <span class="text-xs text-muted-foreground">Catálogo de productos activos</span>
+              </div>
+            </div>
+            <span class="text-lg font-black text-foreground">
+              {{ summary()?.usage?.garments_count }} / {{ summary()?.usage?.garments_max | number }}
+            </span>
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="w-full bg-muted rounded-full h-3 mb-2 overflow-hidden border border-border">
+            <div
+              class="h-3 rounded-full transition-all duration-500 bg-primary"
+              [style.width.%]="getGarmentPercentage()"
+            ></div>
+          </div>
+        </div>
+
+        <p class="text-xs text-muted-foreground mt-4">
+          Has cargado <strong class="text-foreground">{{ summary()?.usage?.garments_count }}</strong> prendas de las <strong class="text-foreground">{{ summary()?.usage?.garments_max | number }}</strong> disponibles.
+        </p>
+      </div>
+    </div>
+
+    <!-- Active Capabilities Details -->
+    <div class="bg-card text-card-foreground rounded-3xl p-8 border border-border shadow-xs space-y-6">
+      <h3 class="text-lg font-extrabold text-foreground pb-4 border-b border-border">
+        Capacidades Tecnológicas de tu Plan
+      </h3>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Virtual Try-On -->
+        <div class="p-5 rounded-2xl border border-border bg-muted/30 flex items-start gap-4">
+          <div class="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <ng-icon name="lucideCamera" class="w-6 h-6"></ng-icon>
+          </div>
+          <div>
+            <h4 class="font-bold text-foreground text-sm">Modalidad de Vestidor Virtual</h4>
+            <p class="text-xs text-muted-foreground mt-1 leading-relaxed">
+              <ng-container *ngIf="summary()?.plan?.id === 'plan_enterprise'">
+                <strong class="text-foreground">3D con Realidad Aumentada (AR):</strong> Seguimiento en vivo por cámara web y app móvil con detección de pose y ajuste dinámico en tiempo real.
+              </ng-container>
+              <ng-container *ngIf="summary()?.plan?.id === 'plan_pro'">
+                <strong class="text-foreground">2D sobre Fotografía:</strong> Carga de fotos de cuerpo entero de los clientes con superposición de prendas montadas.
+              </ng-container>
+              <ng-container *ngIf="summary()?.plan?.id === 'plan_basic'">
+                <strong class="text-foreground">No disponible:</strong> El plan básico no incluye la funcionalidad de vestidor virtual.
+              </ng-container>
+            </p>
+          </div>
+        </div>
+
+        <!-- AI & Machine Learning -->
+        <div class="p-5 rounded-2xl border border-border bg-muted/30 flex items-start gap-4">
+          <div class="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <ng-icon name="lucideBrainCircuit" class="w-6 h-6"></ng-icon>
+          </div>
+          <div>
+            <h4 class="font-bold text-foreground text-sm">Analítica & Inteligencia Artificial</h4>
+            <p class="text-xs text-muted-foreground mt-1 leading-relaxed">
+              <ng-container *ngIf="summary()?.plan?.id === 'plan_enterprise'">
+                <strong class="text-foreground">Machine Learning Avanzado:</strong> Modelos supervisados de predicción de demanda de ventas y clustering no supervisado (segmentación RFM).
+              </ng-container>
+              <ng-container *ngIf="summary()?.plan?.id === 'plan_pro'">
+                <strong class="text-foreground">IA Generativa (NLP):</strong> Consultas de ventas e inventario en lenguaje natural por texto y voz + Asistente chatbot.
+              </ng-container>
+              <ng-container *ngIf="summary()?.plan?.id === 'plan_basic'">
+                <strong class="text-foreground">Reportes Tradicionales:</strong> Exportación estándar en PDF y hojas de cálculo Excel.
+              </ng-container>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
