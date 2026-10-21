@@ -6,6 +6,22 @@ import 'catalog_models.dart';
 
 enum CatalogStatus { idle, loading, ready, error }
 
+class CatalogBranchSection {
+  const CatalogBranchSection({
+    required this.branchId,
+    required this.branchName,
+    required this.cityName,
+    required this.tenantName,
+    required this.products,
+  });
+
+  final String branchId;
+  final String branchName;
+  final String cityName;
+  final String tenantName;
+  final List<Product> products;
+}
+
 class CatalogController extends ChangeNotifier {
   CatalogController({CatalogApi? api}) : _api = api ?? CatalogApi();
 
@@ -35,6 +51,34 @@ class CatalogController extends ChangeNotifier {
       return branches;
     }
     return branches.where((b) => b.tenantId == tenantId).toList(growable: false);
+  }
+
+  List<CatalogBranchSection> get branchSections {
+    final targetBranches = filteredBranches;
+    final sections = <CatalogBranchSection>[];
+
+    for (final b in targetBranches) {
+      final prods = products.where((p) {
+        if (b.tenantId != null && p.tenantId != null && b.tenantId != p.tenantId) {
+          return false;
+        }
+        return true;
+      }).toList(growable: false);
+
+      if (prods.isNotEmpty) {
+        final tenant = tenants.where((t) => t.id == b.tenantId).firstOrNull;
+        sections.add(
+          CatalogBranchSection(
+            branchId: b.id,
+            branchName: b.name,
+            cityName: b.city,
+            tenantName: tenant?.name ?? 'Tienda',
+            products: prods,
+          ),
+        );
+      }
+    }
+    return sections;
   }
 
   bool get hasActiveFilters =>

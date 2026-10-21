@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../app/routes.dart';
+import '../../core/storage/session_storage.dart';
 import '../../shared/widgets/app_empty_view.dart';
 import '../../shared/widgets/app_error_view.dart';
 import '../../shared/widgets/app_button.dart';
@@ -12,6 +13,8 @@ import '../../shared/widgets/app_snack_bar.dart';
 import '../../shared/widgets/filter_chip.dart';
 import '../../shared/widgets/product_card.dart';
 import '../auth/auth_controller.dart';
+import '../auth/login_dialog.dart';
+import '../cart/cart_api.dart';
 import '../chatbot/chatbot_page.dart';
 import '../reservations/reservation_models.dart';
 import 'catalog_api.dart';
@@ -41,6 +44,10 @@ class _CatalogPageState extends State<CatalogPage> {
   late final CatalogApi _authenticatedApi;
   late final TextEditingController _searchController;
   late List<ReservationDraftItem> _reservationItems;
+  String? _reservationBranchId;
+  String? _reservationBranchName;
+  String? _reservationTenantName;
+  final Set<String> _addingProductIds = {};
   List<Product> _recommendedProducts = const [];
   var _recommendationsRequestVersion = 0;
 
@@ -55,6 +62,9 @@ class _CatalogPageState extends State<CatalogPage> {
     );
     _searchController = TextEditingController();
     _reservationItems = [...?widget.reservationArguments?.items];
+    _reservationBranchId = widget.reservationArguments?.branchId;
+    _reservationBranchName = widget.reservationArguments?.branchName;
+    _reservationTenantName = widget.reservationArguments?.tenantName;
     if (_controller.status == CatalogStatus.idle) {
       unawaited(
         _controller.load().then((_) {
@@ -149,6 +159,9 @@ class _CatalogPageState extends State<CatalogPage> {
               AppRoutes.reservationCreate,
               arguments: ReservationArguments(
                 items: List.of(_reservationItems),
+                branchId: _reservationBranchId,
+                branchName: _reservationBranchName,
+                tenantName: _reservationTenantName,
               ),
             ),
             expand: true,
@@ -377,13 +390,22 @@ class _CatalogPageState extends State<CatalogPage> {
   }
 
   Widget _catalogContent() {
+    final hasSpecificBranch =
+        _controller.branchId != null && _controller.branchId!.isNotEmpty;
+    final hasSearchOrFilters =
+        _controller.searchQuery.isNotEmpty ||
+        (_controller.categoryId != null &&
+            _controller.categoryId!.isNotEmpty) ||
+        (_controller.sizeId != null && _controller.sizeId!.isNotEmpty) ||
+        (_controller.colorId != null && _controller.colorId!.isNotEmpty);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (_recommendedProducts.isNotEmpty) ...[
           const AppSectionTitle(
-            title: 'Recomendaciones para ti',
-            subtitle: 'Prendas que podrían gustarte.',
+            title: '✨ Recomendaciones para ti (IA)',
+            subtitle: 'Prendas sugeridas según tus gustos y visualizaciones.',
           ),
           const SizedBox(height: 12),
           _recommendationCarousel(),
@@ -391,57 +413,173 @@ class _CatalogPageState extends State<CatalogPage> {
         ],
         if (_controller.products.isEmpty)
           const Padding(
-            padding: EdgeInsets.symmetric(vertical: 80),
+            padding: EdgeInsets.symmetric(vertical: 60),
             child: AppEmptyView(
               message: 'No encontramos productos con esos filtros.',
             ),
           )
-        else
+        else if (hasSpecificBranch || hasSearchOrFilters) ...[
+          if (hasSpecificBranch) ...[
+            _selectedBranchHeader(),
+            const SizedBox(height: 16),
+          ],
           _productGrid(),
+        ] else ...[
+          for (final section in _controller.branchSections) ...[
+            _branchSectionHeader(section),
+            const SizedBox(height: 10),
+            _branchSectionCarousel(section),
+            const SizedBox(height: 24),
+          ],
+        ],
       ],
+    );
+  }
+
+  Widget _selectedBranchHeader() {
+    final branch = _controller.branches
+        .where((b) => b.id == _controller.branchId)
+        .firstOrNull;
+    final tenant = _controller.tenants
+        .where((t) => t.id == branch?.tenantId)
+        .firstOrNull;
+    final displayName = branch != null
+        ? '${tenant?.name ?? "Tienda"} — ${branch.name} (${branch.city})'
+        : 'Sucursal seleccionada';
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Theme.of(
+          context,
+        ).colorScheme.primaryContainer.withValues(alpha: 0.25),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: Theme.of(
+            context,
+          ).colorScheme.primary.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.storefront, color: Theme.of(context).colorScheme.primary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Sucursal seleccionada',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.grey,
+                  ),
+                ),
+                Text(
+                  displayName,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.close, size: 18),
+            tooltip: 'Volver a ver todas las sucursales',
+            onPressed: () => _controller.selectBranch(null),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _branchSectionHeader(CatalogBranchSection section) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  '🏪 ${section.tenantName}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.grey.shade800,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '🏬 ${section.tenantName} — ${section.branchName} (${section.cityName})',
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+        TextButton(
+          onPressed: () => _controller.selectBranch(section.branchId),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Ver sucursal',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(width: 2),
+              Icon(Icons.arrow_forward, size: 14),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _branchSectionCarousel(CatalogBranchSection section) {
+    return SizedBox(
+      height: 330,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: section.products.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 14),
+        itemBuilder: (context, index) => SizedBox(
+          width: 210,
+          child: _productCard(
+            section.products[index],
+            preferredBranchId: section.branchId,
+          ),
+        ),
+      ),
     );
   }
 
   Widget _recommendationCarousel() {
     return SizedBox(
-      height: 300,
-      child: Stack(
-        children: [
-          ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: _recommendedProducts.length,
-            padding: const EdgeInsets.only(right: 42),
-            separatorBuilder: (_, _) => const SizedBox(width: 12),
-            itemBuilder: (context, index) => SizedBox(
-              width: 180,
-              child: _productCard(_recommendedProducts[index]),
-            ),
-          ),
-          if (_recommendedProducts.length > 1)
-            Positioned(
-              top: 0,
-              right: 0,
-              bottom: 0,
-              child: IgnorePointer(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Theme.of(
-                          context,
-                        ).colorScheme.surface.withValues(alpha: 0),
-                        Theme.of(context).colorScheme.surface,
-                      ],
-                    ),
-                  ),
-                  child: const SizedBox(
-                    width: 48,
-                    child: Center(child: Icon(Icons.swipe_outlined)),
-                  ),
-                ),
-              ),
-            ),
-        ],
+      height: 330,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _recommendedProducts.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 14),
+        itemBuilder: (context, index) => SizedBox(
+          width: 210,
+          child: _productCard(_recommendedProducts[index]),
+        ),
       ),
     );
   }
@@ -454,15 +592,20 @@ class _CatalogPageState extends State<CatalogPage> {
         maxCrossAxisExtent: 260,
         mainAxisSpacing: 16,
         crossAxisSpacing: 16,
-        childAspectRatio: .60,
+        childAspectRatio: 0.52,
       ),
       itemCount: _controller.products.length,
-      itemBuilder: (context, index) =>
-          _productCard(_controller.products[index]),
+      itemBuilder: (context, index) => _productCard(
+        _controller.products[index],
+        preferredBranchId: _controller.branchId,
+      ),
     );
   }
 
-  Widget _productCard(Product product) {
+  Widget _productCard(
+    Product product, {
+    String? preferredBranchId,
+  }) {
     final variants = product.variants ?? const <ProductVariant>[];
     final primaryVariant = variants.isEmpty ? null : variants.first;
     final imageUrls = variants
@@ -473,6 +616,12 @@ class _CatalogPageState extends State<CatalogPage> {
         )
         .map((variant) => variant.imageUrl!.trim())
         .toList(growable: false);
+
+    final tenant = _controller.tenants
+        .where((t) => t.id == product.tenantId)
+        .firstOrNull;
+    final tenantName = tenant?.name;
+
     final badge = product.branchQuantity == null
         ? null
         : product.branchQuantity! > 0
@@ -486,11 +635,273 @@ class _CatalogPageState extends State<CatalogPage> {
       imageUrl: imageUrls.isEmpty ? product.imageUrl : null,
       variantImageUrls: imageUrls,
       badge: badge,
-      onTap: () => _openProduct(product),
+      tenantName: tenantName,
+      isAddingToCart: _addingProductIds.contains(product.id),
+      onTap: () => _openProduct(
+        product,
+        preferredBranchId: preferredBranchId,
+      ),
+      onAddToCart: () => _addVariantToCart(
+        product,
+        preferredBranchId: preferredBranchId,
+      ),
+      onReserve: () => _addVariantToReservation(
+        product,
+        preferredBranchId: preferredBranchId,
+      ),
     );
   }
 
-  Future<void> _openProduct(Product product) async {
+  Branch? _resolveBranchForProduct(
+    Product product,
+    String? preferredBranchId,
+  ) {
+    if (preferredBranchId != null) {
+      final match = _controller.branches
+          .where((b) => b.id == preferredBranchId)
+          .firstOrNull;
+      if (match != null) return match;
+    }
+    if (_controller.branchId != null) {
+      final match = _controller.branches
+          .where((b) => b.id == _controller.branchId)
+          .firstOrNull;
+      if (match != null) return match;
+    }
+    if (product.tenantId != null) {
+      final match = _controller.branches
+          .where((b) => b.tenantId == product.tenantId)
+          .firstOrNull;
+      if (match != null) return match;
+    }
+    return _controller.branches.firstOrNull;
+  }
+
+  Future<void> _addVariantToCart(
+    Product product, {
+    String? preferredBranchId,
+  }) async {
+    final variants = product.variants ?? const [];
+    final primaryVariant = variants.isEmpty ? null : variants.first;
+    if (primaryVariant == null) {
+      _openProduct(product, preferredBranchId: preferredBranchId);
+      return;
+    }
+
+    final authController = widget.authController;
+    if (authController == null || !authController.isAuthenticated) {
+      final loggedIn = await LoginDialog.show(
+        context: context,
+        controller: authController ?? AuthController(),
+      );
+      if (!mounted || loggedIn != true) return;
+    }
+
+    final targetBranch = _resolveBranchForProduct(
+      product,
+      preferredBranchId,
+    );
+    final tenant = _controller.tenants
+        .where(
+          (t) =>
+              t.id == product.tenantId ||
+              t.id == targetBranch?.tenantId,
+        )
+        .firstOrNull;
+    final tenantName = tenant?.name ?? 'Tienda';
+    final targetBranchId = targetBranch?.id;
+    final targetBranchName = targetBranch != null
+        ? '${targetBranch.name} (${targetBranch.city})'
+        : 'Sucursal';
+
+    final sessionStorage = const SessionStorage();
+    final cartContext = await sessionStorage.readCartContext();
+    final cartBranchId = cartContext?['branch_id'];
+    final cartBranchName = cartContext?['branch_name'];
+    final cartTenantName = cartContext?['tenant_name'];
+
+    final api = CartApi(
+      tokenProvider: () => widget.authController?.accessToken,
+      onUnauthorized: widget.authController?.handleUnauthorized,
+    );
+
+    try {
+      final currentCartResult = await api.getCurrent();
+      final currentCart = currentCartResult.cart;
+      if (!mounted) return;
+
+      if (currentCart.items.isNotEmpty &&
+          cartBranchId != null &&
+          targetBranchId != null &&
+          cartBranchId != targetBranchId) {
+        final currentFullName =
+            cartTenantName != null && cartTenantName.isNotEmpty
+                ? '$cartTenantName — $cartBranchName'
+                : (cartBranchName ?? 'otra sucursal');
+
+        final confirm = await showDialog<bool>(
+          context: context,
+          builder: (dialogCtx) => AlertDialog(
+            title: const Text('¿Cambiar de sucursal?'),
+            content: Text(
+              'Tenés productos de $currentFullName en tu carrito.\n\n'
+              'Si continuás, se vaciará el carrito actual para comprar en $tenantName — $targetBranchName.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogCtx).pop(false),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(dialogCtx).pop(true),
+                child: const Text('Vaciar y agregar'),
+              ),
+            ],
+          ),
+        );
+
+        if (!mounted || confirm != true) return;
+        await api.clear();
+      }
+
+      setState(() => _addingProductIds.add(product.id));
+      final res = await api.addItem(
+        variantId: primaryVariant.id,
+        quantity: 1,
+      );
+      if (targetBranchId != null) {
+        await sessionStorage.saveCartContext(
+          branchId: targetBranchId,
+          branchName: targetBranchName,
+          tenantName: tenantName,
+        );
+      }
+      if (mounted) {
+        AppSnackBar.show(
+          context,
+          res.message,
+          tone: AppSnackBarTone.success,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.show(
+          context,
+          'No se pudo agregar al carrito.',
+          tone: AppSnackBarTone.error,
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _addingProductIds.remove(product.id));
+      }
+    }
+  }
+
+  Future<void> _addVariantToReservation(
+    Product product, {
+    String? preferredBranchId,
+  }) async {
+    final variants = product.variants ?? const [];
+    final primaryVariant = variants.isEmpty ? null : variants.first;
+    if (primaryVariant == null) {
+      _openProduct(product, preferredBranchId: preferredBranchId);
+      return;
+    }
+
+    final targetBranch = _resolveBranchForProduct(
+      product,
+      preferredBranchId,
+    );
+    final tenant = _controller.tenants
+        .where(
+          (t) =>
+              t.id == product.tenantId ||
+              t.id == targetBranch?.tenantId,
+        )
+        .firstOrNull;
+    final tenantName = tenant?.name ?? 'Tienda';
+    final targetBranchId = targetBranch?.id;
+    final targetBranchName = targetBranch != null
+        ? '${targetBranch.name} (${targetBranch.city})'
+        : 'Sucursal';
+
+    if (_reservationItems.isNotEmpty &&
+        _reservationBranchId != null &&
+        targetBranchId != null &&
+        _reservationBranchId != targetBranchId) {
+      final currentFullName =
+          _reservationTenantName != null &&
+                  _reservationTenantName!.isNotEmpty
+              ? '$_reservationTenantName — $_reservationBranchName'
+              : (_reservationBranchName ?? 'otra sucursal');
+
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (dialogCtx) => AlertDialog(
+          title: const Text('¿Cambiar de sucursal?'),
+          content: Text(
+            'Ya tenés prendas para reservar en $currentFullName.\n\n'
+            'Si continuás, se reiniciará tu reserva con la nueva sucursal $tenantName — $targetBranchName.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogCtx).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogCtx).pop(true),
+              child: const Text('Cambiar y reservar'),
+            ),
+          ],
+        ),
+      );
+
+      if (!mounted || confirm != true) return;
+      _reservationItems.clear();
+    }
+
+    final selectedItem = ReservationDraftItem(
+      variantId: primaryVariant.id,
+      quantity: 1,
+      productName: product.name,
+      variantSku:
+          primaryVariant.sku.isEmpty ? product.sku : primaryVariant.sku,
+      imageUrl: primaryVariant.imageUrl ?? product.imageUrl,
+    );
+
+    final existingIndex = _reservationItems.indexWhere(
+      (item) => item.variantId == selectedItem.variantId,
+    );
+    if (existingIndex == -1) {
+      _reservationItems.add(selectedItem);
+    } else {
+      final existing = _reservationItems[existingIndex];
+      _reservationItems[existingIndex] = ReservationDraftItem(
+        variantId: existing.variantId,
+        quantity: existing.quantity + 1,
+        productName: selectedItem.productName ?? existing.productName,
+        variantSku: selectedItem.variantSku ?? existing.variantSku,
+        imageUrl: selectedItem.imageUrl ?? existing.imageUrl,
+      );
+    }
+
+    _reservationBranchId = targetBranchId;
+    _reservationBranchName = targetBranchName;
+    _reservationTenantName = tenantName;
+
+    setState(() {});
+    AppSnackBar.show(
+      context,
+      'Prenda agregada a la reserva.',
+      tone: AppSnackBarTone.success,
+    );
+  }
+
+  Future<void> _openProduct(
+    Product product, {
+    String? preferredBranchId,
+  }) async {
     unawaited(_recordProductView(product));
     final result = await Navigator.of(context).pushNamed(
       AppRoutes.productDetail,
@@ -500,15 +911,23 @@ class _CatalogPageState extends State<CatalogPage> {
         colors: _controller.colors,
         branches: _controller.branches,
         tenants: _controller.tenants,
-        branchId: _controller.branchId,
+        branchId: preferredBranchId ?? _controller.branchId,
         reservationArguments: ReservationArguments(
           items: List.of(_reservationItems),
+          branchId: _reservationBranchId,
+          branchName: _reservationBranchName,
+          tenantName: _reservationTenantName,
         ),
       ),
     );
     if (!mounted || result is! ReservationArguments) return;
 
-    setState(() => _reservationItems = List.of(result.items));
+    setState(() {
+      _reservationItems = List.of(result.items);
+      _reservationBranchId = result.branchId;
+      _reservationBranchName = result.branchName;
+      _reservationTenantName = result.tenantName;
+    });
     AppSnackBar.show(
       context,
       'Prenda agregada a la reserva.',
