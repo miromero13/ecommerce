@@ -201,7 +201,7 @@ class _CatalogPageState extends State<CatalogPage> {
         label: Text(
           hasActive
               ? 'Filtros aplicados ($activeCount)'
-              : 'Filtrar por sucursal, categoría, talla...',
+              : 'Filtros',
           style: TextStyle(
             fontSize: 13,
             fontWeight: hasActive ? FontWeight.bold : FontWeight.w500,
