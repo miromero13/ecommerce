@@ -10,7 +10,6 @@ import '../../shared/widgets/app_button.dart';
 import '../../shared/widgets/app_loading.dart';
 import '../../shared/widgets/app_section_title.dart';
 import '../../shared/widgets/app_snack_bar.dart';
-import '../../shared/widgets/filter_chip.dart';
 import '../../shared/widgets/product_card.dart';
 import '../auth/auth_controller.dart';
 import '../auth/login_dialog.dart';
@@ -96,17 +95,15 @@ class _CatalogPageState extends State<CatalogPage> {
                 title: 'Catálogo público',
                 subtitle: 'Explora las prendas disponibles en FashionStore.',
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
               _shortcuts(),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
               _tenantSelector(),
-              const SizedBox(height: 16),
-              _searchField(),
-              const SizedBox(height: 12),
-              _branchSelector(),
-              if (_controller.status == CatalogStatus.ready) ...[
-                const SizedBox(height: 8),
-                _filters(),
+              const SizedBox(height: 14),
+              _searchAndFilterRow(),
+              if (_activeFiltersCount > 0) ...[
+                const SizedBox(height: 10),
+                _activeFilterChips(),
               ],
               const SizedBox(height: 16),
               _content(),
@@ -128,14 +125,443 @@ class _CatalogPageState extends State<CatalogPage> {
       textInputAction: TextInputAction.search,
       onSubmitted: _search,
       decoration: InputDecoration(
-        hintText: 'Buscar productos',
-        prefixIcon: const Icon(Icons.search),
-        suffixIcon: IconButton(
-          tooltip: 'Buscar',
-          onPressed: () => _search(_searchController.text),
-          icon: const Icon(Icons.arrow_forward),
+        hintText: 'Buscar prendas, estilos...',
+        prefixIcon: const Icon(Icons.search, size: 20),
+        suffixIcon: _searchController.text.isNotEmpty
+            ? IconButton(
+                tooltip: 'Limpiar búsqueda',
+                icon: const Icon(Icons.clear, size: 18),
+                onPressed: () {
+                  _searchController.clear();
+                  _search('');
+                },
+              )
+            : IconButton(
+                tooltip: 'Buscar',
+                onPressed: () => _search(_searchController.text),
+                icon: const Icon(Icons.arrow_forward, size: 18),
+              ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
         ),
       ),
+    );
+  }
+
+  int get _activeFiltersCount {
+    var count = 0;
+    if (_controller.branchId != null && _controller.branchId!.isNotEmpty) count++;
+    if (_controller.categoryId != null && _controller.categoryId!.isNotEmpty) count++;
+    if (_controller.sizeId != null && _controller.sizeId!.isNotEmpty) count++;
+    if (_controller.colorId != null && _controller.colorId!.isNotEmpty) count++;
+    if (_controller.seasonId != null && _controller.seasonId!.isNotEmpty) count++;
+    if (_controller.collectionId != null && _controller.collectionId!.isNotEmpty) count++;
+    return count;
+  }
+
+  Widget _searchAndFilterRow() {
+    final activeCount = _activeFiltersCount;
+    final hasActive = activeCount > 0;
+
+    return Row(
+      children: [
+        Expanded(
+          child: _searchField(),
+        ),
+        const SizedBox(width: 8),
+        SizedBox(
+          height: 48,
+          child: OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              backgroundColor: hasActive
+                  ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.35)
+                  : null,
+              side: BorderSide(
+                color: hasActive
+                    ? Theme.of(context).colorScheme.primary
+                    : Colors.grey.shade300,
+                width: hasActive ? 1.5 : 1.0,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: _openFiltersBottomSheet,
+            icon: Badge(
+              isLabelVisible: hasActive,
+              label: Text('$activeCount'),
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              child: Icon(
+                Icons.tune_rounded,
+                size: 20,
+                color: hasActive
+                    ? Theme.of(context).colorScheme.primary
+                    : Colors.grey.shade700,
+              ),
+            ),
+            label: Text(
+              'Filtros',
+              style: TextStyle(
+                fontWeight: hasActive ? FontWeight.bold : FontWeight.w600,
+                color: hasActive
+                    ? Theme.of(context).colorScheme.primary
+                    : Colors.grey.shade800,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _activeFilterChips() {
+    final chips = <Widget>[];
+
+    if (_controller.branchId != null && _controller.branchId!.isNotEmpty) {
+      final branch = _controller.branches.where((b) => b.id == _controller.branchId).firstOrNull;
+      chips.add(
+        InputChip(
+          avatar: const Icon(Icons.location_on_outlined, size: 15),
+          label: Text(branch != null ? '${branch.name} (${branch.city})' : 'Sucursal'),
+          onDeleted: () => _updateFilters(branchId: ''),
+          deleteIconColor: Colors.grey.shade700,
+        ),
+      );
+    }
+
+    if (_controller.categoryId != null && _controller.categoryId!.isNotEmpty) {
+      final cat = _controller.categories.where((c) => c.id == _controller.categoryId).firstOrNull;
+      chips.add(
+        InputChip(
+          avatar: const Icon(Icons.category_outlined, size: 15),
+          label: Text(cat?.name ?? 'Categoría'),
+          onDeleted: () => _updateFilters(categoryId: ''),
+          deleteIconColor: Colors.grey.shade700,
+        ),
+      );
+    }
+
+    if (_controller.sizeId != null && _controller.sizeId!.isNotEmpty) {
+      final size = _controller.sizes.where((s) => s.id == _controller.sizeId).firstOrNull;
+      chips.add(
+        InputChip(
+          avatar: const Icon(Icons.straighten_outlined, size: 15),
+          label: Text('Talla: ${size?.name ?? ""}'),
+          onDeleted: () => _updateFilters(sizeId: ''),
+          deleteIconColor: Colors.grey.shade700,
+        ),
+      );
+    }
+
+    if (_controller.colorId != null && _controller.colorId!.isNotEmpty) {
+      final color = _controller.colors.where((c) => c.id == _controller.colorId).firstOrNull;
+      chips.add(
+        InputChip(
+          avatar: const Icon(Icons.palette_outlined, size: 15),
+          label: Text('Color: ${color?.name ?? ""}'),
+          onDeleted: () => _updateFilters(colorId: ''),
+          deleteIconColor: Colors.grey.shade700,
+        ),
+      );
+    }
+
+    if (_controller.seasonId != null && _controller.seasonId!.isNotEmpty) {
+      final season = _controller.seasons.where((s) => s.id == _controller.seasonId).firstOrNull;
+      chips.add(
+        InputChip(
+          avatar: const Icon(Icons.wb_sunny_outlined, size: 15),
+          label: Text('Temp: ${season?.name ?? ""}'),
+          onDeleted: () => _updateFilters(seasonId: ''),
+          deleteIconColor: Colors.grey.shade700,
+        ),
+      );
+    }
+
+    if (_controller.collectionId != null && _controller.collectionId!.isNotEmpty) {
+      final col = _controller.collections.where((c) => c.id == _controller.collectionId).firstOrNull;
+      chips.add(
+        InputChip(
+          avatar: const Icon(Icons.auto_awesome_motion_outlined, size: 15),
+          label: Text('Col: ${col?.name ?? ""}'),
+          onDeleted: () => _updateFilters(collectionId: ''),
+          deleteIconColor: Colors.grey.shade700,
+        ),
+      );
+    }
+
+    if (chips.isEmpty) return const SizedBox.shrink();
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (final chip in chips)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: chip,
+            ),
+          ActionChip(
+            avatar: const Icon(Icons.delete_sweep_outlined, size: 15, color: Colors.red),
+            label: const Text(
+              'Limpiar',
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600, fontSize: 12),
+            ),
+            onPressed: () {
+              _searchController.clear();
+              _controller.clearFilters();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _openFiltersBottomSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (bottomSheetContext) {
+        return ListenableBuilder(
+          listenable: _controller,
+          builder: (context, _) {
+            final activeCount = _activeFiltersCount;
+
+            return Container(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.85,
+              ),
+              decoration: BoxDecoration(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(height: 12),
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.tune_rounded, size: 22),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Filtros',
+                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            if (activeCount > 0) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  '$activeCount',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            if (activeCount > 0)
+                              TextButton(
+                                onPressed: () => _controller.clearFilters(),
+                                child: const Text('Limpiar todo'),
+                              ),
+                            IconButton(
+                              icon: const Icon(Icons.close),
+                              tooltip: 'Cerrar',
+                              onPressed: () => Navigator.of(bottomSheetContext).pop(),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  Flexible(
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                      children: [
+                        // 1. Sucursal física (select)
+                        _sheetBranchDropdown(),
+                        const SizedBox(height: 16),
+
+                        // 2. Categoría (select)
+                        _sheetCategoryDropdown(),
+                        const SizedBox(height: 16),
+
+                        // 3. Talla (select)
+                        _filterDropdown<Size>(
+                          label: 'Talla',
+                          prefixIcon: Icons.straighten_outlined,
+                          value: _controller.sizeId,
+                          items: _controller.sizes,
+                          id: (item) => item.id,
+                          name: (item) => item.name,
+                          onChanged: (value) => _updateFilters(sizeId: value),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // 4. Color (select)
+                        _filterDropdown<CatalogColor>(
+                          label: 'Color',
+                          prefixIcon: Icons.palette_outlined,
+                          value: _controller.colorId,
+                          items: _controller.colors,
+                          id: (item) => item.id,
+                          name: (item) => item.name,
+                          onChanged: (value) => _updateFilters(colorId: value),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // 5. Temporada (select)
+                        _filterDropdown<Season>(
+                          label: 'Temporada',
+                          prefixIcon: Icons.wb_sunny_outlined,
+                          value: _controller.seasonId,
+                          items: _controller.seasons,
+                          id: (item) => item.id,
+                          name: (item) => item.name,
+                          onChanged: (value) => _updateFilters(seasonId: value),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // 6. Colección (select)
+                        _filterDropdown<Collection>(
+                          label: 'Colección',
+                          prefixIcon: Icons.auto_awesome_motion_outlined,
+                          value: _controller.collectionId,
+                          items: _controller.collections,
+                          id: (item) => item.id,
+                          name: (item) => item.name,
+                          onChanged: (value) => _updateFilters(collectionId: value),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 46,
+                      child: FilledButton(
+                        onPressed: () => Navigator.of(bottomSheetContext).pop(),
+                        child: Text(
+                          _controller.products.isEmpty
+                              ? 'Cerrar'
+                              : 'Ver ${_controller.products.length} productos',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _sheetBranchDropdown() {
+    final branches = _controller.filteredBranches;
+    return DropdownButtonFormField<String>(
+      key: ValueKey('${_controller.tenantId}_${_controller.branchId}'),
+      initialValue: _controller.branchId ?? '',
+      isExpanded: true,
+      decoration: InputDecoration(
+        labelText: 'Sucursal física',
+        prefixIcon: const Icon(Icons.location_on_outlined, size: 20),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      ),
+      items: [
+        const DropdownMenuItem(
+          value: '',
+          child: Text('Todas las sucursales', overflow: TextOverflow.ellipsis),
+        ),
+        ...branches.map(
+          (branch) => DropdownMenuItem(
+            value: branch.id,
+            child: Text(
+              '${branch.name} · ${branch.city}',
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ),
+      ],
+      onChanged: (value) => _updateFilters(branchId: value),
+    );
+  }
+
+  Widget _sheetCategoryDropdown() {
+    return _filterDropdown<Category>(
+      label: 'Categoría',
+      prefixIcon: Icons.category_outlined,
+      value: _controller.categoryId,
+      items: _controller.categories,
+      id: (item) => item.id,
+      name: (item) => item.name,
+      onChanged: (value) => _updateFilters(categoryId: value),
+    );
+  }
+
+  Widget _filterDropdown<T>({
+    required String label,
+    required String? value,
+    required List<T> items,
+    required String Function(T item) id,
+    required String Function(T item) name,
+    required ValueChanged<String?> onChanged,
+    IconData? prefixIcon,
+  }) {
+    return DropdownButtonFormField<String>(
+      initialValue: value ?? '',
+      isExpanded: true,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: prefixIcon != null ? Icon(prefixIcon, size: 20) : null,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      ),
+      items: [
+        DropdownMenuItem(value: '', child: Text('Todas / Todos ($label)')),
+        ...items.map(
+          (item) => DropdownMenuItem(
+            value: id(item),
+            child: Text(name(item), overflow: TextOverflow.ellipsis),
+          ),
+        ),
+      ],
+      onChanged: onChanged,
     );
   }
 
@@ -234,145 +660,6 @@ class _CatalogPageState extends State<CatalogPage> {
     );
   }
 
-  Widget _branchSelector() {
-    final branches = _controller.filteredBranches;
-    if (branches.isEmpty) return const SizedBox.shrink();
-
-    return DropdownButtonFormField<String>(
-      key: ValueKey('${_controller.tenantId}_${_controller.branchId}'),
-      initialValue: _controller.branchId ?? '',
-      isExpanded: true,
-      decoration: const InputDecoration(
-        labelText: 'Sucursal física',
-        prefixIcon: Icon(Icons.location_on_outlined),
-      ),
-      items: [
-        const DropdownMenuItem(
-          value: '',
-          child: Text('Todas las sucursales', overflow: TextOverflow.ellipsis),
-        ),
-        ...branches.map(
-          (branch) => DropdownMenuItem(
-            value: branch.id,
-            child: Text(
-              '${branch.name} · ${branch.city}',
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ),
-      ],
-      onChanged: _controller.status == CatalogStatus.loading
-          ? null
-          : (value) => _controller.selectBranch(value),
-    );
-  }
-
-  Widget _filters() {
-    return ExpansionTile(
-      tilePadding: EdgeInsets.zero,
-      title: const Text('Filtros'),
-      childrenPadding: const EdgeInsets.only(bottom: 4),
-      children: [
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final category in _controller.categories)
-                AppFilterChip(
-                  label: category.name,
-                  selected: category.id == _controller.categoryId,
-                  onSelected: (selected) =>
-                      _updateFilters(categoryId: selected ? category.id : ''),
-                ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        _filterDropdown<Size>(
-          label: 'Talla',
-          value: _controller.sizeId,
-          items: _controller.sizes,
-          id: (item) => item.id,
-          name: (item) => item.name,
-          onChanged: (value) => _updateFilters(sizeId: value),
-        ),
-        const SizedBox(height: 12),
-        _filterDropdown<CatalogColor>(
-          label: 'Color',
-          value: _controller.colorId,
-          items: _controller.colors,
-          id: (item) => item.id,
-          name: (item) => item.name,
-          onChanged: (value) => _updateFilters(colorId: value),
-        ),
-        const SizedBox(height: 12),
-        _filterDropdown<Season>(
-          label: 'Temporada',
-          value: _controller.seasonId,
-          items: _controller.seasons,
-          id: (item) => item.id,
-          name: (item) => item.name,
-          onChanged: (value) => _updateFilters(seasonId: value),
-        ),
-        const SizedBox(height: 12),
-        _filterDropdown<Collection>(
-          label: 'Colección',
-          value: _controller.collectionId,
-          items: _controller.collections,
-          id: (item) => item.id,
-          name: (item) => item.name,
-          onChanged: (value) => _updateFilters(collectionId: value),
-        ),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton(
-            onPressed:
-                _controller.searchQuery.isEmpty &&
-                    _controller.branchId == null &&
-                    _controller.categoryId == null &&
-                    _controller.sizeId == null &&
-                    _controller.colorId == null &&
-                    _controller.seasonId == null &&
-                    _controller.collectionId == null
-                ? null
-                : () {
-                    _searchController.clear();
-                    _controller.clearFilters();
-                  },
-            child: const Text('Limpiar filtros'),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _filterDropdown<T>({
-    required String label,
-    required String? value,
-    required List<T> items,
-    required String Function(T item) id,
-    required String Function(T item) name,
-    required ValueChanged<String?> onChanged,
-  }) {
-    return DropdownButtonFormField<String>(
-      initialValue: value ?? '',
-      isExpanded: true,
-      decoration: InputDecoration(labelText: label),
-      items: [
-        const DropdownMenuItem(value: '', child: Text('Todos')),
-        ...items.map(
-          (item) => DropdownMenuItem(
-            value: id(item),
-            child: Text(name(item), overflow: TextOverflow.ellipsis),
-          ),
-        ),
-      ],
-      onChanged: onChanged,
-    );
-  }
-
   Widget _content() {
     return switch (_controller.status) {
       CatalogStatus.idle || CatalogStatus.loading => const Padding(
@@ -405,7 +692,7 @@ class _CatalogPageState extends State<CatalogPage> {
       children: [
         if (_recommendedProducts.isNotEmpty) ...[
           const AppSectionTitle(
-            title: '✨ Recomendaciones para ti (IA)',
+            title: 'Recomendaciones para ti',
             subtitle: 'Prendas sugeridas según tus gustos y visualizaciones.',
           ),
           const SizedBox(height: 12),
