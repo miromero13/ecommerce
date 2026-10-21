@@ -77,27 +77,6 @@ class ProductCard extends StatelessWidget {
                     ],
                   ),
                 ),
-              Positioned(
-                top: 6,
-                right: 6,
-                child: Material(
-                  color: Colors.white.withValues(alpha: 0.9),
-                  shape: const CircleBorder(),
-                  elevation: 2,
-                  child: InkWell(
-                    customBorder: const CircleBorder(),
-                    onTap: onTap,
-                    child: const Padding(
-                      padding: EdgeInsets.all(5),
-                      child: Icon(
-                        Icons.visibility_outlined,
-                        size: 16,
-                        color: Colors.black87,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
             ],
           ),
           Padding(
