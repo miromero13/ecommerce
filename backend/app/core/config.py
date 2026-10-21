@@ -25,6 +25,11 @@ class Settings(BaseSettings):
             "FIREBASE_SERVICE_ACCOUNT_FILE",
         ),
     )
+    app_name: str = "FashionStore SaaS"
+    mailer_service: str = "https://send.api.mailtrap.io/api/send"
+    mailer_email: str = "no-reply@devhooh.com"
+    mailer_secret_key: str | None = None
+
 
     class Config:
         env_file = ".env"

@@ -5,9 +5,13 @@ from sqlalchemy import select
 from app.models.branch import Branch
 from app.models.user import User
 from app.schemas.branch_schema import BranchCreate
+from app.services.subscription_service import check_tenant_branch_quota
 
 
 def create_branch(db: Session, branch: BranchCreate, tenant_id: UUID | None = None) -> Branch:
+    if tenant_id is not None:
+        check_tenant_branch_quota(db, tenant_id)
+
     db_branch = Branch(
         name=branch.name,
         city=branch.city,
