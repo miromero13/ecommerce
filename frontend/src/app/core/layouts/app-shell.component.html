@@ -48,7 +48,7 @@
           </a>
         </li>
         <li hlmSidebarMenuItem>
-          <button hlmSidebarMenuButton type="button" (click)="logout()">
+          <button hlmSidebarMenuButton type="button" class="cursor-pointer" (click)="logout()">
             <ng-icon name="lucideLogOut"></ng-icon>
             <span>Cerrar sesión</span>
           </button>
@@ -63,26 +63,87 @@
         <button hlmSidebarTrigger type="button" class="md:hidden" aria-label="Abrir navegación"></button>
       </div>
 
-      <div class="flex items-center gap-3 text-sm text-left">
+      <!-- Acciones de cabecera estilo Facebook: Iconos limpios circulares y avatar popover -->
+      <div class="relative flex items-center gap-2 text-sm text-left">
+        <!-- Botón circular de Notificaciones con tooltip -->
         <a
           [routerLink]="'/app/notifications'"
           aria-label="Notificaciones"
-          class="relative flex size-10 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition hover:bg-slate-100"
+          title="Notificaciones"
+          class="relative flex size-10 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 active:scale-95"
         >
           <ng-icon name="lucideBell" style="--ng-icon__size: 20px;"></ng-icon>
           @if (notifications.unreadCount() > 0) {
-            <span class="absolute -right-1 -top-1 min-w-5 rounded-full bg-primary px-1 text-center text-xs text-primary-foreground">
+            <span class="absolute -right-1 -top-1 flex min-w-5 h-5 items-center justify-center rounded-full bg-rose-600 px-1 text-center text-[10px] font-bold text-white shadow-sm">
               {{ notifications.unreadCount() > 99 ? '99+' : notifications.unreadCount() }}
             </span>
           }
         </a>
-        <div class="flex size-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-slate-600">
-          <ng-icon name="lucideUserRound" style="--ng-icon__size: 24px;"></ng-icon>
-        </div>
-        <div class="leading-tight text-left">
-          <p class="font-medium">{{ fullName() }}</p>
-          <p class="text-xs uppercase tracking-wide text-slate-500">{{ userRoleLabel() }}</p>
-          <p class="text-xs text-slate-400">{{ userBranchLabel() }}</p>
+
+        <!-- Botón circular de Avatar de Usuario con dropdown popover -->
+        <div class="relative">
+          <button
+            type="button"
+            (click)="toggleProfileMenu()"
+            title="Mi cuenta"
+            aria-label="Menú de perfil"
+            class="relative flex size-10 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-slate-900 font-semibold text-white shadow-sm transition hover:bg-slate-800 active:scale-95"
+          >
+            <span>{{ userInitials() }}</span>
+            <span class="absolute bottom-0 right-0 size-2.5 rounded-full border-2 border-white bg-emerald-500"></span>
+          </button>
+
+          <!-- Popover desplegable estilo Facebook -->
+          @if (isProfileMenuOpen()) {
+            <!-- Backdrop invisible para cerrar al hacer clic afuera -->
+            <div class="fixed inset-0 z-40" (click)="closeProfileMenu()"></div>
+
+            <div class="absolute right-0 top-12 z-50 w-72 origin-top-right rounded-2xl border border-slate-200 bg-white p-4 shadow-xl ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-100">
+              <!-- Información del usuario -->
+              <div class="flex items-center gap-3 border-b border-slate-100 pb-3">
+                <div class="flex size-12 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-bold text-white shadow-sm">
+                  {{ userInitials() }}
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="truncate font-semibold text-slate-900">{{ fullName() }}</p>
+                  <p class="truncate text-xs text-slate-400">{{ userEmail() }}</p>
+                </div>
+              </div>
+
+              <!-- Badges de Rol y Alcance -->
+              <div class="mt-3 flex flex-wrap gap-1.5 border-b border-slate-100 pb-3">
+                <span class="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-700">
+                  {{ userRoleLabel() }}
+                </span>
+                @if (userBranchLabel()) {
+                  <span class="rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-semibold text-blue-700">
+                    {{ userBranchLabel() }}
+                  </span>
+                }
+              </div>
+
+              <!-- Enlaces rápidos -->
+              <div class="mt-2 space-y-1">
+                <a
+                  [routerLink]="profileItem.route"
+                  (click)="closeProfileMenu()"
+                  class="flex cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
+                >
+                  <ng-icon name="lucideUserRound" style="--ng-icon__size: 16px;" class="text-slate-400"></ng-icon>
+                  <span>Ver mi perfil</span>
+                </a>
+
+                <button
+                  type="button"
+                  (click)="closeProfileMenu(); logout()"
+                  class="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-rose-600 transition hover:bg-rose-50"
+                >
+                  <ng-icon name="lucideLogOut" style="--ng-icon__size: 16px;"></ng-icon>
+                  <span>Cerrar sesión</span>
+                </button>
+              </div>
+            </div>
+          }
         </div>
       </div>
     </header>

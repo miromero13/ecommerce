@@ -1,0 +1,184 @@
+<div class="space-y-6">
+  <!-- Encabezado del Dashboard -->
+  <header class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight text-slate-900">Dashboard de Plataforma SaaS</h1>
+      <p class="text-sm text-slate-500">
+        Supervisión global de las empresas afiliadas, sucursales y actividad de usuarios.
+      </p>
+    </div>
+    <div class="flex items-center gap-2">
+      <a
+        routerLink="/app/superadmin/tenants"
+        hlmBtn
+        class="flex cursor-pointer items-center gap-2"
+      >
+        <ng-icon name="lucideBuilding2" style="--ng-icon__size: 18px;"></ng-icon>
+        <span>Gestión de Tenants</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Tarjetas de Métricas Shadcn (hlmCard) -->
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <!-- Total Empresas -->
+    <section hlmCard class="border-slate-200 shadow-sm">
+      <div hlmCardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+        <h3 class="text-sm font-medium text-slate-500">Total Empresas</h3>
+        <div class="flex size-9 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
+          <ng-icon name="lucideBuilding2" style="--ng-icon__size: 18px;"></ng-icon>
+        </div>
+      </div>
+      <div hlmCardContent>
+        <div class="text-3xl font-extrabold text-slate-900">{{ metrics().total }}</div>
+        <p class="text-xs text-slate-400 mt-1">E-commerce registrados en el SaaS</p>
+      </div>
+    </section>
+
+    <!-- Empresas Activas -->
+    <section hlmCard class="border-slate-200 shadow-sm">
+      <div hlmCardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+        <h3 class="text-sm font-medium text-slate-500">Empresas Activas</h3>
+        <div class="flex size-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+          <ng-icon name="lucideCheckCircle2" style="--ng-icon__size: 18px;"></ng-icon>
+        </div>
+      </div>
+      <div hlmCardContent>
+        <div class="text-3xl font-extrabold text-emerald-600">{{ metrics().active }}</div>
+        <p class="text-xs text-slate-400 mt-1">Operando con suscripción válida</p>
+      </div>
+    </section>
+
+    <!-- Sucursales en la Red -->
+    <section hlmCard class="border-slate-200 shadow-sm">
+      <div hlmCardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+        <h3 class="text-sm font-medium text-slate-500">Total Sucursales</h3>
+        <div class="flex size-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+          <ng-icon name="lucideStore" style="--ng-icon__size: 18px;"></ng-icon>
+        </div>
+      </div>
+      <div hlmCardContent>
+        <div class="text-3xl font-extrabold text-blue-600">{{ metrics().totalBranches }}</div>
+        <p class="text-xs text-slate-400 mt-1">Tiendas físicas en toda la plataforma</p>
+      </div>
+    </section>
+
+    <!-- Empleados de Tienda -->
+    <section hlmCard class="border-slate-200 shadow-sm">
+      <div hlmCardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+        <h3 class="text-sm font-medium text-slate-500">Personal Registrado</h3>
+        <div class="flex size-9 items-center justify-center rounded-lg bg-purple-50 text-purple-600">
+          <ng-icon name="lucideUsers" style="--ng-icon__size: 18px;"></ng-icon>
+        </div>
+      </div>
+      <div hlmCardContent>
+        <div class="text-3xl font-extrabold text-purple-600">{{ metrics().totalUsers }}</div>
+        <p class="text-xs text-slate-400 mt-1">Administradores, encargados y cajeros</p>
+      </div>
+    </section>
+  </div>
+
+  <!-- Estado de Salud y Arquitectura Multi-Tenant -->
+  <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+    <!-- Tarjeta de Arquitectura y Aislamiento -->
+    <section hlmCard class="border-slate-200 shadow-sm lg:col-span-1">
+      <div hlmCardHeader class="border-b border-slate-100 pb-3">
+        <h2 hlmCardTitle class="text-base font-bold text-slate-900">Aislamiento de Datos</h2>
+        <p class="text-xs text-slate-500">Garantía arquitectónica de seguridad</p>
+      </div>
+      <div hlmCardContent class="space-y-4 pt-4 text-xs text-slate-600">
+        <div class="flex items-start gap-3 rounded-xl bg-slate-50 p-3">
+          <ng-icon name="lucideCheckCircle2" style="--ng-icon__size: 18px;" class="text-emerald-600 shrink-0 mt-0.5"></ng-icon>
+          <div>
+            <p class="font-semibold text-slate-900">Aislamiento por Tenant ID</p>
+            <p class="text-slate-500 mt-0.5">Las consultas SQL filtran estrictamente por la empresa del usuario.</p>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-3 rounded-xl bg-slate-50 p-3">
+          <ng-icon name="lucideCheckCircle2" style="--ng-icon__size: 18px;" class="text-emerald-600 shrink-0 mt-0.5"></ng-icon>
+          <div>
+            <p class="font-semibold text-slate-900">Restricción por Sucursal</p>
+            <p class="text-slate-500 mt-0.5">Cajeros y encargados operan únicamente en su sucursal física asignada.</p>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-3 rounded-xl bg-slate-50 p-3">
+          <ng-icon name="lucideCheckCircle2" style="--ng-icon__size: 18px;" class="text-emerald-600 shrink-0 mt-0.5"></ng-icon>
+          <div>
+            <p class="font-semibold text-slate-900">Clientes Globales Unificados</p>
+            <p class="text-slate-500 mt-0.5">Los clientes navegan y compran libremente en cualquier marca afiliada.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tabla Shadcn con las últimas Empresas Registradas -->
+    <section hlmCard class="border-slate-200 shadow-sm lg:col-span-2">
+      <div hlmCardHeader class="flex flex-row items-center justify-between border-b border-slate-100 pb-3">
+        <div>
+          <h2 hlmCardTitle class="text-base font-bold text-slate-900">Empresas en la Plataforma</h2>
+          <p class="text-xs text-slate-500">Últimos e-commerce afiliados</p>
+        </div>
+        <a
+          routerLink="/app/superadmin/tenants"
+          class="flex cursor-pointer items-center gap-1 text-xs font-semibold text-slate-900 hover:underline"
+        >
+          <span>Ver todas</span>
+          <ng-icon name="lucideArrowRight" style="--ng-icon__size: 14px;"></ng-icon>
+        </a>
+      </div>
+
+      <div hlmCardContent class="p-0">
+        <div class="overflow-x-auto">
+          <table hlmTable class="w-full text-left text-sm">
+            <thead class="border-b border-slate-100 bg-slate-50/75 text-xs font-semibold text-slate-600">
+              <tr>
+                <th class="px-5 py-3">Empresa</th>
+                <th class="px-4 py-3">Contacto</th>
+                <th class="px-4 py-3 text-center">Sucursales</th>
+                <th class="px-4 py-3 text-center">Empleados</th>
+                <th class="px-4 py-3 text-right">Estado</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-slate-700">
+              @for (tenant of recentTenants(); track tenant.id) {
+                <tr class="transition hover:bg-slate-50/50">
+                  <td class="px-5 py-3.5">
+                    <p class="font-semibold text-slate-900">{{ tenant.name }}</p>
+                    <span class="font-mono text-xs text-slate-400">{{ tenant.slug }}</span>
+                  </td>
+                  <td class="px-4 py-3.5 text-xs text-slate-500">
+                    <p class="truncate">{{ tenant.contact_email }}</p>
+                    <p class="text-slate-400">{{ tenant.country || 'Bolivia' }} ({{ tenant.currency }})</p>
+                  </td>
+                  <td class="px-4 py-3.5 text-center font-medium">
+                    {{ tenant.branches_count || 0 }}
+                  </td>
+                  <td class="px-4 py-3.5 text-center font-medium">
+                    {{ tenant.users_count || 0 }}
+                  </td>
+                  <td class="px-4 py-3.5 text-right">
+                    @if (tenant.status === 'active') {
+                      <span hlmBadge class="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">Activa</span>
+                    } @else if (tenant.status === 'suspended') {
+                      <span hlmBadge variant="destructive">Suspendida</span>
+                    } @else {
+                      <span hlmBadge variant="secondary">Prueba</span>
+                    }
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="5" class="py-8 text-center text-sm text-slate-400">
+                    No hay empresas registradas aún.
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>

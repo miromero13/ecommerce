@@ -13,7 +13,7 @@ import { NgIcon, provideIcons } from '@ng-icons/core';
       <button
         #triggerButton
         type="button"
-        class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+        class="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
         (click)="toggle()"
         aria-label="Abrir acciones"
       >
@@ -28,37 +28,37 @@ import { NgIcon, provideIcons } from '@ng-icons/core';
           [style.max-height.px]="menuPosition.maxHeight"
         >
            @if (showEdit) {
-             <button type="button" class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50" (click)="run(edit)">
+             <button type="button" class="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50" (click)="run(edit)">
                <ng-icon name="lucidePencil" />
                <span>{{ editLabel }}</span>
              </button>
            }
            @if (showActive) {
-             <button type="button" class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50" (click)="run(toggleActive)">
+             <button type="button" class="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50" (click)="run(toggleActive)">
               <ng-icon name="lucidePower" />
               <span>{{ activeLabel }}</span>
             </button>
            }
            @if (showProducts) {
-               <button type="button" class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50" (click)="run(viewProducts)">
+               <button type="button" class="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50" (click)="run(viewProducts)">
                <ng-icon name="lucidePackageSearch" />
                <span>Ver productos</span>
              </button>
            }
             @if (showView) {
-             <button type="button" class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50" (click)="run(view)">
+             <button type="button" class="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50" (click)="run(view)">
                <ng-icon name="lucideEye" />
                <span>Ver</span>
              </button>
             }
             @if (showRequest) {
-              <button type="button" class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50" (click)="run(request)">
+              <button type="button" class="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50" (click)="run(request)">
                 <ng-icon name="lucideClipboardList" />
                 <span>Solicitar</span>
               </button>
             }
            @if (showDelete) {
-             <button type="button" class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-700 hover:bg-red-50" (click)="run(delete)">
+             <button type="button" class="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-sm text-red-700 hover:bg-red-50" (click)="run(delete)">
                <ng-icon name="lucideTrash2" />
                <span>Eliminar</span>
              </button>

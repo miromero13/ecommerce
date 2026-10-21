@@ -171,6 +171,31 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'superadmin',
+        canActivate: [roleGuard(['superadministrador'])],
+        children: [
+          {
+            path: '',
+            pathMatch: 'full',
+            redirectTo: 'dashboard',
+          },
+          {
+            path: 'dashboard',
+            loadComponent: () =>
+              import('./features/superadmin/pages/superadmin-dashboard-page.component').then(
+                (m) => m.SuperadminDashboardPageComponent,
+              ),
+          },
+          {
+            path: 'tenants',
+            loadComponent: () =>
+              import('./features/superadmin/pages/tenant-management-page.component').then(
+                (m) => m.TenantManagementPageComponent,
+              ),
+          },
+        ],
+      },
+      {
         path: 'admin',
         canActivate: [roleGuard(['administrador'])],
         children: [

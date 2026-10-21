@@ -3,7 +3,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideBell, lucideCalendarDays, lucideClipboardList, lucideLayoutDashboard, lucideLogOut, lucidePackageSearch, lucideShoppingCart, lucideTicket, lucideUserRound, lucideUsers } from '@ng-icons/lucide';
+import { lucideBell, lucideBuilding2, lucideCalendarDays, lucideClipboardList, lucideLayoutDashboard, lucideLogOut, lucidePackageSearch, lucideShield, lucideShoppingCart, lucideTicket, lucideUser, lucideUserRound, lucideUsers } from '@ng-icons/lucide';
 
 import {
   HlmSidebar,
@@ -59,13 +59,16 @@ type SidebarSection = {
   providers: [
     provideIcons({
       lucideBell,
+      lucideBuilding2,
       lucideLayoutDashboard,
       lucideLogOut,
       lucideCalendarDays,
       lucideClipboardList,
       lucidePackageSearch,
+      lucideShield,
       lucideShoppingCart,
       lucideTicket,
+      lucideUser,
       lucideUserRound,
       lucideUsers,
     }),
@@ -90,8 +93,30 @@ export class AppShellComponent {
 
   protected readonly userRole = computed(() => this.session.user()?.rol ?? '-');
 
+  protected readonly userEmail = computed(() => this.session.user()?.email ?? '');
+
+  protected readonly userInitials = computed(() => {
+    const name = this.fullName().trim();
+    if (!name || name === 'Sin sesión') return 'U';
+    const parts = name.split(/\s+/);
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+    return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+  });
+
+  protected readonly isProfileMenuOpen = signal<boolean>(false);
+
+  protected toggleProfileMenu(): void {
+    this.isProfileMenuOpen.update((open) => !open);
+  }
+
+  protected closeProfileMenu(): void {
+    this.isProfileMenuOpen.set(false);
+  }
+
   protected readonly userRoleLabel = computed(() => {
     switch (this.userRole()) {
+      case 'superadministrador':
+        return 'Superadministrador SaaS';
       case 'administrador':
         return 'Administrador';
       case 'cliente':
@@ -110,8 +135,11 @@ export class AppShellComponent {
   });
 
   protected readonly userBranchLabel = computed(() => {
+    if (this.userRole() === 'superadministrador') {
+      return 'Plataforma Global';
+    }
     if (this.userRole() === 'administrador') {
-      return 'Acceso global';
+      return 'Empresa Afiliada';
     }
 
     const branchId = this.session.user()?.branch_id;
@@ -124,6 +152,8 @@ export class AppShellComponent {
 
   protected readonly homeItem = computed(() => {
     switch (this.userRole()) {
+      case 'superadministrador':
+        return { label: 'Dashboard', route: '/app/superadmin/dashboard', icon: 'lucideLayoutDashboard', exact: true };
       case 'administrador':
         return { label: 'Dashboard', route: '/app/admin', icon: 'lucideLayoutDashboard', exact: true };
       case 'cliente':
@@ -150,6 +180,16 @@ export class AppShellComponent {
 
   protected readonly sidebarSections = computed<SidebarSection[]>(() => {
     switch (this.userRole()) {
+      case 'superadministrador':
+        return [
+          {
+            title: 'Plataforma SaaS',
+            items: [
+              { label: 'Dashboard', route: '/app/superadmin/dashboard', icon: 'lucideLayoutDashboard', exact: true },
+              { label: 'Gestión de Tenants', route: '/app/superadmin/tenants', icon: 'lucideBuilding2', exact: true },
+            ],
+          },
+        ];
       case 'administrador':
         return [
           {
