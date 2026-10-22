@@ -52,6 +52,8 @@ async def create_branch_route(
 
     try:
         db_branch = create_branch(db, branch, current_tenant_id)
+    except HTTPException:
+        raise
     except Exception as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 

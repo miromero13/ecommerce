@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
-from app.auth.dependencies import require_roles
+from app.auth.dependencies import get_current_tenant_id, require_roles
 from app.core.database import get_db
 from app.schemas.enums import RolEnum
 from app.schemas.report_schema import NaturalReportRequest, ReportQuery
@@ -16,6 +16,7 @@ from app.services.report_service import (
     get_sales_report,
 )
 from app.services.natural_report_service import NaturalReportError, generate_natural_report
+from app.services.subscription_service import tenant_has_feature
 from app.utils.response import response
 
 
@@ -27,7 +28,15 @@ async def natural_report_route(
     request: NaturalReportRequest,
     db: Session = Depends(get_db),
     _: dict = Depends(require_roles(RolEnum.administrador)),
+    current_tenant_id: UUID | None = Depends(get_current_tenant_id),
 ):
+    if current_tenant_id is not None:
+        if not tenant_has_feature(db, current_tenant_id, "ai_text_reports"):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Tu plan actual no incluye reportes con Inteligencia Artificial. Actualizá tu suscripción al plan Profesional o Enterprise.",
+            )
+
     try:
         data = await generate_natural_report(db, request.query)
     except NaturalReportError as error:

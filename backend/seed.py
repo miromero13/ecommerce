@@ -647,6 +647,41 @@ def _seed_users(session, branches: list[Branch]) -> list[User]:
             user.branch_id = None
         users.append(user)
 
+    # Seed administrators for other tenants to test multi-tier subscriptions
+    urban_admin, _ = _get_or_create(
+        session,
+        User,
+        {"email": "admin.urbanstyle@fashionstore.bo"},
+        {
+            "name": "Admin UrbanStyle",
+            "gender": GenderEnum.masculino,
+            "rol": RolEnum.administrador,
+            "branch_id": None,
+            "tenant_id": TENANT_2_ID,
+            "hashed_password": password,
+        },
+    )
+    urban_admin.tenant_id = TENANT_2_ID
+    urban_admin.branch_id = None
+    users.append(urban_admin)
+
+    nova_admin, _ = _get_or_create(
+        session,
+        User,
+        {"email": "admin.novawear@fashionstore.bo"},
+        {
+            "name": "Admin NovaWear",
+            "gender": GenderEnum.femenino,
+            "rol": RolEnum.administrador,
+            "branch_id": None,
+            "tenant_id": TENANT_3_ID,
+            "hashed_password": password,
+        },
+    )
+    nova_admin.tenant_id = TENANT_3_ID
+    nova_admin.branch_id = None
+    users.append(nova_admin)
+
     clients_payload = [
         ("Valeria", "Rojas"),
         ("Daniel", "Mamani"),

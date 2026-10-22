@@ -201,3 +201,54 @@ def test_login_with_random_generated_password_after_onboarding(client, monkeypat
     assert login_data["user"]["email"] == admin_email
     assert login_data["access_token"] is not None
 
+
+def test_basic_plan_restrictions_on_branches_and_ai_reports(client):
+    # 1. Login with NovaWear admin (Plan Básico)
+    login_res = client.post(
+        "/api/auth/login",
+        json={"email": "admin.novawear@fashionstore.bo", "password": "Fashion123!"},
+    )
+    assert login_res.status_code == 200
+    token = login_res.json()["data"]["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 2. Query subscription summary
+    sub_res = client.get("/api/saas/subscriptions/current", headers=headers)
+    assert sub_res.status_code == 200
+    sub_data = sub_res.json()["data"]
+    assert sub_data["plan"]["id"] == "plan_basic"
+    assert sub_data["plan"]["max_branches"] == 2
+    assert "ai_text_reports" not in sub_data["features"]
+    assert "virtual_try_on_2d" not in sub_data["features"]
+
+    # 3. Traditional reports work for basic plan
+    sales_rep_res = client.get("/api/reports/sales", headers=headers)
+    assert sales_rep_res.status_code == 200
+
+    # 4. AI natural text/voice report is blocked with HTTP 403
+    ai_report_res = client.post(
+        "/api/reports/query",
+        json={"query": "Dame las ventas de hoy"},
+        headers=headers,
+    )
+    assert ai_report_res.status_code == 403
+    assert "Tu plan actual no incluye reportes con Inteligencia Artificial" in ai_report_res.json()["message"]
+
+    # 5. Branch creation quota: reset branches for NovaWear, create 2 branches, 3rd fails
+    db = SessionLocal()
+    novawear = db.query(Tenant).filter(Tenant.slug == "nova-wear").first()
+    db.query(Branch).filter(Branch.tenant_id == novawear.id).delete()
+    db.commit()
+    db.close()
+
+    b1 = client.post("/api/branches/", json={"name": "Sucursal Nova 1", "city": "La Paz", "is_default": True}, headers=headers)
+    assert b1.status_code == 201
+
+    b2 = client.post("/api/branches/", json={"name": "Sucursal Nova 2", "city": "Cochabamba", "is_default": False}, headers=headers)
+    assert b2.status_code == 201
+
+    b3 = client.post("/api/branches/", json={"name": "Sucursal Nova 3", "city": "Santa Cruz", "is_default": False}, headers=headers)
+    assert b3.status_code == 403
+    assert "Límite de sucursales alcanzado para el plan actual" in b3.json()["message"]
+
+
