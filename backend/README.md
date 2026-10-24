@@ -86,28 +86,46 @@ opcionales, monta las rutas reales bajo `/api` con sus manejadores de errores y
 reemplaza únicamente `get_db`. Usa schema temporal y transacción exterior con
 savepoints (`join_transaction_mode=create_savepoint`): los commits/rollbacks de
 la aplicación no persisten fuera de la prueba. No inicia lifespan ni servicios
-externos. Esta prueba no demuestra todavía aislamiento completo de catálogo,
-inventario, BI ni operaciones de compra.
+externos. El schema vacío UUID se crea una vez por sesión de pytest y se elimina
+solo ese schema al terminar. Cada prueba conserva rollback exterior; cada petición
+abre y cierra su propia Session con savepoint, para detectar escrituras sin commit.
+Estas pruebas no demuestran aislamiento completo de inventario, BI ni compras.
 
-## Rutas actuales
+### Aislamiento de catálogo (CU1)
 
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `GET /api/users/`
-- `PATCH /api/users/{id}/rol`
-- `PATCH /api/users/{id}/branch`
-- `GET /api/branches/`
-- `POST /api/branches/`
-- `GET /api/providers/`
-- `POST /api/providers/`
-- `PATCH /api/providers/{id}/status`
-- `GET /api/catalog/products`
-- `GET /api/catalog/products/pending`
-- `POST /api/catalog/products`
-- `POST /api/catalog/products/provider-submission`
-- `PATCH /api/catalog/products/{id}/status`
-- `GET /api/catalog/availability`
-- `GET /api/catalog/categories`, `/sizes`, `/colors`, `/seasons`, `/collections`
+Los listados privados `/api/catalog/products/admin` y `/products/pending` usan la
+empresa persistida del administrador; ni el JWT histórico ni `?tenant_id=` cambian
+ese alcance. Los escritores administrativos validan producto, variante, categoría,
+temporada, colección, proveedor y sucursal antes de modificar datos o imágenes.
+Un destino ajeno responde 404 con el mismo estilo de un destino inexistente,
+salvo la referencia de proveedor al crear/editar productos: conserva el contrato
+400 `El proveedor no existe`, tanto si no existe como si pertenece a otra empresa.
+Productos, variantes y taxonomías nuevas reciben empresa; las variantes nuevas
+heredan la del producto. Las mutaciones de producto confirman su transacción.
+El setter legado de inventario conserva reservas y mínimos; no sustituye las
+operaciones del módulo de inventario.
+
+`provider-submission` usa el perfil proveedor del usuario actual y exige que
+pertenezca a su empresa; ignora `provider_id` enviado y fuerza variantes pendientes.
+La calibración `PATCH /api/catalog/variants/{id}/garment-points` requiere
+administrador y variante propia, como los demás escritores del catálogo.
+
+Tallas y colores siguen siendo referencias globales: GET público, pero POST,
+PUT y DELETE requieren `superadministrador` (403 para administradores de empresa).
+Se conservan las restricciones de eliminación de referencias en uso. La página
+administrativa muestra esas listas en solo lectura y conserva las selecciones en
+productos; la plataforma puede mantenerlas con Swagger. El catálogo público y
+las lecturas de clientes siguen incluyendo empresas distintas.
+
+Prueba focalizada desde `backend/` (solo PostgreSQL desechable autorizado):
+
+```bash
+CU1_TEST_DATABASE_URL=postgresql://postgres:cu1-disposable-only@127.0.0.1:53419/cu1_test PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -B -m pytest -p no:cacheprovider tests/test_catalog_tenant_isolation.py --tb=short
+```
+
+La batería de catálogo y regresión aprobó 163 casos; después del ajuste de
+compatibilidad aprobaron 8 casos dirigidos. Angular compiló correctamente.
+Esto no equivale a validar CU1 completo.
 
 ## Migraciones y seeders
 

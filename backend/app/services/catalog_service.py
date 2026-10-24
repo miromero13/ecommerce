@@ -30,8 +30,11 @@ from app.schemas.catalog_schema import DiscountTypeEnum
 from app.services.pricing_service import discounted_price, discount_amount
 
 
-def create_name_item(db: Session, model, payload: NameCreate):
-    item = model(name=payload.name)
+def create_name_item(db: Session, model, payload: NameCreate, tenant_id=None):
+    values = {"name": payload.name}
+    if model in (Category, Season):
+        values["tenant_id"] = tenant_id
+    item = model(**values)
     db.add(item)
     db.commit()
     db.refresh(item)
@@ -46,8 +49,8 @@ def create_color(db: Session, payload: ColorCreate):
     return item
 
 
-def create_collection(db: Session, payload: CollectionCreate):
-    item = Collection(name=payload.name, season_id=payload.season_id)
+def create_collection(db: Session, payload: CollectionCreate, tenant_id=None):
+    item = Collection(name=payload.name, season_id=payload.season_id, tenant_id=tenant_id)
     db.add(item)
     db.commit()
     db.refresh(item)
@@ -108,6 +111,7 @@ def create_product(
     payload: ProductCreate,
     provider_id=None,
     status: ProductStatusEnum = ProductStatusEnum.active,
+    tenant_id=None,
 ):
     try:
         normalized_variants = _normalized_variants(payload, status)
@@ -116,6 +120,7 @@ def create_product(
 
         with db.begin_nested():
             product = Product(
+                tenant_id=tenant_id,
                 name=payload.name,
                 description=payload.description,
                 provider_id=provider_id,
@@ -131,17 +136,19 @@ def create_product(
             for variant_data in normalized_variants:
                 variant = ProductVariant(
                     product_id=product.id,
+                    tenant_id=product.tenant_id,
                     sku=variant_data["sku"],
                     price=variant_data["price"],
                     size_id=variant_data["size_id"],
                     color_id=variant_data["color_id"],
                     image_url=variant_data["image_url"],
                     image_public_id=variant_data["image_public_id"],
-                    status=variant_data["status"],
+                    status=status if status == ProductStatusEnum.pending else variant_data["status"],
                 )
                 db.add(variant)
                 variants.append(variant)
 
+        db.commit()
         db.refresh(product)
         for variant in variants:
             db.refresh(variant)
@@ -270,6 +277,19 @@ def update_product(db: Session, product_id, payload: ProductCreate) -> Product |
         _validate_variant_payload(normalized_variants)
         _validate_discount(payload, normalized_variants)
 
+        existing_variants = {variant.id: variant for variant in product.variants}
+        submitted_variant_ids = set()
+        for variant_data in normalized_variants:
+            variant_id = variant_data["id"]
+            if variant_id is None:
+                continue
+            if variant_id in submitted_variant_ids:
+                raise ValueError("No se puede repetir una variante dentro del producto")
+            variant = existing_variants.get(variant_id)
+            if variant is None or variant.tenant_id != product.tenant_id:
+                raise ValueError("La variante no pertenece al producto")
+            submitted_variant_ids.add(variant_id)
+
         with db.begin_nested():
             product.name = payload.name
             product.description = payload.description
@@ -279,19 +299,12 @@ def update_product(db: Session, product_id, payload: ProductCreate) -> Product |
             product.discount_type = payload.discount_type.value if payload.discount_type else None
             product.discount_value = payload.discount_value if payload.discount_type else None
 
-            existing_variants = {variant.id: variant for variant in product.variants}
-            submitted_variant_ids = set()
             for variant_data in normalized_variants:
                 variant_id = variant_data["id"]
                 if variant_id is not None:
-                    if variant_id in submitted_variant_ids:
-                        raise ValueError("No se puede repetir una variante dentro del producto")
-                    variant = existing_variants.get(variant_id)
-                    if variant is None:
-                        raise ValueError("La variante no pertenece al producto")
-                    submitted_variant_ids.add(variant_id)
+                    variant = existing_variants[variant_id]
                 else:
-                    variant = ProductVariant(product_id=product.id)
+                    variant = ProductVariant(product_id=product.id, tenant_id=product.tenant_id)
                     db.add(variant)
 
                 for field in ("sku", "price", "size_id", "color_id", "image_url", "image_public_id", "status"):
@@ -301,6 +314,7 @@ def update_product(db: Session, product_id, payload: ProductCreate) -> Product |
                 if variant_id not in submitted_variant_ids:
                     variant.status = ProductStatusEnum.inactive
 
+        db.commit()
         return db.query(Product).options(selectinload(Product.variants)).filter(Product.id == product_id).first()
     except (IntegrityError, ValueError):
         db.rollback()
@@ -322,6 +336,7 @@ def delete_product(db: Session, product_id) -> bool:
                 db.query(Inventory).filter(Inventory.variant_id.in_(variant_ids)).delete(synchronize_session=False)
                 db.query(ProductVariant).filter(ProductVariant.id.in_(variant_ids)).delete(synchronize_session=False)
             db.delete(product)
+        db.commit()
         return True
     except (IntegrityError, ValueError):
         db.rollback()
@@ -568,9 +583,10 @@ def list_public_products(
     return result
 
 
-def list_admin_products(db: Session):
+def list_admin_products(db: Session, tenant_id):
     products = (
         db.query(Product)
+        .filter(Product.tenant_id == tenant_id)
         .options(selectinload(Product.variants))
         .order_by(Product.name.asc())
         .all()
@@ -594,9 +610,10 @@ def list_product_variants_for_admin(db: Session, product_id):
     return product
 
 
-def list_pending_products(db: Session):
+def list_pending_products(db: Session, tenant_id):
     products = (
         db.query(Product)
+        .filter(Product.tenant_id == tenant_id)
         .options(selectinload(Product.variants))
         .order_by(Product.name.asc())
         .all()
@@ -626,12 +643,12 @@ def get_branch_quantity(db: Session, variant_id, branch_id):
     return available_quantity(inv.quantity, inv.reserved_quantity) if inv else 0
 
 
-def create_or_update_inventory(db: Session, variant_id, branch_id, quantity: int):
+def create_or_update_inventory(db: Session, variant_id, branch_id, quantity: int, tenant_id=None):
     inv = db.query(Inventory).filter(Inventory.variant_id == variant_id, Inventory.branch_id == branch_id).first()
     if inv:
         inv.quantity = quantity
     else:
-        inv = Inventory(variant_id=variant_id, branch_id=branch_id, quantity=quantity)
+        inv = Inventory(variant_id=variant_id, branch_id=branch_id, quantity=quantity, tenant_id=tenant_id)
         db.add(inv)
     db.commit()
     db.refresh(inv)

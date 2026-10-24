@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session, selectinload
 from uuid import UUID
 
-from app.auth.dependencies import get_current_user, require_roles
+from app.auth.dependencies import get_current_tenant_id, require_roles
 from app.core.config import settings
 from app.core.database import get_db
 from app.models.user import User
@@ -18,6 +18,7 @@ from app.schemas.catalog_schema import (
     ProductVariantGarmentPointsUpdate,
 )
 from app.schemas.enums import RolEnum
+from app.models.branch import Branch
 from app.models.category import Category
 from app.models.size import Size
 from app.models.color import Color
@@ -67,12 +68,39 @@ class ProductViewContext(BaseModel):
     branch_id: UUID | None = None
 
 
-def _validate_product_provider_scope(db: Session, provider_id: UUID | None) -> None:
-    if provider_id is None:
-        return
-    provider = db.query(Provider).filter(Provider.id == provider_id).first()
-    if not provider:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El proveedor no existe")
+def _owned_item(db: Session, model, item_id, tenant_id, label, ending="no encontrada"):
+    item = db.query(model).filter(model.id == item_id, model.tenant_id == tenant_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail=f"{label} con id {item_id} {ending}")
+    return item
+
+
+def _owned_product(db: Session, product_id, tenant_id):
+    return _owned_item(db, Product, product_id, tenant_id, "Producto", "no encontrado")
+
+
+def _owned_variant(db: Session, variant_id, tenant_id):
+    variant = _owned_item(db, ProductVariant, variant_id, tenant_id, "Variante")
+    # Both ends must belong to this company, even for inconsistent legacy rows.
+    product = db.query(Product).filter(
+        Product.id == variant.product_id, Product.tenant_id == tenant_id,
+    ).first()
+    if not product:
+        raise HTTPException(status_code=404, detail=f"Variante con id {variant_id} no encontrada")
+    return variant
+
+
+def _validate_product_relations(db: Session, payload: ProductCreate, tenant_id, *, provider=True):
+    if provider and payload.provider_id:
+        provider_record = db.query(Provider).filter(
+            Provider.id == payload.provider_id, Provider.tenant_id == tenant_id,
+        ).first()
+        if provider_record is None:
+            raise HTTPException(status_code=400, detail="El proveedor no existe")
+    if payload.category_id:
+        _owned_item(db, Category, payload.category_id, tenant_id, "Categoria")
+    if payload.collection_id:
+        _owned_item(db, Collection, payload.collection_id, tenant_id, "Coleccion")
 
 
 def _resolve_legacy_variant(db: Session, product_id: UUID):
@@ -95,12 +123,13 @@ async def list_categories(db: Session = Depends(get_db)):
 
 @router.post("/categories", status_code=status.HTTP_201_CREATED)
 async def create_category(payload: NameCreate, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
-    item = create_name_item(db, Category, payload)
+    item = create_name_item(db, Category, payload, tenant_id=get_current_tenant_id(current_user))
     return response(status_code=201, message="Categoria creada exitosamente", data={"id": item.id, "name": item.name})
 
 
 @router.put("/categories/{category_id}")
 async def update_category(category_id: UUID, payload: NameCreate, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
+    _owned_item(db, Category, category_id, get_current_tenant_id(current_user), "Categoria")
     try:
         item = update_name_item(db, Category, category_id, payload)
     except ValueError as exc:
@@ -112,6 +141,7 @@ async def update_category(category_id: UUID, payload: NameCreate, db: Session = 
 
 @router.delete("/categories/{category_id}")
 async def delete_category_route(category_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
+    _owned_item(db, Category, category_id, get_current_tenant_id(current_user), "Categoria")
     try:
         deleted = delete_category(db, category_id)
     except ValueError as exc:
@@ -128,13 +158,13 @@ async def list_sizes(db: Session = Depends(get_db)):
 
 
 @router.post("/sizes", status_code=status.HTTP_201_CREATED)
-async def create_size(payload: NameCreate, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
+async def create_size(payload: NameCreate, db: Session = Depends(get_db), current_user: dict = Depends(require_roles(RolEnum.superadministrador))):
     item = create_name_item(db, Size, payload)
     return response(status_code=201, message="Talla creada exitosamente", data={"id": item.id, "name": item.name})
 
 
 @router.put("/sizes/{size_id}")
-async def update_size(size_id: UUID, payload: NameCreate, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
+async def update_size(size_id: UUID, payload: NameCreate, db: Session = Depends(get_db), current_user: dict = Depends(require_roles(RolEnum.superadministrador))):
     try:
         item = update_name_item(db, Size, size_id, payload)
     except ValueError as exc:
@@ -145,7 +175,7 @@ async def update_size(size_id: UUID, payload: NameCreate, db: Session = Depends(
 
 
 @router.delete("/sizes/{size_id}")
-async def delete_size_route(size_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
+async def delete_size_route(size_id: UUID, db: Session = Depends(get_db), current_user: dict = Depends(require_roles(RolEnum.superadministrador))):
     try:
         deleted = delete_size(db, size_id)
     except ValueError as exc:
@@ -162,13 +192,13 @@ async def list_colors(db: Session = Depends(get_db)):
 
 
 @router.post("/colors", status_code=status.HTTP_201_CREATED)
-async def create_color_route(payload: ColorCreate, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
+async def create_color_route(payload: ColorCreate, db: Session = Depends(get_db), current_user: dict = Depends(require_roles(RolEnum.superadministrador))):
     item = create_color(db, payload)
     return response(status_code=201, message="Color creado exitosamente", data={"id": item.id, "name": item.name, "hex_code": item.hex_code})
 
 
 @router.put("/colors/{color_id}")
-async def update_color(color_id: UUID, payload: ColorCreate, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
+async def update_color(color_id: UUID, payload: ColorCreate, db: Session = Depends(get_db), current_user: dict = Depends(require_roles(RolEnum.superadministrador))):
     try:
         item = update_name_item(db, Color, color_id, payload)
     except ValueError as exc:
@@ -179,7 +209,7 @@ async def update_color(color_id: UUID, payload: ColorCreate, db: Session = Depen
 
 
 @router.delete("/colors/{color_id}")
-async def delete_color_route(color_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
+async def delete_color_route(color_id: UUID, db: Session = Depends(get_db), current_user: dict = Depends(require_roles(RolEnum.superadministrador))):
     try:
         deleted = delete_color(db, color_id)
     except ValueError as exc:
@@ -197,12 +227,13 @@ async def list_seasons(db: Session = Depends(get_db)):
 
 @router.post("/seasons", status_code=status.HTTP_201_CREATED)
 async def create_season(payload: NameCreate, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
-    item = create_name_item(db, Season, payload)
+    item = create_name_item(db, Season, payload, tenant_id=get_current_tenant_id(current_user))
     return response(status_code=201, message="Temporada creada exitosamente", data={"id": item.id, "name": item.name})
 
 
 @router.put("/seasons/{season_id}")
 async def update_season(season_id: UUID, payload: NameCreate, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
+    _owned_item(db, Season, season_id, get_current_tenant_id(current_user), "Temporada")
     try:
         item = update_name_item(db, Season, season_id, payload)
     except ValueError as exc:
@@ -214,6 +245,7 @@ async def update_season(season_id: UUID, payload: NameCreate, db: Session = Depe
 
 @router.delete("/seasons/{season_id}")
 async def delete_season_route(season_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
+    _owned_item(db, Season, season_id, get_current_tenant_id(current_user), "Temporada")
     try:
         deleted = delete_season(db, season_id)
     except ValueError as exc:
@@ -231,12 +263,19 @@ async def list_collections(db: Session = Depends(get_db)):
 
 @router.post("/collections", status_code=status.HTTP_201_CREATED)
 async def create_collection_route(payload: CollectionCreate, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
-    item = create_collection(db, payload)
+    tenant_id = get_current_tenant_id(current_user)
+    if payload.season_id:
+        _owned_item(db, Season, payload.season_id, tenant_id, "Temporada")
+    item = create_collection(db, payload, tenant_id=tenant_id)
     return response(status_code=201, message="Coleccion creada exitosamente", data={"id": item.id, "name": item.name, "season_id": item.season_id})
 
 
 @router.put("/collections/{collection_id}")
 async def update_collection(collection_id: UUID, payload: CollectionCreate, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
+    tenant_id = get_current_tenant_id(current_user)
+    _owned_item(db, Collection, collection_id, tenant_id, "Coleccion")
+    if payload.season_id:
+        _owned_item(db, Season, payload.season_id, tenant_id, "Temporada")
     try:
         item = update_name_item(db, Collection, collection_id, payload)
     except ValueError as exc:
@@ -248,6 +287,7 @@ async def update_collection(collection_id: UUID, payload: CollectionCreate, db: 
 
 @router.delete("/collections/{collection_id}")
 async def delete_collection_route(collection_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
+    _owned_item(db, Collection, collection_id, get_current_tenant_id(current_user), "Coleccion")
     try:
         deleted = delete_collection(db, collection_id)
     except ValueError as exc:
@@ -278,12 +318,12 @@ async def list_admin_products_route(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(RolEnum.administrador)),
 ):
-    return response(status_code=200, message="Productos administrativos obtenidos exitosamente", data=list_admin_products(db))
+    return response(status_code=200, message="Productos administrativos obtenidos exitosamente", data=list_admin_products(db, get_current_tenant_id(current_user)))
 
 
 @router.get("/products/pending")
 async def list_pending_products(db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
-    products = list_pending_products_service(db)
+    products = list_pending_products_service(db, get_current_tenant_id(current_user))
     return response(status_code=200, message="Productos pendientes obtenidos exitosamente", data=products)
 
 
@@ -309,9 +349,10 @@ async def record_product_view_route(
 
 @router.post("/products", status_code=status.HTTP_201_CREATED)
 async def create_product_route(payload: ProductCreate, db: Session = Depends(get_db), current_user: dict = Depends(require_roles(RolEnum.administrador))):
-    _validate_product_provider_scope(db, payload.provider_id)
+    tenant_id = get_current_tenant_id(current_user)
+    _validate_product_relations(db, payload, tenant_id)
     try:
-        product = create_product(db, payload, provider_id=payload.provider_id, status=ProductStatusEnum.active)
+        product = create_product(db, payload, provider_id=payload.provider_id, status=ProductStatusEnum.active, tenant_id=tenant_id)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     serialized = serialize_product(db, product.id)
@@ -320,7 +361,9 @@ async def create_product_route(payload: ProductCreate, db: Session = Depends(get
 
 @router.put("/products/{product_id}")
 async def update_product_route(product_id: UUID, payload: ProductCreate, db: Session = Depends(get_db), current_user: dict = Depends(require_roles(RolEnum.administrador))):
-    _validate_product_provider_scope(db, payload.provider_id)
+    tenant_id = get_current_tenant_id(current_user)
+    _owned_product(db, product_id, tenant_id)
+    _validate_product_relations(db, payload, tenant_id)
     try:
         product = update_product(db, product_id, payload)
     except ValueError as exc:
@@ -333,6 +376,7 @@ async def update_product_route(product_id: UUID, payload: ProductCreate, db: Ses
 
 @router.delete("/products/{product_id}")
 async def delete_product_route(product_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
+    _owned_product(db, product_id, get_current_tenant_id(current_user))
     try:
         deleted = delete_product(db, product_id)
     except ValueError as exc:
@@ -345,9 +389,13 @@ async def delete_product_route(product_id: UUID, db: Session = Depends(get_db), 
 @router.post("/products/provider-submission", status_code=status.HTTP_201_CREATED)
 async def submit_product_route(payload: ProductCreate, db: Session = Depends(get_db), current_payload: dict = Depends(require_roles(RolEnum.proveedor, RolEnum.administrador))):
     provider = db.query(Provider).filter(Provider.user_id == UUID(current_payload["sub"])).first()
-    provider_id = provider.id if provider else None
+    tenant_id = get_current_tenant_id(current_payload)
+    if not provider:
+        raise HTTPException(status_code=404, detail="Proveedor no encontrado")
+    _owned_item(db, Provider, provider.id, tenant_id, "Proveedor", "no encontrado")
+    _validate_product_relations(db, payload, tenant_id, provider=False)
     try:
-        product = create_product(db, payload, provider_id=provider_id, status=ProductStatusEnum.pending)
+        product = create_product(db, payload, provider_id=provider.id, status=ProductStatusEnum.pending, tenant_id=tenant_id)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     serialized = serialize_product(db, product.id)
@@ -356,7 +404,11 @@ async def submit_product_route(payload: ProductCreate, db: Session = Depends(get
 
 @router.patch("/products/{product_id}/status")
 async def update_product_status_route(product_id: UUID, payload: ProductVariantStatusUpdate, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
+    tenant_id = get_current_tenant_id(current_user)
+    _owned_product(db, product_id, tenant_id)
     variant = _resolve_legacy_variant(db, product_id)
+    if variant:
+        _owned_variant(db, variant.id, tenant_id)
     if not variant:
         raise HTTPException(status_code=404, detail=f"Producto con id {product_id} no encontrado")
     updated = update_product_status(db, variant.id, payload)
@@ -368,6 +420,7 @@ async def update_product_status_route(product_id: UUID, payload: ProductVariantS
 
 @router.patch("/variants/{variant_id}/status")
 async def update_variant_status_route(variant_id: UUID, payload: ProductVariantStatusUpdate, db: Session = Depends(get_db), current_user: User = Depends(require_roles(RolEnum.administrador))):
+    _owned_variant(db, variant_id, get_current_tenant_id(current_user))
     variant = update_product_status(db, variant_id, payload)
     if not variant:
         raise HTTPException(status_code=404, detail=f"Variante con id {variant_id} no encontrada")
@@ -380,8 +433,9 @@ async def update_variant_garment_points_route(
     variant_id: UUID,
     payload: ProductVariantGarmentPointsUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: dict = Depends(require_roles(RolEnum.administrador)),
 ):
+    _owned_variant(db, variant_id, get_current_tenant_id(current_user))
     variant = update_variant_garment_points(db, variant_id, payload)
     if not variant:
         raise HTTPException(status_code=404, detail=f"Variante con id {variant_id} no encontrada")
@@ -396,9 +450,7 @@ async def update_variant_image_route(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(RolEnum.administrador)),
 ):
-    variant = get_variant_by_id(db, variant_id)
-    if not variant:
-        raise HTTPException(status_code=404, detail=f"Variante con id {variant_id} no encontrada")
+    variant = _owned_variant(db, variant_id, get_current_tenant_id(current_user))
 
     content = await file.read()
     if not content:
@@ -440,9 +492,7 @@ async def delete_variant_image_route(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(RolEnum.administrador)),
 ):
-    variant = get_variant_by_id(db, variant_id)
-    if not variant:
-        raise HTTPException(status_code=404, detail=f"Variante con id {variant_id} no encontrada")
+    _owned_variant(db, variant_id, get_current_tenant_id(current_user))
 
     try:
         updated, old_public_id = clear_variant_image(db, variant_id)
@@ -485,6 +535,10 @@ async def set_inventory(product_id: UUID | None = None, variant_id: UUID | None 
     if branch_id is None:
         raise HTTPException(status_code=422, detail="branch_id es requerido")
 
+    tenant_id = get_current_tenant_id(current_user)
+    _owned_item(db, Branch, branch_id, tenant_id, "Sucursal")
+    if product_id:
+        _owned_product(db, product_id, tenant_id)
     resolved_variant_id = variant_id
     if not resolved_variant_id and product_id:
         variant = _resolve_legacy_variant(db, product_id)
@@ -495,5 +549,6 @@ async def set_inventory(product_id: UUID | None = None, variant_id: UUID | None 
     if not resolved_variant_id:
         raise HTTPException(status_code=422, detail="Debes enviar product_id o variant_id")
 
-    inv = create_or_update_inventory(db, resolved_variant_id, branch_id, quantity)
+    _owned_variant(db, resolved_variant_id, tenant_id)
+    inv = create_or_update_inventory(db, resolved_variant_id, branch_id, quantity, tenant_id=tenant_id)
     return response(status_code=200, message="Inventario actualizado exitosamente", data={"variant_id": inv.variant_id, "branch_id": inv.branch_id, "quantity": inv.quantity})

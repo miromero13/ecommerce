@@ -15,9 +15,13 @@
       </hlm-tabs-list>
     </hlm-tabs>
 
-    <div class="flex justify-start lg:justify-end">
-      <button hlmBtn type="button" (click)="openModal(activeTab())">{{ createLabel(activeTab()) }}</button>
-    </div>
+    @if (activeTab() !== 'sizes' && activeTab() !== 'colors') {
+      <div class="flex justify-start lg:justify-end">
+        <button hlmBtn type="button" (click)="openModal(activeTab())">{{ createLabel(activeTab()) }}</button>
+      </div>
+    } @else {
+      <p class="text-sm text-slate-500">Tallas y colores compartidos, administrados por la plataforma.</p>
+    }
   </div>
 
   @if (activeTab() === 'categories') {
@@ -64,15 +68,7 @@
           @for (size of sizes(); track size.id) {
             <tr>
               <td class="px-4 py-3 font-medium">{{ size.name }}</td>
-              <td class="px-4 py-3 text-right">
-                <app-admin-action-menu
-                  [isOpen]="openMenuId() === size.id"
-                  [showActive]="false"
-                  (toggleMenu)="toggleMenu(size.id)"
-                  (edit)="openEditModal('sizes', size)"
-                  (delete)="askDelete('sizes', size.id, 'Talla')"
-                />
-              </td>
+              <td class="px-4 py-3 text-right text-slate-500">Solo lectura</td>
             </tr>
           } @empty {
             <tr>
@@ -103,15 +99,7 @@
                   <span class="text-xs text-slate-500">Sin hex</span>
                 }
               </td>
-              <td class="px-4 py-3 text-right">
-                <app-admin-action-menu
-                  [isOpen]="openMenuId() === color.id"
-                  [showActive]="false"
-                  (toggleMenu)="toggleMenu(color.id)"
-                  (edit)="openEditModal('colors', color)"
-                  (delete)="askDelete('colors', color.id, 'Color')"
-                />
-              </td>
+              <td class="px-4 py-3 text-right text-slate-500">Solo lectura</td>
             </tr>
           } @empty {
             <tr>

@@ -34,23 +34,22 @@ if guarded_url():
         importlib.import_module("app.core.config")
 
 
-@pytest.fixture
-def api_db():
+@pytest.fixture(scope="session")
+def api_schema():
+    """Build empty test tables once; each test still rolls back all its rows."""
     url = guarded_url()
     if not url:
         pytest.skip("Set CU1_TEST_DATABASE_URL to the authorized disposable local target")
     from sqlalchemy import create_engine
-    from sqlalchemy.orm import Session
 
     for path in sorted(Path(__file__).parents[1].joinpath("app/models").glob("*.py")):
         importlib.import_module("app.models." + path.stem)
     engine = create_engine(url, connect_args={"connect_timeout": 3})
-    with engine.connect() as connection:
-        transaction = connection.begin()
-        try:
+    schema = "cu1_api_" + uuid4().hex
+    try:
+        with engine.begin() as connection:
             connection.exec_driver_sql("SET LOCAL statement_timeout = '5s'")
             connection.exec_driver_sql("SET LOCAL lock_timeout = '2s'")
-            schema = "cu1_api_" + uuid4().hex
             connection.exec_driver_sql(f'CREATE SCHEMA "{schema}"')
             connection.exec_driver_sql(f'SET LOCAL search_path TO "{schema}"')
             cursor = connection.connection.cursor()
@@ -58,11 +57,30 @@ def api_db():
                 cursor.execute(Path(__file__).parents[1].joinpath("database_schema.sql").read_text())
             finally:
                 cursor.close()
+        yield engine, schema
+    finally:
+        # Only this fixture's uniquely named schema in the guarded test DB.
+        with engine.begin() as connection:
+            connection.exec_driver_sql("SET LOCAL lock_timeout = '2s'")
+            connection.exec_driver_sql(f'DROP SCHEMA IF EXISTS "{schema}" CASCADE')
+        engine.dispose()
+
+
+@pytest.fixture
+def api_db(api_schema):
+    from sqlalchemy.orm import Session
+
+    engine, schema = api_schema
+    with engine.connect() as connection:
+        transaction = connection.begin()
+        try:
+            connection.exec_driver_sql("SET LOCAL statement_timeout = '5s'")
+            connection.exec_driver_sql("SET LOCAL lock_timeout = '2s'")
+            connection.exec_driver_sql(f'SET LOCAL search_path TO "{schema}"')
             with Session(bind=connection, join_transaction_mode="create_savepoint") as session:
                 yield session
         finally:
             transaction.rollback()
-    engine.dispose()
 
 
 @pytest.fixture
@@ -79,7 +97,12 @@ def api(api_db):
         app.include_router(module.router, prefix="/api")
 
     def override_db():
-        yield api_db
+        from sqlalchemy.orm import Session
+
+        # Match production request lifetime: closing an uncommitted request must
+        # discard its writes, rather than leaking them through one identity map.
+        with Session(bind=api_db.bind, join_transaction_mode="create_savepoint") as session:
+            yield session
 
     app.dependency_overrides[get_db] = override_db
     # Deliberately not a context manager: no lifespan/background expiry tasks.
