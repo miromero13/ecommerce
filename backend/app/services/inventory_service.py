@@ -2,7 +2,9 @@ from collections import defaultdict
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
+from fastapi import HTTPException
 
+from app.auth.dependencies import validate_tenant_access
 from app.models.branch import Branch
 from app.models.inventory import Inventory
 from app.models.inventory_movement import InventoryMovement
@@ -34,20 +36,33 @@ def _get_inventory(db: Session, variant_id, branch_id) -> Inventory | None:
     )
 
 
-def _get_or_create_inventory(db: Session, variant_id, branch_id) -> Inventory:
+def _get_or_create_inventory(db: Session, variant_id, branch_id, tenant_id) -> Inventory:
     inventory = _get_inventory(db, variant_id, branch_id)
     if inventory:
+        validate_tenant_access(inventory.tenant_id, tenant_id)
         return inventory
 
-    inventory = Inventory(variant_id=variant_id, branch_id=branch_id, quantity=0, reserved_quantity=0, minimum_stock=0)
+    inventory = Inventory(tenant_id=tenant_id, variant_id=variant_id, branch_id=branch_id, quantity=0, reserved_quantity=0, minimum_stock=0)
     db.add(inventory)
     db.flush()
     return inventory
 
 
-def _require_active_variant(db: Session, variant_id) -> ProductVariant:
+def _require_branch(db: Session, branch_id, tenant_id) -> Branch:
+    branch = db.query(Branch).filter(Branch.id == branch_id).first()
+    if not branch:
+        raise HTTPException(404, f"Sucursal con id {branch_id} no encontrada")
+    validate_tenant_access(branch.tenant_id, tenant_id)
+    return branch
+
+
+def _require_active_variant(db: Session, variant_id, tenant_id, active=True) -> ProductVariant:
     variant = db.query(ProductVariant).filter(ProductVariant.id == variant_id).first()
-    if not variant or variant.status != ProductStatusEnum.active:
+    if not variant:
+        raise ValueError("La variante no existe o no está activa")
+    validate_tenant_access(variant.tenant_id, tenant_id)
+    validate_tenant_access(variant.product.tenant_id, tenant_id)
+    if active and variant.status != ProductStatusEnum.active:
         raise ValueError("La variante no existe o no está activa")
     return variant
 
@@ -60,7 +75,8 @@ def _serialize_stock_rows(rows):
     return [dict(row) for row in rows]
 
 
-def get_branch_stock(db: Session, branch_id):
+def get_branch_stock(db: Session, branch_id, *, tenant_id):
+    _require_branch(db, branch_id, tenant_id)
     rows = (
         db.query(
             Inventory.variant_id.label("variant_id"),
@@ -86,7 +102,9 @@ def get_branch_stock(db: Session, branch_id):
         .join(Branch, Branch.id == Inventory.branch_id)
         .outerjoin(Size, Size.id == ProductVariant.size_id)
         .outerjoin(Color, Color.id == ProductVariant.color_id)
-        .filter(Inventory.branch_id == branch_id)
+        .filter(Inventory.branch_id == branch_id, Inventory.tenant_id == tenant_id,
+                ProductVariant.tenant_id == tenant_id, Product.tenant_id == tenant_id,
+                Branch.tenant_id == tenant_id)
         .order_by(Product.name.asc(), ProductVariant.sku.asc())
         .all()
     )
@@ -121,8 +139,9 @@ def get_branch_stock(db: Session, branch_id):
     return result
 
 
-def get_consolidated_stock(db: Session):
-    rows = (
+def get_consolidated_stock(db: Session, tenant_id=None):
+    # Internal callers retain the aggregate view; private routes supply tenant_id.
+    query = (
         db.query(
             Inventory.variant_id.label("variant_id"),
             Product.id.label("product_id"),
@@ -148,8 +167,13 @@ def get_consolidated_stock(db: Session):
         .outerjoin(Size, Size.id == ProductVariant.size_id)
         .outerjoin(Color, Color.id == ProductVariant.color_id)
         .order_by(Product.name.asc(), ProductVariant.sku.asc(), Branch.name.asc())
-        .all()
     )
+    if tenant_id is not None:
+        query = query.filter(
+            Inventory.tenant_id == tenant_id, ProductVariant.tenant_id == tenant_id,
+            Product.tenant_id == tenant_id, Branch.tenant_id == tenant_id,
+        )
+    rows = query.all()
 
     grouped = {}
     for row in rows:
@@ -195,18 +219,24 @@ def get_consolidated_stock(db: Session):
     return list(grouped.values())
 
 
-def update_minimum_stock(db: Session, payload: InventoryThresholdUpdate) -> Inventory:
-    inventory = _get_inventory(db, payload.variant_id, payload.branch_id)
-    if not inventory:
-        inventory = _get_or_create_inventory(db, payload.variant_id, payload.branch_id)
-    inventory.minimum_stock = payload.minimum_stock
-    db.commit()
-    db.refresh(inventory)
-    return inventory
+def update_minimum_stock(db: Session, payload: InventoryThresholdUpdate, *, tenant_id) -> Inventory:
+    try:
+        _require_branch(db, payload.branch_id, tenant_id)
+        _require_active_variant(db, payload.variant_id, tenant_id, active=False)
+        inventory = _get_or_create_inventory(db, payload.variant_id, payload.branch_id, tenant_id)
+        inventory.minimum_stock = payload.minimum_stock
+        db.commit()
+        db.refresh(inventory)
+        return inventory
+    except Exception:
+        db.rollback()
+        raise
 
 
-def list_movements(db: Session, variant_id=None, branch_id=None, movement_type: InventoryMovementTypeEnum | None = None, limit: int = 100):
-    query = db.query(InventoryMovement)
+def list_movements(db: Session, variant_id=None, branch_id=None, movement_type: InventoryMovementTypeEnum | None = None, limit: int = 100, *, tenant_id):
+    if branch_id is not None:
+        _require_branch(db, branch_id, tenant_id)
+    query = db.query(InventoryMovement).filter(InventoryMovement.tenant_id == tenant_id)
     if variant_id is not None:
         query = query.filter(InventoryMovement.variant_id == variant_id)
     if branch_id is not None:
@@ -220,14 +250,16 @@ def list_movements(db: Session, variant_id=None, branch_id=None, movement_type: 
     ]
 
 
-def register_income(db: Session, payload: InventoryMovementCreate, created_by=None):
+def register_income(db: Session, payload: InventoryMovementCreate, created_by=None, *, tenant_id):
     try:
-        _require_active_variant(db, payload.variant_id)
-        inventory = _get_or_create_inventory(db, payload.variant_id, payload.branch_id)
+        _require_branch(db, payload.branch_id, tenant_id)
+        _require_active_variant(db, payload.variant_id, tenant_id)
+        inventory = _get_or_create_inventory(db, payload.variant_id, payload.branch_id, tenant_id)
         inventory.quantity += payload.quantity
         movement = InventoryMovement(
             variant_id=payload.variant_id,
             branch_id=payload.branch_id,
+            tenant_id=tenant_id,
             movement_type=InventoryMovementTypeEnum.income,
             quantity=payload.quantity,
             note=payload.note,
@@ -244,10 +276,11 @@ def register_income(db: Session, payload: InventoryMovementCreate, created_by=No
         raise
 
 
-def register_outcome(db: Session, payload: InventoryMovementCreate, created_by=None):
+def register_outcome(db: Session, payload: InventoryMovementCreate, created_by=None, *, tenant_id):
     try:
-        _require_active_variant(db, payload.variant_id)
-        inventory = _get_or_create_inventory(db, payload.variant_id, payload.branch_id)
+        _require_branch(db, payload.branch_id, tenant_id)
+        _require_active_variant(db, payload.variant_id, tenant_id)
+        inventory = _get_or_create_inventory(db, payload.variant_id, payload.branch_id, tenant_id)
         if _inventory_available(inventory) < payload.quantity:
             raise ValueError("No hay stock disponible suficiente")
 
@@ -255,6 +288,7 @@ def register_outcome(db: Session, payload: InventoryMovementCreate, created_by=N
         movement = InventoryMovement(
             variant_id=payload.variant_id,
             branch_id=payload.branch_id,
+            tenant_id=tenant_id,
             movement_type=InventoryMovementTypeEnum.outcome,
             quantity=payload.quantity,
             note=payload.note,
@@ -271,23 +305,26 @@ def register_outcome(db: Session, payload: InventoryMovementCreate, created_by=N
         raise
 
 
-def register_transfer(db: Session, payload: InventoryTransferCreate, created_by=None):
+def register_transfer(db: Session, payload: InventoryTransferCreate, created_by=None, *, tenant_id):
     try:
         if payload.from_branch_id == payload.to_branch_id:
             raise ValueError("La sucursal origen y destino no pueden ser iguales")
 
-        _require_active_variant(db, payload.variant_id)
-        source_inventory = _get_or_create_inventory(db, payload.variant_id, payload.from_branch_id)
+        _require_branch(db, payload.from_branch_id, tenant_id)
+        _require_branch(db, payload.to_branch_id, tenant_id)
+        _require_active_variant(db, payload.variant_id, tenant_id)
+        source_inventory = _get_or_create_inventory(db, payload.variant_id, payload.from_branch_id, tenant_id)
         if _inventory_available(source_inventory) < payload.quantity:
             raise ValueError("No hay stock disponible suficiente en la sucursal origen")
 
-        destination_inventory = _get_or_create_inventory(db, payload.variant_id, payload.to_branch_id)
+        destination_inventory = _get_or_create_inventory(db, payload.variant_id, payload.to_branch_id, tenant_id)
         source_inventory.quantity -= payload.quantity
         destination_inventory.quantity += payload.quantity
 
         out_movement = InventoryMovement(
             variant_id=payload.variant_id,
             branch_id=payload.from_branch_id,
+            tenant_id=tenant_id,
             movement_type=InventoryMovementTypeEnum.transfer_out,
             quantity=payload.quantity,
             reference_branch_id=payload.to_branch_id,
@@ -297,6 +334,7 @@ def register_transfer(db: Session, payload: InventoryTransferCreate, created_by=
         in_movement = InventoryMovement(
             variant_id=payload.variant_id,
             branch_id=payload.to_branch_id,
+            tenant_id=tenant_id,
             movement_type=InventoryMovementTypeEnum.transfer_in,
             quantity=payload.quantity,
             reference_branch_id=payload.from_branch_id,

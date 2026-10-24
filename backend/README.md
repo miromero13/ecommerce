@@ -127,6 +127,37 @@ La batería de catálogo y regresión aprobó 163 casos; después del ajuste de
 compatibilidad aprobaron 8 casos dirigidos. Angular compiló correctamente.
 Esto no equivale a validar CU1 completo.
 
+### Aislamiento de inventario y reposición (CU1)
+
+Las lecturas privadas `/api/inventory/consolidated`, `/branches/{id}` y
+`/movements` usan la empresa actual del empleado. Encargados y cajeros mantienen
+su alcance de sucursal y sus permisos existentes: el cajero solo consulta stock;
+traspasos y mínimos siguen reservados al administrador. Los ingresos, salidas,
+mínimos y ambos extremos de un traspaso validan sucursal, variante y producto
+antes de escribir. Una referencia de otra empresa responde 403
+`No tenés permisos para acceder a los datos de esta empresa`.
+
+Inventarios y movimientos nuevos reciben empresa. Se conservan los bloqueos de
+filas, reservas, mínimos y el cálculo disponible `max(quantity-reserved, 0)`;
+un rechazo no confirma cambios de stock ni movimientos. Los avisos de stock bajo
+se limitan a administradores de esa empresa y encargados de la sucursal afectada.
+
+`/api/replenishment/requests` limita listados y cambios a la empresa actual,
+con filtros adicionales de proveedor propio o sucursal del encargado. Un cambio
+de estado sobre una solicitud de otra empresa responde 404 `Solicitud no encontrada`.
+La creación y la recepción validan proveedor y sucursal activos de la empresa,
+y variantes/productos de esa empresa asignados al proveedor. Conservan los
+mensajes 400 existentes de referencias inválidas y la máquina de estados original;
+la recepción agrega stock una sola vez sin consumir reservas. Solicitudes,
+inventarios y movimientos de recepción nuevos reciben empresa.
+
+Las regresiones API están en `tests/test_inventory_tenant_isolation.py` y
+`tests/test_replenishment_tenant_isolation.py`, con la misma base desechable y
+rollback aislado descritos arriba. El dispatcher de notificaciones en base sigue
+activo; solo se sustituye el envío push externo. Las 48 pruebas de inventario y
+reposición aprobaron, con revisión independiente sin bloqueantes en esta unidad;
+no se afirma CU1 completo.
+
 ## Migraciones y seeders
 
 - `alembic/versions/` contiene el historial canónico de migraciones.

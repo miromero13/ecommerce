@@ -17,6 +17,7 @@ from app.models.size import Size
 from app.schemas.enums import ProviderStatusEnum, RolEnum
 from app.schemas.inventory_schema import InventoryMovementTypeEnum
 from app.schemas.replenishment_schema import ReplenishmentRequestCreate, ReplenishmentStatusEnum
+from app.services.inventory_service import _get_or_create_inventory
 
 TRANSITIONS = {
     ReplenishmentStatusEnum.requested: ReplenishmentStatusEnum.accepted,
@@ -38,32 +39,53 @@ def validate_transition(current: ReplenishmentStatusEnum, next_status: Replenish
         raise ValueError("Transición no permitida")
 
 
-def create_request(db: Session, payload: ReplenishmentRequestCreate, requested_by: UUID):
-    provider = db.query(Provider).filter(Provider.id == payload.provider_id, Provider.status == ProviderStatusEnum.active).first()
+def _validate_references(db: Session, provider_id, branch_id, variant_ids, tenant_id):
+    provider = db.query(Provider).filter(
+        Provider.id == provider_id, Provider.tenant_id == tenant_id,
+        Provider.status == ProviderStatusEnum.active,
+    ).first()
     if not provider:
         raise ValueError("El proveedor no existe o no está activo")
-    if not db.query(Branch).filter(Branch.id == payload.branch_id, Branch.is_active.is_(True)).first():
+    if not db.query(Branch).filter(
+        Branch.id == branch_id, Branch.tenant_id == tenant_id, Branch.is_active.is_(True),
+    ).first():
         raise ValueError("La sucursal de destino no existe o está inactiva")
-    variant_ids = [item.variant_id for item in payload.items]
     if len(set(variant_ids)) != len(variant_ids):
         raise ValueError("No puedes repetir variantes en una solicitud")
-    assigned = db.query(ProductVariant.id).join(Product).filter(Product.provider_id == provider.id, ProductVariant.id.in_(variant_ids)).all()
+    assigned = db.query(ProductVariant.id).join(Product).filter(
+        Product.provider_id == provider.id, Product.tenant_id == tenant_id,
+        ProductVariant.tenant_id == tenant_id, ProductVariant.id.in_(variant_ids),
+    ).all()
     if len(assigned) != len(variant_ids):
         raise ValueError("La variante no está asignada a este proveedor")
-    request = ReplenishmentRequest(provider_id=provider.id, branch_id=payload.branch_id, requested_by=requested_by)
-    request.items = [ReplenishmentRequestItem(variant_id=item.variant_id, requested_quantity=item.requested_quantity) for item in payload.items]
-    db.add(request)
-    db.commit()
-    db.refresh(request)
-    return request
 
 
-def list_requests(db: Session, role: str, user_id: UUID, branch_id: UUID | None = None):
+def create_request(db: Session, payload: ReplenishmentRequestCreate, requested_by: UUID, *, tenant_id):
+    try:
+        _validate_references(db, payload.provider_id, payload.branch_id,
+                             [item.variant_id for item in payload.items], tenant_id)
+        request = ReplenishmentRequest(tenant_id=tenant_id, provider_id=payload.provider_id,
+                                       branch_id=payload.branch_id, requested_by=requested_by)
+        request.items = [ReplenishmentRequestItem(variant_id=item.variant_id, requested_quantity=item.requested_quantity) for item in payload.items]
+        db.add(request)
+        db.commit()
+        db.refresh(request)
+        return request
+    except Exception:
+        db.rollback()
+        raise
+
+
+def _provider_id(db: Session, user_id, tenant_id):
+    return db.query(Provider.id).filter(Provider.user_id == user_id, Provider.tenant_id == tenant_id).scalar()
+
+
+def list_requests(db: Session, role: str, user_id: UUID, branch_id: UUID | None = None, *, tenant_id):
     query = db.query(ReplenishmentRequest).options(
         joinedload(ReplenishmentRequest.items).joinedload(ReplenishmentRequestItem.variant).joinedload(ProductVariant.product)
-    )
+    ).filter(ReplenishmentRequest.tenant_id == tenant_id)
     if role == RolEnum.proveedor.value:
-        provider_id = db.query(Provider.id).filter(Provider.user_id == user_id).scalar()
+        provider_id = _provider_id(db, user_id, tenant_id)
         query = query.filter(ReplenishmentRequest.provider_id == provider_id) if provider_id else query.filter(False)
     elif role == RolEnum.encargado.value:
         query = query.filter(ReplenishmentRequest.branch_id == branch_id)
@@ -90,24 +112,26 @@ def serialize_requests(db: Session, requests):
     return [_read_request(db, request) for request in requests]
 
 
-def transition_request(db: Session, request_id: UUID, next_status: ReplenishmentStatusEnum, role: str, user_id: UUID, branch_id: UUID | None):
-    request = db.query(ReplenishmentRequest).options(selectinload(ReplenishmentRequest.items)).filter(ReplenishmentRequest.id == request_id).with_for_update().first()
+def transition_request(db: Session, request_id: UUID, next_status: ReplenishmentStatusEnum, role: str, user_id: UUID, branch_id: UUID | None, *, tenant_id):
+    request = db.query(ReplenishmentRequest).options(selectinload(ReplenishmentRequest.items)).filter(
+        ReplenishmentRequest.id == request_id, ReplenishmentRequest.tenant_id == tenant_id,
+    ).with_for_update().first()
     if not request:
         raise LookupError("Solicitud no encontrada")
     if role == RolEnum.proveedor.value:
-        provider_id = db.query(Provider.id).filter(Provider.user_id == user_id).scalar()
+        provider_id = _provider_id(db, user_id, tenant_id)
         validate_transition(request.status, next_status, role, owns_provider=provider_id == request.provider_id)
     else:
         validate_transition(request.status, next_status, role, owns_branch=request.branch_id == branch_id)
 
-    now = datetime.now(timezone.utc)
-    request.status = next_status
-    field = {ReplenishmentStatusEnum.accepted: "accepted", ReplenishmentStatusEnum.preparing: "preparing", ReplenishmentStatusEnum.awaiting_receipt: "awaiting_receipt", ReplenishmentStatusEnum.delivered: "delivered"}[next_status]
-    setattr(request, f"{field}_by", user_id)
-    setattr(request, f"{field}_at", now)
     try:
         if next_status == ReplenishmentStatusEnum.delivered:
             receive_request(db, request, user_id)
+        now = datetime.now(timezone.utc)
+        request.status = next_status
+        field = {ReplenishmentStatusEnum.accepted: "accepted", ReplenishmentStatusEnum.preparing: "preparing", ReplenishmentStatusEnum.awaiting_receipt: "awaiting_receipt", ReplenishmentStatusEnum.delivered: "delivered"}[next_status]
+        setattr(request, f"{field}_by", user_id)
+        setattr(request, f"{field}_at", now)
         db.commit()
     except Exception:
         db.rollback()
@@ -117,11 +141,9 @@ def transition_request(db: Session, request_id: UUID, next_status: Replenishment
 
 
 def receive_request(db: Session, request: ReplenishmentRequest, actor_id: UUID):
+    _validate_references(db, request.provider_id, request.branch_id,
+                         [item.variant_id for item in request.items], request.tenant_id)
     for item in request.items:
-        inventory = db.query(Inventory).filter(Inventory.variant_id == item.variant_id, Inventory.branch_id == request.branch_id).with_for_update().first()
-        if not inventory:
-            inventory = Inventory(variant_id=item.variant_id, branch_id=request.branch_id, quantity=0, reserved_quantity=0, minimum_stock=0)
-            db.add(inventory)
-            db.flush()
+        inventory = _get_or_create_inventory(db, item.variant_id, request.branch_id, request.tenant_id)
         inventory.quantity += item.requested_quantity
-        db.add(InventoryMovement(variant_id=item.variant_id, branch_id=request.branch_id, movement_type=InventoryMovementTypeEnum.income, quantity=item.requested_quantity, note=f"Solicitud de reposición {request.id}", created_by=actor_id))
+        db.add(InventoryMovement(tenant_id=request.tenant_id, variant_id=item.variant_id, branch_id=request.branch_id, movement_type=InventoryMovementTypeEnum.income, quantity=item.requested_quantity, note=f"Solicitud de reposición {request.id}", created_by=actor_id))

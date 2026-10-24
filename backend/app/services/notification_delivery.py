@@ -196,6 +196,7 @@ def notify_low_stock(db: Session, inventory: Inventory) -> None:
                 (User.rol == RolEnum.encargado) & (User.branch_id == inventory.branch_id),
             ),
             User.is_active.is_(True),
+            User.tenant_id == inventory.tenant_id,
         )
         .all()
     )

@@ -3,7 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.auth.dependencies import require_roles
+from app.auth.dependencies import get_current_tenant_id, require_roles
 from app.core.database import get_db
 from app.models.user import User
 from app.schemas.enums import RolEnum
@@ -51,9 +51,10 @@ def _movement_branch_filter(current_user: dict, branch_id: UUID | None) -> UUID 
 @router.get("/consolidated")
 async def consolidated_stock_route(
     db: Session = Depends(get_db),
+    tenant_id: UUID = Depends(get_current_tenant_id),
     current_user: dict = Depends(require_roles(RolEnum.administrador)),
 ):
-    stock = get_consolidated_stock(db)
+    stock = get_consolidated_stock(db, tenant_id=tenant_id)
     return response(status_code=200, message="Inventario consolidado obtenido exitosamente", data=stock)
 
 
@@ -61,16 +62,18 @@ async def consolidated_stock_route(
 async def branch_stock_route(
     branch_id: UUID,
     db: Session = Depends(get_db),
+    tenant_id: UUID = Depends(get_current_tenant_id),
     current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado, RolEnum.cajero)),
 ):
     _require_branch_access(current_user, branch_id)
-    stock = get_branch_stock(db, branch_id)
+    stock = get_branch_stock(db, branch_id, tenant_id=tenant_id)
     return response(status_code=200, message="Inventario por sucursal obtenido exitosamente", data=stock)
 
 
 @router.get("/movements")
 async def movements_route(
     db: Session = Depends(get_db),
+    tenant_id: UUID = Depends(get_current_tenant_id),
     variant_id: UUID | None = None,
     branch_id: UUID | None = None,
     movement_type: InventoryMovementTypeEnum | None = None,
@@ -78,7 +81,7 @@ async def movements_route(
     current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
 ):
     branch_id = _movement_branch_filter(current_user, branch_id)
-    movements = list_movements(db, variant_id=variant_id, branch_id=branch_id, movement_type=movement_type, limit=limit)
+    movements = list_movements(db, variant_id=variant_id, branch_id=branch_id, movement_type=movement_type, limit=limit, tenant_id=tenant_id)
     return response(status_code=200, message="Movimientos de inventario obtenidos exitosamente", data=movements)
 
 
@@ -86,9 +89,13 @@ async def movements_route(
 async def update_threshold_route(
     payload: InventoryThresholdUpdate,
     db: Session = Depends(get_db),
+    tenant_id: UUID = Depends(get_current_tenant_id),
     current_user: dict = Depends(require_roles(RolEnum.administrador)),
 ):
-    inventory = update_minimum_stock(db, payload)
+    try:
+        inventory = update_minimum_stock(db, payload, tenant_id=tenant_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return response(
         status_code=200,
         message="Stock mínimo actualizado exitosamente",
@@ -100,12 +107,13 @@ async def update_threshold_route(
 async def income_route(
     payload: InventoryMovementCreate,
     db: Session = Depends(get_db),
+    tenant_id: UUID = Depends(get_current_tenant_id),
     current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
 ): 
     _require_branch_access(current_user, payload.branch_id)
     try:
         created_by = UUID(current_user["sub"]) if current_user.get("sub") else None
-        movement, inventory = register_income(db, payload, created_by=created_by)
+        movement, inventory = register_income(db, payload, created_by=created_by, tenant_id=tenant_id)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return response(
@@ -119,12 +127,13 @@ async def income_route(
 async def outcome_route(
     payload: InventoryMovementCreate,
     db: Session = Depends(get_db),
+    tenant_id: UUID = Depends(get_current_tenant_id),
     current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
 ): 
     _require_branch_access(current_user, payload.branch_id)
     try:
         created_by = UUID(current_user["sub"]) if current_user.get("sub") else None
-        movement, inventory = register_outcome(db, payload, created_by=created_by)
+        movement, inventory = register_outcome(db, payload, created_by=created_by, tenant_id=tenant_id)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return response(
@@ -138,11 +147,12 @@ async def outcome_route(
 async def transfer_route(
     payload: InventoryTransferCreate,
     db: Session = Depends(get_db),
+    tenant_id: UUID = Depends(get_current_tenant_id),
     current_user: dict = Depends(require_roles(RolEnum.administrador)),
 ): 
     try:
         created_by = UUID(current_user["sub"]) if current_user.get("sub") else None
-        movements, inventories = register_transfer(db, payload, created_by=created_by)
+        movements, inventories = register_transfer(db, payload, created_by=created_by, tenant_id=tenant_id)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return response(
