@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.auth.dependencies import require_roles
+from app.auth.dependencies import get_current_tenant_id, require_roles
 from app.core.database import get_db
 from app.schemas.dashboard_schema import DashboardPeriod, DashboardQuery
 from app.schemas.enums import RolEnum
@@ -29,6 +29,7 @@ def dashboard_route(
     db: Session = Depends(get_db),
     filters: DashboardQuery = Depends(_filters),
     current_user: dict = Depends(require_roles(RolEnum.administrador)),
+    current_tenant_id: UUID | None = Depends(get_current_tenant_id),
 ):
-    dashboard = get_dashboard(db, filters)
+    dashboard = get_dashboard(db, filters, current_tenant_id)
     return response(status_code=200, message="Dashboard obtenido exitosamente", data=dashboard.model_dump())

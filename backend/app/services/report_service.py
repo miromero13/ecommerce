@@ -6,6 +6,7 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal
 from io import StringIO
 from typing import Iterable
+from uuid import UUID
 
 from sqlalchemy import func, literal, or_
 from sqlalchemy.orm import Session
@@ -29,7 +30,7 @@ def _date_range(filters: ReportQuery):
     return start, end
 
 
-def get_sales_report(db: Session, filters: ReportQuery):
+def get_sales_report(db: Session, filters: ReportQuery, tenant_id: UUID):
     start, end = _date_range(filters)
     query = (
         db.query(
@@ -48,6 +49,7 @@ def get_sales_report(db: Session, filters: ReportQuery):
         )
         .join(SaleItem, SaleItem.sale_id == Sale.id)
         .outerjoin(Branch, Branch.id == Sale.branch_id)
+        .filter(Sale.tenant_id == tenant_id)
     )
 
     if filters.branch_id:
@@ -87,7 +89,7 @@ def get_sales_report(db: Session, filters: ReportQuery):
             literal("completed").label("sale_status"), literal(SaleTypeEnum.online.value).label("type"),
         ).join(OrderItem, OrderItem.order_id == Order.id)
         .outerjoin(Branch, Branch.id == Order.pickup_branch_id)
-        .filter(Order.status == "paid", Order.pickup_branch_id.is_not(None))
+        .filter(Order.tenant_id == tenant_id, Order.status == "paid", Order.pickup_branch_id.is_not(None))
     )
     if filters.branch_id:
         online_query = online_query.filter(Order.pickup_branch_id == filters.branch_id)
@@ -111,6 +113,7 @@ def get_sales_report(db: Session, filters: ReportQuery):
         db.query(func.count(func.distinct(Sale.id)))
         .join(SaleItem, SaleItem.sale_id == Sale.id)
         .outerjoin(Branch, Branch.id == Sale.branch_id)
+        .filter(Sale.tenant_id == tenant_id)
     )
     if filters.branch_id:
         total_orders = total_orders.filter(Sale.branch_id == filters.branch_id)
@@ -126,7 +129,7 @@ def get_sales_report(db: Session, filters: ReportQuery):
         term = f"%{filters.q.strip()}%"
         total_orders = total_orders.filter(or_(SaleItem.product_name.ilike(term), SaleItem.variant_sku.ilike(term), Branch.name.ilike(term)))
     total_orders_value = int(total_orders.scalar() or 0)
-    online_orders = db.query(func.count(func.distinct(Order.id))).join(OrderItem, OrderItem.order_id == Order.id).outerjoin(Branch, Branch.id == Order.pickup_branch_id).filter(Order.status == "paid", Order.pickup_branch_id.is_not(None))
+    online_orders = db.query(func.count(func.distinct(Order.id))).join(OrderItem, OrderItem.order_id == Order.id).outerjoin(Branch, Branch.id == Order.pickup_branch_id).filter(Order.tenant_id == tenant_id, Order.status == "paid", Order.pickup_branch_id.is_not(None))
     if filters.branch_id:
         online_orders = online_orders.filter(Order.pickup_branch_id == filters.branch_id)
     if filters.product_id:
@@ -156,7 +159,7 @@ def get_sales_report(db: Session, filters: ReportQuery):
     }
 
 
-def get_inventory_report(db: Session, filters: ReportQuery):
+def get_inventory_report(db: Session, filters: ReportQuery, tenant_id: UUID):
     query = (
         db.query(
             Inventory.branch_id.label("branch_id"),
@@ -172,6 +175,8 @@ def get_inventory_report(db: Session, filters: ReportQuery):
         .join(ProductVariant, ProductVariant.id == Inventory.variant_id)
         .join(Product, Product.id == ProductVariant.product_id)
         .outerjoin(Branch, Branch.id == Inventory.branch_id)
+        .filter(Inventory.tenant_id == tenant_id, Product.tenant_id == tenant_id,
+                ProductVariant.tenant_id == tenant_id, Branch.tenant_id == tenant_id)
     )
 
     if filters.branch_id:
@@ -205,7 +210,7 @@ def get_inventory_report(db: Session, filters: ReportQuery):
     }
 
 
-def get_movements_report(db: Session, filters: ReportQuery):
+def get_movements_report(db: Session, filters: ReportQuery, tenant_id: UUID):
     start, end = _date_range(filters)
     query = (
         db.query(
@@ -222,6 +227,8 @@ def get_movements_report(db: Session, filters: ReportQuery):
         .join(ProductVariant, ProductVariant.id == InventoryMovement.variant_id)
         .join(Product, Product.id == ProductVariant.product_id)
         .outerjoin(Branch, Branch.id == InventoryMovement.branch_id)
+        .filter(InventoryMovement.tenant_id == tenant_id, Product.tenant_id == tenant_id,
+                ProductVariant.tenant_id == tenant_id, Branch.tenant_id == tenant_id)
     )
 
     if filters.branch_id:

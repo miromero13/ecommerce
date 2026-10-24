@@ -31,17 +31,18 @@ class NaturalReportError(Exception):
         self.detail = detail
 
 
-def _catalog(db: Session) -> tuple[dict[str, str], dict[str, str]]:
+def _catalog(db: Session, tenant_id: UUID) -> tuple[dict[str, str], dict[str, str]]:
     branches = {
         str(branch_id): name
         for branch_id, name in db.query(Branch.id, Branch.name)
-        .filter(Branch.is_active.is_(True))
+        .filter(Branch.is_active.is_(True), Branch.tenant_id == tenant_id)
         .order_by(Branch.name)
         .all()
     }
     products = {
         str(product_id): name
         for product_id, name in db.query(Product.id, Product.name)
+        .filter(Product.tenant_id == tenant_id)
         .order_by(Product.name)
         .all()
     }
@@ -103,6 +104,7 @@ def _validate_filters(
     branches: dict[str, str],
     products: dict[str, str],
     today: date,
+    tenant_id: UUID,
 ) -> ReportQuery:
     if interpretation.unmatched_entity:
         raise NaturalReportError(
@@ -113,7 +115,12 @@ def _validate_filters(
         raise NaturalReportError(422, "La sucursal interpretada no existe en el catálogo")
     if interpretation.product_id and str(interpretation.product_id) not in products:
         raise NaturalReportError(422, "El producto interpretado no existe en el catálogo")
-    if interpretation.variant_id and not db.query(ProductVariant.id).filter(ProductVariant.id == interpretation.variant_id).first():
+    if interpretation.variant_id and not db.query(ProductVariant.id).join(
+        Product, Product.id == ProductVariant.product_id,
+    ).filter(
+        ProductVariant.id == interpretation.variant_id,
+        ProductVariant.tenant_id == tenant_id, Product.tenant_id == tenant_id,
+    ).first():
         raise NaturalReportError(422, "La variante interpretada no existe en el catálogo")
     if interpretation.from_date and interpretation.to_date and interpretation.from_date > interpretation.to_date:
         raise NaturalReportError(422, "El rango de fechas interpretado no es válido")
@@ -130,7 +137,7 @@ def _validate_filters(
     )
 
 
-async def generate_natural_report(db: Session, query: str) -> dict:
+async def generate_natural_report(db: Session, query: str, tenant_id: UUID) -> dict:
     if not settings.gemini_api_key:
         raise NaturalReportError(503, "Los reportes por lenguaje natural no están configurados")
     query = query.strip()
@@ -140,7 +147,7 @@ async def generate_natural_report(db: Session, query: str) -> dict:
         raise NaturalReportError(422, "La solicitud no puede superar 500 caracteres")
 
     today = date.today()
-    branches, products = _catalog(db)
+    branches, products = _catalog(db, tenant_id)
     try:
         interpreted = await asyncio.wait_for(
             asyncio.to_thread(_interpret_sync, _prompt(query, branches, products, today)),
@@ -153,14 +160,14 @@ async def generate_natural_report(db: Session, query: str) -> dict:
     except Exception as exc:
         raise NaturalReportError(502, "No se pudo interpretar la solicitud con Gemini") from exc
 
-    filters = _validate_filters(db, interpreted, branches, products, today)
+    filters = _validate_filters(db, interpreted, branches, products, today, tenant_id)
     report_functions = {
         "sales": get_sales_report,
         "inventory": get_inventory_report,
         "movements": get_movements_report,
     }
     try:
-        report = report_functions[interpreted.report_type](db, filters)
+        report = report_functions[interpreted.report_type](db, filters, tenant_id)
     except Exception as exc:
         raise NaturalReportError(500, "No se pudo ejecutar el reporte solicitado") from exc
     default_columns = {

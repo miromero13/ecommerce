@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 from decimal import Decimal
+from uuid import UUID
 
 from sqlalchemy import case, func
 from sqlalchemy.orm import Session
@@ -43,7 +44,7 @@ def _collect_rows(rows, key_field: str) -> dict:
     return {str(getattr(row, key_field)): row._mapping for row in rows}
 
 
-def get_dashboard(db: Session, filters: DashboardQuery) -> DashboardResponse:
+def get_dashboard(db: Session, filters: DashboardQuery, tenant_id: UUID) -> DashboardResponse:
     start, end = _date_range(filters)
 
     sales_total_row = (
@@ -52,6 +53,7 @@ def get_dashboard(db: Session, filters: DashboardQuery) -> DashboardResponse:
             func.count(Sale.id).label('total_orders'),
         )
     )
+    sales_total_row = sales_total_row.filter(Sale.tenant_id == tenant_id)
     if filters.branch_id:
         sales_total_row = sales_total_row.filter(Sale.branch_id == filters.branch_id)
     if start:
@@ -64,6 +66,7 @@ def get_dashboard(db: Session, filters: DashboardQuery) -> DashboardResponse:
         db.query(func.coalesce(func.sum(SaleItem.quantity), 0).label('total_units_sold'))
         .join(Sale, Sale.id == SaleItem.sale_id)
     )
+    sales_units_row = sales_units_row.filter(Sale.tenant_id == tenant_id)
     if filters.branch_id:
         sales_units_row = sales_units_row.filter(Sale.branch_id == filters.branch_id)
     if start:
@@ -81,6 +84,7 @@ def get_dashboard(db: Session, filters: DashboardQuery) -> DashboardResponse:
         func.coalesce(func.sum(Inventory.quantity - Inventory.reserved_quantity), 0).label('total_available_stock'),
         func.coalesce(func.sum(case((Inventory.quantity <= Inventory.reserved_quantity, 1), else_=0)), 0).label('low_stock_items'),
     )
+    inventory_aggregate = inventory_aggregate.filter(Inventory.tenant_id == tenant_id)
     if filters.branch_id:
         inventory_aggregate = inventory_aggregate.filter(Inventory.branch_id == filters.branch_id)
     inventory_row = inventory_aggregate.one()
@@ -92,6 +96,7 @@ def get_dashboard(db: Session, filters: DashboardQuery) -> DashboardResponse:
         func.coalesce(func.sum(case((Reservation.status == ReservationStatusEnum.attended, 1), else_=0)), 0).label('attended_reservations'),
         func.coalesce(func.sum(case((Reservation.status == ReservationStatusEnum.cancelled, 1), else_=0)), 0).label('cancelled_reservations'),
     )
+    reservation_aggregate = reservation_aggregate.filter(Reservation.tenant_id == tenant_id)
     if filters.branch_id:
         reservation_aggregate = reservation_aggregate.filter(Reservation.branch_id == filters.branch_id)
     if start:
@@ -106,6 +111,7 @@ def get_dashboard(db: Session, filters: DashboardQuery) -> DashboardResponse:
         func.coalesce(func.sum(Sale.total_amount), 0).label('sales'),
         func.count(Sale.id).label('orders'),
     )
+    sales_series_query = sales_series_query.filter(Sale.tenant_id == tenant_id)
     if filters.branch_id:
         sales_series_query = sales_series_query.filter(Sale.branch_id == filters.branch_id)
     if start:
@@ -118,6 +124,7 @@ def get_dashboard(db: Session, filters: DashboardQuery) -> DashboardResponse:
         sales_period.label('label'),
         func.coalesce(func.sum(SaleItem.quantity), 0).label('units'),
     ).join(Sale, Sale.id == SaleItem.sale_id)
+    sales_units_series_query = sales_units_series_query.filter(Sale.tenant_id == tenant_id)
     if filters.branch_id:
         sales_units_series_query = sales_units_series_query.filter(Sale.branch_id == filters.branch_id)
     if start:
@@ -135,6 +142,7 @@ def get_dashboard(db: Session, filters: DashboardQuery) -> DashboardResponse:
         func.coalesce(func.sum(case((InventoryMovement.movement_type == InventoryMovementTypeEnum.transfer_in, InventoryMovement.quantity), else_=0)), 0).label('transfer_in'),
         func.coalesce(func.sum(case((InventoryMovement.movement_type == InventoryMovementTypeEnum.transfer_out, InventoryMovement.quantity), else_=0)), 0).label('transfer_out'),
     )
+    movement_series_query = movement_series_query.filter(InventoryMovement.tenant_id == tenant_id)
     if filters.branch_id:
         movement_series_query = movement_series_query.filter(InventoryMovement.branch_id == filters.branch_id)
     if start:
@@ -151,6 +159,9 @@ def get_dashboard(db: Session, filters: DashboardQuery) -> DashboardResponse:
         func.coalesce(func.sum(case((InventoryMovement.movement_type == InventoryMovementTypeEnum.transfer_in, InventoryMovement.quantity), else_=0)), 0).label('transfer_in'),
         func.coalesce(func.sum(case((InventoryMovement.movement_type == InventoryMovementTypeEnum.transfer_out, InventoryMovement.quantity), else_=0)), 0).label('transfer_out'),
     ).join(Branch, Branch.id == InventoryMovement.branch_id)
+    movement_by_branch_query = movement_by_branch_query.filter(
+        InventoryMovement.tenant_id == tenant_id, Branch.tenant_id == tenant_id,
+    )
     if filters.branch_id:
         movement_by_branch_query = movement_by_branch_query.filter(InventoryMovement.branch_id == filters.branch_id)
     if start:
@@ -164,6 +175,7 @@ def get_dashboard(db: Session, filters: DashboardQuery) -> DashboardResponse:
         func.coalesce(func.sum(Sale.total_amount), 0).label('total_sales'),
         func.count(Sale.id).label('total_orders'),
     )
+    branch_sales_amount_rows = branch_sales_amount_rows.filter(Sale.tenant_id == tenant_id)
     if filters.branch_id:
         branch_sales_amount_rows = branch_sales_amount_rows.filter(Sale.branch_id == filters.branch_id)
     if start:
@@ -176,6 +188,7 @@ def get_dashboard(db: Session, filters: DashboardQuery) -> DashboardResponse:
         Sale.branch_id.label('branch_id'),
         func.coalesce(func.sum(SaleItem.quantity), 0).label('total_units_sold'),
     ).join(Sale, Sale.id == SaleItem.sale_id)
+    branch_sales_units_rows = branch_sales_units_rows.filter(Sale.tenant_id == tenant_id)
     if filters.branch_id:
         branch_sales_units_rows = branch_sales_units_rows.filter(Sale.branch_id == filters.branch_id)
     if start:
@@ -187,21 +200,18 @@ def get_dashboard(db: Session, filters: DashboardQuery) -> DashboardResponse:
     branch_sales_map = {str(row.branch_id): row._mapping for row in branch_sales_amount_rows}
     branch_sales_units_map = {str(row.branch_id): row._mapping for row in branch_sales_units_rows}
 
-    branch_inventory_rows = (
-        db.query(
-            Inventory.branch_id.label('branch_id'),
-            func.coalesce(func.sum(Inventory.quantity), 0).label('total_stock'),
-            func.coalesce(func.sum(Inventory.quantity - Inventory.reserved_quantity), 0).label('total_available_stock'),
-        )
-        .group_by(Inventory.branch_id)
-        .all()
-    )
+    branch_inventory_query = db.query(
+        Inventory.branch_id.label('branch_id'),
+        func.coalesce(func.sum(Inventory.quantity), 0).label('total_stock'),
+        func.coalesce(func.sum(Inventory.quantity - Inventory.reserved_quantity), 0).label('total_available_stock'),
+    ).filter(Inventory.tenant_id == tenant_id)
     if filters.branch_id:
-        branch_inventory_rows = [row for row in branch_inventory_rows if str(row.branch_id) == str(filters.branch_id)]
+        branch_inventory_query = branch_inventory_query.filter(Inventory.branch_id == filters.branch_id)
+    branch_inventory_rows = branch_inventory_query.group_by(Inventory.branch_id).all()
     branch_inventory_map = {str(row.branch_id): row._mapping for row in branch_inventory_rows}
 
     branch_rows = []
-    branch_query = db.query(Branch.id, Branch.name, Branch.city)
+    branch_query = db.query(Branch.id, Branch.name, Branch.city).filter(Branch.tenant_id == tenant_id)
     if filters.branch_id:
         branch_query = branch_query.filter(Branch.id == filters.branch_id)
     for branch in branch_query.order_by(Branch.name.asc()).all():
@@ -227,6 +237,9 @@ def get_dashboard(db: Session, filters: DashboardQuery) -> DashboardResponse:
         func.coalesce(func.sum(SaleItem.quantity), 0).label('total_units_sold'),
         func.coalesce(func.sum(SaleItem.line_total), 0).label('total_sales'),
     ).join(Sale, Sale.id == SaleItem.sale_id).join(ProductVariant, ProductVariant.id == SaleItem.variant_id).join(Product, Product.id == ProductVariant.product_id)
+    product_sales_query = product_sales_query.filter(
+        Sale.tenant_id == tenant_id, ProductVariant.tenant_id == tenant_id, Product.tenant_id == tenant_id,
+    )
     if filters.branch_id:
         product_sales_query = product_sales_query.filter(Sale.branch_id == filters.branch_id)
     if start:
@@ -245,13 +258,16 @@ def get_dashboard(db: Session, filters: DashboardQuery) -> DashboardResponse:
         .join(ProductVariant, ProductVariant.product_id == Product.id)
         .join(Inventory, Inventory.variant_id == ProductVariant.id)
     )
+    product_inventory_rows = product_inventory_rows.filter(
+        Inventory.tenant_id == tenant_id, ProductVariant.tenant_id == tenant_id, Product.tenant_id == tenant_id,
+    )
     if filters.branch_id:
         product_inventory_rows = product_inventory_rows.filter(Inventory.branch_id == filters.branch_id)
     product_inventory_rows = product_inventory_rows.group_by(Product.id).all()
     product_inventory_map = {str(row.product_id): row._mapping for row in product_inventory_rows}
 
     product_rows = []
-    product_query = db.query(Product.id, Product.name)
+    product_query = db.query(Product.id, Product.name).filter(Product.tenant_id == tenant_id)
     for product in product_query.order_by(Product.name.asc()).all():
         sales_data = product_sales_map.get(str(product.id), {})
         inventory_data = product_inventory_map.get(str(product.id), {})
@@ -281,6 +297,10 @@ def get_dashboard(db: Session, filters: DashboardQuery) -> DashboardResponse:
         .join(Product, Product.id == ProductVariant.product_id)
         .outerjoin(Branch, Branch.id == Inventory.branch_id)
         .filter(Inventory.quantity <= Inventory.reserved_quantity)
+    )
+    low_stock_rows = low_stock_rows.filter(
+        Inventory.tenant_id == tenant_id, Branch.tenant_id == tenant_id,
+        ProductVariant.tenant_id == tenant_id, Product.tenant_id == tenant_id,
     )
     if filters.branch_id:
         low_stock_rows = low_stock_rows.filter(Inventory.branch_id == filters.branch_id)

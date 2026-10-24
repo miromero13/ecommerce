@@ -38,7 +38,7 @@ async def natural_report_route(
             )
 
     try:
-        data = await generate_natural_report(db, request.query)
+        data = await generate_natural_report(db, request.query, current_tenant_id)
     except NaturalReportError as error:
         return response(status_code=error.status_code, message=error.detail, error=error.detail)
     return response(status_code=status.HTTP_200_OK, message="Reporte interpretado exitosamente", data=data)
@@ -71,7 +71,9 @@ def _csv_response(filename: str, rows: list[dict], headers: list[str]):
     )
 
 
-def _scoped_filters(filters: ReportQuery, current_user: dict) -> ReportQuery:
+def _scoped_filters(db: Session, filters: ReportQuery, current_user: dict) -> ReportQuery:
+    # Services constrain tenant data; preserve successful empty-filter queries
+    # and the existing rule that an encargado cannot replace their own branch.
     if current_user.get("rol") != RolEnum.encargado.value:
         return filters
 
@@ -91,8 +93,8 @@ async def sales_report_route(
     filters: ReportQuery = Depends(_filters),
     current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
 ):
-    filters = _scoped_filters(filters, current_user)
-    return response(status_code=status.HTTP_200_OK, message="Reporte de ventas obtenido exitosamente", data=get_sales_report(db, filters))
+    filters = _scoped_filters(db, filters, current_user)
+    return response(status_code=status.HTTP_200_OK, message="Reporte de ventas obtenido exitosamente", data=get_sales_report(db, filters, UUID(current_user["tenant_id"])))
 
 
 @router.get("/sales/export")
@@ -101,8 +103,8 @@ async def sales_report_export_route(
     filters: ReportQuery = Depends(_filters),
     current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
 ):
-    filters = _scoped_filters(filters, current_user)
-    report = get_sales_report(db, filters)
+    filters = _scoped_filters(db, filters, current_user)
+    report = get_sales_report(db, filters, UUID(current_user["tenant_id"]))
     return _csv_response(
         "sales-report.csv",
         report["rows"],
@@ -116,8 +118,8 @@ async def inventory_report_route(
     filters: ReportQuery = Depends(_filters),
     current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
 ):
-    filters = _scoped_filters(filters, current_user)
-    return response(status_code=status.HTTP_200_OK, message="Reporte de inventario obtenido exitosamente", data=get_inventory_report(db, filters))
+    filters = _scoped_filters(db, filters, current_user)
+    return response(status_code=status.HTTP_200_OK, message="Reporte de inventario obtenido exitosamente", data=get_inventory_report(db, filters, UUID(current_user["tenant_id"])))
 
 
 @router.get("/inventory/export")
@@ -126,8 +128,8 @@ async def inventory_report_export_route(
     filters: ReportQuery = Depends(_filters),
     current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
 ):
-    filters = _scoped_filters(filters, current_user)
-    report = get_inventory_report(db, filters)
+    filters = _scoped_filters(db, filters, current_user)
+    report = get_inventory_report(db, filters, UUID(current_user["tenant_id"]))
     return _csv_response(
         "inventory-report.csv",
         report["rows"],
@@ -141,8 +143,8 @@ async def movements_report_route(
     filters: ReportQuery = Depends(_filters),
     current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
 ):
-    filters = _scoped_filters(filters, current_user)
-    return response(status_code=status.HTTP_200_OK, message="Reporte de movimientos obtenido exitosamente", data=get_movements_report(db, filters))
+    filters = _scoped_filters(db, filters, current_user)
+    return response(status_code=status.HTTP_200_OK, message="Reporte de movimientos obtenido exitosamente", data=get_movements_report(db, filters, UUID(current_user["tenant_id"])))
 
 
 @router.get("/movements/export")
@@ -151,8 +153,8 @@ async def movements_report_export_route(
     filters: ReportQuery = Depends(_filters),
     current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
 ):
-    filters = _scoped_filters(filters, current_user)
-    report = get_movements_report(db, filters)
+    filters = _scoped_filters(db, filters, current_user)
+    report = get_movements_report(db, filters, UUID(current_user["tenant_id"]))
     return _csv_response(
         "movements-report.csv",
         report["rows"],

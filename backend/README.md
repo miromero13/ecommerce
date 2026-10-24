@@ -185,6 +185,54 @@ Las pruebas focalizadas son `tests/test_provider_tenant_isolation.py` y
 indicados arriba. Sus 42 pruebas aprobaron y la revisión independiente no encontró
 bloqueantes en esta unidad. No se afirma aislamiento completo de BI ni de compras.
 
+### Aislamiento de reportes, dashboard y promociones (CU1)
+
+Los reportes JSON y CSV de `/api/reports/sales`, `/inventory` y `/movements`
+usan la empresa actual del empleado en cada consulta y agregado (incluidas las
+ventas virtuales y sus contadores). Los filtros sin coincidencias conservan
+la respuesta 200 con resultados vacíos, incluidos identificadores inexistentes
+o de otra empresa; nunca amplían el alcance de los datos. El encargado conserva
+su sucursal forzada aunque el parámetro solicite otra sucursal.
+
+`/api/dashboard` limita agregados, series, reservas, alertas, sucursales y productos
+a la empresa actual; una sucursal ajena o inexistente no trae sus datos y conserva
+la respuesta 200. Conserva sus métricas de
+ventas presenciales y el rol administrador, sin agregar tipos de reportes.
+`/api/reports/query` entrega al intérprete únicamente el catálogo de esa empresa,
+valida también la pertenencia de las variantes interpretadas y ejecuta los mismos
+reportes acotados. Conserva los errores 422 de interpretación, formatos, columnas,
+timeout y requisitos existentes del servicio de IA.
+
+`/api/promotions` lista y crea códigos dentro de la empresa actual. El administrador
+mantiene códigos globales de su empresa; el encargado solo lista y crea códigos
+de su sucursal. Se conservan los rechazos 400/403 de esa política. La aplicación
+y el registro de uso de cupones quedan para la fase de compras, sin cambios aquí.
+
+Las 75 regresiones API están en `tests/test_reporting_tenant_isolation.py`.
+Solo se sustituye el intérprete externo; las consultas de pertenencia son reales.
+Las 75 pruebas aprobaron, incluida la compatibilidad de filtros sin coincidencias,
+y la revisión independiente cerró su bloqueante. Esto no afirma CU1 completo.
+
+## Rutas actuales
+
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `GET /api/users/`
+- `PATCH /api/users/{id}/rol`
+- `PATCH /api/users/{id}/branch`
+- `GET /api/branches/`
+- `POST /api/branches/`
+- `GET /api/providers/`
+- `POST /api/providers/`
+- `PATCH /api/providers/{id}/status`
+- `GET /api/catalog/products`
+- `GET /api/catalog/products/pending`
+- `POST /api/catalog/products`
+- `POST /api/catalog/products/provider-submission`
+- `PATCH /api/catalog/products/{id}/status`
+- `GET /api/catalog/availability`
+- `GET /api/catalog/categories`, `/sizes`, `/colors`, `/seasons`, `/collections`
+
 ## Migraciones y seeders
 
 - `alembic/versions/` contiene el historial canónico de migraciones.

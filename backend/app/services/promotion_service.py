@@ -27,8 +27,8 @@ def get_code(db: Session, code: str) -> PromotionCode | None:
     return db.query(PromotionCode).filter(PromotionCode.code == code.strip().upper()).first()
 
 
-def create_code(db: Session, payload: PromotionCodeCreate, creator_id: UUID) -> PromotionCode:
-    code = PromotionCode(**payload.model_dump(exclude={"discount_type"}), created_by=creator_id, discount_type=payload.discount_type.value)
+def create_code(db: Session, payload: PromotionCodeCreate, creator_id: UUID, tenant_id: UUID) -> PromotionCode:
+    code = PromotionCode(**payload.model_dump(exclude={"discount_type"}), tenant_id=tenant_id, created_by=creator_id, discount_type=payload.discount_type.value)
     db.add(code)
     try:
         db.commit()
@@ -39,8 +39,8 @@ def create_code(db: Session, payload: PromotionCodeCreate, creator_id: UUID) -> 
         raise ValueError("El código promocional ya existe") from exc
 
 
-def list_codes(db: Session, branch_id: UUID | None = None):
-    query = db.query(PromotionCode).order_by(PromotionCode.created_at.desc())
+def list_codes(db: Session, tenant_id: UUID, branch_id: UUID | None = None):
+    query = db.query(PromotionCode).filter(PromotionCode.tenant_id == tenant_id).order_by(PromotionCode.created_at.desc())
     if branch_id is not None:
         query = query.filter(PromotionCode.branch_id == branch_id)
     return query.all()
