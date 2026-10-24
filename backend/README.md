@@ -59,6 +59,36 @@ No hay configuración personalizada para desactivarlo en `main.py`.
 - La autenticación usa JWT con Bearer token.
 - Las contraseñas se guardan hasheadas con bcrypt.
 
+### Autorización con asignaciones actuales
+
+El JWT mantiene su formato; en cada petición protegida se usan el rol, la empresa
+y la sucursal actuales del usuario en la base, no sus asignaciones históricas del
+token. Un cambio de asignación no invalida por sí solo el token. Se conservan los
+roles permitidos por cada ruta; el superadministrador no recibe acceso implícito
+a rutas reservadas a otros roles. Clientes y superadministradores siguen siendo
+globales y pueden conservar `tenant_id=NULL`; las lecturas públicas no cambian.
+
+Los empleados sin empresa reciben 403 `Usuario sin empresa asociada`. Encargado,
+cajero y delivery requieren sucursal: 403 `Usuario operativo sin sucursal asignada`
+si falta, o `La sucursal no existe o está inactiva en esta empresa` si no pertenece
+a su empresa o está inactiva. Se mantienen 401 `Token inválido` / `Usuario no encontrado`,
+403 `Usuario inactivo` y `No tienes permisos para acceder a este recurso`.
+Los errores usan el contrato existente `{statusCode, message, error}`.
+
+Prueba API aislada, desde `backend/`, **solo** con el contenedor desechable CU1:
+
+```bash
+CU1_TEST_DATABASE_URL=postgresql://postgres:cu1-disposable-only@127.0.0.1:53419/cu1_test PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -B -m pytest -p no:cacheprovider tests/test_employee_authorization.py
+```
+
+El fixture exige ese destino local explícito, no carga `.env` ni credenciales
+opcionales, monta las rutas reales bajo `/api` con sus manejadores de errores y
+reemplaza únicamente `get_db`. Usa schema temporal y transacción exterior con
+savepoints (`join_transaction_mode=create_savepoint`): los commits/rollbacks de
+la aplicación no persisten fuera de la prueba. No inicia lifespan ni servicios
+externos. Esta prueba no demuestra todavía aislamiento completo de catálogo,
+inventario, BI ni operaciones de compra.
+
 ## Rutas actuales
 
 - `POST /api/auth/register`

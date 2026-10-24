@@ -6,36 +6,30 @@ from uuid import UUID  # Si usas UUID
 from app.core.database import get_db
 from app.auth.jwt import decode_access_token
 from app.models.user import User
+from app.models.branch import Branch
 from app.schemas.enums import RolEnum
 
 security = HTTPBearer()  # Simple Bearer auth
 
-def get_current_payload(
+def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-):
+    db: Session = Depends(get_db)
+) -> User:
     payload = decode_access_token(credentials.credentials)
     if payload is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token inválido",
         )
-    return payload
-
-def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: Session = Depends(get_db)
-) -> User:
-    payload = get_current_payload(credentials)
     user_id = payload.get("sub")
     if user_id is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token inválido",
         )
-    #  Si tu id es UUID, conviértelo:
     try:
         user_uuid = UUID(user_id)
-    except ValueError:
+    except (ValueError, TypeError, AttributeError):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token inválido",
@@ -52,40 +46,56 @@ def get_current_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Usuario inactivo",
         )
+    if user.rol not in [RolEnum.cliente, RolEnum.superadministrador]:
+        if user.tenant_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Usuario sin empresa asociada",
+            )
+        if user.rol in [RolEnum.encargado, RolEnum.cajero, RolEnum.delivery]:
+            if user.branch_id is None:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Usuario operativo sin sucursal asignada",
+                )
+            branch = db.query(Branch).filter(
+                Branch.id == user.branch_id,
+                Branch.tenant_id == user.tenant_id,
+                Branch.is_active.is_(True),
+            ).first()
+            if branch is None:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="La sucursal no existe o está inactiva en esta empresa",
+                )
     return user
+
+
+def get_current_payload(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    user: User = Depends(get_current_user),
+):
+    # Keep other signed claims, but never authorize using historical assignments.
+    # FastAPI caches get_current_user across role/scope/profile dependencies.
+    payload = decode_access_token(credentials.credentials)
+    if payload is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token inválido",
+        )
+    return {
+        **payload,
+        "sub": str(user.id),
+        "rol": user.rol.value,
+        "tenant_id": str(user.tenant_id) if user.tenant_id else None,
+        "branch_id": str(user.branch_id) if user.branch_id else None,
+    }
 
 
 def require_roles(*allowed_roles: RolEnum) -> Callable:
     def role_dependency(
         payload: dict = Depends(get_current_payload),
-        db: Session = Depends(get_db),
     ) -> dict:
-        user_id = payload.get("sub")
-        if user_id is None:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token inválido",
-            )
-
-        try:
-            user_uuid = UUID(user_id)
-        except ValueError:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token inválido",
-            )
-
-        user = db.query(User).filter(User.id == user_uuid).first()
-        if user is None:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Usuario no encontrado",
-            )
-        if not user.is_active:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Usuario inactivo",
-            )
         if payload.get("rol") not in [role.value for role in allowed_roles]:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -97,7 +107,7 @@ def require_roles(*allowed_roles: RolEnum) -> Callable:
 
 
 def get_current_branch_id(payload: dict = Depends(get_current_payload)) -> UUID | None:
-    if payload.get("rol") in [RolEnum.administrador.value, RolEnum.superadministrador.value]:
+    if payload.get("rol") in [RolEnum.administrador.value, RolEnum.superadministrador.value, RolEnum.cliente.value]:
         return None
 
     branch_id = payload.get("branch_id")
