@@ -3,6 +3,9 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
+from app.models.branch import Branch
+from app.models.reservation import Reservation
+from app.models.reservation_item import ReservationItem
 from app.models.cart import Cart
 from app.models.cart_item import CartItem
 from app.models.inventory import Inventory
@@ -18,17 +21,19 @@ from app.services.promotion_service import calculate_discount, cart_has_product_
 from app.services.recommendation_service import ADD_TO_CART, record_interaction
 
 
-def _available_quantity(db: Session, variant_id: UUID) -> int:
-    quantity = (
-        db.query(Inventory.quantity, Inventory.reserved_quantity)
-        .filter(Inventory.variant_id == variant_id)
-        .all()
+def _available_quantity(db: Session, variant_id: UUID, tenant_id: UUID, branch_id: UUID | None = None) -> int:
+    query = db.query(Inventory.quantity, Inventory.reserved_quantity).join(Branch).filter(
+        Inventory.variant_id == variant_id, Inventory.tenant_id == tenant_id,
+        Branch.tenant_id == tenant_id,
     )
+    if branch_id is not None:
+        query = query.filter(Inventory.branch_id == branch_id)
+    quantity = query.all()
     return sum(max((row.quantity or 0) - (row.reserved_quantity or 0), 0) for row in quantity)
 
 
 def _get_active_cart(db: Session, user_id: UUID) -> Cart:
-    cart = db.query(Cart).filter(Cart.user_id == user_id).first()
+    cart = db.query(Cart).filter(Cart.user_id == user_id).with_for_update().first()
     if cart:
         return cart
 
@@ -40,8 +45,7 @@ def _get_active_cart(db: Session, user_id: UUID) -> Cart:
         total_amount=Decimal("0.00"),
     )
     db.add(cart)
-    db.commit()
-    db.refresh(cart)
+    db.flush()
     return cart
 
 
@@ -50,6 +54,18 @@ def _get_mutable_cart(db: Session, user_id: UUID) -> Cart:
     if cart.status == CartStatusEnum.checkout_pending:
         raise ValueError("El carrito tiene un checkout pendiente")
     return cart
+
+
+def validate_cart_company(db: Session, cart: Cart, tenant_id: UUID) -> None:
+    """Validate before binding an empty cart or mutating an existing one."""
+    rows = db.query(ProductVariant, Product).select_from(ProductVariant).join(
+        Product, Product.id == ProductVariant.product_id
+    ).join(CartItem, CartItem.variant_id == ProductVariant.id).filter(CartItem.cart_id == cart.id).all()
+    if rows and cart.tenant_id != tenant_id:
+        raise ValueError("Vacía el carrito antes de comprar en otra empresa")
+    if any(variant.tenant_id != tenant_id or product.tenant_id != tenant_id
+           for variant, product in rows):
+        raise ValueError("El carrito contiene productos de otra empresa")
 
 
 def _load_cart_items(db: Session, cart_id: UUID):
@@ -129,23 +145,50 @@ def _serialize_cart(db: Session, cart: Cart) -> CartRead:
 
 def get_current_cart(db: Session, user_id: UUID) -> CartRead:
     cart = _get_active_cart(db, user_id)
+    db.commit()
+    db.refresh(cart)
     return _serialize_cart(db, cart)
 
 
 def add_cart_item(db: Session, user_id: UUID, payload: CartItemCreate) -> CartRead:
     cart = _get_mutable_cart(db, user_id)
-    available = _available_quantity(db, payload.variant_id)
+    variant = db.query(ProductVariant).join(Product).filter(ProductVariant.id == payload.variant_id).first()
+    if not variant:
+        raise ValueError("No hay stock disponible suficiente para la variante")
+    if not variant.product or variant.tenant_id != variant.product.tenant_id:
+        raise ValueError("Variante no encontrada")
+    validate_cart_company(db, cart, variant.tenant_id)
+    if payload.branch_id is not None:
+        branch = db.query(Branch).filter(Branch.id == payload.branch_id,
+                                        Branch.tenant_id == variant.tenant_id).first()
+        if not branch:
+            raise ValueError("Sucursal no encontrada")
+    if payload.reservation_id:
+        reservation = db.query(Reservation).filter(
+            Reservation.id == payload.reservation_id, Reservation.user_id == user_id,
+            Reservation.tenant_id == variant.tenant_id,
+        ).first()
+        line = db.query(ReservationItem).filter(
+            ReservationItem.reservation_id == payload.reservation_id,
+            ReservationItem.variant_id == variant.id,
+            ReservationItem.quantity == payload.quantity,
+        ).first()
+        if not reservation or not line or (payload.branch_id and reservation.branch_id != payload.branch_id):
+            raise ValueError("La reserva ya no está disponible para este checkout")
+        # Keep reservation line creation/hold invariants in the existing writer.
+        from app.services.reservation_service import transfer_reservation_to_cart
+        return transfer_reservation_to_cart(db, user_id, reservation.id)
     existing = db.query(CartItem).filter(CartItem.cart_id == cart.id, CartItem.variant_id == payload.variant_id).first()
+    if existing and existing.reservation_id:
+        raise ValueError("El carrito ya contiene una línea de una variante reservada")
+    available = _available_quantity(db, variant.id, variant.tenant_id, payload.branch_id)
     next_quantity = payload.quantity + (existing.quantity if existing else 0)
     if next_quantity > available:
         raise ValueError("No hay stock disponible suficiente para la variante")
-
-    variant = db.query(ProductVariant).join(Product).filter(ProductVariant.id == payload.variant_id).first()
-    if not variant:
-        raise ValueError("Variante no encontrada")
     if cart.promotion_code_id and variant.product and variant.product.discount_type and variant.product.discount_value:
         raise ValueError("Retira el cupón antes de agregar un producto con descuento")
 
+    cart.tenant_id = variant.tenant_id
     if existing:
         existing.quantity = next_quantity
         existing.unit_price = variant.price
@@ -167,12 +210,16 @@ def update_cart_item(db: Session, user_id: UUID, item_id: UUID, payload: CartIte
 
     if payload.quantity == 0:
         db.delete(item)
+        refresh_cart_totals(db, cart)
         db.commit()
         db.refresh(cart)
         return _serialize_cart(db, cart)
 
-    available = _available_quantity(db, item.variant_id)
-    if payload.quantity > available:
+    validate_cart_company(db, cart, cart.tenant_id)
+    if item.reservation_id and payload.quantity != item.quantity:
+        raise ValueError("No puedes cambiar la cantidad de una variante reservada")
+    available = _available_quantity(db, item.variant_id, cart.tenant_id)
+    if payload.quantity > available and not item.reservation_id:
         raise ValueError("No hay stock disponible suficiente para la variante")
 
     variant = db.query(ProductVariant).filter(ProductVariant.id == item.variant_id).first()
@@ -211,6 +258,20 @@ def clear_cart(db: Session, user_id: UUID) -> CartRead:
 
 def refresh_cart_totals(db: Session, cart: Cart) -> None:
     items = _load_cart_items(db, cart.id)
+    # cart_id is a transient association, not reservation history. Detach only
+    # after the last line disappears; clearing never changes status or holds.
+    linked = db.query(Reservation).filter(
+        Reservation.cart_id == cart.id, Reservation.user_id == cart.user_id,
+    ).with_for_update().all()
+    for reservation in linked:
+        remaining = db.query(CartItem.id).filter(
+            CartItem.cart_id == cart.id, CartItem.reservation_id == reservation.id,
+        ).first()
+        if not remaining:
+            reservation.cart_id = None
+    if not items:
+        cart.tenant_id = None
+        cart.promotion_code_id = None
     subtotal = sum(Decimal(str(item["original_unit_price"])) * int(item["quantity"]) for item in items)
     item_discount = sum(Decimal(str(item["discount_amount"])) * int(item["quantity"]) for item in items)
     coupon_discount = Decimal("0.00")
@@ -234,7 +295,8 @@ def apply_coupon(db: Session, user_id: UUID, payload: PromotionCodeApply) -> Car
         raise ValueError("El carrito está vacío")
     if cart_has_product_discount(db, cart.id):
         raise ValueError("No puedes aplicar un cupón a un carrito con productos rebajados")
-    code = validate_for_user(db, payload.code, user_id)
+    validate_cart_company(db, cart, cart.tenant_id)
+    code = validate_for_user(db, payload.code, user_id, tenant_id=cart.tenant_id)
     items = _load_cart_items(db, cart.id)
     subtotal = sum(Decimal(str(item["original_unit_price"])) * int(item["quantity"]) for item in items)
     calculate_discount(code, subtotal)

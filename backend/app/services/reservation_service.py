@@ -22,7 +22,8 @@ from app.models.user import User
 from app.schemas.catalog_enums import ProductStatusEnum
 from app.schemas.reservation_schema import ReservationCreate, ReservationItemRead, ReservationRead, ReservationStatusEnum
 from app.schemas.cart_schema import CartStatusEnum
-from app.services.cart_service import _serialize_cart, refresh_cart_totals
+from app.schemas.order_schema import PaymentStatusEnum
+from app.services.cart_service import _get_mutable_cart, _serialize_cart, refresh_cart_totals, validate_cart_company
 from app.services.notification_service import notify_reservation_event
 
 
@@ -43,7 +44,10 @@ VALID_RESERVATION_TRANSITIONS = {
         ReservationStatusEnum.purchase_pending,
         ReservationStatusEnum.not_sold,
     },
-    ReservationStatusEnum.purchase_pending: {ReservationStatusEnum.sold},
+    ReservationStatusEnum.purchase_pending: {
+        ReservationStatusEnum.sold,
+        ReservationStatusEnum.not_sold,
+    },
 }
 
 
@@ -236,7 +240,8 @@ def list_reservations_by_branch(db: Session, branch_id: UUID):
     expire_due_reservations(db)
     reservations = (
         db.query(Reservation)
-        .filter(Reservation.branch_id == branch_id)
+        .join(Branch, Branch.id == Reservation.branch_id)
+        .filter(Reservation.branch_id == branch_id, Reservation.tenant_id == Branch.tenant_id)
         .order_by(Reservation.created_at.desc())
         .all()
     )
@@ -280,7 +285,7 @@ def create_reservation(db: Session, user_id: UUID, payload: ReservationCreate):
         total_amount = Decimal("0.00")
         for variant_id, quantity in normalized_items.items():
             inventory = _get_inventory_for_update(db, variant_id, payload.branch_id)
-            if not inventory:
+            if not inventory or inventory.tenant_id != branch.tenant_id:
                 raise ValueError("No hay stock disponible suficiente para la reserva")
 
             available = _available_quantity(inventory)
@@ -292,7 +297,9 @@ def create_reservation(db: Session, user_id: UUID, payload: ReservationCreate):
                 .filter(ProductVariant.id == variant_id)
                 .first()
             )
-            if not variant or variant.status != ProductStatusEnum.active:
+            if (not variant or variant.status != ProductStatusEnum.active
+                    or variant.tenant_id != branch.tenant_id or not variant.product
+                    or variant.product.tenant_id != branch.tenant_id):
                 raise ValueError("Variante no disponible para reserva")
 
             inventory.reserved_quantity = (inventory.reserved_quantity or 0) + quantity
@@ -338,7 +345,10 @@ def _get_branch_reservation(db: Session, reservation_id: UUID, branch_id: UUID) 
     return (
         db.query(Reservation)
         .options(joinedload(Reservation.items))
-        .filter(Reservation.id == reservation_id, Reservation.branch_id == branch_id)
+        .join(Branch, Branch.id == Reservation.branch_id)
+        .filter(Reservation.id == reservation_id, Reservation.branch_id == branch_id,
+                Reservation.tenant_id == Branch.tenant_id)
+        .with_for_update(of=Reservation)
         .first()
     )
 
@@ -384,6 +394,10 @@ def decide_reservation(db: Session, user_id: UUID, reservation_id: UUID, purchas
 
     target = ReservationStatusEnum.purchase_pending if purchase else ReservationStatusEnum.not_sold
     try:
+        # Closing a pending purchase belongs to checkout cancellation/expiry,
+        # not a second customer decision that could release an active order's hold.
+        if reservation.status == ReservationStatusEnum.purchase_pending and not purchase:
+            raise ValueError("Transición de reserva no permitida: purchase_pending -> not_sold")
         transition_reservation(reservation, target)
         if not purchase:
             for item in reservation.items:
@@ -405,21 +419,25 @@ def transfer_reservation_to_cart(db: Session, user_id: UUID, reservation_id: UUI
         db.query(Reservation)
         .options(joinedload(Reservation.items))
         .filter(Reservation.id == reservation_id, Reservation.user_id == user_id)
-        .with_for_update()
+        .with_for_update(of=Reservation)
         .first()
     )
     if not reservation:
         return None
     if reservation.status != ReservationStatusEnum.purchase_pending:
         raise ValueError("Solo una reserva pendiente de compra puede pasar al carrito")
+    # Checkout empties the cart, so the pending order is what holds this reservation.
+    if db.query(OrderItem.id).join(Order, Order.id == OrderItem.order_id).filter(
+        OrderItem.reservation_id == reservation.id, Order.payment_status == PaymentStatusEnum.pending,
+    ).first():
+        raise ValueError("La reserva ya tiene un pedido pendiente de pago")
 
-    cart = db.query(Cart).filter(Cart.user_id == user_id).with_for_update().first()
-    if not cart:
-        cart = Cart(user_id=user_id, status=CartStatusEnum.active)
-        db.add(cart)
-        db.flush()
-    if cart.status == CartStatusEnum.checkout_pending:
-        raise ValueError("El carrito tiene un checkout pendiente")
+    cart = _get_mutable_cart(db, user_id)
+    validate_cart_company(db, cart, reservation.tenant_id)
+    branch = db.query(Branch).filter(Branch.id == reservation.branch_id,
+                                    Branch.tenant_id == reservation.tenant_id).first()
+    if not branch:
+        raise ValueError("Sucursal no encontrada")
     if reservation.cart_id:
         if reservation.cart_id == cart.id:
             return _serialize_cart(db, cart)
@@ -429,8 +447,13 @@ def transfer_reservation_to_cart(db: Session, user_id: UUID, reservation_id: UUI
         for item in reservation.items:
             if db.query(CartItem).filter(CartItem.cart_id == cart.id, CartItem.variant_id == item.variant_id).first():
                 raise ValueError("El carrito ya contiene una línea de una variante reservada")
+            variant = db.query(ProductVariant).filter(ProductVariant.id == item.variant_id).first()
+            if (not variant or variant.tenant_id != reservation.tenant_id or not variant.product
+                    or variant.product.tenant_id != reservation.tenant_id):
+                raise ValueError("Variante no disponible para reserva")
             inventory = _get_inventory_for_update(db, item.variant_id, reservation.branch_id)
-            if not inventory or (inventory.reserved_quantity or 0) < item.quantity:
+            if (not inventory or inventory.tenant_id != reservation.tenant_id
+                    or (inventory.reserved_quantity or 0) < item.quantity):
                 raise ValueError("La reserva ya no conserva stock suficiente")
             db.add(CartItem(
                 cart_id=cart.id,
@@ -439,6 +462,7 @@ def transfer_reservation_to_cart(db: Session, user_id: UUID, reservation_id: UUI
                 quantity=item.quantity,
                 unit_price=item.unit_price,
             ))
+        cart.tenant_id = reservation.tenant_id
         reservation.cart_id = cart.id
         refresh_cart_totals(db, cart)
         db.commit()

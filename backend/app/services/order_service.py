@@ -7,6 +7,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
 from app.core.config import settings
+from app.models.branch import Branch
+from app.models.reservation_item import ReservationItem
 from app.models.cart import Cart
 from app.models.cart_item import CartItem
 from app.models.inventory import Inventory
@@ -26,7 +28,7 @@ from app.schemas.inventory_schema import InventoryMovementTypeEnum
 from app.schemas.order_schema import FulfillmentStatusEnum, OrderItemRead, OrderRead, OrderStatusEnum, PaymentMethodEnum, PaymentStatusEnum
 from app.schemas.reservation_schema import ReservationStatusEnum
 from app.services.pricing_service import discounted_price, discount_amount
-from app.services.cart_service import refresh_cart_totals
+from app.services.cart_service import refresh_cart_totals, validate_cart_company
 from app.services.promotion_service import add_usage, validate_for_user
 from app.services.reservation_service import transition_reservation
 from app.services.recommendation_service import record_completed_order_interactions
@@ -117,14 +119,21 @@ def _locked_cart(db: Session, user_id: UUID) -> Cart:
     return cart
 
 
-def _reserve_inventory(db: Session, rows, branch_id: UUID, user_id: UUID) -> None:
+def _reserve_inventory(db: Session, rows, branch_id: UUID, user_id: UUID, tenant_id: UUID, cart_id: UUID) -> None:
     for row in rows:
         inventory = db.query(Inventory).filter(Inventory.variant_id == row.variant_id, Inventory.branch_id == branch_id).with_for_update().first()
-        if not inventory:
+        if not inventory or inventory.tenant_id != tenant_id:
             raise ValueError("No hay stock suficiente en la sucursal seleccionada")
         if row.reservation_id:
             reservation = db.query(Reservation).filter(Reservation.id == row.reservation_id, Reservation.user_id == user_id).with_for_update().first()
-            if not reservation or reservation.status != ReservationStatusEnum.purchase_pending or reservation.branch_id != branch_id:
+            line = db.query(ReservationItem).filter(
+                ReservationItem.reservation_id == row.reservation_id,
+                ReservationItem.variant_id == row.variant_id,
+                ReservationItem.quantity == row.quantity,
+            ).first()
+            if (not reservation or not line or reservation.tenant_id != tenant_id
+                    or reservation.status != ReservationStatusEnum.purchase_pending
+                    or reservation.branch_id != branch_id or reservation.cart_id != cart_id):
                 raise ValueError("La reserva ya no está disponible para este checkout")
             if (inventory.reserved_quantity or 0) < row.quantity:
                 raise ValueError("La reserva ya no tiene stock suficiente")
@@ -135,21 +144,24 @@ def _reserve_inventory(db: Session, rows, branch_id: UUID, user_id: UUID) -> Non
 
 
 def _new_order(db: Session, cart: Cart, user_id: UUID, branch_id: UUID, method: PaymentMethodEnum) -> Order:
+    rows = _cart_rows(db, cart.id)
+    if not rows:
+        raise ValueError("El carrito está vacío")
+    branch = db.query(Branch).filter(Branch.id == branch_id).first()
+    if not branch or branch.tenant_id != cart.tenant_id:
+        raise ValueError("Sucursal no encontrada")
+    tenant_id = branch.tenant_id
+    validate_cart_company(db, cart, tenant_id)
     if cart.promotion_code_id:
         code = db.query(PromotionCode).filter(PromotionCode.id == cart.promotion_code_id).first()
         if not code:
             raise ValueError("El código promocional ya no existe")
-        validate_for_user(db, code.code, user_id, branch_id)
+        validate_for_user(db, code.code, user_id, branch_id, tenant_id=tenant_id)
     refresh_cart_totals(db, cart)
-    rows = _cart_rows(db, cart.id)
-    if not rows:
-        raise ValueError("El carrito está vacío")
-    _reserve_inventory(db, rows, branch_id, user_id)
+    _reserve_inventory(db, rows, branch_id, user_id, tenant_id, cart.id)
     subtotal = sum(Decimal(str(row.original_unit_price)) * row.quantity for row in rows)
     discount = Decimal(str(cart.discount_amount or 0))
     expires = datetime.now(timezone.utc) + timedelta(minutes=STRIPE_RESERVATION_MINUTES if method == PaymentMethodEnum.stripe else CASH_RESERVATION_HOURS * 60)
-    branch = db.query(Branch).filter(Branch.id == branch_id).first()
-    tenant_id = branch.tenant_id if branch else None
     order = Order(
         tenant_id=tenant_id,
         user_id=user_id,
@@ -175,7 +187,11 @@ def _new_order(db: Session, cart: Cart, user_id: UUID, branch_id: UUID, method: 
                          line_total=unit_price * row.quantity, product_id=row.product_id,
                          product_name=row.product_name, variant_sku=row.variant_sku, size_id=row.size_id, color_id=row.color_id,
                          image_url=row.image_url, image_public_id=row.image_public_id))
-    cart.status = CartStatusEnum.checkout_pending
+    # The order keeps its own item snapshot and stock hold, so the cart is freed
+    # right away: a pending pickup never blocks buying from other companies.
+    db.query(CartItem).filter(CartItem.cart_id == cart.id).delete(synchronize_session=False)
+    cart.promotion_code_id = None
+    refresh_cart_totals(db, cart)
     return order
 
 
@@ -198,19 +214,16 @@ def checkout_cash(db: Session, user_id: UUID, pickup_branch_id: UUID):
 def create_stripe_payment(db: Session, user_id: UUID, pickup_branch_id: UUID):
     try:
         expire_due_orders(db)
+        # Fail before emptying the cart; retries of a created order use /stripe/orders/{id}.
+        if not settings.stripe_secret_key:
+            raise ValueError("No se pudo iniciar el pago con Stripe: Stripe no está configurado")
         cart = _locked_cart(db, user_id)
-        existing = db.query(PaymentAttempt).join(Order).filter(PaymentAttempt.cart_id == cart.id, PaymentAttempt.status == "pending").with_for_update().first()
-        if existing:
-            order = db.query(Order).filter(Order.id == existing.order_id).one()
-            attempt = existing
-            db.commit()
-        elif cart.status == CartStatusEnum.checkout_pending:
+        if cart.status == CartStatusEnum.checkout_pending:
             raise ValueError("El carrito tiene un checkout pendiente")
-        else:
-            order = _new_order(db, cart, user_id, pickup_branch_id, PaymentMethodEnum.stripe)
-            attempt = PaymentAttempt(order_id=order.id, cart_id=cart.id, status="pending", idempotency_key=secrets.token_urlsafe(24))
-            db.add(attempt)
-            db.commit()
+        order = _new_order(db, cart, user_id, pickup_branch_id, PaymentMethodEnum.stripe)
+        attempt = PaymentAttempt(order_id=order.id, cart_id=cart.id, status="pending", idempotency_key=secrets.token_urlsafe(24))
+        db.add(attempt)
+        db.commit()
     except Exception:
         db.rollback()
         raise
@@ -320,13 +333,15 @@ def _release_order(db: Session, order: Order, payment_status: PaymentStatusEnum,
         if reservation and reservation.status == ReservationStatusEnum.purchase_pending:
             transition_reservation(reservation, ReservationStatusEnum.not_sold)
             reservation.cart_id = None
-        if cart:
-            db.query(CartItem).filter(CartItem.cart_id == cart.id, CartItem.reservation_id == reservation_id).delete(synchronize_session=False)
     order.payment_status = payment_status
     order.status = OrderStatusEnum.failed if payment_status == PaymentStatusEnum.failed else OrderStatusEnum.cancelled
     order.fulfillment_status = fulfillment_status
-    if cart:
+    # Only carts locked by orders created before carts were freed at checkout.
+    if cart and cart.status == CartStatusEnum.checkout_pending:
+        if reservation_ids:
+            db.query(CartItem).filter(CartItem.cart_id == cart.id, CartItem.reservation_id.in_(reservation_ids)).delete(synchronize_session=False)
         cart.status = CartStatusEnum.active
+        refresh_cart_totals(db, cart)
     attempt = db.query(PaymentAttempt).filter(PaymentAttempt.order_id == order.id).first()
     if attempt:
         attempt.status = "failed"
@@ -388,11 +403,13 @@ def _consume_order(db: Session, order: Order, collected_by: UUID | None = None) 
             transition_reservation(reservation, ReservationStatusEnum.sold)
             reservation.cart_id = None
     cart = db.query(Cart).filter(Cart.user_id == order.user_id).with_for_update().first()
-    if cart:
+    # The current cart may already hold another company's items; only clear a
+    # cart still locked by an order created before carts were freed at checkout.
+    if cart and cart.status == CartStatusEnum.checkout_pending:
         db.query(CartItem).filter(CartItem.cart_id == cart.id).delete(synchronize_session=False)
         cart.status = CartStatusEnum.active
         cart.promotion_code_id = None
-        cart.subtotal = cart.discount_amount = cart.total_amount = Decimal("0.00")
+        refresh_cart_totals(db, cart)
     attempt = db.query(PaymentAttempt).filter(PaymentAttempt.order_id == order.id).first()
     if attempt:
         attempt.status = "succeeded"

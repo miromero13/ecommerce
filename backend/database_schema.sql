@@ -293,7 +293,7 @@ CREATE TABLE user_body_profiles (
 
 CREATE TABLE carts (
 	id UUID NOT NULL, 
-	tenant_id UUID NOT NULL, 
+	tenant_id UUID,
 	user_id UUID NOT NULL, 
 	promotion_code_id UUID, 
 	status cartstatusenum NOT NULL, 

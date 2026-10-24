@@ -213,6 +213,48 @@ Solo se sustituye el intérprete externo; las consultas de pertenencia son reale
 Las 75 pruebas aprobaron, incluida la compatibilidad de filtros sin coincidencias,
 y la revisión independiente cerró su bloqueante. Esto no afirma CU1 completo.
 
+### Compras de clientes globales (CU1, verificación pendiente)
+
+El cliente mantiene un único carrito persistido y su historial propio entre
+empresas; no necesita empresa en su cuenta. La migración incremental `0040`
+permite `carts.tenant_id=NULL` antes de seleccionar productos. No asigna empresas
+por defecto ni modifica filas existentes. El snapshot para bases vacías y el ORM
+reflejan esa nulabilidad. El downgrade rechaza explícitamente carritos sin empresa:
+no los elimina ni inventa una empresa para restaurar NOT NULL.
+
+Al agregar productos, el carrito toma la empresa de la variante y su producto.
+Una sucursal opcional debe pertenecer a esa empresa; no permite mezclar empresas
+sin vaciar antes el carrito. Eliminar la última línea o completar el pago libera
+la empresa del carrito vacío. Vaciar o eliminar la última línea de una reserva
+solo desvincula su asociación transitoria con el carrito: conserva la reserva,
+su estado y su stock retenido. Si quedan otras líneas de esa reserva, mantiene
+la asociación. Volver a transferirla reconstruye sus líneas una sola vez;
+también permite usar el carrito vacío con una reserva de otra empresa.
+El checkout copia las líneas al pedido y vacía el carrito en ese momento: un
+pedido pendiente de pago (efectivo hasta 24 h, Stripe 30 min) no impide comprar
+en otra empresa. Cobrar ese pedido no toca el carrito nuevo, y una reserva incluida
+en un pedido pendiente no puede volver al carrito. Cancelar el pedido cierra la
+reserva como `not_sold` y libera su retención una sola vez, sin eliminar el
+historial; las líneas no vuelven al carrito. Reintentar el pago con Stripe de un
+pedido ya creado usa `POST /api/payments/stripe/orders/{id}`.
+Los cupones ajenos reciben el mismo error que un código no disponible:
+`El código promocional no existe, está inactivo o fuera de vigencia`.
+
+Checkout valida empresa de carrito, productos y sucursal de retiro antes de
+reservar stock. Las reservas transferidas reutilizan su stock retenido, sin
+reservarlo dos veces. Se conservan los payloads públicos y los pagos en efectivo;
+no se habilitan ventas POS asociadas a reservas. Encargados no pueden sustituir su
+sucursal por query (403 `No tienes permisos para esta sucursal`); administradores
+solo acceden a sucursales propias (404 `Sucursal con id {id} no encontrada`).
+
+La regresión preparada es `tests/test_marketplace_transactions.py`, con el mismo
+PostgreSQL desechable, sesiones por petición y rollback exterior descritos arriba.
+Solo se sustituye el envío push; SQL, notificaciones y cupones siguen reales.
+Antes de estas correcciones fallaban 22 de 27 pruebas; ahora aprueban todas,
+junto con `tests/test_cart_tenant_migration.py` y el resto de regresiones CU1
+(421 pruebas). Los fallos de `test_business_rules.py` y `test_saas_*.py` son
+previos: requieren la base de desarrollo sembrada, no el contenedor desechable.
+
 ## Rutas actuales
 
 - `POST /api/auth/register`

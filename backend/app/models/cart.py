@@ -13,7 +13,7 @@ class Cart(Base):
     __tablename__ = "carts"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True, index=True)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, unique=True, index=True)
     promotion_code_id = Column(UUID(as_uuid=True), ForeignKey("promotion_codes.id"), nullable=True, index=True)
     status = Column(SQLAlchemyEnum(CartStatusEnum, name="cartstatusenum"), nullable=False, default=CartStatusEnum.active)

@@ -46,9 +46,9 @@ def list_codes(db: Session, tenant_id: UUID, branch_id: UUID | None = None):
     return query.all()
 
 
-def validate_for_user(db: Session, code_value: str, user_id: UUID, branch_id: UUID | None = None) -> PromotionCode:
+def validate_for_user(db: Session, code_value: str, user_id: UUID, branch_id: UUID | None = None, tenant_id: UUID | None = None) -> PromotionCode:
     code = get_code(db, code_value)
-    if not code or not _is_valid(code):
+    if not code or code.tenant_id != tenant_id or not _is_valid(code):
         raise ValueError("El código promocional no existe, está inactivo o fuera de vigencia")
     if code.branch_id is not None and branch_id is not None and code.branch_id != branch_id:
         raise ValueError("El código promocional no aplica a esta sucursal")

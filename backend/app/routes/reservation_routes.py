@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_branch_id, require_roles
 from app.core.database import get_db
+from app.models.branch import Branch
 from app.schemas.enums import RolEnum
 from app.schemas.reservation_schema import ReservationCreate, ReservationDecisionRequest
 from app.services.reservation_service import (
@@ -25,6 +26,20 @@ from app.utils.response import response
 router = APIRouter(prefix="/reservations", tags=["Reservations"])
 
 
+def _resolve_staff_branch(db, branch_id, current_branch_id, current_user):
+    resolved = branch_id or current_branch_id
+    if resolved is None:
+        raise HTTPException(status_code=422, detail="branch_id es requerido")
+    if current_user.get("rol") != RolEnum.administrador.value and resolved != current_branch_id:
+        raise HTTPException(status_code=403, detail="No tienes permisos para esta sucursal")
+    branch = db.query(Branch).filter(
+        Branch.id == resolved, Branch.tenant_id == UUID(current_user["tenant_id"]),
+    ).first()
+    if not branch:
+        raise HTTPException(status_code=404, detail=f"Sucursal con id {resolved} no encontrada")
+    return resolved
+
+
 @router.get("/me")
 async def list_my_reservations_route(
     db: Session = Depends(get_db),
@@ -41,13 +56,7 @@ async def list_branch_reservations_route(
     current_branch_id: UUID | None = Depends(get_current_branch_id),
     current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado, RolEnum.cajero)),
 ):
-    resolved_branch_id = branch_id or current_branch_id
-    if resolved_branch_id is None:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="branch_id es requerido")
-
-    if current_user.get("rol") != RolEnum.administrador.value and current_branch_id and resolved_branch_id != current_branch_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No tienes permisos para esta sucursal")
-
+    resolved_branch_id = _resolve_staff_branch(db, branch_id, current_branch_id, current_user)
     reservations = list_reservations_by_branch(db, resolved_branch_id)
     return response(status_code=200, message="Reservas de sucursal obtenidas exitosamente", data=reservations)
 
@@ -60,13 +69,7 @@ async def get_branch_reservation_route(
     current_branch_id: UUID | None = Depends(get_current_branch_id),
     current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado, RolEnum.cajero)),
 ):
-    resolved_branch_id = branch_id or current_branch_id
-    if resolved_branch_id is None:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="branch_id es requerido")
-
-    if current_user.get("rol") != RolEnum.administrador.value and current_branch_id and resolved_branch_id != current_branch_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No tienes permisos para esta sucursal")
-
+    resolved_branch_id = _resolve_staff_branch(db, branch_id, current_branch_id, current_user)
     reservation = list_reservations_by_branch(db, resolved_branch_id)
     match = next((item for item in reservation if str(item["id"]) == str(reservation_id)), None)
     if not match:
@@ -154,10 +157,7 @@ async def confirm_reservation_arrival_route(
     current_branch_id: UUID | None = Depends(get_current_branch_id),
     current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
 ):
-    resolved_branch_id = branch_id or current_branch_id
-    if resolved_branch_id is None:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="branch_id es requerido")
-
+    resolved_branch_id = _resolve_staff_branch(db, branch_id, current_branch_id, current_user)
     try:
         reservation = confirm_reservation_arrival(db, reservation_id, resolved_branch_id)
     except ValueError as exc:
@@ -176,10 +176,7 @@ async def attend_reservation_route(
     current_branch_id: UUID | None = Depends(get_current_branch_id),
     current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
 ):
-    resolved_branch_id = branch_id or current_branch_id
-    if resolved_branch_id is None:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="branch_id es requerido")
-
+    resolved_branch_id = _resolve_staff_branch(db, branch_id, current_branch_id, current_user)
     try:
         reservation = attend_reservation(db, reservation_id, resolved_branch_id)
     except ValueError as exc:
@@ -198,10 +195,7 @@ async def cancel_branch_reservation_route(
     current_branch_id: UUID | None = Depends(get_current_branch_id),
     current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
 ):
-    resolved_branch_id = branch_id or current_branch_id
-    if resolved_branch_id is None:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="branch_id es requerido")
-
+    resolved_branch_id = _resolve_staff_branch(db, branch_id, current_branch_id, current_user)
     try:
         reservation = cancel_branch_reservation(db, reservation_id, resolved_branch_id)
     except ValueError as exc:
