@@ -81,8 +81,8 @@ No hay configuración personalizada para desactivarlo en `main.py`.
 
 ## Migraciones y seeders
 
-- Hay carpeta `alembic/` con una migración inicial.
-- No encontré seeders ni fixtures.
+- `alembic/versions/` contiene el historial canónico de migraciones.
+- `seed.py` carga datos de demostración; no ejecutarlo sobre datos reales.
 - El esquema no se crea automáticamente al arrancar la app.
 - Seeder demo:
 
@@ -107,7 +107,43 @@ python -m alembic downgrade -1
 
 `python -m alembic downgrade -1` revierte la última migración aplicada. El `-1` significa "retrocede un paso".
 
-Antes de levantar la API, ejecuta `python -m alembic upgrade head` para crear o actualizar las tablas.
+Para instalaciones gestionadas por Alembic, ejecuta `python -m alembic upgrade head` antes de levantar la API.
+
+### Snapshot SQL: solamente para una base VACÍA
+
+`database_schema.sql` permite crear las 37 tablas en PostgreSQL sin datos iniciales.
+Incluye los tipos enum e índices del ORM y la pertenencia obligatoria de sucursales
+con nombre único por empresa (migración 0038). Los clientes conservan identidad
+global: `users.tenant_id` puede ser NULL y el email sigue siendo único globalmente.
+
+Este snapshot **no equivale a haber aplicado Alembic**: no ejecuta los backfills,
+seeders, ni registra `alembic_version`. Mantiene los defaults del snapshot ORM;
+no reproduce todos los defaults de servidor de las migraciones. Alembic es la vía
+canónica para instalaciones y actualizaciones de bases existentes. No combinar
+ambas vías ciegamente: no ejecutar el SQL sobre una base con tablas ni hacer
+`upgrade head` o `stamp head` sobre el snapshot sin reconciliar y verificar primero
+su esquema y sus datos. No usar este archivo como migración de datos existentes.
+
+### Pruebas del snapshot (PostgreSQL desechable)
+
+Desde `backend/`, con PostgreSQL 16 local de prueba y `psycopg2` instalado:
+
+```bash
+CU1_TEST_DATABASE_URL=postgresql://postgres:cu1-disposable-only@127.0.0.1:53419/cu1_test PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -B -m pytest -p no:cacheprovider tests/test_database_schema.py
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -B -m pytest -p no:cacheprovider tests/test_natural_report_contract.py
+```
+
+La primera URL es exclusivamente para el contenedor desechable CU1; nunca usar
+credenciales ni bases de trabajo. Las pruebas requieren explícitamente
+`CU1_TEST_DATABASE_URL` (sin ella se omiten), rechazan destinos distintos de
+`127.0.0.1/cu1_test` y no recurren a `DATABASE_URL` ni a `.env`. Cada prueba ejecuta
+el SQL o el DDL de Branch en un schema temporal dentro de una transacción y hace
+rollback al terminar; cada inserción rechazada usa savepoint y comprueba filas
+sin cambios. No eliminan bases ni truncan tablas.
+
+Estas pruebas no verifican todas las migraciones ni la API completa. La suite
+completa y las pruebas SaaS que modifican datos necesitan un entorno y seed
+independientes; su verificación queda pendiente para T4 de CU1.
 
 ## Estructura
 
