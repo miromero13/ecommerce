@@ -4,12 +4,11 @@ from uuid import UUID
 
 from app.auth.dependencies import require_roles
 from app.core.database import get_db
-from app.models.provider import Provider
 from app.models.user import User
 from app.schemas.enums import RolEnum
 from app.schemas.provider_schema import ProviderCreate, ProviderRead, ProviderStatusUpdate, ProviderUpdate
 from app.schemas.provider_availability_schema import ProviderAvailabilityBatchUpdate
-from app.services.provider_service import create_provider, get_providers, update_provider_status, update_provider_full, delete_provider, list_provider_products, provider_availability_map, update_provider_availability
+from app.services.provider_service import create_provider, get_provider, get_provider_for_user, get_providers, update_provider_status, update_provider_full, delete_provider, list_provider_products, provider_availability_map, update_provider_availability
 from app.services.catalog_service import _product_to_read
 from app.utils.response import response
 
@@ -17,9 +16,9 @@ from app.utils.response import response
 router = APIRouter(prefix="/providers", tags=["Providers"])
 
 
-def _provider_products_response(db: Session, provider_id: UUID):
-    products = list_provider_products(db, provider_id)
-    quantities = provider_availability_map(db, provider_id, [variant.id for product in products for variant in product.variants])
+def _provider_products_response(db: Session, provider_id: UUID, tenant_id: UUID):
+    products = list_provider_products(db, provider_id, tenant_id)
+    quantities = provider_availability_map(db, provider_id, [variant.id for product in products for variant in product.variants], tenant_id)
     return [_product_to_read(product, product.variants, provider_quantity_map=quantities) for product in products]
 
 
@@ -28,10 +27,11 @@ async def list_my_products(
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_roles(RolEnum.proveedor)),
 ):
-    provider = db.query(Provider).filter(Provider.user_id == UUID(current_user["sub"])).first()
+    tenant_id = UUID(current_user["tenant_id"])
+    provider = get_provider_for_user(db, UUID(current_user["sub"]), tenant_id)
     if not provider:
         raise HTTPException(status_code=404, detail="Proveedor no encontrado")
-    return response(status_code=200, message="Productos del proveedor obtenidos exitosamente", data=_provider_products_response(db, provider.id))
+    return response(status_code=200, message="Productos del proveedor obtenidos exitosamente", data=_provider_products_response(db, provider.id, tenant_id))
 
 
 @router.put("/me/availability")
@@ -40,11 +40,12 @@ async def update_my_availability(
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_roles(RolEnum.proveedor)),
 ):
-    provider = db.query(Provider).filter(Provider.user_id == UUID(current_user["sub"])).first()
+    tenant_id = UUID(current_user["tenant_id"])
+    provider = get_provider_for_user(db, UUID(current_user["sub"]), tenant_id)
     if not provider:
         raise HTTPException(status_code=404, detail="Proveedor no encontrado")
     try:
-        quantities = update_provider_availability(db, provider.id, payload.updates)
+        quantities = update_provider_availability(db, provider.id, payload.updates, tenant_id)
     except ValueError as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from exc
     return response(status_code=200, message="Disponibilidad actualizada exitosamente", data=[{"variant_id": variant_id, "quantity": quantity} for variant_id, quantity in quantities.items()])
@@ -56,10 +57,11 @@ async def list_provider_products_route(
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
 ):
-    provider = db.query(Provider).filter(Provider.id == provider_id).first()
+    tenant_id = UUID(current_user["tenant_id"])
+    provider = get_provider(db, provider_id, tenant_id)
     if not provider:
         raise HTTPException(status_code=404, detail="Proveedor no encontrado")
-    return response(status_code=200, message="Productos del proveedor obtenidos exitosamente", data=_provider_products_response(db, provider_id))
+    return response(status_code=200, message="Productos del proveedor obtenidos exitosamente", data=_provider_products_response(db, provider_id, tenant_id))
 
 
 @router.get("/")
@@ -67,7 +69,7 @@ async def list_providers_route(
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
 ):
-    rows = get_providers(db)
+    rows = get_providers(db, UUID(current_user["tenant_id"]))
     providers_data = [
         ProviderRead.model_validate(
             {
@@ -93,7 +95,7 @@ async def create_provider_route(
     current_user: dict = Depends(require_roles(RolEnum.administrador)),
 ):
     try:
-        db_provider = create_provider(db, provider)
+        db_provider = create_provider(db, provider, UUID(current_user["tenant_id"]))
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
@@ -120,10 +122,8 @@ async def update_provider_status_route(
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_roles(RolEnum.administrador)),
 ):
-    target_provider = db.query(Provider).filter(Provider.id == provider_id).first()
-    if not target_provider:
-        raise HTTPException(status_code=404, detail=f"Proveedor con id {provider_id} no encontrado")
-    db_provider = update_provider_status(db, provider_id, update_data)
+    tenant_id = UUID(current_user["tenant_id"])
+    db_provider = update_provider_status(db, provider_id, update_data, tenant_id)
     if not db_provider:
         raise HTTPException(status_code=404, detail=f"Proveedor con id {provider_id} no encontrado")
 
@@ -150,11 +150,9 @@ async def update_provider_full_route(
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_roles(RolEnum.administrador)),
 ):
-    target_provider = db.query(Provider).filter(Provider.id == provider_id).first()
-    if not target_provider:
-        raise HTTPException(status_code=404, detail=f"Proveedor con id {provider_id} no encontrado")
+    tenant_id = UUID(current_user["tenant_id"])
     try:
-        db_provider = update_provider_full(db, provider_id, update_data)
+        db_provider = update_provider_full(db, provider_id, update_data, tenant_id)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
@@ -183,11 +181,9 @@ async def delete_provider_route(
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_roles(RolEnum.administrador)),
 ):
-    target_provider = db.query(Provider).filter(Provider.id == provider_id).first()
-    if not target_provider:
-        raise HTTPException(status_code=404, detail=f"Proveedor con id {provider_id} no encontrado")
+    tenant_id = UUID(current_user["tenant_id"])
     try:
-        deleted = delete_provider(db, provider_id)
+        deleted = delete_provider(db, provider_id, tenant_id)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 

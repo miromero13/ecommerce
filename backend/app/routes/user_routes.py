@@ -84,7 +84,7 @@ async def get_user_route(
     current_branch_id: UUID | None = Depends(get_current_branch_id),
     current_tenant_id: UUID | None = Depends(get_current_tenant_id),
 ):
-    db_user = get_user(db, user_id)
+    db_user = get_user(db, user_id, current_tenant_id)
     if not db_user:
         raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
     if current_tenant_id is not None and db_user.tenant_id is not None and db_user.tenant_id != current_tenant_id:
@@ -128,7 +128,7 @@ async def update_user_rol_route(
     current_branch_id: UUID | None = Depends(get_current_branch_id),
     current_tenant_id: UUID | None = Depends(get_current_tenant_id),
 ):
-    target_user = get_user(db, user_id)
+    target_user = get_user(db, user_id, current_tenant_id)
     if not target_user:
         raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
     if current_tenant_id is not None and target_user.tenant_id is not None and target_user.tenant_id != current_tenant_id:
@@ -136,8 +136,10 @@ async def update_user_rol_route(
     if current_branch_id is not None and target_user.rol != RolEnum.cliente and target_user.branch_id != current_branch_id:
         raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
 
+    if update_data.rol == RolEnum.superadministrador:
+        raise HTTPException(status_code=403, detail="No tienes permisos para acceder a este recurso")
     try:
-        db_user = update_user_rol(db, user_id, update_data)
+        db_user = update_user_rol(db, user_id, update_data, current_tenant_id)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     if not db_user:
@@ -161,7 +163,7 @@ async def update_user_branch_route(
     current_tenant_id: UUID | None = Depends(get_current_tenant_id),
 ):
     try:
-        target_user = get_user(db, user_id)
+        target_user = get_user(db, user_id, current_tenant_id)
         if not target_user:
             raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
         if current_tenant_id is not None and target_user.tenant_id is not None and target_user.tenant_id != current_tenant_id:
@@ -169,7 +171,7 @@ async def update_user_branch_route(
         if current_branch_id is not None and target_user.rol != RolEnum.cliente and target_user.branch_id != current_branch_id:
             raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
 
-        db_user = update_user_branch(db, user_id, update_data)
+        db_user = update_user_branch(db, user_id, update_data, current_tenant_id)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     if not db_user:
@@ -192,7 +194,7 @@ async def update_user_full_route(
     current_branch_id: UUID | None = Depends(get_current_branch_id),
     current_tenant_id: UUID | None = Depends(get_current_tenant_id),
 ):
-    target_user = get_user(db, user_id)
+    target_user = get_user(db, user_id, current_tenant_id)
     if not target_user:
         raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
     if current_tenant_id is not None and target_user.tenant_id is not None and target_user.tenant_id != current_tenant_id:
@@ -201,7 +203,7 @@ async def update_user_full_route(
         raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
 
     try:
-        db_user = update_user_full(db, user_id, update_data)
+        db_user = update_user_full(db, user_id, update_data, current_tenant_id)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
@@ -224,7 +226,7 @@ async def update_user_active_route(
     current_branch_id: UUID | None = Depends(get_current_branch_id),
     current_tenant_id: UUID | None = Depends(get_current_tenant_id),
 ):
-    target_user = get_user(db, user_id)
+    target_user = get_user(db, user_id, current_tenant_id)
     if not target_user:
         raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
     if current_tenant_id is not None and target_user.tenant_id is not None and target_user.tenant_id != current_tenant_id:
@@ -232,7 +234,7 @@ async def update_user_active_route(
     if current_branch_id is not None and target_user.rol != RolEnum.cliente and target_user.branch_id != current_branch_id:
         raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
 
-    db_user = set_user_active(db, user_id, update_data.is_active)
+    db_user = set_user_active(db, user_id, update_data.is_active, current_tenant_id)
     if not db_user:
         raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
 
@@ -251,7 +253,7 @@ async def delete_user_route(
     current_branch_id: UUID | None = Depends(get_current_branch_id),
     current_tenant_id: UUID | None = Depends(get_current_tenant_id),
 ):
-    target_user = get_user(db, user_id)
+    target_user = get_user(db, user_id, current_tenant_id)
     if not target_user:
         raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
     if current_tenant_id is not None and target_user.tenant_id is not None and target_user.tenant_id != current_tenant_id:
@@ -260,7 +262,7 @@ async def delete_user_route(
         raise HTTPException(status_code=404, detail=f"Usuario con id {user_id} no encontrado")
 
     try:
-        deleted = delete_user(db, user_id)
+        deleted = delete_user(db, user_id, current_tenant_id)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 

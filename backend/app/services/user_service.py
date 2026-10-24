@@ -1,6 +1,6 @@
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-from sqlalchemy import select, func, or_
+from sqlalchemy import select
 from app.models.user import User
 from app.models.provider import Provider
 from app.models.product import Product
@@ -57,6 +57,14 @@ def create_user(db: Session, user: UserCreate) -> User:
         raise ValueError("El correo ya está registrado")
 
 
+def _validate_staff_branch(db: Session, branch_id: UUID, tenant_id: UUID) -> None:
+    branch = db.query(Branch).filter(
+        Branch.id == branch_id, Branch.is_active.is_(True), Branch.tenant_id == tenant_id,
+    ).first()
+    if branch is None:
+        raise ValueError("La sucursal no existe o está inactiva en esta empresa")
+
+
 def create_admin_user(db: Session, user: AdminUserCreate, tenant_id: UUID | None = None) -> User:
     scoped_roles = {RolEnum.encargado, RolEnum.cajero, RolEnum.delivery}
     if user.rol == RolEnum.administrador:
@@ -64,12 +72,7 @@ def create_admin_user(db: Session, user: AdminUserCreate, tenant_id: UUID | None
     elif user.rol in scoped_roles:
         if user.branch_id is None:
             raise ValueError("Este rol debe tener una sucursal asignada")
-        branch_query = db.query(Branch).filter(Branch.id == user.branch_id, Branch.is_active.is_(True))
-        if tenant_id is not None:
-            branch_query = branch_query.filter(Branch.tenant_id == tenant_id)
-        branch = branch_query.first()
-        if branch is None:
-            raise ValueError("La sucursal no existe o está inactiva en esta empresa")
+        _validate_staff_branch(db, user.branch_id, tenant_id)
         branch_id = user.branch_id
     else:
         raise ValueError("Este formulario solo permite crear usuarios internos")
@@ -94,29 +97,30 @@ def create_admin_user(db: Session, user: AdminUserCreate, tenant_id: UUID | None
         db.rollback()
         raise ValueError("El correo ya está registrado")
 
-def get_user(db: Session, user_id: UUID) -> User | None:  # 👈 Cambia int → UUID
-    result = db.execute(select(User).where(User.id == user_id))
-    return result.scalars().first()
+def _staff_query(db: Session, tenant_id: UUID, branch_id: UUID | None = None):
+    query = db.query(User).filter(
+        User.tenant_id == tenant_id,
+        User.rol.notin_([RolEnum.cliente, RolEnum.superadministrador]),
+    )
+    if branch_id is not None:
+        query = query.filter(User.branch_id == branch_id)
+    return query
+
+
+def get_user(db: Session, user_id: UUID, tenant_id: UUID) -> User | None:
+    return _staff_query(db, tenant_id).filter(User.id == user_id).first()
+
 
 def get_users(db: Session, skip: int = 0, limit: int = 10, branch_id: UUID | None = None, tenant_id: UUID | None = None):
-    query = select(User)
-    if tenant_id is not None:
-        query = query.where(User.tenant_id == tenant_id)
-    if branch_id is not None:
-        query = query.where(or_(User.branch_id == branch_id, User.rol == RolEnum.cliente))
-    result = db.execute(query.offset(skip).limit(limit))
-    return result.scalars().all()
+    return _staff_query(db, tenant_id, branch_id).offset(skip).limit(limit).all()
+
 
 def get_users_count(db: Session, branch_id: UUID | None = None, tenant_id: UUID | None = None):
-    query = select(func.count(User.id))
-    if tenant_id is not None:
-        query = query.where(User.tenant_id == tenant_id)
-    if branch_id is not None:
-        query = query.where(or_(User.branch_id == branch_id, User.rol == RolEnum.cliente))
-    result = db.execute(query)
-    return result.scalar_one()
-def update_user_rol(db: Session, user_id: UUID, update_data: UserUpdateRol) -> User | None:
-    user = db.query(User).filter(User.id == user_id).first()
+    return _staff_query(db, tenant_id, branch_id).count()
+
+
+def update_user_rol(db: Session, user_id: UUID, update_data: UserUpdateRol, tenant_id: UUID) -> User | None:
+    user = get_user(db, user_id, tenant_id)
     if not user:
         return None
 
@@ -126,6 +130,7 @@ def update_user_rol(db: Session, user_id: UUID, update_data: UserUpdateRol) -> U
         branch_id = update_data.branch_id or user.branch_id
         if branch_id is None:
             raise ValueError("El usuario necesita una sucursal antes de dejar de ser administrador")
+        _validate_staff_branch(db, branch_id, tenant_id)
         user.branch_id = branch_id
 
     user.rol = update_data.rol
@@ -134,8 +139,8 @@ def update_user_rol(db: Session, user_id: UUID, update_data: UserUpdateRol) -> U
     return user
 
 
-def update_user_branch(db: Session, user_id: UUID, update_data: UserUpdateBranch) -> User | None:
-    user = db.query(User).filter(User.id == user_id).first()
+def update_user_branch(db: Session, user_id: UUID, update_data: UserUpdateBranch, tenant_id: UUID) -> User | None:
+    user = get_user(db, user_id, tenant_id)
     if not user:
         return None
 
@@ -145,27 +150,27 @@ def update_user_branch(db: Session, user_id: UUID, update_data: UserUpdateBranch
     if update_data.branch_id is None:
         raise ValueError("Este usuario debe tener una sucursal asignada")
 
+    _validate_staff_branch(db, update_data.branch_id, tenant_id)
     user.branch_id = update_data.branch_id
     db.commit()
     db.refresh(user)
     return user
 
 
-def update_user_full(db: Session, user_id: UUID, update_data) -> User | None:
-    user = db.query(User).filter(User.id == user_id).first()
+def update_user_full(db: Session, user_id: UUID, update_data, tenant_id: UUID) -> User | None:
+    user = get_user(db, user_id, tenant_id)
     if not user:
         return None
 
+    if user.rol in {RolEnum.encargado, RolEnum.cajero, RolEnum.delivery} and update_data.branch_id is None:
+        raise ValueError("Este usuario debe tener una sucursal asignada")
+    if update_data.branch_id is not None:
+        _validate_staff_branch(db, update_data.branch_id, tenant_id)
     ensure_email_available(db, update_data.email, exclude_user_id=user_id)
     user.name = update_data.name
     user.email = normalize_email(update_data.email)
     user.gender = update_data.gender
-    if user.rol == RolEnum.administrador:
-        user.branch_id = None
-    elif user.rol in {RolEnum.encargado, RolEnum.cajero, RolEnum.delivery} and update_data.branch_id is None:
-        raise ValueError("Este usuario debe tener una sucursal asignada")
-    else:
-        user.branch_id = update_data.branch_id
+    user.branch_id = None if user.rol == RolEnum.administrador else update_data.branch_id
     user.is_active = update_data.is_active
 
     try:
@@ -177,16 +182,16 @@ def update_user_full(db: Session, user_id: UUID, update_data) -> User | None:
         raise ValueError("No se pudo actualizar el usuario")
 
 
-def delete_user(db: Session, user_id: UUID) -> bool:
-    user = db.query(User).filter(User.id == user_id).first()
+def delete_user(db: Session, user_id: UUID, tenant_id: UUID) -> bool:
+    user = get_user(db, user_id, tenant_id)
     if not user:
         return False
 
     try:
         if user.rol == RolEnum.proveedor:
-            provider = db.query(Provider).filter(Provider.user_id == user.id).first()
+            provider = db.query(Provider).filter(Provider.user_id == user.id, Provider.tenant_id == tenant_id).first()
             if provider:
-                db.query(Product).filter(Product.provider_id == provider.id).update({Product.provider_id: None}, synchronize_session=False)
+                db.query(Product).filter(Product.provider_id == provider.id, Product.tenant_id == tenant_id).update({Product.provider_id: None}, synchronize_session=False)
                 db.delete(provider)
 
         db.delete(user)
@@ -197,8 +202,8 @@ def delete_user(db: Session, user_id: UUID) -> bool:
         raise ValueError("No se pudo eliminar el usuario")
 
 
-def set_user_active(db: Session, user_id: UUID, is_active: bool) -> User | None:
-    user = db.query(User).filter(User.id == user_id).first()
+def set_user_active(db: Session, user_id: UUID, is_active: bool, tenant_id: UUID) -> User | None:
+    user = get_user(db, user_id, tenant_id)
     if not user:
         return None
 

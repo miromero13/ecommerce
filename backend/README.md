@@ -158,6 +158,33 @@ activo; solo se sustituye el envío push externo. Las 48 pruebas de inventario y
 reposición aprobaron, con revisión independiente sin bloqueantes en esta unidad;
 no se afirma CU1 completo.
 
+### Aislamiento de proveedores y personal (CU1)
+
+`/api/providers/`, `/{id}/products` y las mutaciones administrativas usan la
+empresa persistida del empleado. Tanto el proveedor como su usuario vinculado
+deben pertenecer a esa empresa. La creación asigna esa empresa a ambos registros.
+Los productos y variantes del proveedor también se limitan a su empresa;
+`/me/products` y `/me/availability` conservan el rol proveedor y la propiedad del
+perfil y las variantes. Un lote de disponibilidad con variantes ajenas se rechaza
+antes de escribir. Los estados del proveedor siguen siendo `active` y `suspended`;
+la suspensión mantiene la desactivación del usuario vinculado.
+
+El listado y contador de `/api/users/` y la gestión por ID solo incluyen personal
+de la empresa actual: no permiten administrar clientes globales ni
+superadministradores, aunque su empresa sea NULL. Las referencias ajenas responden
+404 `Usuario con id {id} no encontrado` o el mensaje de proveedor inexistente de
+cada ruta. Un administrador no puede conceder `superadministrador`: recibe 403
+`No tienes permisos para acceder a este recurso`. Asignar una sucursal ajena o
+inactiva responde 400 `La sucursal no existe o está inactiva en esta empresa`,
+antes de modificar el usuario. `tenant_id` del payload no reasigna la empresa.
+Se conservan el registro público, la política existente de creación interna y
+GET/PUT `/api/users/me` del cliente global.
+
+Las pruebas focalizadas son `tests/test_provider_tenant_isolation.py` y
+`tests/test_staff_tenant_isolation.py`, con el entorno desechable y rollback
+indicados arriba. Sus 42 pruebas aprobaron y la revisión independiente no encontró
+bloqueantes en esta unidad. No se afirma aislamiento completo de BI ni de compras.
+
 ## Migraciones y seeders
 
 - `alembic/versions/` contiene el historial canónico de migraciones.
