@@ -27,6 +27,30 @@ class SubscriptionPlanRead(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class SubscriptionPlanCreate(BaseModel):
+    name: str = Field(..., min_length=2, max_length=100)
+    # The plan id is "plan_<slug>" (max 50 chars), so the slug is immutable.
+    slug: str = Field(..., min_length=2, max_length=45, pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+    description: Optional[str] = Field(None, max_length=500)
+    price_monthly: float = Field(..., ge=0)
+    price_yearly: float = Field(..., ge=0)
+    max_branches: int = Field(..., ge=1)
+    max_garments: int = Field(..., ge=1)
+    features: List[str] = Field(default_factory=list)
+    is_active: bool = True
+
+
+class SubscriptionPlanUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=2, max_length=100)
+    description: Optional[str] = Field(None, max_length=500)
+    price_monthly: Optional[float] = Field(None, ge=0)
+    price_yearly: Optional[float] = Field(None, ge=0)
+    max_branches: Optional[int] = Field(None, ge=1)
+    max_garments: Optional[int] = Field(None, ge=1)
+    features: Optional[List[str]] = None
+    is_active: Optional[bool] = None
+
+
 class SubscriptionPurchaseSimulated(BaseModel):
     # Company / Tenant info
     company_name: str = Field(..., min_length=2, max_length=120)
@@ -43,6 +67,16 @@ class SubscriptionPurchaseSimulated(BaseModel):
     billing_cycle: BillingCycleEnum = Field(default=BillingCycleEnum.monthly)
 
     # Simulated card payment details
+    card_number: Optional[str] = Field(default="4242424242424242")
+    card_holder: Optional[str] = Field(default="Titular Prueba")
+    card_exp: Optional[str] = Field(default="12/28")
+    card_cvv: Optional[str] = Field(default="123")
+
+
+class SubscriptionChangePlan(BaseModel):
+    plan_id: str = Field(...)
+    billing_cycle: BillingCycleEnum = Field(default=BillingCycleEnum.monthly)
+    # Simulated card, same sandbox contract as the onboarding purchase.
     card_number: Optional[str] = Field(default="4242424242424242")
     card_holder: Optional[str] = Field(default="Titular Prueba")
     card_exp: Optional[str] = Field(default="12/28")

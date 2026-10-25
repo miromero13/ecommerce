@@ -25,6 +25,7 @@ import { HlmSelectImports } from '../../../components/select/src';
 import { Tenant, TenantStatus } from '../../shared/models/tenant.model';
 import { TenantApiService } from '../../shared/services/tenant-api.service';
 import { SubscriptionApiService } from '../../shared/services/subscription-api.service';
+import { SubscriptionPlan } from '../../shared/models/subscription.model';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
 import {
   COUNTRIES_LIST,
@@ -143,8 +144,21 @@ export class TenantManagementPageComponent {
     return list;
   });
 
+  // Only plans on sale; the superadmin may have created or deactivated some.
+  protected readonly plans = signal<SubscriptionPlan[]>([]);
+
+  protected async loadPlans(): Promise<void> {
+    try {
+      const res = await firstValueFrom(this.subscriptionApi.getPlans());
+      this.plans.set(res.data ?? []);
+    } catch {
+      this.plans.set([]);
+    }
+  }
+
   constructor() {
     void this.loadTenants();
+    void this.loadPlans();
     this.createForm.controls.country.valueChanges.subscribe((selectedCountryName) => {
       const found = this.countries.find((c) => c.name === selectedCountryName);
       if (found && found.currency) {
@@ -185,7 +199,7 @@ export class TenantManagementPageComponent {
       country: 'Bolivia',
       currency: 'BOB',
       admin_name: '',
-      plan_id: 'plan_basic',
+      plan_id: this.plans()[0]?.id ?? '',
       billing_cycle: 'monthly',
     });
     this.modalOpen.set(true);

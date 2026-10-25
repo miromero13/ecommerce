@@ -7,7 +7,8 @@ from app.core.database import get_db
 from app.auth.jwt import decode_access_token
 from app.models.user import User
 from app.models.branch import Branch
-from app.schemas.enums import RolEnum
+from app.models.tenant import Tenant
+from app.schemas.enums import RolEnum, TenantStatusEnum
 
 security = HTTPBearer()  # Simple Bearer auth
 
@@ -51,6 +52,12 @@ def get_current_user(
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Usuario sin empresa asociada",
+            )
+        tenant_status = db.query(Tenant.status).filter(Tenant.id == user.tenant_id).scalar()
+        if tenant_status == TenantStatusEnum.suspended:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="La empresa está suspendida. Contactá al administrador de la plataforma.",
             )
         if user.rol in [RolEnum.encargado, RolEnum.cajero, RolEnum.delivery]:
             if user.branch_id is None:

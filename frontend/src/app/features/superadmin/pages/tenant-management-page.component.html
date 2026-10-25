@@ -296,9 +296,9 @@
                   formControlName="plan_id"
                   class="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring cursor-pointer"
                 >
-                  <option value="plan_basic">Básico (2 suc, 500 prendas)</option>
-                  <option value="plan_pro">Profesional (5 suc, 3k prendas, 2D + IA)</option>
-                  <option value="plan_enterprise">Enterprise (10 suc, 10k prendas, 3D AR + ML)</option>
+                  <option *ngFor="let plan of plans()" [value]="plan.id">
+                    {{ plan.name }} ({{ plan.max_branches }} suc., {{ plan.max_garments | number }} prendas)
+                  </option>
                 </select>
               </div>
 

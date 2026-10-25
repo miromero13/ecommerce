@@ -25,6 +25,7 @@ from app.models.user_profile import UserBodyProfile
 from app.schemas.chatbot_schema import ChatIntent, ConversationTurn
 from app.schemas.catalog_enums import ProductStatusEnum
 from app.services.conversation_service import append_message, clear_conversation, get_or_create_conversation, load_recent_messages
+from app.services.subscription_service import CHATBOT_FEATURE, tenant_ids_with_feature
 
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "core" / "data"
@@ -260,7 +261,8 @@ def _catalog_candidates(db: Session) -> list[dict[str, Any]]:
         .outerjoin(Size, Size.id == ProductVariant.size_id)
         .outerjoin(Color, Color.id == ProductVariant.color_id)
         .options(selectinload(ProductVariant.inventory))
-        .filter(ProductVariant.status == ProductStatusEnum.active)
+        .filter(ProductVariant.status == ProductStatusEnum.active,
+                Product.tenant_id.in_(tenant_ids_with_feature(db, CHATBOT_FEATURE)))
         .order_by(Product.name.asc(), ProductVariant.sku.asc())
         .all()
     )
@@ -358,7 +360,8 @@ def _catalog_final_context(db: Session, selected_ids: list[str], profile: UserBo
         .outerjoin(Size, Size.id == ProductVariant.size_id)
         .outerjoin(Color, Color.id == ProductVariant.color_id)
         .options(selectinload(ProductVariant.inventory))
-        .filter(ProductVariant.id.in_(selected_ids), ProductVariant.status == ProductStatusEnum.active)
+        .filter(ProductVariant.id.in_(selected_ids), ProductVariant.status == ProductStatusEnum.active,
+                Product.tenant_id.in_(tenant_ids_with_feature(db, CHATBOT_FEATURE)))
         .all()
     )
     by_variant_id = {str(row[0].id): row for row in rows}

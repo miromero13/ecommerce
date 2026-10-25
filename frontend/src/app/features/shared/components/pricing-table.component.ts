@@ -16,7 +16,7 @@ import { firstValueFrom } from 'rxjs';
 import { HlmButtonImports } from '../../../components/button/src';
 import { HlmCardImports } from '../../../components/card/src';
 import { HlmBadgeImports } from '../../../components/badge/src';
-import { SubscriptionPlan } from '../models/subscription.model';
+import { PLAN_FEATURES, PlanFeatureInfo, SubscriptionPlan } from '../models/subscription.model';
 import { SubscriptionApiService } from '../services/subscription-api.service';
 
 @Component({
@@ -52,6 +52,12 @@ export class PricingTableComponent implements OnInit {
       this.loading.set(false);
     }
   }
+
+  /** Marks the company's current plan (subscription page). */
+  @Input() currentPlanId: string | null = null;
+  @Input() showComparison = true;
+
+  readonly features = PLAN_FEATURES;
 
   @Output() selectPlan = new EventEmitter<{
     plan: SubscriptionPlan;
@@ -95,5 +101,23 @@ export class PricingTableComponent implements OnInit {
 
   getPrice(plan: SubscriptionPlan): number {
     return this.billingCycle() === 'yearly' ? plan.price_yearly : plan.price_monthly;
+  }
+
+  /** Plans arrive ordered by price; each card lists only what it adds over the previous one. */
+  previousPlan(index: number): SubscriptionPlan | null {
+    return index > 0 ? this.plans()[index - 1] : null;
+  }
+
+  addedFeatures(plan: SubscriptionPlan, index: number): PlanFeatureInfo[] {
+    const previous = new Set(this.previousPlan(index)?.features ?? []);
+    return plan.features.filter((key) => !previous.has(key)).map((key) => this.featureInfo(key));
+  }
+
+  featureInfo(key: string): PlanFeatureInfo {
+    return this.features.find((feature) => feature.key === key) ?? { key, label: key, description: '' };
+  }
+
+  hasFeature(plan: SubscriptionPlan, key: string): boolean {
+    return plan.features.includes(key);
   }
 }

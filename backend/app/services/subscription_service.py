@@ -5,7 +5,7 @@ import re
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.auth.hash import hash_password
@@ -24,6 +24,9 @@ from app.schemas.enums import (
     TenantStatusEnum,
 )
 from app.schemas.subscription_schema import (
+    SubscriptionChangePlan,
+    SubscriptionPlanCreate,
+    SubscriptionPlanUpdate,
     SubscriptionPurchaseSimulated,
     TenantWithSubscriptionCreate,
 )
@@ -52,31 +55,94 @@ def get_plan_by_id(db: Session, plan_id: str) -> SubscriptionPlan | None:
     ).scalars().first()
 
 
+# Modules the platform knows how to sell; the frontend describes each one.
+PLAN_FEATURE_KEYS = (
+    "catalog", "pos", "inventory", "reservations", "standard_reports", "chatbot",
+    "virtual_try_on_2d", "ai_text_reports", "virtual_try_on_3d_ar", "ai_ml_smart_reports",
+)
+
+
+def _valid_features(features: list[str]) -> list[str]:
+    unknown = [key for key in features if key not in PLAN_FEATURE_KEYS]
+    if unknown:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Funciones de plan desconocidas: {', '.join(unknown)}",
+        )
+    return list(dict.fromkeys(features))
+
+
+def create_plan(db: Session, payload: SubscriptionPlanCreate) -> SubscriptionPlan:
+    plan_id = "plan_" + payload.slug.replace("-", "_")
+    exists = db.execute(select(SubscriptionPlan.id).where(
+        or_(SubscriptionPlan.id == plan_id, SubscriptionPlan.slug == payload.slug)
+    )).first()
+    if exists:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Ya existe un plan con el identificador '{payload.slug}'.",
+        )
+    plan = SubscriptionPlan(id=plan_id, **{**payload.model_dump(), "features": _valid_features(payload.features)})
+    db.add(plan)
+    db.commit()
+    db.refresh(plan)
+    return plan
+
+
+def update_plan(db: Session, plan_id: str, payload: SubscriptionPlanUpdate) -> SubscriptionPlan:
+    """Changes apply to current subscribers too; deactivating only hides the plan from new purchases."""
+    plan = get_plan_by_id(db, plan_id)
+    if not plan:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plan no encontrado.")
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        if value is None and field != "description":
+            continue  # every other column is NOT NULL
+        setattr(plan, field, _valid_features(value) if field == "features" else value)
+    db.commit()
+    db.refresh(plan)
+    return plan
+
+
+TRY_ON_FEATURE = "virtual_try_on_2d"
+CHATBOT_FEATURE = "chatbot"
+NO_ACTIVE_SUBSCRIPTION ="Tu empresa no tiene una suscripción activa. Renová o elegí un plan para continuar."
+
+
+def _is_current() -> tuple:
+    # A subscription past its end_date no longer counts, even if never marked canceled.
+    return (
+        TenantSubscription.status == SubscriptionStatusEnum.active,
+        or_(TenantSubscription.end_date.is_(None), TenantSubscription.end_date > datetime.now(timezone.utc)),
+    )
+
+
 def get_active_subscription(db: Session, tenant_id: UUID) -> TenantSubscription | None:
     return db.execute(
         select(TenantSubscription)
-        .where(
-            TenantSubscription.tenant_id == tenant_id,
-            TenantSubscription.status == SubscriptionStatusEnum.active,
-        )
+        .where(TenantSubscription.tenant_id == tenant_id, *_is_current())
         .order_by(TenantSubscription.created_at.desc())
     ).scalars().first()
 
 
-def check_tenant_branch_quota(db: Session, tenant_id: UUID) -> None:
-    """
-    Validates if creating another branch exceeds the plan quota.
-    Raises HTTPException 403 if quota is reached.
-    """
+def _count_branches(db: Session, tenant_id: UUID) -> int:
+    return db.execute(select(func.count(Branch.id)).where(Branch.tenant_id == tenant_id)).scalar_one()
+
+
+def _count_garments(db: Session, tenant_id: UUID) -> int:
+    return db.execute(select(func.count(Product.id)).where(Product.tenant_id == tenant_id)).scalar_one()
+
+
+def _require_active_plan(db: Session, tenant_id: UUID) -> SubscriptionPlan:
     subscription = get_active_subscription(db, tenant_id)
     if not subscription or not subscription.plan:
-        return
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=NO_ACTIVE_SUBSCRIPTION)
+    return subscription.plan
 
-    current_branches_count = db.execute(
-        select(func.count(Branch.id)).where(Branch.tenant_id == tenant_id)
-    ).scalar_one()
 
-    if current_branches_count >= subscription.plan.max_branches:
+def check_tenant_branch_quota(db: Session, tenant_id: UUID) -> None:
+    """Raise 403 if the tenant has no current plan or reached its branch quota."""
+    plan = _require_active_plan(db, tenant_id)
+    if _count_branches(db, tenant_id) >= plan.max_branches:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Límite de sucursales alcanzado para el plan actual. Actualizá tu suscripción.",
@@ -84,34 +150,31 @@ def check_tenant_branch_quota(db: Session, tenant_id: UUID) -> None:
 
 
 def check_tenant_garment_quota(db: Session, tenant_id: UUID) -> None:
-    """
-    Validates if creating another product exceeds the plan quota.
-    Raises HTTPException 403 if quota is reached.
-    """
-    subscription = get_active_subscription(db, tenant_id)
-    if not subscription or not subscription.plan:
-        return
-
-    current_products_count = db.execute(
-        select(func.count(Product.id)).where(Product.tenant_id == tenant_id)
-    ).scalar_one()
-
-    if current_products_count >= subscription.plan.max_garments:
+    """Raise 403 if the tenant has no current plan or reached its garment quota."""
+    plan = _require_active_plan(db, tenant_id)
+    if _count_garments(db, tenant_id) >= plan.max_garments:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Límite de prendas alcanzado para el plan actual. Actualizá tu suscripción.",
         )
 
 
+def tenant_features(db: Session, tenant_ids=None) -> dict[UUID, set[str]]:
+    """Features of each tenant's current plan; tenants without one are absent."""
+    query = select(TenantSubscription.tenant_id, SubscriptionPlan.features).join(
+        SubscriptionPlan, SubscriptionPlan.id == TenantSubscription.plan_id
+    ).where(*_is_current())
+    if tenant_ids is not None:
+        query = query.where(TenantSubscription.tenant_id.in_(list(tenant_ids)))
+    return {tenant_id: set(features or []) for tenant_id, features in db.execute(query).all()}
+
+
+def tenant_ids_with_feature(db: Session, feature_key: str) -> list[UUID]:
+    return [tenant_id for tenant_id, features in tenant_features(db).items() if feature_key in features]
+
+
 def tenant_has_feature(db: Session, tenant_id: UUID, feature_key: str) -> bool:
-    """
-    Returns True if the tenant's active subscription includes the given feature.
-    """
-    subscription = get_active_subscription(db, tenant_id)
-    if not subscription or not subscription.plan:
-        return False
-    features = subscription.plan.features or []
-    return feature_key in features
+    return feature_key in tenant_features(db, [tenant_id]).get(tenant_id, set())
 
 
 def create_or_update_tenant_subscription(
@@ -129,6 +192,8 @@ def create_or_update_tenant_subscription(
             detail="El plan de suscripción seleccionado no existe.",
         )
 
+    # Serialize concurrent plan changes of the same tenant.
+    db.query(Tenant).filter(Tenant.id == tenant_id).with_for_update().one()
     now = datetime.now(timezone.utc)
     if duration_days is None:
         duration_days = 365 if billing_cycle == BillingCycleEnum.yearly else 30
@@ -158,6 +223,43 @@ def create_or_update_tenant_subscription(
     return new_sub
 
 
+def change_tenant_plan(db: Session, tenant_id: UUID, payload: SubscriptionChangePlan) -> dict:
+    """Simulated-card plan change for an existing company; starts a new period."""
+    plan = get_plan_by_id(db, payload.plan_id)
+    if not plan or not plan.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El plan seleccionado no se encuentra disponible.",
+        )
+    current = get_active_subscription(db, tenant_id)
+    if current and current.plan_id == plan.id and current.billing_cycle == payload.billing_cycle:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Tu empresa ya tiene activo el plan {plan.name} con esta facturación.",
+        )
+    # A downgrade must not leave the company above the new plan's limits.
+    branches, garments = _count_branches(db, tenant_id), _count_garments(db, tenant_id)
+    if branches > plan.max_branches:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"No podés cambiar al plan {plan.name}: tenés {branches} sucursales y permite {plan.max_branches}.",
+        )
+    if garments > plan.max_garments:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"No podés cambiar al plan {plan.name}: tenés {garments} prendas y permite {plan.max_garments}.",
+        )
+    try:
+        create_or_update_tenant_subscription(
+            db, tenant_id, plan.id, payload.billing_cycle, SubscriptionPaymentMethodEnum.simulated_card,
+        )
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    return get_tenant_subscription_summary(db, tenant_id)
+
+
 def get_tenant_subscription_summary(db: Session, tenant_id: UUID) -> dict:
     tenant = db.get(Tenant, tenant_id)
     if not tenant:
@@ -167,12 +269,8 @@ def get_tenant_subscription_summary(db: Session, tenant_id: UUID) -> dict:
         )
 
     subscription = get_active_subscription(db, tenant_id)
-    branches_count = db.execute(
-        select(func.count(Branch.id)).where(Branch.tenant_id == tenant_id)
-    ).scalar_one()
-    garments_count = db.execute(
-        select(func.count(Product.id)).where(Product.tenant_id == tenant_id)
-    ).scalar_one()
+    branches_count = _count_branches(db, tenant_id)
+    garments_count = _count_garments(db, tenant_id)
 
     if not subscription or not subscription.plan:
         return {

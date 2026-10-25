@@ -218,6 +218,13 @@ export const routes: Routes = [
                 (m) => m.TenantManagementPageComponent,
               ),
           },
+          {
+            path: 'plans',
+            loadComponent: () =>
+              import('./features/superadmin/pages/plan-management-page.component').then(
+                (m) => m.PlanManagementPageComponent,
+              ),
+          },
         ],
       },
       {

@@ -177,7 +177,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             variant: AppButtonVariant.outlined,
             expand: true,
           ),
-          if (imageUrl != null && imageUrl.trim().isNotEmpty) ...[
+          // Only when the selling company's plan includes the virtual try-on.
+          if (product.tryOnEnabled &&
+              imageUrl != null &&
+              imageUrl.trim().isNotEmpty) ...[
             const SizedBox(height: 12),
             AppButton(
               label: 'Probar prenda',

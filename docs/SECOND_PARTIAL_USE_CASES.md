@@ -259,7 +259,14 @@ PATCH /api/saas/tenants/{tenant_id}
 * **Módulo:** M1: Plataforma SaaS y Seguridad
 * **Actor Principal:** Superadministrador (crea planes), Administrador de Tenant (contrata y paga)
 * **Estado:** **Hecho** | **Plataforma:** Web
-* **Descripción Funcional:** Gestión de tiers de suscripción mensual/anual con límites operativos (número de sucursales, prendas y acceso a vestidor virtual IA) e integración con Stripe Checkout y Webhooks.
+* **Descripción Funcional:** Gestión de tiers de suscripción mensual/anual con límites operativos (número de sucursales y prendas) y módulos habilitados por plan (chatbot, vestidor virtual, reportes con IA). El pago es **simulado (sandbox)** con tarjeta de prueba; no se integra Stripe Checkout para suscripciones B2B.
+* **Reglas de negocio:**
+  1. Una suscripción vigente es la que está `active` y cuya `end_date` no pasó. Al vencer deja de contar, aunque su estado no cambie.
+  2. Sin suscripción vigente, la empresa no puede crear sucursales ni prendas, y sus módulos de IA quedan desactivados.
+  3. Los módulos se aplican según el plan de la **empresa que vende**: el vestidor virtual solo aparece en sus productos si su plan incluye `virtual_try_on_2d`, y el chatbot solo recomienda productos de empresas cuyo plan incluye `chatbot`.
+  4. Una empresa `suspended` no tiene acceso para su personal y sus productos se ocultan del catálogo público.
+  5. Cambiar de plan inicia un período nuevo y cancela el anterior. No se permite bajar a un plan cuyos límites ya se superan.
+  6. Desactivar un plan lo quita de la venta; las empresas que ya lo tienen lo conservan hasta su vencimiento.
 
 ##### Endpoints Backend
 ```http
@@ -289,47 +296,52 @@ Response 200 OK:
 }
 ```
 ```http
-POST /api/saas/subscriptions/checkout-session
-Headers: Authorization: Bearer <admin_jwt>, X-Tenant-ID: <tenant_id>
+POST /api/saas/subscriptions/purchase-simulated        (público: alta de una marca nueva)
 Request Body:
 {
-  "plan_id": "plan_pro_02",
+  "company_name": "Boutique Elegance",
+  "admin_name": "Ana Pérez",
+  "admin_email": "admin@elegance.com",
+  "plan_id": "plan_pro",
   "billing_cycle": "monthly",
-  "success_url": "https://elegance.plataforma.com/app/admin/subscription?status=success",
-  "cancel_url": "https://elegance.plataforma.com/app/admin/subscription?status=cancelled"
+  "card_number": "4242424242424242", "card_holder": "Ana Pérez", "card_exp": "12/28", "card_cvv": "123"
 }
-Response 200 OK:
+Response 201 Created:
 {
-  "statusCode": 200,
-  "message": "Sesión de pago iniciada",
-  "data": {
-    "checkout_url": "https://checkout.stripe.com/c/pay/cs_live_...",
-    "session_id": "cs_live_123456"
-  }
-}
-
-Response 400 Bad Request:
-{
-  "statusCode": 400,
-  "message": "El plan seleccionado no se encuentra disponible",
-  "error": "HTTPException"
-}
-
-Response 403 Forbidden:
-{
-  "statusCode": 403,
-  "message": "Límite de sucursales alcanzado para el plan actual. Actualizá tu suscripción.",
-  "error": "HTTPException"
+  "statusCode": 201,
+  "message": "Suscripción activada con éxito. Te enviamos un correo con los datos de acceso.",
+  "data": { "tenant_id": "...", "tenant_slug": "boutique-elegance", "admin_email": "admin@elegance.com", "plan_name": "Profesional", "subscription_status": "active" }
 }
 ```
 ```http
-POST /api/saas/subscriptions/webhook
-Payload: Objeto Stripe Event
+POST /api/saas/subscriptions/change-plan               (Administrador de la empresa)
+Headers: Authorization: Bearer <admin_jwt>
+Request Body:
+{ "plan_id": "plan_enterprise", "billing_cycle": "yearly", "card_number": "4242424242424242" }
 Response 200 OK:
 {
   "statusCode": 200,
-  "message": "Evento de suscripción procesado exitosamente"
+  "message": "Plan actualizado con éxito. Tu empresa ahora tiene el plan Enterprise.",
+  "data": { "has_active_subscription": true, "plan": { ... }, "subscription": { ... }, "usage": { ... }, "features": [ ... ] }
 }
+
+Response 400 Bad Request:
+{ "statusCode": 400, "message": "El plan seleccionado no se encuentra disponible.", "error": "HTTPException" }
+{ "statusCode": 400, "message": "No podés cambiar al plan Básico: tenés 3 sucursales y permite 2.", "error": "HTTPException" }
+```
+```http
+GET  /api/saas/subscriptions/current                   (personal de la empresa; superadmin con ?tenant_id=)
+POST /api/saas/tenants/with-subscription               (Superadministrador: alta directa con pago en efectivo)
+GET  /api/saas/plans/admin                             (Superadministrador: todos los planes, incluso desactivados)
+POST /api/saas/plans                                   (Superadministrador: crear plan → 201 "Plan creado exitosamente")
+PATCH /api/saas/plans/{plan_id}                        (Superadministrador: editar o desactivar → 200 "Plan actualizado exitosamente")
+```
+```http
+Límites aplicados al crear sucursales (POST /api/branches/) y prendas (POST /api/catalog/products):
+Response 403 Forbidden:
+{ "statusCode": 403, "message": "Límite de sucursales alcanzado para el plan actual. Actualizá tu suscripción.", "error": "HTTPException" }
+{ "statusCode": 403, "message": "Límite de prendas alcanzado para el plan actual. Actualizá tu suscripción.", "error": "HTTPException" }
+{ "statusCode": 403, "message": "Tu empresa no tiene una suscripción activa. Renová o elegí un plan para continuar.", "error": "HTTPException" }
 ```
 
 ##### Ubicación en Frontend (Angular)
@@ -338,15 +350,25 @@ Response 200 OK:
 * **Modelo TypeScript:** `frontend/src/app/features/shared/models/subscription.model.ts`
 * **Ruta Angular:** `/app/admin/subscription` (`canActivate: [roleGuard(['administrador', 'superadministrador'])]`)
 * **Integración en Menú:** Ítem `"Suscripción y Plan"` en `sidebarSections` de Administrador en `app-shell.component.ts`.
-* **Mensajes en UI:** Notificación de éxito: `"Suscripción activada con éxito."` Alerta de límite: `"Límite de sucursales alcanzado para el plan actual. Actualizá tu suscripción."` (obtenida directamente del `response.message`).
+* **Cambio de plan:** El botón "Cambiar plan" de `subscription-page` despliega `pricing-table.component` (marca el plan actual) y un formulario de pago simulado que llama a `change-plan`.
+* **Gestión de planes (Superadministrador):** `frontend/src/app/features/superadmin/pages/plan-management-page.component.ts`, ruta `/app/superadmin/plans`, ítem `"Planes de Suscripción"`.
+* **Landing:** `pricing-table.component` muestra en cada tarjeta lo que agrega cada plan sobre el anterior y una tabla comparativa completa (precios, límites y módulos con su descripción), construida con los datos de `GET /api/saas/plans`.
+* **Mensajes en UI:** Notificación de éxito y alertas de límite obtenidas directamente del `response.message`.
 
 ##### Checklist de Implementación
 - [x] Backend: Crear tablas `saas_plans` y `tenant_subscriptions` con foreign key `tenant_id`.
 - [x] Backend: Implementar cliente de Mailtrap API, servicio de onboarding y pasarela de pago simulada (Sandbox) con creación atómica de tenant y admin aleatorio.
-- [x] Backend: Validador de límites del plan activo antes de permitir crear sucursales (`max_branches`) o prendas (`max_garments`).
-- [x] Frontend: Crear `SubscriptionApiService` y componente de tarjetas comparativas de precios con 3 planes escalonados (Básico, Profesional con 2D, Enterprise con 3D AR).
-- [x] Frontend: Desarrollar pantalla `subscription-page` con estado actual de la suscripción, barras de cuotas y enlace a planes.
-- [x] Verificación: Simular pago en sandbox, validar alta directa en superadmin y corroborar activación de límites en la cuenta.
+- [x] Backend: Validador de límites del plan vigente antes de permitir crear sucursales (`max_branches`) o prendas (`max_garments`); sin plan vigente se bloquea la creación.
+- [x] Backend: Vencimiento por `end_date`, cambio de plan con pago simulado y validación de bajada de plan.
+- [x] Backend: Módulos por plan aplicados en vestidor virtual (`/api/catalog/garment` y `try_on_enabled` del producto), chatbot y reportes con IA.
+- [x] Backend: Bloqueo de empresas suspendidas (personal y catálogo público).
+- [x] Backend: CRUD de planes para el Superadministrador (crear, editar, desactivar).
+- [x] Frontend: Crear `SubscriptionApiService` y componente de tarjetas comparativas de precios con los planes de la base de datos, más una tabla comparativa detallada en la landing.
+- [x] Frontend: Desarrollar pantalla `subscription-page` con estado actual de la suscripción, barras de cuotas, aviso de suscripción vencida y cambio de plan.
+- [x] Frontend: Pantalla `plan-management-page` del Superadministrador.
+- [x] Móvil: el botón "Probar prenda" solo aparece si el plan de la tienda incluye el vestidor.
+- [x] Verificación: `backend/tests/test_saas_subscriptions.py` sobre el PostgreSQL desechable (sin tocar la base de desarrollo).
+- [ ] Pendiente: vestidor 3D con realidad aumentada y analítica con Machine Learning (se muestran como "Próximamente").
 
 ---
 

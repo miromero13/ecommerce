@@ -6,21 +6,27 @@ from uuid import UUID
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.auth.dependencies import get_current_user, require_roles
+from app.auth.dependencies import get_current_tenant_id, get_current_user, require_roles
 from app.core.database import get_db
 from app.models.user import User
 from app.schemas.enums import RolEnum
 from app.schemas.subscription_schema import (
+    SubscriptionChangePlan,
+    SubscriptionPlanCreate,
     SubscriptionPlanRead,
+    SubscriptionPlanUpdate,
     SubscriptionPurchaseSimulated,
     TenantWithSubscriptionCreate,
 )
 from app.services.email_service import email_service
 from app.services.subscription_service import (
+    change_tenant_plan,
+    create_plan,
     get_tenant_subscription_summary,
     list_plans,
     provision_tenant_by_superadmin,
     provision_tenant_onboarding,
+    update_plan,
 )
 from app.utils.response import response
 
@@ -40,6 +46,45 @@ async def get_plans_route(db: Session = Depends(get_db)):
         data=serialized,
         count_data=len(serialized),
     )
+
+
+def _plan_data(plan) -> dict:
+    return SubscriptionPlanRead.model_validate(plan).model_dump()
+
+
+@router.get("/plans/admin")
+async def list_all_plans_route(
+    db: Session = Depends(get_db),
+    _: dict = Depends(require_roles(RolEnum.superadministrador)),
+):
+    plans = [_plan_data(plan) for plan in list_plans(db, only_active=False)]
+    return response(
+        status_code=status.HTTP_200_OK,
+        message="Planes de suscripción recuperados exitosamente",
+        data=plans,
+        count_data=len(plans),
+    )
+
+
+@router.post("/plans", status_code=status.HTTP_201_CREATED)
+async def create_plan_route(
+    payload: SubscriptionPlanCreate,
+    db: Session = Depends(get_db),
+    _: dict = Depends(require_roles(RolEnum.superadministrador)),
+):
+    plan = create_plan(db, payload)
+    return response(status_code=status.HTTP_201_CREATED, message="Plan creado exitosamente", data=_plan_data(plan))
+
+
+@router.patch("/plans/{plan_id}")
+async def update_plan_route(
+    plan_id: str,
+    payload: SubscriptionPlanUpdate,
+    db: Session = Depends(get_db),
+    _: dict = Depends(require_roles(RolEnum.superadministrador)),
+):
+    plan = update_plan(db, plan_id, payload)
+    return response(status_code=status.HTTP_200_OK, message="Plan actualizado exitosamente", data=_plan_data(plan))
 
 
 @router.post("/subscriptions/purchase-simulated", status_code=status.HTTP_201_CREATED)
@@ -106,6 +151,21 @@ async def get_current_subscription_route(
     return response(
         status_code=status.HTTP_200_OK,
         message="Suscripción obtenida exitosamente",
+        data=summary,
+    )
+
+
+@router.post("/subscriptions/change-plan")
+async def change_plan_route(
+    payload: SubscriptionChangePlan,
+    db: Session = Depends(get_db),
+    _: dict = Depends(require_roles(RolEnum.administrador)),
+    current_tenant_id: UUID = Depends(get_current_tenant_id),
+):
+    summary = change_tenant_plan(db, current_tenant_id, payload)
+    return response(
+        status_code=status.HTTP_200_OK,
+        message=f"Plan actualizado con éxito. Tu empresa ahora tiene el plan {summary['plan']['name']}.",
         data=summary,
     )
 

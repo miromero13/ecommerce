@@ -106,6 +106,7 @@ class ProductRead(BaseModel):
     id: UUID
     tenant_id: UUID | None = None
     tenant_name: str | None = None
+    try_on_enabled: bool = False
     name: str
     description: str | None = None
     discount_type: DiscountTypeEnum | None = None

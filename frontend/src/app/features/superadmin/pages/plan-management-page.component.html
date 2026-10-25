@@ -1,0 +1,203 @@
+<div class="space-y-6">
+  <!-- Encabezado de página -->
+  <header class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight text-slate-900">Planes de Suscripción</h1>
+      <p class="text-sm text-slate-500">
+        Definí precios, límites y módulos de cada plan. Los cambios se reflejan en la landing y en las empresas suscritas.
+      </p>
+    </div>
+    <button hlmBtn type="button" class="flex cursor-pointer items-center gap-2" (click)="openCreate()">
+      <ng-icon name="lucidePlus" style="--ng-icon__size: 18px;"></ng-icon>
+      <span>Nuevo Plan</span>
+    </button>
+  </header>
+
+  <section hlmCard class="border-slate-200 shadow-sm overflow-hidden">
+    @if (loading()) {
+      <div class="flex h-48 items-center justify-center">
+        <p class="text-sm text-slate-500">Cargando planes...</p>
+      </div>
+    } @else if (plans().length === 0) {
+      <div class="flex flex-col items-center justify-center p-12 text-center">
+        <div class="flex size-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+          <ng-icon name="lucideLayers" style="--ng-icon__size: 28px;"></ng-icon>
+        </div>
+        <h3 class="mt-4 text-base font-semibold text-slate-900">No hay planes registrados</h3>
+        <p class="mt-1 text-sm text-slate-500">Creá el primer plan para ofrecerlo en la landing.</p>
+      </div>
+    } @else {
+      <div class="overflow-x-auto">
+        <table hlmTable class="w-full text-left text-sm">
+          <thead class="border-b border-slate-100 bg-slate-50/75 text-xs font-semibold text-slate-600">
+            <tr>
+              <th class="px-5 py-3.5">Plan</th>
+              <th class="px-4 py-3.5 text-right">Mensual</th>
+              <th class="px-4 py-3.5 text-right">Anual</th>
+              <th class="px-4 py-3.5 text-center">Sucursales</th>
+              <th class="px-4 py-3.5 text-center">Prendas</th>
+              <th class="px-4 py-3.5">Módulos</th>
+              <th class="px-4 py-3.5 text-center">Estado</th>
+              <th class="px-5 py-3.5 text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 text-slate-700">
+            @for (plan of plans(); track plan.id) {
+              <tr class="transition hover:bg-slate-50/50" [class.opacity-60]="!plan.is_active">
+                <td class="px-5 py-3.5">
+                  <p class="font-bold text-slate-900 leading-tight">{{ plan.name }}</p>
+                  <span class="text-xs font-mono text-slate-400">{{ plan.id }}</span>
+                </td>
+                <td class="px-4 py-3.5 text-right font-semibold text-slate-900">{{ plan.price_monthly }} Bs.</td>
+                <td class="px-4 py-3.5 text-right font-semibold text-slate-900">{{ plan.price_yearly }} Bs.</td>
+                <td class="px-4 py-3.5 text-center font-semibold text-slate-900">{{ plan.max_branches }}</td>
+                <td class="px-4 py-3.5 text-center font-semibold text-slate-900">{{ plan.max_garments | number }}</td>
+                <td class="px-4 py-3.5">
+                  <div class="flex max-w-xs flex-wrap gap-1">
+                    @for (key of plan.features; track key) {
+                      <span class="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700">{{ featureLabel(key) }}</span>
+                    }
+                  </div>
+                </td>
+                <td class="px-4 py-3.5 text-center">
+                  <span
+                    class="inline-block rounded-full px-2.5 py-0.5 text-xs font-bold"
+                    [class.bg-emerald-50]="plan.is_active"
+                    [class.text-emerald-700]="plan.is_active"
+                    [class.bg-slate-100]="!plan.is_active"
+                    [class.text-slate-500]="!plan.is_active"
+                  >
+                    {{ plan.is_active ? 'A la venta' : 'Desactivado' }}
+                  </span>
+                </td>
+                <td class="px-5 py-3.5">
+                  <div class="flex justify-end gap-2">
+                    <button hlmBtn variant="outline" size="sm" type="button" class="cursor-pointer gap-1.5" (click)="openEdit(plan)">
+                      <ng-icon name="lucidePencil" style="--ng-icon__size: 14px;"></ng-icon>
+                      Editar
+                    </button>
+                    <button hlmBtn variant="outline" size="sm" type="button" class="cursor-pointer gap-1.5" (click)="toggleActive(plan)">
+                      <ng-icon name="lucidePower" style="--ng-icon__size: 14px;"></ng-icon>
+                      {{ plan.is_active ? 'Desactivar' : 'Activar' }}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+
+  <p class="text-xs text-slate-500">
+    Desactivar un plan lo quita de la landing y del cambio de plan, pero las empresas que ya lo tienen lo conservan hasta su vencimiento.
+    Bajar un límite no elimina datos: la empresa solo no podrá crear más sucursales o prendas por encima del nuevo límite.
+  </p>
+
+  <!-- Modal de crear / editar plan -->
+  @if (modalOpen()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 overflow-y-auto">
+      <section
+        hlmCard
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="plan-modal-title"
+        class="w-full max-w-2xl bg-card text-card-foreground shadow-2xl p-6 border border-border rounded-2xl max-h-[90vh] flex flex-col my-auto"
+      >
+        <div hlmCardHeader class="flex flex-row items-center justify-between border-b border-border pb-3 shrink-0">
+          <div>
+            <h2 hlmCardTitle id="plan-modal-title" class="text-lg font-bold text-foreground">
+              {{ editing() ? 'Editar plan ' + editing()?.name : 'Nuevo plan de suscripción' }}
+            </h2>
+            <p class="text-xs text-muted-foreground">Precios en Bolivianos (Bs.).</p>
+          </div>
+          <button type="button" aria-label="Cerrar" class="text-muted-foreground hover:text-foreground font-bold cursor-pointer text-lg p-1 rounded-md" (click)="closeModal()">
+            ✕
+          </button>
+        </div>
+
+        @if (errorMessage()) {
+          <div role="alert" class="mt-3 rounded-xl bg-destructive/10 border border-destructive/20 p-3 text-xs text-destructive font-medium shrink-0">
+            {{ errorMessage() }}
+          </div>
+        }
+
+        <form [formGroup]="form" (ngSubmit)="save()" class="flex flex-col flex-1 overflow-hidden mt-4">
+          <div class="overflow-y-auto pr-1 space-y-4 flex-1">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div hlmField class="space-y-1">
+                <label hlmFieldLabel for="plan-name" class="text-xs font-bold text-foreground">Nombre *</label>
+                <input id="plan-name" hlmInput type="text" formControlName="name" placeholder="ej. Profesional" class="w-full" />
+              </div>
+              <div hlmField class="space-y-1">
+                <label hlmFieldLabel for="plan-slug" class="text-xs font-bold text-foreground">Identificador (slug) *</label>
+                <input id="plan-slug" hlmInput type="text" formControlName="slug" placeholder="ej. profesional" class="w-full font-mono text-xs" />
+                <p class="text-[11px] text-muted-foreground">
+                  {{ editing() ? 'No se puede cambiar después de crear el plan.' : 'Minúsculas, números y guiones. No se puede cambiar después.' }}
+                </p>
+              </div>
+            </div>
+
+            <div hlmField class="space-y-1">
+              <label hlmFieldLabel for="plan-description" class="text-xs font-bold text-foreground">Descripción</label>
+              <textarea id="plan-description" formControlName="description" rows="2" maxlength="500"
+                class="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"></textarea>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div hlmField class="space-y-1">
+                <label hlmFieldLabel for="plan-monthly" class="text-xs font-bold text-foreground">Precio mensual *</label>
+                <input id="plan-monthly" hlmInput type="number" min="0" step="0.01" formControlName="price_monthly" class="w-full" />
+              </div>
+              <div hlmField class="space-y-1">
+                <label hlmFieldLabel for="plan-yearly" class="text-xs font-bold text-foreground">Precio anual *</label>
+                <input id="plan-yearly" hlmInput type="number" min="0" step="0.01" formControlName="price_yearly" class="w-full" />
+              </div>
+              <div hlmField class="space-y-1">
+                <label hlmFieldLabel for="plan-branches" class="text-xs font-bold text-foreground">Sucursales *</label>
+                <input id="plan-branches" hlmInput type="number" min="1" step="1" formControlName="max_branches" class="w-full" />
+              </div>
+              <div hlmField class="space-y-1">
+                <label hlmFieldLabel for="plan-garments" class="text-xs font-bold text-foreground">Prendas *</label>
+                <input id="plan-garments" hlmInput type="number" min="1" step="1" formControlName="max_garments" class="w-full" />
+              </div>
+            </div>
+
+            <fieldset class="space-y-2">
+              <legend class="text-xs font-bold text-foreground mb-1">Módulos incluidos</legend>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                @for (feature of features; track feature.key) {
+                  <label class="flex items-start gap-2.5 rounded-xl border border-border p-3 cursor-pointer hover:bg-muted/40">
+                    <input type="checkbox" class="mt-0.5 cursor-pointer" [checked]="hasFeature(feature.key)" (change)="toggleFeature(feature.key)" />
+                    <span class="text-xs">
+                      <span class="block font-semibold text-foreground">
+                        {{ feature.label }}
+                        @if (feature.comingSoon) {
+                          <span class="ml-1 text-[10px] uppercase text-muted-foreground">(próximamente)</span>
+                        }
+                      </span>
+                      <span class="text-muted-foreground">{{ feature.description }}</span>
+                    </span>
+                  </label>
+                }
+              </div>
+            </fieldset>
+
+            <label class="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+              <input type="checkbox" formControlName="is_active" class="cursor-pointer" />
+              Plan a la venta (visible en la landing y en el cambio de plan)
+            </label>
+          </div>
+
+          <div class="flex items-center justify-end gap-2 border-t border-border pt-4 mt-4 shrink-0">
+            <button type="button" hlmBtn variant="outline" class="cursor-pointer" (click)="closeModal()">Cancelar</button>
+            <button type="submit" hlmBtn class="cursor-pointer" [disabled]="form.invalid || submitting()">
+              {{ submitting() ? 'Guardando...' : (editing() ? 'Guardar cambios' : 'Crear plan') }}
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+  }
+</div>

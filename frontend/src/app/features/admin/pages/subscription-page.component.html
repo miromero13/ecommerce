@@ -10,14 +10,16 @@
       <p class="text-sm text-muted-foreground mt-1">Supervisá tu plan comercial, límites operativos y módulos de Inteligencia Artificial habilitados.</p>
     </div>
 
-    <div>
-      <a
-        routerLink="/"
+    <div *ngIf="summary()">
+      <button
+        type="button"
+        (click)="togglePlans()"
+        [attr.aria-expanded]="showPlans()"
         class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm shadow-xs transition-all cursor-pointer"
       >
-        <span>Mejorar Plan</span>
-        <ng-icon name="lucideArrowUpRight" class="w-4 h-4"></ng-icon>
-      </a>
+        <span>{{ showPlans() ? 'Ocultar planes' : (summary()?.has_active_subscription ? 'Cambiar plan' : 'Elegir plan') }}</span>
+        <ng-icon [name]="showPlans() ? 'lucideX' : 'lucideArrowUpRight'" class="w-4 h-4"></ng-icon>
+      </button>
     </div>
   </div>
 
@@ -43,8 +45,73 @@
 
   <!-- Content -->
   <div *ngIf="!loading() && summary()" class="space-y-8">
+    <!-- No current plan: limits and AI modules are blocked until the company subscribes -->
+    <div *ngIf="!summary()?.has_active_subscription" role="alert" class="p-6 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive flex items-start gap-3">
+      <ng-icon name="lucideShieldAlert" class="w-6 h-6 shrink-0"></ng-icon>
+      <div>
+        <h3 class="font-bold text-base">Tu empresa no tiene una suscripción activa</h3>
+        <p class="text-sm mt-0.5">No podés crear sucursales ni prendas, y los módulos de IA están desactivados. Elegí un plan para continuar.</p>
+      </div>
+    </div>
+
+    <!-- Plan change: choose a tier, then confirm the simulated payment -->
+    <div *ngIf="showPlans()" class="bg-card text-card-foreground rounded-3xl border border-border shadow-xs">
+      <app-pricing-table
+        [currentPlanId]="summary()?.plan?.id ?? null"
+        [showComparison]="true"
+        (selectPlan)="choosePlan($event)"
+      ></app-pricing-table>
+
+      <div *ngIf="selected() as choice" class="mx-4 sm:mx-8 mb-8 p-6 rounded-2xl border-2 border-primary/30 bg-muted/30 space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div>
+            <h3 class="font-extrabold text-foreground text-lg">Confirmar cambio al plan {{ choice.plan.name }}</h3>
+            <p class="text-xs text-muted-foreground">
+              Facturación {{ choice.billingCycle === 'yearly' ? 'anual' : 'mensual' }}. El nuevo período empieza hoy y reemplaza al plan actual.
+            </p>
+          </div>
+          <div class="text-2xl font-black text-foreground">{{ selectedPrice() }} Bs.</div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <label class="space-y-1.5 text-xs font-bold text-foreground">
+            Número de tarjeta
+            <input type="text" [(ngModel)]="cardNumber" autocomplete="off" class="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring" />
+          </label>
+          <label class="space-y-1.5 text-xs font-bold text-foreground">
+            Titular
+            <input type="text" [(ngModel)]="cardHolder" autocomplete="off" class="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+          </label>
+          <label class="space-y-1.5 text-xs font-bold text-foreground">
+            Vencimiento
+            <input type="text" [(ngModel)]="cardExp" autocomplete="off" class="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring" />
+          </label>
+          <label class="space-y-1.5 text-xs font-bold text-foreground">
+            CVV
+            <input type="text" [(ngModel)]="cardCvv" autocomplete="off" class="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring" />
+          </label>
+        </div>
+        <p class="text-xs text-muted-foreground">Pago simulado (sandbox): no se realiza ningún cobro real.</p>
+
+        <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+          <button type="button" (click)="selected.set(null)" class="px-5 py-2.5 rounded-xl border border-border bg-secondary text-secondary-foreground font-bold text-sm cursor-pointer">
+            Cancelar
+          </button>
+          <button
+            type="button"
+            (click)="confirmChange()"
+            [disabled]="changing()"
+            class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            <ng-icon name="lucideCreditCard" class="w-4 h-4"></ng-icon>
+            {{ changing() ? 'Procesando pago...' : 'Pagar y activar plan' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Active Plan Overview Banner -->
-    <div class="bg-card text-card-foreground rounded-3xl p-8 border-2 border-primary/30 shadow-md relative overflow-hidden">
+    <div *ngIf="summary()?.has_active_subscription" class="bg-card text-card-foreground rounded-3xl p-8 border-2 border-primary/30 shadow-md relative overflow-hidden">
       <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <div class="flex items-center gap-3 mb-3">
@@ -115,7 +182,7 @@
               </div>
             </div>
             <span class="text-lg font-black text-foreground">
-              {{ summary()?.usage?.branches_count }} / {{ summary()?.usage?.branches_max }}
+              {{ summary()?.usage?.branches_count }} / {{ summary()?.usage?.branches_max ?? '—' }}
             </span>
           </div>
 
@@ -147,7 +214,7 @@
               </div>
             </div>
             <span class="text-lg font-black text-foreground">
-              {{ summary()?.usage?.garments_count }} / {{ summary()?.usage?.garments_max | number }}
+              {{ summary()?.usage?.garments_count }} / {{ (summary()?.usage?.garments_max | number) ?? '—' }}
             </span>
           </div>
 
@@ -172,49 +239,25 @@
         Capacidades Tecnológicas de tu Plan
       </h3>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Virtual Try-On -->
-        <div class="p-5 rounded-2xl border border-border bg-muted/30 flex items-start gap-4">
-          <div class="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-            <ng-icon name="lucideCamera" class="w-6 h-6"></ng-icon>
-          </div>
+      <ul class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <li *ngFor="let feature of features" class="p-4 rounded-2xl border border-border bg-muted/30 flex items-start gap-3">
+          <ng-icon
+            [name]="hasFeature(feature.key) ? 'lucideCheckCircle2' : 'lucideX'"
+            [class.text-primary]="hasFeature(feature.key)"
+            [class.text-muted-foreground]="!hasFeature(feature.key)"
+            class="w-5 h-5 shrink-0 mt-0.5"
+          ></ng-icon>
           <div>
-            <h4 class="font-bold text-foreground text-sm">Modalidad de Vestidor Virtual</h4>
+            <h4 class="font-bold text-sm" [class.text-foreground]="hasFeature(feature.key)" [class.text-muted-foreground]="!hasFeature(feature.key)">
+              {{ feature.label }}
+              <span *ngIf="feature.comingSoon" class="ml-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border border-border rounded px-1.5 py-0.5">Próximamente</span>
+            </h4>
             <p class="text-xs text-muted-foreground mt-1 leading-relaxed">
-              <ng-container *ngIf="summary()?.plan?.id === 'plan_enterprise'">
-                <strong class="text-foreground">3D con Realidad Aumentada (AR):</strong> Seguimiento en vivo por cámara web y app móvil con detección de pose y ajuste dinámico en tiempo real.
-              </ng-container>
-              <ng-container *ngIf="summary()?.plan?.id === 'plan_pro'">
-                <strong class="text-foreground">2D sobre Fotografía:</strong> Carga de fotos de cuerpo entero de los clientes con superposición de prendas montadas.
-              </ng-container>
-              <ng-container *ngIf="summary()?.plan?.id === 'plan_basic'">
-                <strong class="text-foreground">No disponible:</strong> El plan básico no incluye la funcionalidad de vestidor virtual.
-              </ng-container>
+              {{ hasFeature(feature.key) ? feature.description : 'No incluido en tu plan. Disponible en planes superiores.' }}
             </p>
           </div>
-        </div>
-
-        <!-- AI & Machine Learning -->
-        <div class="p-5 rounded-2xl border border-border bg-muted/30 flex items-start gap-4">
-          <div class="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-            <ng-icon name="lucideBrainCircuit" class="w-6 h-6"></ng-icon>
-          </div>
-          <div>
-            <h4 class="font-bold text-foreground text-sm">Analítica & Inteligencia Artificial</h4>
-            <p class="text-xs text-muted-foreground mt-1 leading-relaxed">
-              <ng-container *ngIf="summary()?.plan?.id === 'plan_enterprise'">
-                <strong class="text-foreground">Machine Learning Avanzado:</strong> Modelos supervisados de predicción de demanda de ventas y clustering no supervisado (segmentación RFM).
-              </ng-container>
-              <ng-container *ngIf="summary()?.plan?.id === 'plan_pro'">
-                <strong class="text-foreground">IA Generativa (NLP):</strong> Consultas de ventas e inventario en lenguaje natural por texto y voz + Asistente chatbot.
-              </ng-container>
-              <ng-container *ngIf="summary()?.plan?.id === 'plan_basic'">
-                <strong class="text-foreground">Reportes Tradicionales:</strong> Exportación estándar en PDF y hojas de cálculo Excel.
-              </ng-container>
-            </p>
-          </div>
-        </div>
-      </div>
+        </li>
+      </ul>
     </div>
   </div>
 </div>

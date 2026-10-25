@@ -28,6 +28,8 @@ from app.schemas.catalog_schema import (
 from app.schemas.catalog_enums import ProductStatusEnum
 from app.schemas.catalog_schema import DiscountTypeEnum
 from app.services.pricing_service import discounted_price, discount_amount
+from app.schemas.enums import TenantStatusEnum
+from app.services.subscription_service import TRY_ON_FEATURE, check_tenant_garment_quota, tenant_features
 
 
 def create_name_item(db: Session, model, payload: NameCreate, tenant_id=None):
@@ -113,6 +115,9 @@ def create_product(
     status: ProductStatusEnum = ProductStatusEnum.active,
     tenant_id=None,
 ):
+    # Outside the try: its generic handler would turn the 403 into a 400.
+    if tenant_id is not None:
+        check_tenant_garment_quota(db, tenant_id)
     try:
         normalized_variants = _normalized_variants(payload, status)
         _validate_variant_payload(normalized_variants)
@@ -357,6 +362,7 @@ def _product_to_read(
     provider_quantity_map: dict | None = None,
     branch_stocks_map: dict | None = None,
     tenant_name: str | None = None,
+    try_on_enabled: bool = False,
 ):
     variant_reads = []
     total_quantity = 0
@@ -411,6 +417,7 @@ def _product_to_read(
             "id": product.id,
             "tenant_id": product.tenant_id,
             "tenant_name": tenant_name,
+            "try_on_enabled": try_on_enabled,
             "name": product.name,
             "description": product.description,
             "provider_id": product.provider_id,
@@ -436,12 +443,20 @@ def serialize_product(db: Session, product_id):
         return None
     tenant = db.query(Tenant).filter(Tenant.id == product.tenant_id).first()
     tenant_name = tenant.name if tenant else None
-    return _product_to_read(product, product.variants, None, None, None, tenant_name)
+    return _product_to_read(product, product.variants, None, None, None, tenant_name,
+                            _try_on_enabled(db, product.tenant_id))
+
+
+def _try_on_enabled(db: Session, tenant_id) -> bool:
+    return TRY_ON_FEATURE in tenant_features(db, [tenant_id]).get(tenant_id, set())
 
 
 def get_public_product(db: Session, product_id, branch_id=None):
     product = db.query(Product).options(selectinload(Product.variants)).filter(Product.id == product_id).first()
     if not product:
+        return None
+    tenant = db.query(Tenant).filter(Tenant.id == product.tenant_id).first()
+    if tenant and tenant.status == TenantStatusEnum.suspended:
         return None
 
     variants = [variant for variant in product.variants if variant.status == ProductStatusEnum.active]
@@ -481,10 +496,10 @@ def get_public_product(db: Session, product_id, branch_id=None):
                 "quantity": avail,
             })
 
-    tenant = db.query(Tenant).filter(Tenant.id == product.tenant_id).first()
     tenant_name = tenant.name if tenant else None
 
-    return _product_to_read(product, variants, branch_quantity_map, None, branch_stocks_map, tenant_name)
+    return _product_to_read(product, variants, branch_quantity_map, None, branch_stocks_map, tenant_name,
+                            _try_on_enabled(db, product.tenant_id))
 
 
 def list_public_products(
@@ -519,10 +534,14 @@ def list_public_products(
     tenant_ids = {p.tenant_id for p in products if p.tenant_id}
     tenants = db.query(Tenant).filter(Tenant.id.in_(tenant_ids)).all() if tenant_ids else []
     tenant_name_map = {t.id: t.name for t in tenants}
+    suspended = {t.id for t in tenants if t.status == TenantStatusEnum.suspended}
+    features_map = tenant_features(db, tenant_ids)
 
     all_active_variants = []
     product_variants_map = {}
     for product in products:
+        if product.tenant_id in suspended:
+            continue
         variants = [variant for variant in product.variants if variant.status == ProductStatusEnum.active]
         if size_id:
             variants = [variant for variant in variants if variant.size_id == size_id]
@@ -577,6 +596,7 @@ def list_public_products(
             None,
             branch_stocks_map,
             tenant_name,
+            TRY_ON_FEATURE in features_map.get(product.tenant_id, set()),
         )
         if read_obj:
             result.append(read_obj)

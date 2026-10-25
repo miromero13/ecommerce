@@ -114,6 +114,49 @@ def api(api_db):
         app.dependency_overrides.clear()
 
 
+PLAN_FEATURES = {
+    "plan_basic": ["catalog", "pos", "inventory", "reservations", "standard_reports"],
+    "plan_pro": ["catalog", "pos", "inventory", "reservations", "standard_reports",
+                 "chatbot", "virtual_try_on_2d", "ai_text_reports"],
+    "plan_enterprise": ["catalog", "pos", "inventory", "reservations", "standard_reports",
+                        "chatbot", "virtual_try_on_2d", "virtual_try_on_3d_ar",
+                        "ai_text_reports", "ai_ml_smart_reports"],
+}
+
+
+def seed_plans(db):
+    """Same three plans that migration 0039 seeds; the schema snapshot has none."""
+    from app.models.subscription_plan import SubscriptionPlan
+
+    rows = {
+        "plan_basic": ("Básico", "basic", 49, 490, 2, 500),
+        "plan_pro": ("Profesional", "pro", 129, 1290, 5, 3000),
+        "plan_enterprise": ("Enterprise", "enterprise", 299, 2990, 10, 10000),
+    }
+    plans = {}
+    for plan_id, (name, slug, monthly, yearly, branches, garments) in rows.items():
+        plans[plan_id] = SubscriptionPlan(
+            id=plan_id, name=name, slug=slug, price_monthly=monthly, price_yearly=yearly,
+            max_branches=branches, max_garments=garments, features=PLAN_FEATURES[plan_id],
+            is_active=True,
+        )
+    db.add_all(plans.values())
+    db.flush()
+    return plans
+
+
+def subscribe(db, tenant, plan, days=30):
+    from datetime import datetime, timedelta, timezone
+    from app.models.tenant_subscription import TenantSubscription
+
+    now = datetime.now(timezone.utc)
+    subscription = TenantSubscription(tenant_id=tenant.id, plan_id=plan.id,
+                                      start_date=now, end_date=now + timedelta(days=days))
+    db.add(subscription)
+    db.flush()
+    return subscription
+
+
 @pytest.fixture
 def identities(api_db):
     from app.models.branch import Branch
@@ -125,6 +168,10 @@ def identities(api_db):
                for name in ("Alpha", "Beta")]
     api_db.add_all(tenants)
     api_db.flush()
+    # Companies need a current plan to create branches/products (CU2).
+    plans = seed_plans(api_db)
+    for tenant in tenants:
+        subscribe(api_db, tenant, plans["plan_enterprise"])
     branches = [Branch(name=name, city="City", tenant_id=tenants[index].id)
                 for name, index in (("A1", 0), ("A2", 0), ("B1", 1))]
     api_db.add_all(branches)

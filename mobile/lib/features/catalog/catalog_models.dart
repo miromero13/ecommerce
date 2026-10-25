@@ -77,6 +77,7 @@ class Product {
     this.colorId,
     this.branchQuantity,
     this.tenantId,
+    this.tryOnEnabled = false,
     this.variants,
   });
 
@@ -95,6 +96,8 @@ class Product {
   final String? colorId;
   final int? branchQuantity;
   final String? tenantId;
+  // The selling company's plan includes the virtual try-on.
+  final bool tryOnEnabled;
   final List<ProductVariant>? variants;
 
   factory Product.fromJson(Map<String, dynamic> json) {
@@ -117,6 +120,7 @@ class Product {
       colorId: _optionalString(json, 'color_id'),
       branchQuantity: _optionalInt(json, 'branch_quantity'),
       tenantId: _optionalString(json, 'tenant_id'),
+      tryOnEnabled: json['try_on_enabled'] == true,
       variants: rawVariants == null
           ? null
           : _parseList(rawVariants, ProductVariant.fromJson),

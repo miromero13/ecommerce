@@ -27,6 +27,14 @@ from pydantic import ValidationError
 from app.schemas.chatbot_schema import ChatRequest, ConversationTurn
 
 
+@pytest.fixture(autouse=True)
+def plan_lookup(monkeypatch):
+    # The fake sessions below have no execute(); the real per-plan filter is
+    # covered against PostgreSQL in test_saas_subscriptions.py.
+    from app.services import chatbot_service
+    monkeypatch.setattr(chatbot_service, "tenant_ids_with_feature", lambda db, key: [])
+
+
 class FakeQuery:
     def __init__(self, rows):
         self.rows = rows
