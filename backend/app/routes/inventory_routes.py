@@ -148,8 +148,10 @@ async def transfer_route(
     payload: InventoryTransferCreate,
     db: Session = Depends(get_db),
     tenant_id: UUID = Depends(get_current_tenant_id),
-    current_user: dict = Depends(require_roles(RolEnum.administrador)),
-): 
+    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
+):
+    # A manager only sends stock out of their own branch.
+    _require_branch_access(current_user, payload.from_branch_id)
     try:
         created_by = UUID(current_user["sub"]) if current_user.get("sub") else None
         movements, inventories = register_transfer(db, payload, created_by=created_by, tenant_id=tenant_id)

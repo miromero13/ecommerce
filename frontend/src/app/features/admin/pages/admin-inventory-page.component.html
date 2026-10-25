@@ -152,9 +152,7 @@
         <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div class="flex gap-2">
             <button hlmBtn type="button" (click)="openMovementModal()">Registrar movimiento</button>
-            @if (isAdmin()) {
-              <button hlmBtn type="button" (click)="openTransferModal()">Registrar traspaso</button>
-            }
+            <button hlmBtn type="button" (click)="openTransferModal()">Registrar traspaso</button>
             @if (isAdmin() || isManager()) {
               <div class="relative" (cdkObserveContent)="null" (clickOutside)="reportMenuOpen.set(false)">
                 <button hlmBtn type="button" (click)="toggleReportMenu()">Generar reporte</button>
@@ -307,7 +305,7 @@
             </hlm-select-trigger>
             <hlm-select-content>
               <hlm-select-item value="">Sucursal destino</hlm-select-item>
-              @for (branch of branches(); track branch.id) {
+              @for (branch of transferBranches(); track branch.id) {
                 @if (branch.id !== transferForm.controls.from_branch_id.value) {
                   <hlm-select-item [value]="branch.id">{{ branch.name }} - {{ branch.city }}</hlm-select-item>
                 }

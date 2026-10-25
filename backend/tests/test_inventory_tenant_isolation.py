@@ -128,7 +128,7 @@ def test_transfer_checks_both_branches_and_variant_before_mutation(inventory_api
 
 @pytest.mark.parametrize("role,operation", [
     ("cajero", "income"), ("cajero", "outcome"), ("cajero", "transfer"),
-    ("encargado", "transfer"), ("cajero", "threshold"), ("encargado", "threshold"),
+    ("cajero", "threshold"), ("encargado", "threshold"),
 ])
 def test_existing_readonly_and_adminonly_roles_do_not_expand(inventory_api, api_db, stock, role, operation):
     from app.schemas.enums import RolEnum
@@ -163,6 +163,21 @@ def test_manager_uses_persisted_branch_for_movement_reads_and_writes(inventory_a
     assert result.status_code == 201, result.text
     assert result.json()["message"] == "Ingreso de inventario registrado exitosamente"
     assert result.json()["data"]["quantity"] == 12
+
+
+def test_manager_transfers_only_out_of_own_branch(inventory_api, api_db, stock):
+    from app.schemas.enums import RolEnum
+    stock.user.rol = RolEnum.encargado
+    stock.user.branch_id = stock.branches[1].id
+    api_db.commit()
+    auth = headers(stock.user)
+    rejected(inventory_api, api_db, "POST", ROOT + "/movements/transfer", auth, BRANCH_DENIED,
+             json=transfer_payload(stock))
+    stock.user.branch_id = stock.branches[0].id
+    api_db.commit()
+    result = inventory_api.post(ROOT + "/movements/transfer", headers=auth, json=transfer_payload(stock))
+    assert result.status_code == 201, result.text
+    assert result.json()["message"] == "Traspaso de inventario registrado exitosamente"
 
 
 def test_own_transfer_income_outcome_threshold_preserve_reserved_arithmetic(inventory_api, api_db, stock):

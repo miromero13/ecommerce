@@ -89,6 +89,8 @@ export class AdminInventoryPageComponent {
   private speechRecognition: SpeechRecognitionLike | null = null;
 
   protected readonly branches = signal<CatalogBranch[]>([]);
+  // A manager only lists their own branch, so transfer destinations come from the company's public branches.
+  protected readonly transferBranches = signal<CatalogBranch[]>([]);
   protected readonly consolidatedStock = signal<InventoryConsolidatedStock[]>([]);
   protected readonly branchStock = signal<InventoryBranchStock[]>([]);
   protected readonly movements = signal<InventoryMovement[]>([]);
@@ -488,7 +490,7 @@ export class AdminInventoryPageComponent {
 
   protected branchLabel(branchId: string | null | undefined): string {
     if (!branchId) return 'Sin sucursal';
-    return this.branches().find((branch) => branch.id === branchId)?.name ?? branchId;
+    return [...this.branches(), ...this.transferBranches()].find((branch) => branch.id === branchId)?.name ?? branchId;
   }
 
   protected movementTypeLabel(type: InventoryMovement['movement_type']): string {
@@ -544,6 +546,13 @@ export class AdminInventoryPageComponent {
       const branches = await firstValueFrom(this.branchApi.listBranches());
 
       this.branches.set((branches.data ?? []) as unknown as CatalogBranch[]);
+      const tenantId = this.session.user()?.tenant_id;
+      if (this.isManager() && tenantId) {
+        const companyBranches = await firstValueFrom(this.catalogApi.listPublicBranches(tenantId));
+        this.transferBranches.set(companyBranches.data ?? []);
+      } else {
+        this.transferBranches.set(this.isManager() ? [] : this.branches());
+      }
       if (this.isAdmin() || this.isManager()) {
         try {
           const products = await firstValueFrom(this.isAdmin() ? this.catalogApi.listAdminProducts() : this.catalogApi.listProducts());

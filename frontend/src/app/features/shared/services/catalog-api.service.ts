@@ -27,8 +27,8 @@ import {
 export class CatalogApiService {
   private readonly api = inject(ApiService);
 
-  listPublicBranches() {
-    return this.api.get<ListResponse<CatalogBranch>>('/branches/public');
+  listPublicBranches(tenantId?: string) {
+    return this.api.get<ListResponse<CatalogBranch>>('/branches/public', tenantId ? { params: { tenant_id: tenantId } } : undefined);
   }
 
   listCategories() {
