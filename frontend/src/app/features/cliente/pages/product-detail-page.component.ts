@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -24,7 +24,7 @@ import { CatalogApiService } from '../../shared/services/catalog-api.service';
 import { CartApiService } from '../../shared/services/cart-api.service';
 import { ChatbotUiService } from '../../shared/services/chatbot-ui.service';
 import { ReservationDraftService } from '../../shared/services/reservation-draft.service';
-import { VirtualTryOnComponent } from '../../shared/components/virtual-try-on.component';
+import { PhotoTryOnComponent, TryOnVariantOption } from '../../shared/components/photo-try-on.component';
 import { DetectorRopaComponent } from '../../shared/components/detector-ropa.component';
 import { DetectorMediapipeComponent } from '../../shared/components/detector-mediapipe.component';
 
@@ -46,7 +46,7 @@ export interface StoreConflictModal {
     RouterLink,
     NgIcon,
     HlmButton,
-    VirtualTryOnComponent,
+    PhotoTryOnComponent,
     DetectorRopaComponent,
     DetectorMediapipeComponent,
     ...HlmBadgeImports,
@@ -98,6 +98,13 @@ export class ProductDetailPageComponent {
     const color = this.colors().find((item) => item.id === variant.color_id)?.name ?? 'Sin color';
     return `${size} / ${color}`;
   }
+
+  /** Variants of this product (same store) that have an image to put on the customer's photo. */
+  protected readonly tryOnOptions = computed<TryOnVariantOption[]>(() =>
+    (this.product()?.variants ?? [])
+      .filter((variant) => !!variant.image_url)
+      .map((variant) => ({ id: variant.id, label: this.variantLabel(variant), imageUrl: variant.image_url ?? null })),
+  );
 
   protected hasDiscount(variant: CatalogProductVariant | null): boolean {
     if (!variant || !variant.original_price) return false;

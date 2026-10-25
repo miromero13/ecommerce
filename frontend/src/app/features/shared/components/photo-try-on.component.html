@@ -1,0 +1,105 @@
+<button hlmBtn type="button" class="cursor-pointer" (click)="openModal()" [disabled]="open()">
+  Probarme esta prenda
+</button>
+
+@if (open()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 overflow-y-auto" role="presentation">
+    <section
+      class="relative my-auto w-full max-w-3xl rounded-2xl bg-card text-card-foreground shadow-2xl border border-border p-5 sm:p-6 space-y-5"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="try-on-title"
+    >
+      <header class="flex items-start justify-between gap-4">
+        <div>
+          <h2 id="try-on-title" class="text-lg font-bold text-foreground">Vestidor virtual</h2>
+          <p class="text-xs text-muted-foreground">Probate «{{ productName() }}» sobre tu propia foto.</p>
+        </div>
+        <button type="button" class="text-muted-foreground hover:text-foreground font-bold cursor-pointer text-lg p-1 rounded-md" aria-label="Cerrar vestidor virtual" (click)="closeModal()">✕</button>
+      </header>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <!-- Paso 1: foto -->
+        <div class="space-y-3">
+          <p class="text-xs font-bold uppercase tracking-wider text-muted-foreground">1. Tu foto</p>
+          <div class="relative aspect-[3/4] w-full overflow-hidden rounded-xl border border-border bg-muted/40 flex items-center justify-center">
+            @if (cameraOn()) {
+              <video #video class="h-full w-full object-cover -scale-x-100" playsinline muted aria-label="Vista previa de la cámara"></video>
+            } @else if (resultUrl()) {
+              <img [src]="resultUrl()" alt="Resultado de la prueba virtual" class="h-full w-full object-contain bg-white" />
+            } @else if (photoUrl()) {
+              <img [src]="photoUrl()" alt="Tu foto" class="h-full w-full object-contain" />
+            } @else {
+              <p class="px-6 text-center text-xs text-muted-foreground">
+                Usá una foto de frente, del torso hacia abajo hasta la cadera, con buena luz y fondo simple.
+              </p>
+            }
+            @if (generating()) {
+              <div class="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-background/80 text-center px-6" role="status">
+                <span class="size-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></span>
+                <p class="text-sm font-semibold text-foreground">Generando tu prueba…</p>
+                <p class="text-xs text-muted-foreground">Puede tardar hasta un minuto.</p>
+              </div>
+            }
+          </div>
+
+          <div class="flex flex-wrap gap-2">
+            @if (cameraOn()) {
+              <button hlmBtn type="button" class="cursor-pointer" (click)="capture()">Tomar foto</button>
+              <button hlmBtn type="button" variant="outline" class="cursor-pointer" (click)="stopCamera()">Cancelar</button>
+            } @else if (photoUrl()) {
+              <button hlmBtn type="button" variant="outline" class="cursor-pointer" [disabled]="generating()" (click)="retake()">Cambiar foto</button>
+            } @else {
+              <input #fileInput type="file" accept="image/jpeg,image/png,image/webp" class="sr-only" tabindex="-1" aria-hidden="true" (change)="onFile($event)" />
+              <button hlmBtn type="button" variant="outline" class="cursor-pointer" (click)="fileInput.click()">Subir foto</button>
+              <button hlmBtn type="button" variant="outline" class="cursor-pointer" (click)="startCamera()">Usar cámara</button>
+            }
+          </div>
+        </div>
+
+        <!-- Paso 2: prenda -->
+        <div class="space-y-3">
+          <p class="text-xs font-bold uppercase tracking-wider text-muted-foreground">2. Elegí la prenda</p>
+          <div class="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Variante de la prenda">
+            @for (option of variants(); track option.id) {
+              <button
+                type="button"
+                role="radio"
+                [attr.aria-checked]="variantId() === option.id"
+                [disabled]="generating()"
+                (click)="variantId.set(option.id); resultUrl.set(null)"
+                class="flex flex-col items-center gap-1 rounded-xl border p-2 text-center cursor-pointer transition"
+                [class.border-primary]="variantId() === option.id"
+                [class.ring-2]="variantId() === option.id"
+                [class.ring-primary]="variantId() === option.id"
+                [class.border-border]="variantId() !== option.id"
+              >
+                @if (option.imageUrl) {
+                  <img [src]="option.imageUrl" [alt]="option.label" class="aspect-square w-full rounded-lg object-cover bg-muted" />
+                }
+                <span class="text-[11px] font-medium text-foreground leading-tight">{{ option.label }}</span>
+              </button>
+            }
+          </div>
+
+          <p class="text-xs text-muted-foreground">Funciona mejor con prendas superiores (blusas, camisas, poleras, chaquetas).</p>
+
+          @if (error()) {
+            <div role="alert" class="rounded-xl bg-destructive/10 border border-destructive/20 p-3 text-xs text-destructive font-medium">{{ error() }}</div>
+          }
+
+          <button hlmBtn type="button" class="w-full cursor-pointer" [disabled]="!photoUrl() || !variantId() || generating()" (click)="generate()">
+            {{ generating() ? 'Generando…' : (resultUrl() ? 'Volver a generar' : 'Probarme la prenda') }}
+          </button>
+          @if (resultUrl()) {
+            <a hlmBtn variant="outline" class="w-full cursor-pointer" [href]="resultUrl()" download="prueba-virtual.png">Descargar resultado</a>
+          }
+
+          <p class="text-[11px] text-muted-foreground">
+            Tu foto se envía a un servicio de inteligencia artificial solo para generar esta prueba y no se guarda en la tienda.
+          </p>
+        </div>
+      </div>
+    </section>
+  </div>
+}

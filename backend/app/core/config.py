@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-3.6-flash"
     gemini_garment_model: str | None = None
     gemini_timeout_seconds: int = Field(default=30, ge=5, le=120)
+    huggingface_api_token: str | None = None
+    vton_space: str = "yisol/IDM-VTON"
+    vton_timeout_seconds: int = Field(default=120, ge=10, le=300)
     firebase_service_account_path: str | None = Field(
         default=None,
         validation_alias=AliasChoices(

@@ -4,8 +4,11 @@ import asyncio
 import base64
 import ipaddress
 import socket
+import ssl
 from http.client import HTTPConnection, HTTPSConnection
 from urllib.parse import urlsplit
+
+import certifi
 
 from app.core.config import settings
 
@@ -33,7 +36,10 @@ class _PinnedHTTPConnection(HTTPConnection):
 
 class _PinnedHTTPSConnection(HTTPSConnection):
     def __init__(self, host: str, port: int, resolved_ip: str):
-        super().__init__(host, port, timeout=settings.gemini_timeout_seconds)
+        # certifi's bundle, not the OS store: Windows lacks some CDN roots
+        # (e.g. GlobalSign ECC used by the catalog images). Still fully verified.
+        super().__init__(host, port, timeout=settings.gemini_timeout_seconds,
+                         context=ssl.create_default_context(cafile=certifi.where()))
         self._resolved_ip = resolved_ip
 
     def connect(self):

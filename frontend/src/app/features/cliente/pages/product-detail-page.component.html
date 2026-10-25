@@ -173,7 +173,7 @@
             <!-- Módulos de IA y Probador Virtual: solo si el plan de la tienda lo incluye -->
             @if (product.try_on_enabled) {
               <div class="flex flex-row gap-4 justify-center items-center">
-                <app-virtual-try-on [productName]="product.name" [garmentImageUrl]="variant.image_url ?? product.image_url ?? null" />
+                <app-photo-try-on [productName]="product.name" [variants]="tryOnOptions()" [initialVariantId]="variant.id" />
                 <app-detector-ropa [variantId]="variant.id" [garmentPoints]="variant.garment_points" [garmentImageUrl]="variant.image_url ?? product.image_url ?? null" />
                 <app-detector-mediapipe [variantId]="variant.id" [garmentPoints]="variant.garment_points" [garmentImageUrl]="variant.image_url ?? product.image_url ?? null" />
               </div>

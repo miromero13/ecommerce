@@ -5,6 +5,7 @@ import { ApiService } from '../../../core/services/api.service';
 import {
   CatalogBranch,
   CatalogCollectionItem,
+  CatalogGarmentResponse,
   CollaborativeRecommendations,
   CatalogColorItem,
   CatalogNameItem,
@@ -228,6 +229,14 @@ export class CatalogApiService {
       `/catalog/variants/${variantId}/image`,
       formData,
     );
+  }
+
+  /** Photo virtual try-on: the backend calls the AI model and returns the generated image. */
+  tryOn(variantId: string, photo: Blob) {
+    const formData = new FormData();
+    formData.append('variant_id', variantId);
+    formData.append('photo', photo, 'photo.jpg');
+    return this.api.post<ApiResponse<CatalogGarmentResponse>>('/catalog/try-on', formData);
   }
 
   deleteVariantImage(variantId: string) {
