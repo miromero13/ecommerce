@@ -2,3 +2,17 @@
 .codegraph/
 odd/
 .DS_Store
+
+# Database scripts and dumps
+*.sql
+backend/database_schema.sql
+
+# Office / Word documents and locks
+*.docx
+~$*.docx
+
+# Diagrams, exports and scratch tools
+docs/diagramas_robustez/
+docs/tests/
+output/
+tmp/

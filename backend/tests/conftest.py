@@ -52,11 +52,16 @@ def api_schema():
             connection.exec_driver_sql("SET LOCAL lock_timeout = '2s'")
             connection.exec_driver_sql(f'CREATE SCHEMA "{schema}"')
             connection.exec_driver_sql(f'SET LOCAL search_path TO "{schema}"')
-            cursor = connection.connection.cursor()
-            try:
-                cursor.execute(Path(__file__).parents[1].joinpath("database_schema.sql").read_text())
-            finally:
-                cursor.close()
+            sql_path = Path(__file__).parents[1].joinpath("database_schema.sql")
+            if sql_path.exists():
+                cursor = connection.connection.cursor()
+                try:
+                    cursor.execute(sql_path.read_text())
+                finally:
+                    cursor.close()
+            else:
+                from app.core.database import Base
+                Base.metadata.create_all(bind=connection)
         yield engine, schema
     finally:
         # Only this fixture's uniquely named schema in the guarded test DB.

@@ -303,22 +303,7 @@ python -m alembic downgrade -1
 
 `python -m alembic downgrade -1` revierte la última migración aplicada. El `-1` significa "retrocede un paso".
 
-Para instalaciones gestionadas por Alembic, ejecuta `python -m alembic upgrade head` antes de levantar la API.
-
-### Snapshot SQL: solamente para una base VACÍA
-
-`database_schema.sql` permite crear las 37 tablas en PostgreSQL sin datos iniciales.
-Incluye los tipos enum e índices del ORM y la pertenencia obligatoria de sucursales
-con nombre único por empresa (migración 0038). Los clientes conservan identidad
-global: `users.tenant_id` puede ser NULL y el email sigue siendo único globalmente.
-
-Este snapshot **no equivale a haber aplicado Alembic**: no ejecuta los backfills,
-seeders, ni registra `alembic_version`. Mantiene los defaults del snapshot ORM;
-no reproduce todos los defaults de servidor de las migraciones. Alembic es la vía
-canónica para instalaciones y actualizaciones de bases existentes. No combinar
-ambas vías ciegamente: no ejecutar el SQL sobre una base con tablas ni hacer
-`upgrade head` o `stamp head` sobre el snapshot sin reconciliar y verificar primero
-su esquema y sus datos. No usar este archivo como migración de datos existentes.
+Para cualquier clon o instalación nueva, ejecuta `python -m alembic upgrade head` antes de levantar la API. Esto aplicará todas las migraciones en orden (0001 a 0040) y creará la estructura completa de tablas, tipos enum, restricciones e índices en PostgreSQL. Luego ejecuta `python seed.py` para cargar los datos de prueba.
 
 ### Pruebas del snapshot (PostgreSQL desechable)
 

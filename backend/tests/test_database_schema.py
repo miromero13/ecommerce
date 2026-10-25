@@ -37,7 +37,10 @@ def database():
 
 @pytest.fixture
 def snapshot(database):
-    database.execute(Path(__file__).parents[1].joinpath("database_schema.sql").read_text())
+    sql_path = Path(__file__).parents[1].joinpath("database_schema.sql")
+    if not sql_path.exists():
+        pytest.skip("database_schema.sql not present; schema is managed via Alembic migrations")
+    database.execute(sql_path.read_text())
     return database
 
 
