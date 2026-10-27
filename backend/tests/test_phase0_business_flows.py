@@ -172,3 +172,12 @@ def test_other_company_item_asks_to_pay_the_pending_cart_first(market_api, api_d
 def test_cart_exposes_its_company_for_pickup_branches(market_api, api_db, market):
     cart = add(market_api, market)
     assert (cart["tenant_id"], cart["tenant_name"]) == (str(market.own.tenant.id), market.own.tenant.name)
+
+
+def test_recommendations_answer_in_spanish(market_api, api_db, market):
+    # Convention 1.1: user-facing messages are always in Spanish (CU6).
+    from app.routes import recommendation_routes
+
+    market_api.app.include_router(recommendation_routes.router, prefix="/api")
+    call(market_api, market.customer, "GET", f"/recommendations/collaborative/user/{market.customer.id}",
+         expected_message="Recomendaciones obtenidas exitosamente")

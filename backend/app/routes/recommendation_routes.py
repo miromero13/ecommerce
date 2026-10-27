@@ -26,7 +26,7 @@ async def collaborative_recommendations_route(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
     return response(
         status_code=200,
-        message="Recommendations retrieved",
+        message="Recomendaciones obtenidas exitosamente",
         data=get_recommendations(
             db,
             user_id,
