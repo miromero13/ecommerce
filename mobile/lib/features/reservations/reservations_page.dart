@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../app/theme.dart';
+import '../../core/network/api_client.dart';
+import '../../core/network/api_exception.dart';
+import '../../shared/widgets/qr_payment_dialog.dart';
 import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/app_empty_view.dart';
 import '../../shared/widgets/app_error_view.dart';
@@ -31,6 +34,27 @@ class ReservationsPage extends StatefulWidget {
 }
 
 class _ReservationsPageState extends State<ReservationsPage> {
+  Future<void> _payDeposit(Reservation reservation) async {
+    final client = ApiClient(
+      tokenProvider: () => widget.authController.accessToken,
+      onUnauthorized: widget.authController.handleUnauthorized,
+    );
+    try {
+      final response = await client.post<Map<String, dynamic>>(
+        'payments/qr/reservations/${reservation.id}',
+        parser: (value) => Map<String, dynamic>.from(value as Map),
+      );
+      if (!mounted || response.data == null) return;
+      final paid = await QrPaymentDialog.show(context, client, response.data!,
+          title: 'Escanea el QR para pagar el anticipo');
+      if (paid && mounted) await _controller.load();
+    } catch (error) {
+      if (!mounted) return;
+      AppSnackBar.show(context, error is ApiException ? error.message : 'No se pudo generar el QR del anticipo.',
+          tone: AppSnackBarTone.error);
+    }
+  }
+
   late final ReservationController _controller;
   late final bool _ownsController;
   String? _loadedToken;
@@ -149,6 +173,25 @@ class _ReservationsPageState extends State<ReservationsPage> {
             )
           else ...[
             for (final reservation in _controller.reservations) ...[
+              if (reservation.status == ReservationStatus.pendingPayment) ...[
+                AppCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Paga el anticipo de ${reservation.depositAmount.toStringAsFixed(2)} BOB (50 %) para confirmar tu reserva en ${reservation.branchName}.'),
+                      const SizedBox(height: 4),
+                      Text('El anticipo no es reembolsable si cancelas o no te presentas.',
+                          style: Theme.of(context).textTheme.bodySmall),
+                      const SizedBox(height: 8),
+                      FilledButton(
+                        onPressed: () => _payDeposit(reservation),
+                        child: const Text('Pagar anticipo con QR'),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
               _ReservationCard(
                 reservation: reservation,
                 onTap: () => _showDetails(reservation.id),
@@ -378,6 +421,7 @@ class _ReservationCard extends StatelessWidget {
 
   static String _statusLabel(ReservationStatus status) {
     return switch (status) {
+      ReservationStatus.pendingPayment => 'Falta pagar anticipo',
       ReservationStatus.pending => 'Pendiente',
       ReservationStatus.confirmed => 'Confirmada',
       ReservationStatus.attended => 'Atendida',
@@ -391,6 +435,7 @@ class _ReservationCard extends StatelessWidget {
 
   static Color _statusColor(BuildContext context, ReservationStatus status) {
     return switch (status) {
+      ReservationStatus.pendingPayment => const Color(0xFFFFE4CC),
       ReservationStatus.pending => AppColors.coralSoft,
       ReservationStatus.confirmed => const Color(0xFFDDF3E6),
       ReservationStatus.attended => Theme.of(

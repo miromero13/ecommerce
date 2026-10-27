@@ -34,6 +34,8 @@ class _OrdersPageState extends State<OrdersPage> {
   late final OrderController _controller;
   late final bool _ownsController;
   String? _loadedToken;
+  // CU20: PIN the customer shows the driver to receive a delivery order.
+  Map<String, String> _pins = const {};
   bool _initialDetailOpened = false;
 
   @override
@@ -68,6 +70,12 @@ class _OrdersPageState extends State<OrdersPage> {
 
   Future<void> _loadOrders() async {
     await _controller.load();
+    try {
+      final pins = await _controller.api.deliveryPins();
+      if (mounted) setState(() => _pins = pins);
+    } catch (_) {
+      // Orders stay usable even if delivery details fail to load.
+    }
     if (!mounted ||
         _initialDetailOpened ||
         widget.initialOrderId == null ||
@@ -197,7 +205,14 @@ class _OrdersPageState extends State<OrdersPage> {
                 'Sucursal: ${_controller.pickupBranches.where((branch) => branch.id == order.pickupBranchId).firstOrNull?.name ?? order.pickupBranchId ?? 'No disponible'}',
               ),
             ],
-            if (order.paymentMethod == PaymentMethod.cash) ...[
+            if (order.fulfillmentType == 'delivery') ...[
+              Text('Envío a: ${order.deliveryAddress ?? ''} · ${order.shippingCost.toStringAsFixed(2)} ${order.currency.toUpperCase()}'),
+              if ((_pins[order.id] ?? '').isNotEmpty && order.fulfillmentStatus != FulfillmentStatus.delivered)
+                Text(
+                  'PIN para recibir tu pedido: ${_pins[order.id]}',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+            ] else if (order.paymentMethod == PaymentMethod.cash) ...[
               Text('Código de retiro: ${order.pickupCode ?? 'No disponible'}'),
               if (order.pickupExpiresAt != null)
                 Text('Vence: ${_displayDateTime(order.pickupExpiresAt!)}'),
@@ -307,6 +322,8 @@ String _fulfillmentLabel(FulfillmentStatus status) {
     FulfillmentStatus.pendingPickup => 'En preparación',
     FulfillmentStatus.readyForPickup => 'Listo',
     FulfillmentStatus.collected => 'Cobrado',
+    FulfillmentStatus.inTransit => 'En camino',
+    FulfillmentStatus.delivered => 'Entregado',
     FulfillmentStatus.expired => 'Expirado',
     FulfillmentStatus.cancelled => 'Cancelado',
   };

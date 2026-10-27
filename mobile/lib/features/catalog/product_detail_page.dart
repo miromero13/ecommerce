@@ -455,9 +455,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
       final sessionStorage = const SessionStorage();
       final cartContext = await sessionStorage.readCartContext();
-      final cartBranchId = cartContext?['branch_id'];
-      final cartBranchName = cartContext?['branch_name'];
-      final cartTenantName = cartContext?['tenant_name'];
 
       final api =
           widget.cartApi ??
@@ -466,54 +463,16 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             onUnauthorized: authController.handleUnauthorized,
           );
 
-      final currentCartResult = await api.getCurrent();
-      final currentCart = currentCartResult.cart;
-
       if (!mounted) return;
-
-      if (currentCart.items.isNotEmpty &&
-          cartBranchId != null &&
-          targetBranchId != null &&
-          cartBranchId != targetBranchId) {
-        final currentFullName =
-            cartTenantName != null && cartTenantName.isNotEmpty
-                ? '$cartTenantName — $cartBranchName'
-                : (cartBranchName ?? 'otra sucursal');
-
-        final confirm = await showDialog<bool>(
-          context: context,
-          builder: (dialogCtx) => AlertDialog(
-            title: const Text('¿Cambiar de sucursal?'),
-            content: Text(
-              'Tenés productos de $currentFullName en tu carrito.\n\n'
-              'Si continuás, se vaciará el carrito actual para comprar en $tenantName — $targetBranchName.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(dialogCtx).pop(false),
-                child: const Text('Cancelar'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(dialogCtx).pop(true),
-                child: const Text('Vaciar y agregar'),
-              ),
-            ],
-          ),
-        );
-
-        if (!mounted || confirm != true) {
-          return;
-        }
-
-        await api.clear();
-      }
+      // One cart per company: the backend rejects another company's item with a clear message.
 
       final result = await api.addItem(
         variantId: variant.id,
         quantity: _quantity,
       );
 
-      if (targetBranchId != null) {
+      if (targetBranchId != null && cartContext == null) {
+        // Remember the first branch only, to preselect pickup at checkout.
         await sessionStorage.saveCartContext(
           branchId: targetBranchId,
           branchName: targetBranchName,

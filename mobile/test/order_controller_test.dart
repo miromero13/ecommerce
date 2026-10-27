@@ -55,7 +55,7 @@ class _FakeOrderApi extends OrderApi {
   }
 
   @override
-  Future<OrderResult> checkoutCash({required String pickupBranchId}) async {
+  Future<OrderResult> checkoutCash({required String pickupBranchId, Map<String, dynamic>? delivery}) async {
     return OrderResult(
       order: _order('created-order'),
       message: 'Pago en efectivo procesado exitosamente',
