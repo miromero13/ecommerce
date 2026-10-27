@@ -22,4 +22,7 @@ class Inventory(Base):
     __table_args__ = (
         UniqueConstraint("variant_id", "branch_id", name="uq_inventory_variant_branch"),
         CheckConstraint("minimum_stock >= 0", name="ck_inventory_minimum_stock_non_negative"),
+        CheckConstraint("quantity >= 0", name="ck_inventory_quantity_non_negative"),
+        CheckConstraint("reserved_quantity >= 0", name="ck_inventory_reserved_non_negative"),
+        CheckConstraint("reserved_quantity <= quantity", name="ck_inventory_reserved_within_quantity"),
     )

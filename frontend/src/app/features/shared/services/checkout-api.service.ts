@@ -31,4 +31,8 @@ export class CheckoutApiService {
   markReady(orderId: string) {
     return this.api.post<ApiResponse<Order>>(`/orders/${orderId}/ready`, {});
   }
+
+  handOver(orderId: string, pickupCode: string) {
+    return this.api.post<ApiResponse<Order>>(`/orders/${orderId}/hand-over`, { pickup_code: pickupCode });
+  }
 }

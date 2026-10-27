@@ -85,7 +85,8 @@ def list_orders_by_branch(db: Session, branch_id: UUID, tenant_id: UUID | None =
     if tenant_id is not None:
         query = query.filter(Order.tenant_id == tenant_id)
     orders = query.order_by(Order.created_at.desc()).all()
-    return [_serialize_order(db, order).model_dump() for order in orders]
+    # The pickup code proves the customer is present; staff must ask for it, never read it.
+    return [{**_serialize_order(db, order).model_dump(), "pickup_code": None} for order in orders]
 
 
 def get_order(db: Session, user_id: UUID, order_id: UUID):
@@ -440,19 +441,27 @@ def cancel_order(db: Session, user_id: UUID, order_id: UUID):
         raise
 
 
-def collect_cash(db: Session, order_id: UUID, pickup_code: str, cashier_branch_id: UUID | None, cashier_id: UUID, tenant_id: UUID | None = None):
+def hand_over_order(db: Session, order_id: UUID, pickup_code: str, staff_branch_id: UUID | None, staff_id: UUID, tenant_id: UUID | None = None):
+    """Deliver a web order at the counter: cash orders are charged here, card orders were paid online."""
     try:
         query = db.query(Order).filter(Order.id == order_id)
         if tenant_id is not None:
             query = query.filter(Order.tenant_id == tenant_id)
         order = query.with_for_update().first()
-        if not order or cashier_branch_id != order.pickup_branch_id:
+        if not order or staff_branch_id != order.pickup_branch_id:
             raise ValueError("Pedido no encontrado")
-        if order.payment_method != PaymentMethodEnum.cash or order.pickup_code != pickup_code:
+        if order.pickup_code != pickup_code:
             raise ValueError("Código de retiro inválido")
-        if order.payment_status != PaymentStatusEnum.pending or order.pickup_expires_at < datetime.now(timezone.utc):
-            raise ValueError("El pedido no está disponible para cobro")
-        _consume_order(db, order, cashier_id)
+        if order.payment_method == PaymentMethodEnum.cash:
+            if order.payment_status != PaymentStatusEnum.pending or order.pickup_expires_at < datetime.now(timezone.utc):
+                raise ValueError("El pedido no está disponible para cobro")
+            _consume_order(db, order, staff_id)
+        else:
+            # Stock was already consumed when the Stripe payment succeeded.
+            if order.payment_status != PaymentStatusEnum.paid or order.fulfillment_status not in (
+                    FulfillmentStatusEnum.pending_pickup, FulfillmentStatusEnum.ready_for_pickup):
+                raise ValueError("El pedido no está disponible para entrega")
+            order.fulfillment_status = FulfillmentStatusEnum.collected
         db.commit()
         for item in order.items:
             inventory = db.query(Inventory).filter(Inventory.variant_id == item.variant_id, Inventory.branch_id == order.pickup_branch_id).first()

@@ -2,6 +2,8 @@
 
 Documento exhaustivo de especificación de requisitos, arquitectura de software, flujo de desarrollo y contratos de integración para el **Segundo Parcial**. Consolida el software desarrollado en el primer ciclo (MVP base implementado) y especifica en profundidad el nuevo alcance: **Plataforma SaaS Multi-Tenant**, cobertura de las **6 ramas de Inteligencia Artificial**, **fidelización omnicanal con billetera digital**, **logística de delivery y devoluciones**, y **arquitectura PWA / Offline-First**.
 
+> **Mapa de archivos para implementar CU3–CU17:** ver `docs/SECOND_PARTIAL_IMPLEMENTATION_PLAN.md` (rutas exactas verificadas en el código, `[NEW]`/`[EDIT]`, orden y decisiones de diseño).
+
 ---
 
 ## 1. Convenciones Estrictas de Desarrollo y Arquitectura

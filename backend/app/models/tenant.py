@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import uuid
 
-from sqlalchemy import Column, DateTime, Enum as SQLAlchemyEnum, String
+from sqlalchemy import Boolean, Column, DateTime, Enum as SQLAlchemyEnum, Numeric, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -20,6 +20,12 @@ class Tenant(Base):
     contact_email = Column(String(255), nullable=False)
     currency = Column(String(10), nullable=False, default="BOB")
     country = Column(String(80), nullable=True, default="Bolivia")
+    logo_url = Column(String(500), nullable=True)
+    primary_color = Column(String(7), nullable=True)
+    # Stripe Connect: each company is paid into its own connected account.
+    stripe_account_id = Column(String(64), nullable=True, unique=True)
+    stripe_charges_enabled = Column(Boolean, nullable=False, default=False, server_default="false")
+    platform_fee_percent = Column(Numeric(5, 2), nullable=False, default=0, server_default="0")
     status = Column(
         SQLAlchemyEnum(TenantStatusEnum, name="tenantstatusenum"),
         nullable=False,

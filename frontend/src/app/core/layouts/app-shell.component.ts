@@ -248,6 +248,7 @@ export class AppShellComponent {
             items: [
               this.homeItem(),
               { label: 'Caja', route: '/app/cajero/caja', icon: 'lucideShoppingCart' },
+              { label: 'Pedidos web', route: '/app/cajero/orders', icon: 'lucideClipboardList' },
               { label: 'Ventas', route: '/app/cajero/sales', icon: 'lucideShoppingCart' },
             ],
           },

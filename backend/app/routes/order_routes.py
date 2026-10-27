@@ -8,7 +8,7 @@ from app.core.database import get_db
 from app.schemas.enums import RolEnum
 from app.models.user import User
 from app.schemas.payment_schema import CollectCashRequest
-from app.services.order_service import cancel_order, collect_cash, get_order, list_orders, list_orders_by_branch, mark_order_ready
+from app.services.order_service import cancel_order, get_order, hand_over_order, list_orders, list_orders_by_branch, mark_order_ready
 from app.utils.response import response
 
 
@@ -29,10 +29,10 @@ async def list_branch_orders_route(
     db: Session = Depends(get_db),
     current_branch_id: UUID | None = Depends(get_current_branch_id),
     current_tenant_id: UUID | None = Depends(get_current_tenant_id),
-    _: dict = Depends(require_roles(RolEnum.encargado)),
+    _: dict = Depends(require_roles(RolEnum.encargado, RolEnum.cajero)),
 ):
     if current_branch_id is None:
-        raise HTTPException(status_code=422, detail="El encargado no tiene sucursal asignada")
+        raise HTTPException(status_code=422, detail="El usuario no tiene sucursal asignada")
     return response(status_code=200, message="Pedidos de sucursal obtenidos", data=list_orders_by_branch(db, current_branch_id, current_tenant_id))
 
 
@@ -82,16 +82,18 @@ async def mark_order_ready_route(
     return response(status_code=200, message="Pedido marcado como listo", data=order)
 
 
+@router.post("/{order_id}/hand-over")
 @router.post("/{order_id}/collect-cash")
-async def collect_cash_route(
+async def hand_over_order_route(
     order_id: UUID,
     payload: CollectCashRequest,
     db: Session = Depends(get_db),
-    cashier: User = Depends(get_current_user),
-    _: dict = Depends(require_roles(RolEnum.cajero)),
+    staff: User = Depends(get_current_user),
+    _: dict = Depends(require_roles(RolEnum.cajero, RolEnum.encargado)),
 ):
     try:
-        order = collect_cash(db, order_id, payload.pickup_code, cashier.branch_id, cashier.id, cashier.tenant_id)
+        order = hand_over_order(db, order_id, payload.pickup_code, staff.branch_id, staff.id, staff.tenant_id)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-    return response(status_code=200, message="Pedido cobrado y entregado", data=order)
+    message = "Pedido cobrado y entregado" if order["payment_method"] == "cash" else "Pedido entregado al cliente"
+    return response(status_code=200, message=message, data=order)

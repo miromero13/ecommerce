@@ -27,6 +27,7 @@ from app.services.cart_service import _get_mutable_cart, _serialize_cart, refres
 from app.services.notification_service import notify_reservation_event
 
 
+MAX_VISIT_DAYS_AHEAD = 14
 ACTIVE_RESERVATION_STATUSES = {ReservationStatusEnum.pending, ReservationStatusEnum.confirmed}
 logger = logging.getLogger(__name__)
 VALID_RESERVATION_TRANSITIONS = {
@@ -258,6 +259,11 @@ def get_reservation(db: Session, user_id: UUID, reservation_id: UUID):
 
 def create_reservation(db: Session, user_id: UUID, payload: ReservationCreate):
     expire_due_reservations(db)
+    # A reservation holds stock until the visit, so the window must stay short.
+    if payload.visit_date < date.today():
+        raise ValueError("La fecha de visita no puede ser anterior a hoy")
+    if payload.visit_date > date.today() + timedelta(days=MAX_VISIT_DAYS_AHEAD):
+        raise ValueError(f"La fecha de visita no puede superar los {MAX_VISIT_DAYS_AHEAD} días")
 
     normalized_items: dict[UUID, int] = defaultdict(int)
     for item in payload.items:
