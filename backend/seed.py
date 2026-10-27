@@ -392,7 +392,8 @@ def _verify_seed(
     users_frame = frames["users"]
     if users_frame["email"].duplicated().any():
         raise RuntimeError("Existen emails duplicados en users")
-    branch_scoped_roles = {RolEnum.encargado.value, RolEnum.cajero.value, RolEnum.delivery.value}
+    # CU20: delivery drivers are platform-level and have no branch.
+    branch_scoped_roles = {RolEnum.encargado.value, RolEnum.cajero.value}
     internal_users = users_frame[users_frame["rol"].map(_enum_value).isin(branch_scoped_roles)]
     branch_ids = {str(branch.id) for branch in branches}
     if internal_users["branch_id"].isna().any() or not internal_users["branch_id"].map(str).isin(branch_ids).all():

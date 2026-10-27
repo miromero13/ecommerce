@@ -31,7 +31,7 @@ def test_inventory_minimum_stock_cannot_be_negative():
         InventoryThresholdUpdate(variant_id=uuid4(), branch_id=uuid4(), minimum_stock=-1)
 
 
-def test_consolidated_inventory_matches_branch_breakdown():
+def test_consolidated_inventory_matches_branch_breakdown(seeded_db):
     with SessionLocal() as db:
         rows = get_consolidated_stock(db)
 

@@ -8,6 +8,7 @@ from app.models.branch import Branch
 from app.core.database import SessionLocal
 
 client = TestClient(app)
+pytestmark = pytest.mark.usefixtures("seeded_db")  # logs in with backend/seed.py accounts
 
 TENANT_1_ID = "11111111-1111-1111-1111-111111111111"
 TENANT_2_ID = "22222222-2222-2222-2222-222222222222"

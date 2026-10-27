@@ -35,6 +35,20 @@ if guarded_url():
 
 
 @pytest.fixture(scope="session")
+def seeded_db():
+    """Integration tests that log in with seed accounts: migrate and seed the guarded
+    disposable database once (public schema; isolated api_schema tests are unaffected)."""
+    if not guarded_url():
+        pytest.skip("Set CU1_TEST_DATABASE_URL to the authorized disposable local target")
+    from alembic import command
+    from alembic.config import Config
+
+    root = Path(__file__).parents[1]
+    command.upgrade(Config(str(root / "alembic.ini")), "head")
+    importlib.import_module("seed").main()
+
+
+@pytest.fixture(scope="session")
 def api_schema():
     """Build empty test tables once; each test still rolls back all its rows."""
     url = guarded_url()
