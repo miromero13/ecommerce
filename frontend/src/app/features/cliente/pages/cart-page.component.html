@@ -134,6 +134,7 @@
           <div class="flex gap-2">
             <button hlmBtn type="button" [variant]="checkoutMethod() === 'cash' ? 'default' : 'outline'" (click)="selectCheckoutMethod('cash')">{{ fulfillment() === 'delivery' ? 'Efectivo contra entrega' : 'Efectivo' }}</button>
             <button hlmBtn type="button" [variant]="checkoutMethod() === 'stripe' ? 'default' : 'outline'" (click)="selectCheckoutMethod('stripe')">Tarjeta</button>
+            <button hlmBtn type="button" [variant]="checkoutMethod() === 'qr' ? 'default' : 'outline'" (click)="selectCheckoutMethod('qr')">QR</button>
           </div>
 
           @if (cart()?.tenant_name) {
@@ -174,8 +175,9 @@
           }
 
           <button hlmBtn type="button" class="w-full" (click)="checkout()" [disabled]="checkingOut() || !(cart()?.items?.length) || !!stripeCheckout()">
-            {{ checkingOut() ? 'Procesando...' : (checkoutMethod() === 'cash' ? (fulfillment() === 'delivery' ? 'Confirmar pedido con envío' : 'Pagar en efectivo') : 'Pagar con tarjeta') }}
+            {{ checkingOut() ? 'Procesando...' : (checkoutMethod() === 'cash' ? (fulfillment() === 'delivery' ? 'Confirmar pedido con envío' : 'Pagar en efectivo') : checkoutMethod() === 'qr' ? 'Generar código QR' : 'Pagar con tarjeta') }}
           </button>
+          <app-qr-payment-panel [qr]="qrPayment()" (paid)="onQrPaid()" />
         </div>
 
         @if (lastOrder()) {

@@ -235,6 +235,11 @@ export const routes: Routes = [
             loadComponent: () =>
               import('./features/superadmin/pages/drivers-page.component').then((m) => m.DriversPageComponent),
           },
+          {
+            path: 'settlements',
+            loadComponent: () =>
+              import('./features/superadmin/pages/settlements-page.component').then((m) => m.SettlementsPageComponent),
+          },
         ],
       },
       {
@@ -298,6 +303,10 @@ export const routes: Routes = [
           {
             path: 'replenishment',
             loadComponent: () => import('./features/shared/pages/replenishment-page.component').then((m) => m.ReplenishmentPageComponent),
+          },
+          {
+            path: 'payouts',
+            loadComponent: () => import('./features/admin/pages/admin-payouts-page.component').then((m) => m.AdminPayoutsPageComponent),
           },
           {
             path: 'subscription',

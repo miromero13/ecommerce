@@ -147,14 +147,15 @@ export class ReservationsPageComponent {
         this.reservationApi.createReservation(payload),
         {
           loading: 'Confirmando tu reserva...',
-          success: '¡Reserva creada exitosamente! Te esperamos en la tienda.',
+          success: 'Reserva creada. Paga el anticipo del 50 % en Mis reservas para confirmarla.',
           error: 'No se pudo crear la reserva.',
         },
       );
 
       this.reservationDraft.clearDraft();
       this.form.reset({ branch_id: '', visit_date: '' });
-      this.reservationSuccess.set(true);
+      // D1: the reservation only holds the visit after the 50 % deposit is paid.
+      await this.router.navigate(['/app/cliente/my-reservations']);
     } catch {
       // Toast handled by requestWithToast.
     } finally {

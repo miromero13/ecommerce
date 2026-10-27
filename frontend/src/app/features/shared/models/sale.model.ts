@@ -54,6 +54,7 @@ export interface CreateSaleRequest {
   reservation_id?: string | null;
   payment_method: PaymentMethodEnum;
   cash_reference?: string | null;
+  qr_reference?: string | null;
   items: CreateSaleItemRequest[];
 }
 

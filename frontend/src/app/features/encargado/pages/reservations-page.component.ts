@@ -73,6 +73,7 @@ export class ReservationsPageComponent {
 
   protected reservationStatusLabel(status: Reservation['status']): string {
     switch (status) {
+      case 'pending_payment': return 'Esperando anticipo';
       case 'pending': return 'Pendiente';
       case 'confirmed': return 'Confirmada';
       case 'attended': return 'Atendida';
@@ -87,6 +88,7 @@ export class ReservationsPageComponent {
 
   protected reservationStatusClass(status: Reservation['status']): string {
     switch (status) {
+      case 'pending_payment': return 'bg-orange-100 text-orange-700';
       case 'pending': return 'bg-amber-100 text-amber-700';
       case 'confirmed': return 'bg-sky-100 text-sky-700';
       case 'attended': return 'bg-emerald-100 text-emerald-700';

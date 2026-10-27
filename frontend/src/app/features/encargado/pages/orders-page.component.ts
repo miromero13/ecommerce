@@ -20,7 +20,7 @@ export class EncargadoOrdersPageComponent {
   private readonly api = inject(CheckoutApiService);
   private readonly session = inject(SessionService);
   protected readonly orders = signal<Order[]>([]);
-  protected readonly pickupCodes = signal<Record<string, string>>({});
+  protected readonly pickupCodes = signal<Partial<Record<string, string>>>({});
   protected readonly isManager = () => this.session.user()?.rol === 'encargado';
   constructor() { void this.load(); }
   private async load(): Promise<void> { const response = await firstValueFrom(this.api.listBranchOrders()); this.orders.set(response.data ?? []); }

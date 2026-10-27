@@ -1,6 +1,6 @@
 import { ApiResponse } from '../../../core/models/api.model';
 
-export type ReservationStatus = 'pending' | 'confirmed' | 'attended' | 'purchase_pending' | 'sold' | 'not_sold' | 'cancelled' | 'expired';
+export type ReservationStatus = 'pending_payment' | 'pending' | 'confirmed' | 'attended' | 'purchase_pending' | 'sold' | 'not_sold' | 'cancelled' | 'expired';
 
 export interface ReservationItem {
   id: string;
@@ -30,6 +30,9 @@ export interface Reservation {
   visit_date: string;
   expires_at: string;
   status: ReservationStatus;
+  deposit_amount?: string | number;
+  deposit_status?: 'none' | 'pending' | 'paid' | 'applied' | 'forfeited';
+  payment_expires_at?: string | null;
   total_amount: string;
   item_count: number;
   created_at: string;

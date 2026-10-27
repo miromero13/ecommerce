@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
 import { toast } from '@spartan-ng/brain/sonner';
@@ -15,6 +15,9 @@ import { CreateSaleRequest, Sale } from '../../shared/models/sale.model';
 import { CatalogApiService } from '../../shared/services/catalog-api.service';
 import { SalesApiService } from '../../shared/services/sales-api.service';
 import { SessionService } from '../../shared/services/session.service';
+import { QrPaymentPanelComponent } from '../../shared/components/qr-payment-panel.component';
+import { QrPayment } from '../../shared/models/qr-payment.model';
+import { QrPaymentApiService } from '../../shared/services/qr-payment-api.service';
 
 type SelectedSaleItem = {
   variant_id: string;
@@ -32,10 +35,20 @@ type SelectedSaleItem = {
 @Component({
   selector: 'app-cajero-caja-page',
   standalone: true,
-  imports: [CommonModule, HlmButton, ...HlmBadgeImports, ...HlmCardImports, ...HlmInputImports],
+  imports: [CommonModule, HlmButton, QrPaymentPanelComponent, ...HlmBadgeImports, ...HlmCardImports, ...HlmInputImports],
   templateUrl: './caja-page.component.html',
 })
 export class CajaPageComponent {
+  // QR sales: money lands in the platform account and reaches the company in the daily settlement.
+  private readonly qrApi = inject(QrPaymentApiService);
+  protected readonly paymentMethod = signal<'cash' | 'qr'>('cash');
+  protected readonly saleQr = signal<QrPayment | null>(null);
+  // A QR is issued for an exact total: any change to the items invalidates it.
+  private readonly resetQrOnItemsChange = effect(() => {
+    this.selectedItems();
+    untracked(() => this.saleQr.set(null));
+  });
+
   private readonly catalogApi = inject(CatalogApiService);
   private readonly salesApi = inject(SalesApiService);
   private readonly session = inject(SessionService);
@@ -149,12 +162,18 @@ export class CajaPageComponent {
       return;
     }
 
+    if (this.paymentMethod() === 'qr' && !this.saleQr()) {
+      await this.generateSaleQr();
+      return;
+    }
+
     this.submitting.set(true);
     try {
       const payload: CreateSaleRequest = {
         branch_id: branchId,
-        payment_method: 'cash',
-        cash_reference: this.cashReference() || null,
+        payment_method: this.paymentMethod(),
+        cash_reference: this.paymentMethod() === 'cash' ? this.cashReference() || null : null,
+        qr_reference: this.paymentMethod() === 'qr' ? this.saleQr()!.reference : null,
         items: this.selectedItems().map((item) => ({ variant_id: item.variant_id, quantity: item.quantity })),
       };
 
@@ -165,9 +184,29 @@ export class CajaPageComponent {
       this.lastSale.set(response.data ?? null);
       this.selectedItems.set([]);
       this.cashReference.set('');
+      this.saleQr.set(null);
       await this.searchProducts();
     } catch {
       // toast handled by requestWithToast
+    } finally {
+      this.submitting.set(false);
+    }
+  }
+
+  protected selectPaymentMethod(method: 'cash' | 'qr'): void {
+    this.paymentMethod.set(method);
+    this.saleQr.set(null);
+  }
+
+  private async generateSaleQr(): Promise<void> {
+    this.submitting.set(true);
+    try {
+      const items = this.selectedItems().map((item) => ({ variant_id: item.variant_id, quantity: item.quantity }));
+      const response = await firstValueFrom(this.qrApi.saleIntent({ items }));
+      toast.success(response.message);
+      this.saleQr.set(response.data ?? null);
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'No se pudo generar el código QR.'));
     } finally {
       this.submitting.set(false);
     }

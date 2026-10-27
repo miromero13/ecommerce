@@ -17,8 +17,23 @@
                 </div>
                 <p class="text-xs text-slate-500">Visita: {{ reservation.visit_date }} · Vence: {{ reservation.expires_at }}</p>
               </div>
-              <button hlmBtn type="button" variant="outline" (click)="cancelReservation(reservation.id)" [disabled]="reservation.status !== 'pending' && reservation.status !== 'confirmed'">Cancelar</button>
+              <button hlmBtn type="button" variant="outline" (click)="cancelReservation(reservation.id)" [disabled]="reservation.status !== 'pending_payment' && reservation.status !== 'pending' && reservation.status !== 'confirmed'">Cancelar</button>
             </div>
+            @if (reservation.status === 'pending_payment') {
+              <div class="mt-3 space-y-2 rounded-lg border border-orange-200 bg-orange-50 p-3 text-sm">
+                <p>Paga el anticipo de <strong>{{ reservation.deposit_amount }} BOB</strong> (50 %) antes de las {{ reservation.payment_expires_at | date: 'shortTime' }} para confirmar tu reserva.</p>
+                <p class="text-xs text-orange-700">El anticipo del 50 % no es reembolsable si cancelas o no te presentas.</p>
+                @if (depositQr()[reservation.id]; as qr) {
+                  <app-qr-payment-panel title="Escanea el QR para pagar el anticipo" [qr]="qr" (paid)="onDepositPaid(reservation.id)" />
+                } @else {
+                  <button hlmBtn type="button" (click)="payDeposit(reservation.id)">Pagar anticipo con QR</button>
+                }
+              </div>
+            } @else if (reservation.deposit_status === 'paid') {
+              <p class="mt-2 text-xs text-emerald-700">Anticipo pagado: {{ reservation.deposit_amount }} BOB (se descuenta al comprar).</p>
+            } @else if (reservation.deposit_status === 'forfeited') {
+              <p class="mt-2 text-xs text-slate-500">Anticipo de {{ reservation.deposit_amount }} BOB no reembolsado.</p>
+            }
             @if (reservation.status === 'attended') {
               <div class="mt-3 flex flex-wrap gap-2">
                 <button hlmBtn type="button" (click)="decideReservation(reservation.id, true)">Comprar prendas</button>

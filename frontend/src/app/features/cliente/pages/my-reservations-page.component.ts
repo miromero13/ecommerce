@@ -11,17 +11,37 @@ import { getErrorMessage } from '../../../core/utils/http-error.util';
 import { requestWithToast } from '../../../core/utils/request-toast.util';
 import { Reservation } from '../../shared/models/reservation.model';
 import { ReservationApiService } from '../../shared/services/reservation-api.service';
+import { QrPaymentPanelComponent } from '../../shared/components/qr-payment-panel.component';
+import { QrPayment } from '../../shared/models/qr-payment.model';
+import { QrPaymentApiService } from '../../shared/services/qr-payment-api.service';
 
 @Component({
   selector: 'app-my-reservations-page',
   standalone: true,
-  imports: [CommonModule, HlmButton, ...HlmBadgeImports, ...HlmCardImports],
+  imports: [CommonModule, HlmButton, QrPaymentPanelComponent, ...HlmBadgeImports, ...HlmCardImports],
   templateUrl: './my-reservations-page.component.html',
 })
 export class MyReservationsPageComponent {
   private readonly reservationApi = inject(ReservationApiService);
 
   protected readonly reservations = signal<Reservation[]>([]);
+  private readonly qrApi = inject(QrPaymentApiService);
+  protected readonly depositQr = signal<Record<string, QrPayment>>({});
+
+  protected async payDeposit(reservationId: string): Promise<void> {
+    try {
+      const response = await firstValueFrom(this.qrApi.reservationDeposit(reservationId));
+      toast.success(response.message);
+      if (response.data) this.depositQr.update((qrs) => ({ ...qrs, [reservationId]: response.data! }));
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'No se pudo generar el código QR del anticipo.'));
+    }
+  }
+
+  protected async onDepositPaid(reservationId: string): Promise<void> {
+    this.depositQr.update(({ [reservationId]: _, ...rest }) => rest);
+    await this.loadReservations();
+  }
 
   constructor() {
     void this.loadReservations();
@@ -29,6 +49,7 @@ export class MyReservationsPageComponent {
 
   protected reservationStatusLabel(status: Reservation['status']): string {
     switch (status) {
+      case 'pending_payment': return 'Falta pagar anticipo';
       case 'pending': return 'Pendiente';
       case 'confirmed': return 'Confirmada';
       case 'attended': return 'Atendida';
@@ -43,6 +64,7 @@ export class MyReservationsPageComponent {
 
   protected reservationStatusClass(status: Reservation['status']): string {
     switch (status) {
+      case 'pending_payment': return 'bg-orange-100 text-orange-700';
       case 'pending': return 'bg-amber-100 text-amber-700';
       case 'confirmed': return 'bg-sky-100 text-sky-700';
       case 'attended': return 'bg-emerald-100 text-emerald-700';

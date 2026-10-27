@@ -1,4 +1,4 @@
-export type PaymentMethodEnum = 'cash' | 'stripe';
+export type PaymentMethodEnum = 'cash' | 'stripe' | 'qr';
 export type PaymentStatusEnum = 'pending' | 'paid' | 'failed';
 export type FulfillmentStatusEnum = 'pending_pickup' | 'ready_for_pickup' | 'collected' | 'in_transit' | 'delivered' | 'expired' | 'cancelled';
 

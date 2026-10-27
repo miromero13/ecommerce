@@ -190,6 +190,7 @@ export class AppShellComponent {
               { label: 'Gestión de Tenants', route: '/app/superadmin/tenants', icon: 'lucideBuilding2', exact: true },
               { label: 'Planes de Suscripción', route: '/app/superadmin/plans', icon: 'lucideShield', exact: true },
               { label: 'Repartidores', route: '/app/superadmin/drivers', icon: 'lucideUsers', exact: true },
+              { label: 'Liquidaciones', route: '/app/superadmin/settlements', icon: 'lucideShoppingCart', exact: true },
             ],
           },
         ];
@@ -208,6 +209,7 @@ export class AppShellComponent {
                { label: 'Proveedores', route: '/app/admin/provider', icon: 'lucideUsers' },
                { label: 'Solicitudes', route: '/app/admin/replenishment', icon: 'lucideClipboardList' },
                { label: 'Suscripción y Plan', route: '/app/admin/subscription', icon: 'lucideShield' },
+               { label: 'Cobros y Liquidaciones', route: '/app/admin/payouts', icon: 'lucideShoppingCart' },
             ],
           },
         ];
