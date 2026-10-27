@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_exception.dart';
 import '../../shared/widgets/qr_payment_dialog.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:flutter_stripe/flutter_stripe.dart' hide PaymentMethod;
 
 import '../../core/config/app_config.dart';
@@ -245,9 +246,19 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 ],
               ),
               const SizedBox(height: 8),
-              OutlinedButton(
-                onPressed: _quoting || pickupBranchId == null ? null : () => _quoteDelivery(pickupBranchId),
-                child: Text(_quoting ? 'Calculando...' : 'Calcular envío'),
+              Wrap(
+                spacing: 8,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: _quoting || pickupBranchId == null ? null : () => _useMyLocation(pickupBranchId),
+                    icon: const Icon(Icons.my_location_outlined),
+                    label: const Text('Usar mi ubicación'),
+                  ),
+                  OutlinedButton(
+                    onPressed: _quoting || pickupBranchId == null ? null : () => _quoteDelivery(pickupBranchId),
+                    child: Text(_quoting ? 'Calculando...' : 'Calcular envío'),
+                  ),
+                ],
               ),
               if (_quote != null)
                 Text(
@@ -370,6 +381,44 @@ class _CheckoutPageState extends State<CheckoutPage> {
       'latitude': double.parse(_latitude.text.trim()),
       'longitude': double.parse(_longitude.text.trim()),
     };
+  }
+
+  /// CU20: fill the delivery coordinates from the device GPS, then quote.
+  Future<void> _useMyLocation(String branchId) async {
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        _warn('Activa la ubicación del dispositivo para usar esta opción.');
+        return;
+      }
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied) {
+        _warn('Necesitamos permiso de ubicación; también puedes escribir la latitud y longitud.');
+        return;
+      }
+      if (permission == LocationPermission.deniedForever) {
+        _warn('El permiso de ubicación está bloqueado. Habilítalo en los ajustes del teléfono.');
+        await Geolocator.openAppSettings();
+        return;
+      }
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, timeLimit: Duration(seconds: 15)),
+      );
+      if (!mounted) return;
+      setState(() {
+        _latitude.text = position.latitude.toStringAsFixed(6);
+        _longitude.text = position.longitude.toStringAsFixed(6);
+      });
+      await _quoteDelivery(branchId);
+    } catch (_) {
+      _warn('No se pudo obtener tu ubicación. Ingrésala manualmente.');
+    }
+  }
+
+  void _warn(String message) {
+    if (mounted) AppSnackBar.show(context, message, tone: AppSnackBarTone.warning);
   }
 
   Future<void> _quoteDelivery(String branchId) async {
