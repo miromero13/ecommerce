@@ -55,6 +55,8 @@ export interface CreateSaleRequest {
   payment_method: PaymentMethodEnum;
   cash_reference?: string | null;
   qr_reference?: string | null;
+  promotion_code?: string | null;
+  customer_email?: string | null;
   items: CreateSaleItemRequest[];
 }
 

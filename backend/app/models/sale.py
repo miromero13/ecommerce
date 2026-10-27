@@ -17,6 +17,9 @@ class Sale(Base):
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
     branch_id = Column(UUID(as_uuid=True), ForeignKey("branches.id"), nullable=False, index=True)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    # CU15 in-store coupon: the registered customer who used it (user_id is the cashier).
+    customer_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True, index=True)
+    promotion_code_id = Column(UUID(as_uuid=True), ForeignKey("promotion_codes.id"), nullable=True, index=True)
     reservation_id = Column(UUID(as_uuid=True), ForeignKey("reservations.id"), nullable=True, unique=True, index=True)
     status = Column(SQLAlchemyEnum(SaleStatusEnum, name="salestatusenum"), nullable=False, default=SaleStatusEnum.completed)
     payment_method = Column(SQLAlchemyEnum(PaymentMethodEnum, name="paymentmethodenum"), nullable=False)

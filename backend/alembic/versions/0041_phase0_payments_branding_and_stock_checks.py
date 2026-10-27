@@ -87,6 +87,11 @@ def upgrade() -> None:
     op.add_column("orders", sa.Column("deposit_applied", sa.Numeric(10, 2), nullable=False, server_default="0"))
     op.add_column("orders", sa.Column("delivery_driver_id", UUID(as_uuid=True), sa.ForeignKey("users.id"), nullable=True))
     op.create_index("ix_orders_delivery_driver_id", "orders", ["delivery_driver_id"])
+    # CU15 in-store coupon: the identified customer and the coupon used in a cash/QR sale.
+    op.add_column("sales", sa.Column("customer_id", UUID(as_uuid=True), sa.ForeignKey("users.id"), nullable=True))
+    op.add_column("sales", sa.Column("promotion_code_id", UUID(as_uuid=True), sa.ForeignKey("promotion_codes.id"), nullable=True))
+    op.create_index("ix_sales_customer_id", "sales", ["customer_id"])
+    op.create_index("ix_sales_promotion_code_id", "sales", ["promotion_code_id"])
 
     op.create_table(
         "settlements",
@@ -144,6 +149,10 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    op.drop_index("ix_sales_promotion_code_id", table_name="sales")
+    op.drop_index("ix_sales_customer_id", table_name="sales")
+    op.drop_column("sales", "promotion_code_id")
+    op.drop_column("sales", "customer_id")
     op.drop_index("ix_orders_delivery_driver_id", table_name="orders")
     for name in ("delivery_driver_id", "deposit_applied", "shipping_cost", "fulfillment_type", *(n for n, _ in ORDER_DELIVERY_COLUMNS)):
         op.drop_column("orders", name)

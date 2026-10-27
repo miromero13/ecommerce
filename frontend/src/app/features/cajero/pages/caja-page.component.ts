@@ -43,9 +43,14 @@ export class CajaPageComponent {
   private readonly qrApi = inject(QrPaymentApiService);
   protected readonly paymentMethod = signal<'cash' | 'qr'>('cash');
   protected readonly saleQr = signal<QrPayment | null>(null);
+  // CU15 in store: a coupon needs the registered customer's email (one use per customer).
+  protected readonly couponCode = signal('');
+  protected readonly customerEmail = signal('');
   // A QR is issued for an exact total: any change to the items invalidates it.
   private readonly resetQrOnItemsChange = effect(() => {
     this.selectedItems();
+    this.couponCode();
+    this.customerEmail();
     untracked(() => this.saleQr.set(null));
   });
 
@@ -174,6 +179,7 @@ export class CajaPageComponent {
         payment_method: this.paymentMethod(),
         cash_reference: this.paymentMethod() === 'cash' ? this.cashReference() || null : null,
         qr_reference: this.paymentMethod() === 'qr' ? this.saleQr()!.reference : null,
+        ...this.couponFields(),
         items: this.selectedItems().map((item) => ({ variant_id: item.variant_id, quantity: item.quantity })),
       };
 
@@ -184,6 +190,8 @@ export class CajaPageComponent {
       this.lastSale.set(response.data ?? null);
       this.selectedItems.set([]);
       this.cashReference.set('');
+      this.couponCode.set('');
+      this.customerEmail.set('');
       this.saleQr.set(null);
       await this.searchProducts();
     } catch {
@@ -191,6 +199,10 @@ export class CajaPageComponent {
     } finally {
       this.submitting.set(false);
     }
+  }
+
+  private couponFields(): { promotion_code: string | null; customer_email: string | null } {
+    return { promotion_code: this.couponCode().trim() || null, customer_email: this.customerEmail().trim() || null };
   }
 
   protected selectPaymentMethod(method: 'cash' | 'qr'): void {
@@ -202,7 +214,7 @@ export class CajaPageComponent {
     this.submitting.set(true);
     try {
       const items = this.selectedItems().map((item) => ({ variant_id: item.variant_id, quantity: item.quantity }));
-      const response = await firstValueFrom(this.qrApi.saleIntent({ items }));
+      const response = await firstValueFrom(this.qrApi.saleIntent({ items, ...this.couponFields() }));
       toast.success(response.message);
       this.saleQr.set(response.data ?? null);
     } catch (error) {

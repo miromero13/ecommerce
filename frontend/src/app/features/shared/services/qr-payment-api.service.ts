@@ -14,7 +14,7 @@ export class QrPaymentApiService {
     return this.api.post<ApiResponse<{ order: Order; qr: QrPayment }>>('/payments/qr/checkout', payload);
   }
 
-  saleIntent(payload: { items: { variant_id: string; quantity: number }[] }) {
+  saleIntent(payload: { items: { variant_id: string; quantity: number }[]; promotion_code?: string | null; customer_email?: string | null }) {
     return this.api.post<ApiResponse<QrPayment>>('/payments/qr/sale-intent', payload);
   }
 

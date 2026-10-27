@@ -14,6 +14,8 @@ from app.models.reservation import Reservation
 from app.models.reservation_item import ReservationItem
 from app.models.sale import Sale
 from app.models.tenant import Tenant
+from app.models.user import User
+from app.schemas.enums import RolEnum
 from app.models.sale_item import SaleItem
 from app.models.size import Size
 from app.models.color import Color
@@ -24,6 +26,7 @@ from app.schemas.inventory_schema import InventoryMovementTypeEnum
 from app.schemas.reservation_schema import ReservationStatusEnum
 from app.services.reservation_service import transition_reservation
 from app.services.pricing_service import discounted_price, discount_amount
+from app.services.promotion_service import add_usage, calculate_discount, validate_for_user
 from app.services.notification_service import notify_low_stock, notify_reservation_event
 
 
@@ -112,6 +115,8 @@ def _serialize_sale(db: Session, sale: Sale) -> SaleRead:
             "payment_method": sale.payment_method,
             "payment_status": sale.payment_status,
             "cash_reference": sale.cash_reference,
+            "customer_id": sale.customer_id,
+            "promotion_code_id": sale.promotion_code_id,
             "subtotal": sale.subtotal,
             "discount_amount": sale.discount_amount,
             "total_amount": sale.total_amount,
@@ -143,6 +148,33 @@ def _resolve_items(db: Session, payload: SaleCreate, branch_id: UUID):
         raise ValueError("La venta no tiene items")
 
     return normalized_items
+
+
+def _registered_customer(db: Session, email: str) -> User:
+    customer = db.query(User).filter(User.email == email.strip().lower(), User.rol == RolEnum.cliente,
+                                     User.is_active.is_(True)).first()
+    if not customer:
+        raise ValueError("No existe un cliente registrado con ese correo")
+    return customer
+
+
+def _apply_cashier_coupon(db: Session, sale: Sale, payload: SaleCreate, branch_id: UUID, tenant_id: UUID | None) -> None:
+    """CU15 in store: same rules as the web cart (one use per customer, not combined with
+    products on sale), so the customer must be identified by a registered email."""
+    if payload.customer_email:
+        sale.customer_id = _registered_customer(db, payload.customer_email).id
+    if not payload.promotion_code:
+        return
+    if not sale.customer_id:
+        raise ValueError("Ingresa el correo del cliente registrado para aplicar el cupón")
+    if sale.discount_amount > 0:
+        raise ValueError("El cupón no se puede combinar con productos en oferta")
+    code = validate_for_user(db, payload.promotion_code.strip().upper(), sale.customer_id, branch_id, tenant_id=tenant_id)
+    coupon_discount = calculate_discount(code, sale.subtotal)
+    sale.promotion_code_id = code.id
+    sale.discount_amount = coupon_discount
+    sale.total_amount = max(sale.subtotal - coupon_discount, Decimal("0.00"))
+    add_usage(db, code.id, sale.customer_id)
 
 
 def _create_sale_from_items(
@@ -245,6 +277,7 @@ def _create_sale_from_items(
     sale.subtotal = subtotal
     sale.discount_amount = discount_total
     sale.total_amount = max(subtotal - discount_total, Decimal("0.00"))
+    _apply_cashier_coupon(db, sale, payload, branch_id, tenant_id)
 
     if reservation:
         if reservation.status in {ReservationStatusEnum.pending, ReservationStatusEnum.confirmed}:

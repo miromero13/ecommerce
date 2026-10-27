@@ -133,6 +133,12 @@
           </div>
 
           <div class="space-y-3 rounded-xl border border-slate-200 p-4">
+            <div class="space-y-2">
+              <label class="text-xs font-medium uppercase tracking-wide text-slate-500">Cupón promocional (opcional)</label>
+              <input hlmInput type="text" placeholder="Ej. VERANO10" [value]="couponCode()" (input)="couponCode.set($any($event.target).value)" />
+              <input hlmInput type="email" placeholder="Correo del cliente registrado" [value]="customerEmail()" (input)="customerEmail.set($any($event.target).value)" />
+              <p class="text-[11px] text-slate-500">Para aplicar un cupón se identifica al cliente: cada cupón se usa una sola vez por cliente y no se combina con productos en oferta.</p>
+            </div>
             <div class="grid grid-cols-2 gap-2">
               <button hlmBtn type="button" [variant]="paymentMethod() === 'cash' ? 'default' : 'outline'" (click)="selectPaymentMethod('cash')">Efectivo</button>
               <button hlmBtn type="button" [variant]="paymentMethod() === 'qr' ? 'default' : 'outline'" (click)="selectPaymentMethod('qr')">QR</button>

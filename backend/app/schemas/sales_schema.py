@@ -3,7 +3,7 @@ from decimal import Decimal
 from enum import Enum
 from uuid import UUID
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import EmailStr, BaseModel, Field, model_validator
 
 from app.schemas.order_schema import PaymentMethodEnum, PaymentStatusEnum
 
@@ -29,6 +29,8 @@ class SaleCreate(BaseModel):
     payment_method: PaymentMethodEnum = PaymentMethodEnum.cash
     cash_reference: str | None = None
     qr_reference: str | None = None  # required when payment_method is "qr"
+    promotion_code: str | None = Field(default=None, max_length=40)
+    customer_email: EmailStr | None = None  # registered customer; required with a coupon
     items: list[SaleItemCreate] = Field(default_factory=list)
 
     @model_validator(mode="after")
@@ -75,6 +77,8 @@ class SaleRead(BaseModel):
     payment_method: PaymentMethodEnum
     payment_status: PaymentStatusEnum
     cash_reference: str | None = None
+    customer_id: UUID | None = None
+    promotion_code_id: UUID | None = None
     subtotal: Decimal
     discount_amount: Decimal
     total_amount: Decimal
