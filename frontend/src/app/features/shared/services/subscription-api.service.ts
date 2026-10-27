@@ -9,6 +9,7 @@ import {
   SubscriptionPlan,
   SubscriptionPlanPayload,
   SubscriptionPurchasePayload,
+  StripeConnectStatus,
   SubscriptionSummary,
   TenantWithSubscriptionPayload,
 } from '../models/subscription.model';
@@ -16,6 +17,14 @@ import {
 @Injectable({ providedIn: 'root' })
 export class SubscriptionApiService {
   private readonly api = inject(ApiService);
+
+  getStripeConnectStatus(): Observable<ApiResponse<StripeConnectStatus>> {
+    return this.api.get<ApiResponse<StripeConnectStatus>>('/saas/stripe-connect/status');
+  }
+
+  createStripeOnboardingLink(returnUrl: string): Observable<ApiResponse<{ url: string }>> {
+    return this.api.post<ApiResponse<{ url: string }>>('/saas/stripe-connect/onboarding-link', { return_url: returnUrl });
+  }
 
   getPlans(): Observable<ApiResponse<SubscriptionPlan[]>> {
     return this.api.get<ApiResponse<SubscriptionPlan[]>>('/saas/plans');

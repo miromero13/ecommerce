@@ -34,6 +34,7 @@ from app.services.promotion_service import add_usage, validate_for_user
 from app.services.reservation_service import transition_reservation
 from app.services.recommendation_service import record_completed_order_interactions
 from app.services.notification_service import notify_low_stock, notify_order_event
+from app.services.stripe_connect_service import destination_params, require_online_payments, set_charges_enabled
 
 
 STRIPE_RESERVATION_MINUTES = 30
@@ -223,6 +224,9 @@ def create_stripe_payment(db: Session, user_id: UUID, pickup_branch_id: UUID):
         cart = _locked_cart(db, user_id)
         if cart.status == CartStatusEnum.checkout_pending:
             raise ValueError("El carrito tiene un checkout pendiente")
+        if not cart.tenant_id:
+            raise ValueError("El carrito está vacío")
+        tenant = require_online_payments(db, cart.tenant_id)
         order = _new_order(db, cart, user_id, pickup_branch_id, PaymentMethodEnum.stripe)
         attempt = PaymentAttempt(order_id=order.id, cart_id=cart.id, status="pending", idempotency_key=secrets.token_urlsafe(24))
         db.add(attempt)
@@ -237,7 +241,8 @@ def create_stripe_payment(db: Session, user_id: UUID, pickup_branch_id: UUID):
         stripe.api_key = settings.stripe_secret_key
         amount = int((order.total_amount * Decimal("100")).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
         intent = stripe.PaymentIntent.create(amount=amount, currency=order.currency,
-            metadata={"order_id": str(order.id)}, automatic_payment_methods={"enabled": True, "allow_redirects": "never"}, idempotency_key=attempt.idempotency_key)
+            metadata={"order_id": str(order.id)}, automatic_payment_methods={"enabled": True, "allow_redirects": "never"},
+            idempotency_key=attempt.idempotency_key, **destination_params(tenant, amount))
         attempt.stripe_payment_intent_id = intent.id
         order.stripe_payment_intent_id = intent.id
         db.commit()
@@ -261,6 +266,7 @@ def create_stripe_payment_for_order(db: Session, user_id: UUID, order_id: UUID):
         )
         if not order:
             raise ValueError("Pedido no encontrado")
+        tenant = require_online_payments(db, order.tenant_id)
         if (
             order.payment_status != PaymentStatusEnum.pending
             or order.fulfillment_status != FulfillmentStatusEnum.pending_pickup
@@ -314,6 +320,7 @@ def create_stripe_payment_for_order(db: Session, user_id: UUID, order_id: UUID):
                 metadata={"order_id": str(order.id)},
                 automatic_payment_methods={"enabled": True, "allow_redirects": "never"},
                 idempotency_key=attempt.idempotency_key,
+                **destination_params(tenant, amount),
             )
             attempt.stripe_payment_intent_id = intent.id
             order.stripe_payment_intent_id = intent.id
@@ -485,6 +492,9 @@ def process_stripe_event(db: Session, event) -> None:
     except IntegrityError:
         return
     data = event["data"]["object"]
+    if event["type"] == "account.updated":
+        set_charges_enabled(db, data["id"], bool(data.get("charges_enabled")))
+        return
     order = db.query(Order).filter(Order.stripe_payment_intent_id == data.get("id")).with_for_update().first()
     if order and order.payment_method == PaymentMethodEnum.stripe and order.payment_status == PaymentStatusEnum.pending:
         if event["type"] == "payment_intent.succeeded":

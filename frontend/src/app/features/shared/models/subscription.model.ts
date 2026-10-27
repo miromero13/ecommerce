@@ -109,3 +109,9 @@ export interface TenantWithSubscriptionPayload {
   billing_cycle: 'monthly' | 'yearly';
   payment_method: 'cash' | 'simulated_card';
 }
+
+export interface StripeConnectStatus {
+  connected: boolean;
+  charges_enabled: boolean;
+  account_id: string | null;
+}

@@ -32,6 +32,35 @@
     </div>
   </div>
 
+  <!-- Online payments (Stripe Connect) -->
+  <section *ngIf="stripeStatus() as stripe" class="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex items-start gap-3">
+      <ng-icon name="lucideCreditCard" class="mt-0.5 h-5 w-5 shrink-0 text-primary"></ng-icon>
+      <div>
+        <h2 class="text-base font-bold text-foreground">Pagos en línea</h2>
+        <p class="text-sm text-muted-foreground">
+          @if (stripe.charges_enabled) {
+            Los pagos con tarjeta de tus clientes se depositan en tu propia cuenta de Stripe.
+          } @else if (stripe.connected) {
+            Tu cuenta de Stripe está creada, pero aún falta completar el registro para recibir pagos.
+          } @else {
+            Conectá tu cuenta de Stripe para cobrar pedidos y anticipos de reserva con tarjeta.
+          }
+        </p>
+      </div>
+    </div>
+    @if (!stripe.charges_enabled) {
+      <button type="button" (click)="connectStripe()" [disabled]="connecting()"
+        class="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground shadow-xs transition-all hover:bg-primary/90 disabled:opacity-60">
+        {{ stripe.connected ? 'Completar registro en Stripe' : 'Conectar con Stripe' }}
+      </button>
+    } @else {
+      <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-600">
+        <ng-icon name="lucideCheckCircle2" class="h-4 w-4"></ng-icon> Habilitado
+      </span>
+    }
+  </section>
+
   <!-- Error State -->
   <div *ngIf="!loading() && error()" class="p-6 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive">
     <div class="flex items-center gap-3">
