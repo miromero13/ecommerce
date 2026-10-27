@@ -16,6 +16,7 @@ class OrderStatusEnum(str, Enum):
 class PaymentMethodEnum(str, Enum):
     cash = "cash"
     stripe = "stripe"
+    qr = "qr"
 
 
 class PaymentStatusEnum(str, Enum):

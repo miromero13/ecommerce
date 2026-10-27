@@ -28,7 +28,7 @@ import { HlmCardImports } from '../../../components/card/src';
 import { HlmBadgeImports } from '../../../components/badge/src';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
 import { PricingTableComponent } from '../../shared/components/pricing-table.component';
-import { PLAN_FEATURES, StripeConnectStatus, SubscriptionPlan, SubscriptionSummary } from '../../shared/models/subscription.model';
+import { PLAN_FEATURES, SubscriptionPlan, SubscriptionSummary } from '../../shared/models/subscription.model';
 import { SubscriptionApiService } from '../../shared/services/subscription-api.service';
 
 @Component({
@@ -82,34 +82,8 @@ export class SubscriptionPageComponent implements OnInit {
   cardExp = '12/28';
   cardCvv = '123';
 
-  readonly stripeStatus = signal<StripeConnectStatus | null>(null);
-  readonly connecting = signal(false);
-
   ngOnInit(): void {
     this.loadSubscription();
-    void this.loadStripeStatus();
-  }
-
-  // D2: each company receives card payments in its own Stripe Connect account.
-  async loadStripeStatus(): Promise<void> {
-    try {
-      this.stripeStatus.set((await firstValueFrom(this.subscriptionApi.getStripeConnectStatus())).data ?? null);
-    } catch (err) {
-      toast.error(getErrorMessage(err, 'No se pudo consultar el estado de pagos en línea.'));
-    }
-  }
-
-  async connectStripe(): Promise<void> {
-    this.connecting.set(true);
-    try {
-      const res = await firstValueFrom(this.subscriptionApi.createStripeOnboardingLink(window.location.href));
-      toast.success(res.message);
-      if (res.data) window.location.href = res.data.url;
-    } catch (err) {
-      toast.error(getErrorMessage(err, 'No se pudo iniciar la conexión con Stripe.'));
-    } finally {
-      this.connecting.set(false);
-    }
   }
 
   async loadSubscription(): Promise<void> {

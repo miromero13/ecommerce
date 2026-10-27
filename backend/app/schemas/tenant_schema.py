@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from decimal import Decimal
+
 from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
@@ -25,6 +27,7 @@ class TenantUpdate(BaseModel):
     currency: Optional[str] = Field(default=None, max_length=10)
     country: Optional[str] = Field(default=None, max_length=80)
     status: Optional[TenantStatusEnum] = None
+    platform_fee_percent: Optional[Decimal] = Field(default=None, ge=0, le=100)
 
 
 class TenantStatusUpdate(BaseModel):
@@ -39,6 +42,7 @@ class TenantRead(BaseModel):
     currency: str
     country: Optional[str] = None
     status: TenantStatusEnum
+    platform_fee_percent: Decimal = Decimal("0")
     created_at: datetime
     updated_at: datetime
     branches_count: int = 0

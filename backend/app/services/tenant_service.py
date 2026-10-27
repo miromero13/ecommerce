@@ -35,6 +35,7 @@ def _serialize_tenant(db: Session, tenant: Tenant) -> dict:
         "currency": tenant.currency,
         "country": tenant.country,
         "status": tenant.status,
+        "platform_fee_percent": tenant.platform_fee_percent,
         "created_at": tenant.created_at,
         "updated_at": tenant.updated_at,
         "branches_count": branches_count,
@@ -138,6 +139,9 @@ def update_tenant(db: Session, tenant_id: UUID, payload: TenantUpdate) -> dict |
 
     if payload.status is not None:
         tenant.status = payload.status
+
+    if payload.platform_fee_percent is not None:
+        tenant.platform_fee_percent = payload.platform_fee_percent
 
     try:
         db.commit()
