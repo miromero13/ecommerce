@@ -25,8 +25,13 @@
                 <p class="text-xs text-orange-700">El anticipo del 50 % no es reembolsable si cancelas o no te presentas.</p>
                 @if (depositQr()[reservation.id]; as qr) {
                   <app-qr-payment-panel title="Escanea el QR para pagar el anticipo" [qr]="qr" (paid)="onDepositPaid(reservation.id)" />
+                } @else if (depositCard()[reservation.id]; as clientSecret) {
+                  <app-stripe-card-payment title="Pagar el anticipo con tarjeta" [clientSecret]="clientSecret" (paid)="onDepositCardPaid(reservation.id)" />
                 } @else {
-                  <button hlmBtn type="button" (click)="payDeposit(reservation.id)">Pagar anticipo con QR</button>
+                  <div class="flex flex-wrap gap-2">
+                    <button hlmBtn type="button" (click)="payDeposit(reservation.id)">Pagar anticipo con QR</button>
+                    <button hlmBtn type="button" variant="outline" (click)="payDepositByCard(reservation.id)">Pagar con tarjeta</button>
+                  </div>
                 }
               </div>
             } @else if (reservation.deposit_status === 'paid') {

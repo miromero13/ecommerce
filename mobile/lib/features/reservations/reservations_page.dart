@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
 
 import '../../app/theme.dart';
+import '../../core/config/app_config.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_exception.dart';
 import '../../shared/widgets/qr_payment_dialog.dart';
@@ -34,6 +36,42 @@ class ReservationsPage extends StatefulWidget {
 }
 
 class _ReservationsPageState extends State<ReservationsPage> {
+  /// D1 deposit by card: Stripe PaymentSheet; the backend webhook confirms it.
+  Future<void> _payDepositByCard(Reservation reservation) async {
+    if (AppConfig.stripePublishableKey.isEmpty) {
+      AppSnackBar.show(context, 'Configura STRIPE_PUBLISHABLE_KEY para pagar con tarjeta.', tone: AppSnackBarTone.error);
+      return;
+    }
+    final client = ApiClient(
+      tokenProvider: () => widget.authController.accessToken,
+      onUnauthorized: widget.authController.handleUnauthorized,
+    );
+    try {
+      final response = await client.post<Map<String, dynamic>>(
+        'payments/stripe/reservations/${reservation.id}',
+        parser: (value) => Map<String, dynamic>.from(value as Map),
+      );
+      await Stripe.instance.initPaymentSheet(
+        paymentSheetParameters: SetupPaymentSheetParameters(
+          merchantDisplayName: 'FashionStore',
+          paymentIntentClientSecret: response.data!['client_secret'].toString(),
+        ),
+      );
+      await Stripe.instance.presentPaymentSheet();
+      if (!mounted) return;
+      AppSnackBar.show(context, 'Pago recibido. Lo confirmaremos en unos segundos.', tone: AppSnackBarTone.success);
+      await Future<void>.delayed(const Duration(seconds: 2));
+      if (mounted) await _controller.load();
+    } on StripeException catch (error) {
+      if (!mounted) return;
+      AppSnackBar.show(context, error.error.localizedMessage ?? 'No se pudo completar el pago.', tone: AppSnackBarTone.error);
+    } catch (error) {
+      if (!mounted) return;
+      AppSnackBar.show(context, error is ApiException ? error.message : 'No se pudo completar el pago.',
+          tone: AppSnackBarTone.error);
+    }
+  }
+
   Future<void> _payDeposit(Reservation reservation) async {
     final client = ApiClient(
       tokenProvider: () => widget.authController.accessToken,
@@ -183,9 +221,18 @@ class _ReservationsPageState extends State<ReservationsPage> {
                       Text('El anticipo no es reembolsable si cancelas o no te presentas.',
                           style: Theme.of(context).textTheme.bodySmall),
                       const SizedBox(height: 8),
-                      FilledButton(
-                        onPressed: () => _payDeposit(reservation),
-                        child: const Text('Pagar anticipo con QR'),
+                      Wrap(
+                        spacing: 8,
+                        children: [
+                          FilledButton(
+                            onPressed: () => _payDeposit(reservation),
+                            child: const Text('Pagar anticipo con QR'),
+                          ),
+                          OutlinedButton(
+                            onPressed: () => _payDepositByCard(reservation),
+                            child: const Text('Pagar con tarjeta'),
+                          ),
+                        ],
                       ),
                     ],
                   ),

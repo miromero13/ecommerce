@@ -12,13 +12,14 @@ import { requestWithToast } from '../../../core/utils/request-toast.util';
 import { Reservation } from '../../shared/models/reservation.model';
 import { ReservationApiService } from '../../shared/services/reservation-api.service';
 import { QrPaymentPanelComponent } from '../../shared/components/qr-payment-panel.component';
+import { StripeCardPaymentComponent } from '../../shared/components/stripe-card-payment.component';
 import { QrPayment } from '../../shared/models/qr-payment.model';
 import { QrPaymentApiService } from '../../shared/services/qr-payment-api.service';
 
 @Component({
   selector: 'app-my-reservations-page',
   standalone: true,
-  imports: [CommonModule, HlmButton, QrPaymentPanelComponent, ...HlmBadgeImports, ...HlmCardImports],
+  imports: [CommonModule, HlmButton, QrPaymentPanelComponent, StripeCardPaymentComponent, ...HlmBadgeImports, ...HlmCardImports],
   templateUrl: './my-reservations-page.component.html',
 })
 export class MyReservationsPageComponent {
@@ -27,6 +28,28 @@ export class MyReservationsPageComponent {
   protected readonly reservations = signal<Reservation[]>([]);
   private readonly qrApi = inject(QrPaymentApiService);
   protected readonly depositQr = signal<Record<string, QrPayment>>({});
+  protected readonly depositCard = signal<Partial<Record<string, string>>>({}); // reservation id -> client secret
+
+  protected async payDepositByCard(reservationId: string): Promise<void> {
+    try {
+      const response = await firstValueFrom(this.reservationApi.payDepositByCard(reservationId));
+      toast.success(response.message);
+      if (response.data) this.depositCard.update((cards) => ({ ...cards, [reservationId]: response.data!.client_secret }));
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'No se pudo iniciar el pago con tarjeta.'));
+    }
+  }
+
+  /** The Stripe webhook confirms the deposit asynchronously: poll briefly until it lands. */
+  protected async onDepositCardPaid(reservationId: string): Promise<void> {
+    this.depositCard.update(({ [reservationId]: _, ...rest }) => rest);
+    for (let attempt = 0; attempt < 5; attempt++) {
+      await this.loadReservations();
+      if (this.reservations().find((r) => r.id === reservationId)?.deposit_status === 'paid') return;
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+    toast.info('Tu pago está en proceso. Actualiza en unos segundos.');
+  }
 
   protected async payDeposit(reservationId: string): Promise<void> {
     try {

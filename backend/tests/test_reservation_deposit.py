@@ -70,3 +70,23 @@ def test_card_deposit_is_confirmed_by_the_stripe_webhook(market_api, api_db, mar
     api_db.refresh(row)
     assert (row.status.value, row.deposit_status) == ("pending", "paid")
     assert deposits(api_db) == [("reservation_deposit", "card", Decimal("12.50"))]
+
+
+def test_card_deposit_intent_charges_half_with_reservation_metadata(market_api, api_db, market, monkeypatch):
+    import stripe
+    from types import SimpleNamespace
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "stripe_secret_key", "sk_test_fake")
+    intents = []
+    monkeypatch.setattr(stripe.PaymentIntent, "create", lambda **kwargs: intents.append(kwargs) or SimpleNamespace(
+        id="pi_dep_1", client_secret="secret_dep"))
+    reservation = create(market_api, market)
+
+    data = call(market_api, market.customer, "POST", f"/payments/stripe/reservations/{reservation['id']}",
+                expected_message="Pago del anticipo con tarjeta iniciado")
+    assert data == {"client_secret": "secret_dep", "payment_intent_id": "pi_dep_1"}
+    assert (intents[0]["amount"], intents[0]["currency"], intents[0]["metadata"]) == (
+        1250, "bob", {"reservation_id": reservation["id"]})
+    rejected(market_api, api_db, market.other, "POST", f"/payments/stripe/reservations/{reservation['id']}", 404,
+             "Reserva no encontrada")
