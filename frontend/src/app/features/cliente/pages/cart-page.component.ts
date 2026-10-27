@@ -74,8 +74,8 @@ export class CartPageComponent {
   protected readonly couponCode = signal('');
 
   constructor() {
-    void this.loadCart();
-    void this.loadBranches();
+    // Pickup branches belong to the cart's company, so they load after the cart.
+    void this.loadCart().then(() => this.loadBranches());
   }
 
   protected get itemCount(): number {
@@ -297,12 +297,16 @@ export class CartPageComponent {
 
   private async loadBranches(): Promise<void> {
     try {
-      const response = await firstValueFrom(this.catalogApi.listPublicBranches());
+      const tenantId = this.cart()?.tenant_id;
+      if (!tenantId) {
+        this.branches.set([]);
+        return;
+      }
+      const response = await firstValueFrom(this.catalogApi.listPublicBranches(tenantId));
       const branchList = response.data ?? [];
       this.branches.set(branchList);
-      if (this.cartBranchId() && branchList.some((b) => b.id === this.cartBranchId())) {
-        this.pickupBranchId.set(this.cartBranchId());
-      }
+      const preferred = branchList.some((b) => b.id === this.cartBranchId()) ? this.cartBranchId() : '';
+      this.pickupBranchId.set(preferred || (branchList.length === 1 ? branchList[0].id : ''));
     } catch (error) {
       toast.error(getErrorMessage(error, 'No se pudieron cargar las sucursales.'));
     }

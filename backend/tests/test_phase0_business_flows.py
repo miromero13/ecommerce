@@ -129,3 +129,46 @@ def test_customer_active_reservations_are_capped(market_api, api_db, market):
         call(market_api, market.customer, "POST", "/reservations/", 201, json=body)
     rejected(market_api, api_db, market.customer, "POST", "/reservations/", 400,
              "Ya tienes 3 reservas activas; atiende o cancela una antes de crear otra", json=body)
+
+
+def _production_session(api_db):
+    from sqlalchemy.orm import Session
+
+    # Same flags as app.core.database.SessionLocal (autoflush=False).
+    return Session(bind=api_db.bind, join_transaction_mode="create_savepoint", autoflush=False)
+
+
+def test_cart_keeps_its_company_after_the_first_item(api_db, market):
+    from app.models.cart import Cart
+    from app.models.inventory import Inventory
+    from app.models.product_variant import ProductVariant
+    from app.schemas.cart_schema import CartItemCreate
+    from app.services.cart_service import add_cart_item
+
+    second = ProductVariant(tenant_id=market.own.tenant.id, product_id=market.own.variant.product_id,
+                            sku="SKU-0-second", price=30, status=market.own.variant.status)
+    api_db.add(second)
+    api_db.flush()
+    api_db.add(Inventory(tenant_id=market.own.tenant.id, variant_id=second.id,
+                         branch_id=market.branches[0].id, quantity=5, reserved_quantity=0))
+    api_db.commit()
+
+    with _production_session(api_db) as db:
+        add_cart_item(db, market.customer.id, CartItemCreate(variant_id=market.own.variant.id, quantity=1))
+    with _production_session(api_db) as db:
+        assert db.query(Cart.tenant_id).filter(Cart.user_id == market.customer.id).scalar() == market.own.tenant.id
+        cart = add_cart_item(db, market.customer.id, CartItemCreate(variant_id=second.id, quantity=1))
+    assert cart.item_count == 2
+
+
+def test_other_company_item_asks_to_pay_the_pending_cart_first(market_api, api_db, market):
+    add(market_api, market)
+    rejected(market_api, api_db, market.customer, "POST", "/cart/items", 400,
+             f"Ya tienes un carrito pendiente en {market.own.tenant.name}. "
+             "Págalo o vacíalo antes de comprar en otra empresa.",
+             json={"variant_id": str(market.foreign.variant.id), "branch_id": str(market.branches[2].id), "quantity": 1})
+
+
+def test_cart_exposes_its_company_for_pickup_branches(market_api, api_db, market):
+    cart = add(market_api, market)
+    assert (cart["tenant_id"], cart["tenant_name"]) == (str(market.own.tenant.id), market.own.tenant.name)

@@ -11,6 +11,7 @@ from app.models.cart_item import CartItem
 from app.models.inventory import Inventory
 from app.models.product import Product
 from app.models.product_variant import ProductVariant
+from app.models.tenant import Tenant
 from app.models.promotion_code import PromotionCode
 from app.models.size import Size
 from app.models.color import Color
@@ -62,7 +63,8 @@ def validate_cart_company(db: Session, cart: Cart, tenant_id: UUID) -> None:
         Product, Product.id == ProductVariant.product_id
     ).join(CartItem, CartItem.variant_id == ProductVariant.id).filter(CartItem.cart_id == cart.id).all()
     if rows and cart.tenant_id != tenant_id:
-        raise ValueError("Vacía el carrito antes de comprar en otra empresa")
+        company = db.query(Tenant.name).filter(Tenant.id == cart.tenant_id).scalar() or "otra empresa"
+        raise ValueError(f"Ya tienes un carrito pendiente en {company}. Págalo o vacíalo antes de comprar en otra empresa.")
     if any(variant.tenant_id != tenant_id or product.tenant_id != tenant_id
            for variant, product in rows):
         raise ValueError("El carrito contiene productos de otra empresa")
@@ -129,6 +131,8 @@ def _serialize_cart(db: Session, cart: Cart) -> CartRead:
         {
             "id": cart.id,
             "user_id": cart.user_id,
+            "tenant_id": cart.tenant_id,
+            "tenant_name": db.query(Tenant.name).filter(Tenant.id == cart.tenant_id).scalar() if cart.tenant_id else None,
             "status": cart.status,
             "subtotal": subtotal,
             "discount_amount": discount_amount,
@@ -257,6 +261,9 @@ def clear_cart(db: Session, user_id: UUID) -> CartRead:
 
 
 def refresh_cart_totals(db: Session, cart: Cart) -> None:
+    # SessionLocal has autoflush=False: without this, a just-added line is invisible
+    # here and the cart would be emptied of its company (tenant_id = None).
+    db.flush()
     items = _load_cart_items(db, cart.id)
     # cart_id is a transient association, not reservation history. Detach only
     # after the last line disappears; clearing never changes status or holds.

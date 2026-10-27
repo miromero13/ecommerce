@@ -49,6 +49,8 @@ class CartItemRead(BaseModel):
 class CartRead(BaseModel):
     id: UUID
     user_id: UUID
+    tenant_id: UUID | None = None
+    tenant_name: str | None = None
     status: CartStatusEnum
     subtotal: Decimal
     discount_amount: Decimal

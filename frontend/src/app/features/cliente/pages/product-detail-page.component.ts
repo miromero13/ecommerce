@@ -240,21 +240,7 @@ export class ProductDetailPageComponent {
       return;
     }
     const info = this.resolveBranchInfo(prod, variant);
-    const cartBranchId = this.getCartBranchId();
-
-    if (cartBranchId && info.branchId && cartBranchId !== info.branchId) {
-      const currentName = this.getCartBranchName() || 'otra sucursal';
-      this.conflictModal.set({
-        type: 'cart',
-        product: prod,
-        variant,
-        newBranchId: info.branchId,
-        newBranchName: info.branchName,
-        newTenantName: info.tenantName,
-        currentName,
-      });
-      return;
-    }
+    // One cart per company: the backend rejects another company's item with a clear message.
 
     await this.executeAddToCart(prod, variant, info.branchId, info.branchName);
   }
@@ -279,7 +265,8 @@ export class ProductDetailPageComponent {
           error: 'No se pudo agregar al carrito.',
         },
       );
-      if (branchId) {
+      // Remember the first branch only, to preselect pickup in the cart.
+      if (branchId && !this.getCartBranchId()) {
         this.setCartBranch(branchId, branchName);
       }
     } catch {

@@ -23,6 +23,8 @@ export interface CartItem {
 export interface Cart {
   id: string;
   user_id: string;
+  tenant_id?: string | null;
+  tenant_name?: string | null;
   status: 'active' | 'checked_out' | 'cancelled';
   subtotal: string;
   discount_amount: string;

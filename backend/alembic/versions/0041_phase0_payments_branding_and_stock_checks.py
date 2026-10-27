@@ -18,6 +18,12 @@ STOCK_CHECKS = (
     ("ck_inventory_reserved_non_negative", "reserved_quantity >= 0"),
     ("ck_inventory_reserved_within_quantity", "reserved_quantity <= quantity"),
 )
+REPAIR_CART_COMPANY = """
+    UPDATE carts SET tenant_id = lines.tenant_id
+    FROM (SELECT DISTINCT ON (cart_items.cart_id) cart_items.cart_id, product_variants.tenant_id
+          FROM cart_items JOIN product_variants ON product_variants.id = cart_items.variant_id) AS lines
+    WHERE carts.id = lines.cart_id AND carts.tenant_id IS NULL
+"""
 TENANT_COLUMNS = (
     ("logo_url", sa.String(500)),
     ("primary_color", sa.String(7)),
@@ -50,6 +56,9 @@ def upgrade() -> None:
     op.execute("UPDATE inventory SET reserved_quantity = LEAST(GREATEST(reserved_quantity, 0), quantity)")
     for name, condition in STOCK_CHECKS:
         op.create_check_constraint(name, "inventory", condition)
+
+    # Repair carts emptied of their company by the autoflush bug while still holding lines.
+    op.execute(REPAIR_CART_COMPANY)
 
     # New values cannot be used inside this same transaction; nothing below does.
     op.execute("ALTER TYPE paymentmethodenum ADD VALUE IF NOT EXISTS 'qr'")
