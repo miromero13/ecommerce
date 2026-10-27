@@ -544,3 +544,31 @@ Ejecutar la transferencia reutiliza `inventory_service.register_transfer` (atóm
 4. Toasts muestran `res.message` del backend (sin textos hardcodeados).
 5. Marcar `[x]` en el checklist del CU en `docs/SECOND_PARTIAL_USE_CASES.md` y cambiar su estado a **Hecho** en la matriz (sección 3) y en `docs/SECOND_PARTIAL_PROJECT_CONTEXT.md` (sección 7).
 6. Commit por CU: `feat(<modulo>): <descripción en inglés>`.
+
+---
+
+## 10. Estado de implementación — Fase 0, pagos y delivery (actualizado 2026-10-27)
+
+> Sección mantenida por Claude Code. Commits en la rama `marilyn` (sin push). Cada punto tiene tests en `backend/tests/`.
+
+| Tema | Estado | Caso de uso | Archivos clave |
+|---|---|---|---|
+| Entrega de pedidos web pagados (P1) | ✅ | 1P-CU16 | `order_service.hand_over_order`, `POST /api/orders/{id}/hand-over`, `encargado/pages/orders-page` (también `cajero/orders`) |
+| Fecha de visita, límites y precio con descuento en reservas (R1, R3, R4) | ✅ | 1P-CU14 | `reservation_service.py` (`MAX_VISIT_DAYS_AHEAD`, `MAX_RESERVATION_UNITS`, `MAX_ACTIVE_RESERVATIONS`) |
+| Stock imposible bloqueado en BD (I1) | ✅ | CU11 | `models/inventory.py`, migración `0041` |
+| Middleware `X-Tenant-ID` / subdominio | ✅ | CU1 | `core/tenant_middleware.py`, `auth/dependencies.py` (`resolve_tenant_ref`) |
+| Moneda de la empresa (P2) | ✅ | CU1 | `order_service._new_order`, `sales_service` |
+| Carrito: una empresa por carrito (bug de autoflush) | ✅ | 1P-CU15 | `cart_service.refresh_cart_totals`, `cart-page`, móvil `catalog_page.dart` |
+| Cuenta recaudadora + liquidación diaria (D2) | ✅ | CU1, CU2 | `models/payout.py`, `services/payout_service.py`, `routes/payout_routes.py`, `admin/pages/admin-payouts-page`, `superadmin/pages/settlements-page` |
+| Pagos QR simulados (web, caja, móvil) | ✅ | 1P-CU16, 1P-CU18 | `services/qr_payment_service.py`, `routes/payment_routes.py` (`/payments/qr/...`), `shared/components/qr-payment-panel`, móvil `shared/widgets/qr_payment_dialog.dart` |
+| Anticipo 50 % no reembolsable (D1) | ✅ | 1P-CU14, 1P-CU17 | `reservation_service` (`pending_payment`, `complete_deposit_payment`, regla en `transition_reservation`), `/payments/qr/reservations/{id}`, `/payments/stripe/reservations/{id}`, `my-reservations-page`, móvil `reservations_page.dart` |
+| Delivery por distancia con repartidores de la plataforma | ✅ | CU20 | `services/delivery_service.py`, `routes/delivery_routes.py`, `delivery/pages/delivery-home-page`, `superadmin/pages/drivers-page`, `cart-page`, móvil `checkout_page.dart` |
+| Branding por empresa (logo, color) — 0.3 | ⏳ columnas creadas en `0041`; falta UI | CU1 | `models/tenant.py` |
+| Cupón en caja (CU15) | ⏳ | CU15 | `sales_schema.py`, `caja-page` |
+| Mensaje en español de recomendaciones (CU6) | ⏳ | CU6 | `recommendation_routes.py:29` |
+| Devoluciones con reembolso a tarjeta / efectivo (D3, D4) | ⏳ | CU21 | ver sección 1.7 |
+
+**Notas para quien continúe:**
+- La migración `0041` agrupa toda la Fase 0. Las bases que aplicaron una versión anterior de `0041` necesitan las columnas nuevas (`ALTER TABLE ... ADD COLUMN IF NOT EXISTS`).
+- `backend/tests/conftest.py::seeded_db` reconstruye el esquema `public` de la base desechable y corre el seed; no correr dos suites a la vez sobre la misma base de tests.
+- Móvil: el delivery usa latitud/longitud escritas a mano (no hay plugin de geolocalización); el anticipo se paga por QR.
