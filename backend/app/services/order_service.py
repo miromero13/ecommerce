@@ -23,6 +23,7 @@ from app.models.reservation import Reservation
 from app.models.size import Size
 from app.models.color import Color
 from app.models.stripe_event import StripeEvent
+from app.models.tenant import Tenant
 from app.schemas.cart_schema import CartStatusEnum
 from app.schemas.inventory_schema import InventoryMovementTypeEnum
 from app.schemas.order_schema import FulfillmentStatusEnum, OrderItemRead, OrderRead, OrderStatusEnum, PaymentMethodEnum, PaymentStatusEnum
@@ -152,6 +153,7 @@ def _new_order(db: Session, cart: Cart, user_id: UUID, branch_id: UUID, method: 
     if not branch or branch.tenant_id != cart.tenant_id:
         raise ValueError("Sucursal no encontrada")
     tenant_id = branch.tenant_id
+    currency = db.query(Tenant.currency).filter(Tenant.id == tenant_id).scalar().lower()
     validate_cart_company(db, cart, tenant_id)
     if cart.promotion_code_id:
         code = db.query(PromotionCode).filter(PromotionCode.id == cart.promotion_code_id).first()
@@ -177,7 +179,7 @@ def _new_order(db: Session, cart: Cart, user_id: UUID, branch_id: UUID, method: 
         subtotal=subtotal,
         discount_amount=discount,
         total_amount=max(subtotal - discount, Decimal("0.00")),
-        currency=settings.stripe_currency.lower(),
+        currency=currency,
     )
     db.add(order)
     db.flush()
@@ -234,7 +236,7 @@ def create_stripe_payment(db: Session, user_id: UUID, pickup_branch_id: UUID):
             raise ValueError("Stripe no está configurado")
         stripe.api_key = settings.stripe_secret_key
         amount = int((order.total_amount * Decimal("100")).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
-        intent = stripe.PaymentIntent.create(amount=amount, currency=settings.stripe_currency.lower(),
+        intent = stripe.PaymentIntent.create(amount=amount, currency=order.currency,
             metadata={"order_id": str(order.id)}, automatic_payment_methods={"enabled": True, "allow_redirects": "never"}, idempotency_key=attempt.idempotency_key)
         attempt.stripe_payment_intent_id = intent.id
         order.stripe_payment_intent_id = intent.id

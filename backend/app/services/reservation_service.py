@@ -25,9 +25,12 @@ from app.schemas.cart_schema import CartStatusEnum
 from app.schemas.order_schema import PaymentStatusEnum
 from app.services.cart_service import _get_mutable_cart, _serialize_cart, refresh_cart_totals, validate_cart_company
 from app.services.notification_service import notify_reservation_event
+from app.services.pricing_service import discounted_price
 
 
 MAX_VISIT_DAYS_AHEAD = 14
+MAX_RESERVATION_UNITS = 5
+MAX_ACTIVE_RESERVATIONS = 3
 ACTIVE_RESERVATION_STATUSES = {ReservationStatusEnum.pending, ReservationStatusEnum.confirmed}
 logger = logging.getLogger(__name__)
 VALID_RESERVATION_TRANSITIONS = {
@@ -268,12 +271,22 @@ def create_reservation(db: Session, user_id: UUID, payload: ReservationCreate):
     normalized_items: dict[UUID, int] = defaultdict(int)
     for item in payload.items:
         normalized_items[item.variant_id] += item.quantity
+    # Reservations hold stock for free until the visit; cap how much one customer can block.
+    if sum(normalized_items.values()) > MAX_RESERVATION_UNITS:
+        raise ValueError(f"Una reserva no puede superar las {MAX_RESERVATION_UNITS} prendas")
 
     branch = db.query(Branch).filter(Branch.id == payload.branch_id).first()
     if not branch:
         raise ValueError("Sucursal no encontrada")
     if hasattr(branch, "is_active") and not branch.is_active:
         raise ValueError("Sucursal inactiva")
+    active_count = db.query(Reservation).filter(
+        Reservation.user_id == user_id,
+        Reservation.tenant_id == branch.tenant_id,
+        Reservation.status.in_(ACTIVE_RESERVATION_STATUSES),
+    ).count()
+    if active_count >= MAX_ACTIVE_RESERVATIONS:
+        raise ValueError(f"Ya tienes {MAX_ACTIVE_RESERVATIONS} reservas activas; atiende o cancela una antes de crear otra")
 
     with db.begin_nested():
         reservation = Reservation(
@@ -309,15 +322,17 @@ def create_reservation(db: Session, user_id: UUID, payload: ReservationCreate):
                 raise ValueError("Variante no disponible para reserva")
 
             inventory.reserved_quantity = (inventory.reserved_quantity or 0) + quantity
+            # Same price the catalog and cart show (product discount applied).
+            unit_price = discounted_price(variant.price, variant.product.discount_type, variant.product.discount_value)
             db.add(
                 ReservationItem(
                     reservation_id=reservation.id,
                     variant_id=variant_id,
                     quantity=quantity,
-                    unit_price=variant.price,
+                    unit_price=unit_price,
                 )
             )
-            total_amount += Decimal(str(variant.price)) * quantity
+            total_amount += unit_price * quantity
 
         reservation.total_amount = total_amount
 
@@ -466,7 +481,8 @@ def transfer_reservation_to_cart(db: Session, user_id: UUID, reservation_id: UUI
                 variant_id=item.variant_id,
                 reservation_id=reservation.id,
                 quantity=item.quantity,
-                unit_price=item.unit_price,
+                # Cart lines keep the list price; the cart applies the discount itself.
+                unit_price=variant.price,
             ))
         cart.tenant_id = reservation.tenant_id
         reservation.cart_id = cart.id

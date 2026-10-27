@@ -83,3 +83,49 @@ def test_branch_staff_never_see_customer_pickup_code(market_api, api_db, market)
     for role in ("encargado", "cajero"):
         orders = call(market_api, market.staff[0, role], "GET", "/orders/branch")
         assert len(orders) == 1 and orders[0]["pickup_code"] is None
+
+
+def _visit(days=2):
+    return (date.today() + timedelta(days=days)).isoformat()
+
+
+def test_orders_and_sales_use_the_company_currency(market_api, api_db, market):
+    add(market_api, market)
+    order = call(market_api, market.customer, "POST", "/payments/cash/checkout", 201,
+                 json={"pickup_branch_id": str(market.branches[0].id)})
+    sale = call(market_api, market.staff[0, "cajero"], "POST", "/sales/", 201,
+                json={"items": [{"variant_id": str(market.own.variant.id), "quantity": 1}]})
+    assert order["currency"] == sale["currency"] == "bob"  # identities() companies default to BOB
+
+
+def test_reservation_price_applies_product_discount(market_api, api_db, market):
+    market.own.variant.product.discount_type = "fixed"
+    market.own.variant.product.discount_value = 5
+    api_db.commit()
+    reservation = call(market_api, market.customer, "POST", "/reservations/", 201, json={
+        "branch_id": str(market.branches[0].id), "visit_date": _visit(),
+        "items": [{"variant_id": str(market.own.variant.id), "quantity": 1}],
+    })
+    assert float(reservation["items"][0]["unit_price"]) == 20
+    assert float(reservation["total_amount"]) == 20
+
+
+def test_reservation_rejects_too_many_units(market_api, api_db, market):
+    rejected(market_api, api_db, market.customer, "POST", "/reservations/", 400,
+             "Una reserva no puede superar las 5 prendas", json={
+                 "branch_id": str(market.branches[0].id), "visit_date": _visit(),
+                 "items": [{"variant_id": str(market.own.variant.id), "quantity": 6}],
+             })
+
+
+def test_customer_active_reservations_are_capped(market_api, api_db, market):
+    from app.models.inventory import Inventory
+
+    api_db.query(Inventory).filter(Inventory.variant_id == market.own.variant.id).update({"quantity": 50})
+    api_db.commit()
+    body = {"branch_id": str(market.branches[0].id), "visit_date": _visit(),
+            "items": [{"variant_id": str(market.own.variant.id), "quantity": 1}]}
+    for _ in range(3):
+        call(market_api, market.customer, "POST", "/reservations/", 201, json=body)
+    rejected(market_api, api_db, market.customer, "POST", "/reservations/", 400,
+             "Ya tienes 3 reservas activas; atiende o cancela una antes de crear otra", json=body)

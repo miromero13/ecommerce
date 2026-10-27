@@ -13,6 +13,7 @@ from app.models.product_variant import ProductVariant
 from app.models.reservation import Reservation
 from app.models.reservation_item import ReservationItem
 from app.models.sale import Sale
+from app.models.tenant import Tenant
 from app.models.sale_item import SaleItem
 from app.models.size import Size
 from app.models.color import Color
@@ -172,7 +173,7 @@ def _create_sale_from_items(
         subtotal=Decimal("0.00"),
         discount_amount=Decimal("0.00"),
         total_amount=Decimal("0.00"),
-        currency="usd",
+        currency=db.query(Tenant.currency).filter(Tenant.id == tenant_id).scalar().lower(),
     )
     db.add(sale)
     db.flush()
