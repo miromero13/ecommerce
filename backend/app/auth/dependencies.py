@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from typing import Callable
@@ -12,7 +12,25 @@ from app.schemas.enums import RolEnum, TenantStatusEnum
 
 security = HTTPBearer()  # Simple Bearer auth
 
+def resolve_tenant_ref(db: Session, ref: str) -> UUID:
+    try:
+        condition = Tenant.id == UUID(ref)
+    except ValueError:
+        condition = Tenant.slug == ref.lower()
+    tenant_id = db.query(Tenant.id).filter(condition).scalar()
+    if tenant_id is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Empresa no encontrada")
+    return tenant_id
+
+
+def get_request_tenant_id(request: Request, db: Session = Depends(get_db)) -> UUID | None:
+    """Company selected by X-Tenant-ID or subdomain (see app.core.tenant_middleware)."""
+    ref = getattr(request.state, "tenant_ref", None)
+    return resolve_tenant_ref(db, ref) if ref else None
+
+
 def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
 ) -> User:
@@ -75,6 +93,13 @@ def get_current_user(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="La sucursal no existe o está inactiva en esta empresa",
                 )
+    # The JWT decides the company; a client-sent tenant may only confirm it.
+    tenant_ref = getattr(request.state, "tenant_ref", None)
+    if user.tenant_id is not None and tenant_ref and resolve_tenant_ref(db, tenant_ref) != user.tenant_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="El encabezado X-Tenant-ID no corresponde a tu empresa",
+        )
     return user
 
 

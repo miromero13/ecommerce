@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.routes import user_routes, auth, branch_routes, provider_routes, catalog_routes, garment_routes, inventory_routes, cart_routes, reservation_routes, order_routes, payment_routes, sales_routes, report_routes, dashboard_routes, promotion_routes, replenishment_routes, recommendation_routes, chatbot_routes, notification_routes, tenant_routes, subscription_routes
 from app.core.error_handlers import register_error_handlers
+from app.core.tenant_middleware import register_tenant_middleware
 from app.core.database import SessionLocal
 from app.services.expiration_service import run_daily_expiration
 from app.services.order_service import expire_due_orders
@@ -47,6 +48,9 @@ async def lifespan(_: FastAPI):
         await asyncio.gather(task, daily_task, return_exceptions=True)
 
 app = FastAPI(title="ACI", lifespan=lifespan)
+
+# Registered before CORS so CORS stays the outermost layer.
+register_tenant_middleware(app)
 
 # CORS
 app.add_middleware(

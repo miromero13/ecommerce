@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     stripe_webhook_secret: str | None = None
     stripe_publishable_key: str | None = None
     stripe_currency: str = "usd"
+    tenant_base_domain: str | None = None
     gemini_api_key: str | None = None
     gemini_model: str = "gemini-3.6-flash"
     gemini_garment_model: str | None = None

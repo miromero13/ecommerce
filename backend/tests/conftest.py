@@ -98,6 +98,8 @@ def api(api_db):
 
     app = FastAPI()
     register_error_handlers(app)
+    from app.core.tenant_middleware import register_tenant_middleware
+    register_tenant_middleware(app)
     for module in (branch_routes, catalog_routes, tenant_routes, user_routes):
         app.include_router(module.router, prefix="/api")
 

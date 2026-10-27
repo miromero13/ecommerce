@@ -319,7 +319,7 @@ No se crean casos de uso nuevos ni relaciones include/extend: cada tarea corrige
 
 ### Fase 0 – Orden de trabajo
 1. ✅ **P1** entrega de pedidos pagados con Stripe, **R1** validar `visit_date`, **I1** constraints de stock — *hecho 2026-10-27*: `POST /api/orders/{id}/hand-over` (cajero/encargado; `collect-cash` queda como alias), el personal ya no ve el código de retiro, ventana de visita hoy…+14 días (`MAX_VISIT_DAYS_AHEAD`), migración `0041` (constraints + campos de branding/Stripe Connect en `tenants`), página `cajero/orders`. Tests: `backend/tests/test_phase0_business_flows.py`.
-2. 0.1 + 0.2 middleware `X-Tenant-ID` (backend, front, móvil).
+2. ✅ 0.1 + 0.2 middleware `X-Tenant-ID` — *hecho 2026-10-27*: `backend/app/core/tenant_middleware.py` (header id/slug o subdominio `{slug}.TENANT_BASE_DOMAIN`), validación en `app/auth/dependencies.py` (`resolve_tenant_ref`, `get_request_tenant_id`; 403 si no coincide con el JWT, 404 si la empresa no existe), catálogo y sucursales públicas eligen la empresa por header, interceptor Angular envía `X-Tenant-ID` del personal. Móvil: sin cambio (sus usuarios son clientes globales sin `tenant_id`). Tests: `backend/tests/test_tenant_middleware.py`.
 3. **P2** moneda, **R4** precio con descuento en reservas, **R3** límites.
 4. **D2** Stripe Connect por empresa y luego **D1** anticipo 50 % no reembolsable (D1 usa D2).
 5. 0.3 branding + I1 (misma migración **0041**).

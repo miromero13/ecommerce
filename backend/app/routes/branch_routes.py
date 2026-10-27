@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from uuid import UUID
 
-from app.auth.dependencies import require_roles, get_current_branch_id, get_current_tenant_id
+from app.auth.dependencies import require_roles, get_current_branch_id, get_current_tenant_id, get_request_tenant_id
 from app.core.database import get_db
 from app.models.user import User
 from app.schemas.branch_schema import BranchCreate, BranchRead, BranchUpdate, BranchActiveUpdate
@@ -69,8 +69,9 @@ async def create_branch_route(
 async def list_public_branches_route(
     db: Session = Depends(get_db),
     tenant_id: UUID | None = Query(default=None),
+    request_tenant_id: UUID | None = Depends(get_request_tenant_id),
 ):
-    branches = get_branches(db, tenant_id=tenant_id)
+    branches = get_branches(db, tenant_id=tenant_id or request_tenant_id)
     branches_data = [BranchRead.model_validate(branch).model_dump() for branch in branches]
     return response(
         status_code=status.HTTP_200_OK,

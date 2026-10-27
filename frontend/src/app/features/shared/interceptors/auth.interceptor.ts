@@ -10,10 +10,13 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router);
 
   const token = session.getToken();
+  // Staff belong to one company (CU1); the backend rejects a mismatch with the JWT.
+  const tenantId = session.user()?.tenant_id;
   const request = token
     ? req.clone({
         setHeaders: {
           Authorization: `Bearer ${token}`,
+          ...(tenantId ? { 'X-Tenant-ID': tenantId } : {}),
         },
       })
     : req;
