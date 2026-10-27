@@ -30,11 +30,14 @@ import { getErrorMessage } from '../../../core/utils/http-error.util';
 import { PricingTableComponent } from '../../shared/components/pricing-table.component';
 import { PLAN_FEATURES, SubscriptionPlan, SubscriptionSummary } from '../../shared/models/subscription.model';
 import { SubscriptionApiService } from '../../shared/services/subscription-api.service';
+import { TenantBrandingEditorComponent } from '../../shared/components/tenant-branding-editor.component';
+import { SessionService } from '../../shared/services/session.service';
 
 @Component({
   selector: 'app-subscription-page',
   standalone: true,
   imports: [
+    TenantBrandingEditorComponent,
     CommonModule,
     FormsModule,
     NgIcon,
@@ -67,6 +70,7 @@ import { SubscriptionApiService } from '../../shared/services/subscription-api.s
 })
 export class SubscriptionPageComponent implements OnInit {
   private readonly subscriptionApi = inject(SubscriptionApiService);
+  protected readonly tenantId = inject(SessionService).user()?.tenant_id ?? null;
 
   readonly summary = signal<SubscriptionSummary | null>(null);
   readonly loading = signal<boolean>(true);

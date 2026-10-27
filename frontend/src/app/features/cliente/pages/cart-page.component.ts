@@ -14,6 +14,7 @@ import { HlmTable } from '../../../components/table/src';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
 import { requestWithToast } from '../../../core/utils/request-toast.util';
 import { downloadSimplePdf } from '../../../core/utils/simple-pdf.util';
+import { BrandingService } from '../../../core/services/branding.service';
 import { Cart } from '../../shared/models/cart.model';
 import { CatalogBranch } from '../../shared/models/catalog.model';
 import { CartApiService } from '../../shared/services/cart-api.service';
@@ -52,6 +53,7 @@ type StripeCheckout = {
   templateUrl: './cart-page.component.html',
 })
 export class CartPageComponent {
+  private readonly branding = inject(BrandingService);
   private readonly cartApi = inject(CartApiService);
   private readonly catalogApi = inject(CatalogApiService);
   private readonly checkoutApi = inject(CheckoutApiService);
@@ -236,8 +238,9 @@ export class CartPageComponent {
     return this.lastOrder() ? `Pedido #${this.lastOrder()!.id}` : 'Sin pedido todavía';
   }
 
-  protected downloadSalesNote(order: Order): void {
+  protected async downloadSalesNote(order: Order): Promise<void> {
     downloadSimplePdf({
+      brand: await this.branding.pdfBrand(order.tenant_id),
       filename: `nota-venta-${order.id}.pdf`,
       title: 'Nota de venta',
       generatedAt: new Date().toLocaleString('es-BO'),

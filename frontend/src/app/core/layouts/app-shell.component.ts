@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -22,6 +22,7 @@ import { CatalogApiService } from '../../features/shared/services/catalog-api.se
 import { SessionService } from '../../features/shared/services/session.service';
 import { ChatbotComponent } from '../../features/shared/components/chatbot.component';
 import { NotificationPushService } from '../../features/shared/services/notification-push.service';
+import { BrandingService } from '../services/branding.service';
 
 type SidebarItem = {
   label: string;
@@ -80,6 +81,12 @@ export class AppShellComponent {
   private readonly session = inject(SessionService);
   private readonly catalogApi = inject(CatalogApiService);
   protected readonly notifications = inject(NotificationPushService);
+  protected readonly branding = inject(BrandingService);
+  // CU1: staff see their company's logo, name and color; reloads when the session changes.
+  private readonly loadBranding = effect(() => {
+    const tenantId = this.session.user()?.tenant_id;
+    untracked(() => void this.branding.loadCurrent(tenantId));
+  });
 
   protected readonly branches = signal<CatalogBranch[]>([]);
 

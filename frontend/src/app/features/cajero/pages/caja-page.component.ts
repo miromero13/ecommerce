@@ -18,6 +18,7 @@ import { SessionService } from '../../shared/services/session.service';
 import { QrPaymentPanelComponent } from '../../shared/components/qr-payment-panel.component';
 import { QrPayment } from '../../shared/models/qr-payment.model';
 import { QrPaymentApiService } from '../../shared/services/qr-payment-api.service';
+import { BrandingService } from '../../../core/services/branding.service';
 
 type SelectedSaleItem = {
   variant_id: string;
@@ -41,6 +42,7 @@ type SelectedSaleItem = {
 export class CajaPageComponent {
   // QR sales: money lands in the platform account and reaches the company in the daily settlement.
   private readonly qrApi = inject(QrPaymentApiService);
+  protected readonly branding = inject(BrandingService); // loaded by the app shell for staff
   protected readonly paymentMethod = signal<'cash' | 'qr'>('cash');
   protected readonly saleQr = signal<QrPayment | null>(null);
   // CU15 in store: a coupon needs the registered customer's email (one use per customer).

@@ -426,6 +426,8 @@
             </div>
           </div>
 
+          <app-tenant-branding-editor [tenantId]="tenant.id" />
+
           <div class="flex items-center justify-between border-t border-border pt-4 shrink-0">
             <div class="text-[11px] text-muted-foreground">
               Registrado el: {{ tenant.created_at | date:'dd/MM/yyyy HH:mm' }}

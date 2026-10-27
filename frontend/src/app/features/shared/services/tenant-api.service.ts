@@ -9,6 +9,7 @@ import {
   TenantCreatePayload,
   TenantStatus,
   TenantUpdatePayload,
+  TenantBranding,
 } from '../models/tenant.model';
 
 @Injectable({ providedIn: 'root' })
@@ -57,6 +58,21 @@ export class TenantApiService {
     payload: TenantUpdatePayload,
   ): Observable<ApiResponse<Tenant>> {
     return this.api.patch<ApiResponse<Tenant>>(`/saas/tenants/${tenantId}`, payload);
+  }
+
+  getBranding(tenantId: string): Observable<ApiResponse<TenantBranding>> {
+    return this.api.get<ApiResponse<TenantBranding>>(`/saas/tenants/${tenantId}/branding`);
+  }
+
+  updateMyBranding(primaryColor: string | null): Observable<ApiResponse<TenantBranding>> {
+    return this.api.put<ApiResponse<TenantBranding>>('/saas/tenants/me/branding', { primary_color: primaryColor });
+  }
+
+  /** Company admin uploads its own logo; the superadmin passes the company id. */
+  uploadLogo(file: File, tenantId?: string): Observable<ApiResponse<TenantBranding>> {
+    const body = new FormData();
+    body.append('file', file);
+    return this.api.post<ApiResponse<TenantBranding>>(`/saas/tenants/${tenantId ?? 'me'}/logo`, body);
   }
 
   updateTenantStatus(

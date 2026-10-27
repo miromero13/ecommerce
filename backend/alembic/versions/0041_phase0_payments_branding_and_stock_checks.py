@@ -36,6 +36,7 @@ ORDER_DELIVERY_COLUMNS = (
 )
 TENANT_COLUMNS = (
     ("logo_url", sa.String(500)),
+    ("logo_public_id", sa.String(255)),
     ("primary_color", sa.String(7)),
     ("bank_name", sa.String(120)),
     ("bank_account_number", sa.String(40)),

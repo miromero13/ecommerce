@@ -11,7 +11,12 @@ from app.models.branch import Branch
 from app.models.tenant import Tenant
 from app.models.user import User
 from app.schemas.enums import TenantStatusEnum
-from app.schemas.tenant_schema import TenantCreate, TenantUpdate
+from app.core.config import settings
+from app.schemas.tenant_schema import TenantBrandingRead, TenantCreate, TenantUpdate
+from app.services.cloudinary_service import delete_image, upload_image
+
+LOGO_CONTENT_TYPES = {"image/png", "image/jpeg", "image/webp"}
+LOGO_MAX_BYTES = 2 * 1024 * 1024
 
 
 def _serialize_tenant(db: Session, tenant: Tenant) -> dict:
@@ -36,6 +41,8 @@ def _serialize_tenant(db: Session, tenant: Tenant) -> dict:
         "country": tenant.country,
         "status": tenant.status,
         "platform_fee_percent": tenant.platform_fee_percent,
+        "logo_url": tenant.logo_url,
+        "primary_color": tenant.primary_color,
         "created_at": tenant.created_at,
         "updated_at": tenant.updated_at,
         "branches_count": branches_count,
@@ -143,6 +150,9 @@ def update_tenant(db: Session, tenant_id: UUID, payload: TenantUpdate) -> dict |
     if payload.platform_fee_percent is not None:
         tenant.platform_fee_percent = payload.platform_fee_percent
 
+    if payload.primary_color is not None:
+        tenant.primary_color = payload.primary_color.lower()
+
     try:
         db.commit()
         db.refresh(tenant)
@@ -160,3 +170,40 @@ def update_tenant_status(db: Session, tenant_id: UUID, new_status: TenantStatusE
     db.commit()
     db.refresh(tenant)
     return _serialize_tenant(db, tenant)
+
+
+def _branding(tenant: Tenant) -> dict:
+    return TenantBrandingRead(tenant_id=tenant.id, name=tenant.name, logo_url=tenant.logo_url,
+                              primary_color=tenant.primary_color, currency=tenant.currency).model_dump()
+
+
+def get_branding(db: Session, tenant_id: UUID) -> dict | None:
+    tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+    return _branding(tenant) if tenant else None
+
+
+def update_branding_color(db: Session, tenant_id: UUID, primary_color: str | None) -> dict:
+    tenant = db.query(Tenant).filter(Tenant.id == tenant_id).one()
+    tenant.primary_color = primary_color.lower() if primary_color else None
+    db.commit()
+    return _branding(tenant)
+
+
+def update_tenant_logo(db: Session, tenant_id: UUID, content: bytes, content_type: str | None) -> dict | None:
+    """Validate at the upload boundary, store in Cloudinary, then drop the replaced logo."""
+    if content_type not in LOGO_CONTENT_TYPES:
+        raise ValueError("El logo debe ser una imagen PNG, JPG o WEBP")
+    if not content:
+        raise ValueError("El archivo del logo no puede estar vacío")
+    if len(content) > LOGO_MAX_BYTES:
+        raise ValueError("El logo no puede superar los 2 MB")
+    tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+    if not tenant:
+        return None
+    uploaded = upload_image(content, folder=f"{settings.cloudinary_folder}/tenants/{tenant.id}")
+    previous = tenant.logo_public_id
+    tenant.logo_url, tenant.logo_public_id = uploaded["image_url"], uploaded["image_public_id"]
+    db.commit()
+    if previous and previous != tenant.logo_public_id:
+        delete_image(previous)
+    return _branding(tenant)

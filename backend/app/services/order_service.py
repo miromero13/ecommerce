@@ -65,7 +65,7 @@ def _serialize_order(db: Session, order: Order) -> OrderRead:
         "image_url": row.image_url, "image_public_id": row.image_public_id,
     }).model_dump() for row in order.items]
     return OrderRead.model_validate({
-        "id": order.id, "user_id": order.user_id, "status": order.status, "payment_method": order.payment_method,
+        "id": order.id, "tenant_id": order.tenant_id, "user_id": order.user_id, "status": order.status, "payment_method": order.payment_method,
         "payment_status": order.payment_status, "stripe_payment_intent_id": order.stripe_payment_intent_id,
         "cash_reference": order.cash_reference, "pickup_branch_id": order.pickup_branch_id,
         "pickup_expires_at": order.pickup_expires_at, "pickup_code": order.pickup_code,

@@ -164,6 +164,13 @@
        @if (lastSale()) {
          <section hlmCard class="receipt-print bg-white shadow-sm">
           <div hlmCardContent class="space-y-3 p-4">
+            @if (branding.current(); as brand) {
+              <!-- CU1: company branding printed on the receipt. -->
+              <div class="flex items-center gap-3 border-b-4 pb-2" [style.border-color]="brand.primary_color || '#e2e8f0'">
+                @if (brand.logo_url) { <img [src]="brand.logo_url" alt="" class="h-10 w-auto object-contain" /> }
+                <p class="text-base font-bold text-slate-900">{{ brand.name }}</p>
+              </div>
+            }
             <div>
               <p class="text-xs uppercase tracking-wide text-slate-500">Comprobante</p>
               <p class="text-lg font-semibold text-slate-900">{{ saleLabel() }}</p>

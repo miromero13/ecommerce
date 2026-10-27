@@ -23,6 +23,7 @@ export interface OrderItem {
 
 export interface Order {
   id: string;
+  tenant_id?: string | null;
   user_id: string;
   status: 'pending' | 'paid' | 'failed' | 'cancelled';
   payment_method: PaymentMethodEnum;

@@ -32,11 +32,13 @@ import {
   CURRENCIES_LIST,
   CountryOption,
 } from '../../../core/utils/countries-data.util';
+import { TenantBrandingEditorComponent } from '../../shared/components/tenant-branding-editor.component';
 
 @Component({
   selector: 'app-tenant-management-page',
   standalone: true,
   imports: [
+    TenantBrandingEditorComponent,
     CommonModule,
     ReactiveFormsModule,
     NgIcon,

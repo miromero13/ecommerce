@@ -1,10 +1,15 @@
 <div hlmSidebarWrapper class="text-slate-900">
   <hlm-sidebar collapsible="icon" variant="inset" side="left">
-    <header hlmSidebarHeader class="flex h-16 items-start justify-center border-b border-slate-200 px-4">
+    <!-- CU1: the staff member's company branding (falls back to the platform name). -->
+    <header hlmSidebarHeader class="flex h-16 items-start justify-center border-b border-slate-200 px-4"
+            [style.border-top]="branding.current()?.primary_color ? '4px solid ' + branding.current()!.primary_color : null">
       <div class="flex items-center gap-3 text-primary group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0">
         <button hlmSidebarTrigger type="button" aria-label="Abrir o cerrar navegación"></button>
-        <div class="min-w-0 group-data-[collapsible=icon]:hidden">
-          <p class="truncate text-lg font-semibold">ACI Web</p>
+        <div class="flex min-w-0 items-center gap-2 group-data-[collapsible=icon]:hidden">
+          @if (branding.current()?.logo_url) {
+            <img [src]="branding.current()!.logo_url" alt="" class="size-8 shrink-0 rounded object-contain" />
+          }
+          <p class="truncate text-lg font-semibold" [style.color]="branding.current()?.primary_color">{{ branding.current()?.name ?? 'ACI Web' }}</p>
         </div>
       </div>
     </header>

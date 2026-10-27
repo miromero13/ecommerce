@@ -12,6 +12,17 @@ export interface Tenant {
   updated_at: string;
   branches_count: number;
   users_count: number;
+  logo_url?: string | null;
+  primary_color?: string | null;
+}
+
+/** CU1 company branding shown in the staff panel and on receipts. */
+export interface TenantBranding {
+  tenant_id: string;
+  name: string;
+  logo_url: string | null;
+  primary_color: string | null;
+  currency: string;
 }
 
 export interface TenantCreatePayload {
@@ -30,4 +41,5 @@ export interface TenantUpdatePayload {
   currency?: string;
   country?: string;
   status?: TenantStatus;
+  primary_color?: string;
 }

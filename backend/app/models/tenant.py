@@ -21,6 +21,7 @@ class Tenant(Base):
     currency = Column(String(10), nullable=False, default="BOB")
     country = Column(String(80), nullable=True, default="Bolivia")
     logo_url = Column(String(500), nullable=True)
+    logo_public_id = Column(String(255), nullable=True)  # Cloudinary id, to delete a replaced logo
     primary_color = Column(String(7), nullable=True)
     # Online payments land in the platform account; settlements pay this bank account daily.
     bank_name = Column(String(120), nullable=True)

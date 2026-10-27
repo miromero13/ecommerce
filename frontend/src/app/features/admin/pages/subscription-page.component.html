@@ -32,6 +32,9 @@
     </div>
   </div>
 
+  <!-- CU1 branding: logo and color of the company -->
+  <app-tenant-branding-editor [currentTenantId]="tenantId" />
+
   <!-- Error State -->
   <div *ngIf="!loading() && error()" class="p-6 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive">
     <div class="flex items-center gap-3">

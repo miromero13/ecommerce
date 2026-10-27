@@ -68,6 +68,7 @@ class OrderItemRead(BaseModel):
 
 class OrderRead(BaseModel):
     id: UUID
+    tenant_id: UUID | None = None
     user_id: UUID
     status: OrderStatusEnum
     payment_method: PaymentMethodEnum

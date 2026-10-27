@@ -6,6 +6,7 @@ import { HlmButton } from '../../../components/button/src';
 import { HlmCardImports } from '../../../components/card/src';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
 import { downloadSimplePdf } from '../../../core/utils/simple-pdf.util';
+import { BrandingService } from '../../../core/services/branding.service';
 import { CheckoutApiService } from '../../shared/services/checkout-api.service';
 import { DeliveryApiService } from '../../shared/services/delivery-api.service';
 import { Order, FulfillmentStatusEnum } from '../../shared/models/order.model';
@@ -17,6 +18,7 @@ import { Order, FulfillmentStatusEnum } from '../../shared/models/order.model';
   templateUrl: './orders-page.component.html',
 })
 export class OrdersPageComponent {
+  private readonly branding = inject(BrandingService);
   private readonly api = inject(CheckoutApiService);
   private readonly deliveryApi = inject(DeliveryApiService);
   protected readonly orders = signal<Order[]>([]);
@@ -31,8 +33,9 @@ export class OrdersPageComponent {
     return { pending_pickup: 'En preparación', ready_for_pickup: 'Listo', collected: 'Cobrado', in_transit: 'En camino', delivered: 'Entregado', expired: 'Expirado', cancelled: 'Cancelado' }[status];
   }
 
-  protected downloadSalesNote(order: Order): void {
+  protected async downloadSalesNote(order: Order): Promise<void> {
     downloadSimplePdf({
+      brand: await this.branding.pdfBrand(order.tenant_id),
       filename: `nota-venta-${order.id}.pdf`,
       title: 'Nota de venta',
       generatedAt: new Date().toLocaleString('es-BO'),
