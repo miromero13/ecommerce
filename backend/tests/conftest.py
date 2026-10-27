@@ -43,6 +43,12 @@ def seeded_db():
     from alembic import command
     from alembic.config import Config
 
+    from sqlalchemy import create_engine
+
+    engine = create_engine(guarded_url())
+    with engine.begin() as connection:  # fresh schema: always exercise the current migrations
+        connection.exec_driver_sql("DROP SCHEMA public CASCADE; CREATE SCHEMA public")
+    engine.dispose()
     root = Path(__file__).parents[1]
     command.upgrade(Config(str(root / "alembic.ini")), "head")
     importlib.import_module("seed").main()

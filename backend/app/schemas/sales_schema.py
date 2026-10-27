@@ -28,14 +28,15 @@ class SaleCreate(BaseModel):
     reservation_id: UUID | None = None
     payment_method: PaymentMethodEnum = PaymentMethodEnum.cash
     cash_reference: str | None = None
+    qr_reference: str | None = None  # required when payment_method is "qr"
     items: list[SaleItemCreate] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def validate_items_or_reservation(self):
         if self.reservation_id:
             raise ValueError("CU18 no permite ventas asociadas a reservas")
-        if self.payment_method != PaymentMethodEnum.cash:
-            raise ValueError("Las ventas directas solo aceptan efectivo")
+        if self.payment_method not in (PaymentMethodEnum.cash, PaymentMethodEnum.qr):
+            raise ValueError("Las ventas directas aceptan efectivo o QR")
         if not self.items:
             raise ValueError("La venta no tiene items")
         return self

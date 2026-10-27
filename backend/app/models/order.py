@@ -36,6 +36,7 @@ class Order(Base):
     delivery_longitude = Column(Numeric(9, 6), nullable=True)
     delivery_distance_km = Column(Numeric(6, 2), nullable=True)
     shipping_cost = Column(Numeric(10, 2), nullable=False, default=0, server_default="0")
+    deposit_applied = Column(Numeric(10, 2), nullable=False, default=0, server_default="0")  # D1 reservation deposits
     delivery_pin = Column(String(4), nullable=True)
     delivery_driver_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True, index=True)
     delivered_at = Column(DateTime(timezone=True), nullable=True)

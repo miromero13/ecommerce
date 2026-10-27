@@ -85,6 +85,7 @@ class OrderRead(BaseModel):
     currency: str
     fulfillment_type: str = "pickup"
     shipping_cost: Decimal = Decimal("0")
+    deposit_applied: Decimal = Decimal("0")
     delivery_address: str | None = None
     delivery_distance_km: Decimal | None = None
     delivered_at: datetime | None = None

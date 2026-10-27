@@ -253,11 +253,31 @@ def _create_sale_from_items(
     return sale
 
 
+def quote_sale_total(db: Session, user_id: UUID, payload: SaleCreate, branch_id: UUID, tenant_id: UUID) -> Decimal:
+    """Exact total of a would-be sale (same rules as create_sale), computed and rolled back."""
+    normalized_items = _resolve_items(db, payload, branch_id)
+    savepoint = db.begin_nested()
+    try:
+        return _create_sale_from_items(db, branch_id, user_id, payload, normalized_items, tenant_id=tenant_id).total_amount
+    finally:
+        savepoint.rollback()
+
+
 def create_sale(db: Session, user_id: UUID, payload: SaleCreate, branch_id: UUID, tenant_id: UUID | None = None):
+    from app.services.payout_service import record_payment
+    from app.services.qr_payment_service import consume_sale_qr
+
+    if payload.payment_method == PaymentMethodEnum.qr and not payload.qr_reference:
+        raise ValueError("Genera y cobra el código QR antes de registrar la venta")
     try:
         normalized_items = _resolve_items(db, payload, branch_id)
         with db.begin_nested():
             sale = _create_sale_from_items(db, branch_id, user_id, payload, normalized_items, tenant_id=tenant_id)
+            if payload.payment_method == PaymentMethodEnum.qr:
+                # QR money lands in the platform account and reaches the company in the settlement.
+                consume_sale_qr(db, payload.qr_reference, tenant_id=tenant_id, branch_id=branch_id,
+                                amount=sale.total_amount, sale_id=sale.id)
+                record_payment(db, tenant_id, "sale", sale.id, "qr", sale.total_amount, sale.currency, payload.qr_reference)
         db.commit()
         db.refresh(sale)
         for variant_id in normalized_items:

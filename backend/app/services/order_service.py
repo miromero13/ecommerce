@@ -73,6 +73,7 @@ def _serialize_order(db: Session, order: Order) -> OrderRead:
         "discount_amount": order.discount_amount, "promotion_code_id": order.promotion_code_id,
         "total_amount": order.total_amount, "currency": order.currency,
         "fulfillment_type": order.fulfillment_type, "shipping_cost": order.shipping_cost,
+        "deposit_applied": order.deposit_applied,
         "delivery_address": order.delivery_address, "delivery_distance_km": order.delivery_distance_km,
         "delivered_at": order.delivered_at,
         "created_at": order.created_at, "updated_at": order.updated_at, "items": items,
@@ -173,7 +174,12 @@ def _new_order(db: Session, cart: Cart, user_id: UUID, branch_id: UUID, method: 
     _reserve_inventory(db, rows, branch_id, user_id, tenant_id, cart.id)
     subtotal = sum(Decimal(str(row.original_unit_price)) * row.quantity for row in rows)
     discount = Decimal(str(cart.discount_amount or 0))
-    expires = datetime.now(timezone.utc) + timedelta(minutes=STRIPE_RESERVATION_MINUTES if method == PaymentMethodEnum.stripe else CASH_RESERVATION_HOURS * 60)
+    # D1: deposits already paid for the reserved lines count toward this order.
+    reservation_ids = {row.reservation_id for row in rows if row.reservation_id}
+    deposit_credit = sum((r.deposit_amount for r in db.query(Reservation).filter(
+        Reservation.id.in_(reservation_ids), Reservation.deposit_status == "paid")), Decimal("0.00"))
+    # Online payments (card, QR) hold stock briefly; cash at pickup holds it for a day.
+    expires = datetime.now(timezone.utc) + timedelta(minutes=CASH_RESERVATION_HOURS * 60 if method == PaymentMethodEnum.cash else STRIPE_RESERVATION_MINUTES)
     order = Order(
         tenant_id=tenant_id,
         user_id=user_id,
@@ -187,7 +193,8 @@ def _new_order(db: Session, cart: Cart, user_id: UUID, branch_id: UUID, method: 
         fulfillment_status=FulfillmentStatusEnum.pending_pickup,
         subtotal=subtotal,
         discount_amount=discount,
-        total_amount=max(subtotal - discount, Decimal("0.00")) + (quote["shipping_cost"] if quote else Decimal("0.00")),
+        total_amount=max(subtotal - discount - deposit_credit, Decimal("0.00")) + (quote["shipping_cost"] if quote else Decimal("0.00")),
+        deposit_applied=min(deposit_credit, max(subtotal - discount, Decimal("0.00"))),
         currency=currency,
     )
     if quote:
@@ -227,6 +234,61 @@ def checkout_cash(db: Session, user_id: UUID, pickup_branch_id: UUID, delivery=N
     except Exception:
         db.rollback()
         raise
+
+
+def checkout_qr(db: Session, user_id: UUID, pickup_branch_id: UUID, delivery=None):
+    """Create the order and a QR for its total; the bank confirmation completes it."""
+    from app.services.qr_payment_service import create_qr, serialize
+
+    try:
+        expire_due_orders(db)
+        cart = _locked_cart(db, user_id)
+        if cart.status == CartStatusEnum.checkout_pending:
+            raise ValueError("El carrito tiene un checkout pendiente")
+        order = _new_order(db, cart, user_id, pickup_branch_id, PaymentMethodEnum.qr, delivery)
+        qr = create_qr(db, tenant_id=order.tenant_id, purpose="order", amount=order.total_amount,
+                       currency=order.currency, created_by=user_id, source_id=order.id)
+        qr.expires_at = order.pickup_expires_at
+        db.commit()
+        db.refresh(order)
+        return _serialize_order(db, order).model_dump(), serialize(qr)
+    except Exception:
+        db.rollback()
+        raise
+
+
+def create_deposit_stripe_payment(db: Session, user_id: UUID, reservation_id: UUID):
+    """Card payment of the D1 reservation deposit, collected by the platform account."""
+    from app.services.reservation_service import get_deposit_reservation
+
+    reservation = get_deposit_reservation(db, user_id, reservation_id)
+    if not settings.stripe_secret_key:
+        raise ValueError("No se pudo iniciar el pago con Stripe: Stripe no está configurado")
+    import stripe
+
+    stripe.api_key = settings.stripe_secret_key
+    if reservation.stripe_payment_intent_id:
+        intent = stripe.PaymentIntent.retrieve(reservation.stripe_payment_intent_id)
+    else:
+        currency = db.query(Tenant.currency).filter(Tenant.id == reservation.tenant_id).scalar().lower()
+        intent = stripe.PaymentIntent.create(
+            amount=int((reservation.deposit_amount * 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP)),
+            currency=currency, metadata={"reservation_id": str(reservation.id)},
+            automatic_payment_methods={"enabled": True, "allow_redirects": "never"},
+            idempotency_key=f"deposit-{reservation.id}",
+        )
+        reservation.stripe_payment_intent_id = intent.id
+        db.commit()
+    return intent.client_secret, intent.id
+
+
+def complete_qr_order(db: Session, qr) -> None:
+    order = db.query(Order).filter(Order.id == qr.source_id).with_for_update().first()
+    if (not order or order.payment_method != PaymentMethodEnum.qr
+            or order.payment_status != PaymentStatusEnum.pending
+            or order.fulfillment_status != FulfillmentStatusEnum.pending_pickup):
+        raise ValueError("El pedido ya no está disponible para pago")
+    _consume_order(db, order)
 
 
 def create_stripe_payment(db: Session, user_id: UUID, pickup_branch_id: UUID, delivery=None):
@@ -507,6 +569,17 @@ def process_stripe_event(db: Session, event) -> None:
     except IntegrityError:
         return
     data = event["data"]["object"]
+    reservation_id = (data.get("metadata") or {}).get("reservation_id")
+    if reservation_id:
+        if event["type"] == "payment_intent.succeeded":
+            from app.services.reservation_service import complete_deposit_payment
+            reservation = db.query(Reservation).filter(Reservation.stripe_payment_intent_id == data.get("id")).first()
+            if not reservation or str(reservation.id) != reservation_id or data.get("amount") != int(
+                    (reservation.deposit_amount * 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP)):
+                raise ValueError("El PaymentIntent no coincide con el anticipo de la reserva")
+            complete_deposit_payment(db, reservation.id, "card", data.get("id"))
+        db.commit()
+        return
     order = db.query(Order).filter(Order.stripe_payment_intent_id == data.get("id")).with_for_update().first()
     if order and order.payment_method == PaymentMethodEnum.stripe and order.payment_status == PaymentStatusEnum.pending:
         if event["type"] == "payment_intent.succeeded":

@@ -84,6 +84,7 @@ def upgrade() -> None:
         op.add_column("orders", sa.Column(name, column_type, nullable=True))
     op.add_column("orders", sa.Column("fulfillment_type", sa.String(10), nullable=False, server_default="pickup"))
     op.add_column("orders", sa.Column("shipping_cost", sa.Numeric(10, 2), nullable=False, server_default="0"))
+    op.add_column("orders", sa.Column("deposit_applied", sa.Numeric(10, 2), nullable=False, server_default="0"))
     op.add_column("orders", sa.Column("delivery_driver_id", UUID(as_uuid=True), sa.ForeignKey("users.id"), nullable=True))
     op.create_index("ix_orders_delivery_driver_id", "orders", ["delivery_driver_id"])
 
@@ -144,7 +145,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_index("ix_orders_delivery_driver_id", table_name="orders")
-    for name in ("delivery_driver_id", "shipping_cost", "fulfillment_type", *(n for n, _ in ORDER_DELIVERY_COLUMNS)):
+    for name in ("delivery_driver_id", "deposit_applied", "shipping_cost", "fulfillment_type", *(n for n, _ in ORDER_DELIVERY_COLUMNS)):
         op.drop_column("orders", name)
     op.drop_column("branches", "longitude")
     op.drop_column("branches", "latitude")

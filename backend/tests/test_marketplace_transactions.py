@@ -114,10 +114,14 @@ def add(api, market, group=None, branch=None):
 def reserve(api, market, group=None, branch=None):
     group = group or market.own
     branch = branch or market.branches[0]
-    return call(api, market.customer, "POST", "/reservations/", 201, json={
+    reservation = call(api, market.customer, "POST", "/reservations/", 201, json={
         "branch_id": str(branch.id), "visit_date": (date.today() + timedelta(days=2)).isoformat(),
         "items": [{"variant_id": str(group.variant.id), "quantity": 1}],
     })
+    # D1: the reservation holds the visit once its 50 % deposit is paid (here by simulated QR).
+    qr = call(api, market.customer, "POST", f"/payments/qr/reservations/{reservation['id']}", 201)
+    call(api, market.customer, "POST", f"/payments/qr/{qr['reference']}/simulate-payment")
+    return call(api, market.customer, "GET", f"/reservations/{reservation['id']}")
 
 
 def purchase_pending(api, market, group=None, index=0):
@@ -453,7 +457,9 @@ def test_reserved_lifecycle_cash_purchase_reuses_cart_across_companies(market_ap
         assert_tenant(api_db, "orders", order["id"], group.tenant)
         assert order["pickup_branch_id"] == str(market.branches[index].id)
         assert [item["variant_id"] for item in order["items"]] == [str(group.variant.id)]
-        assert Decimal(order["total_amount"]) == 20
+        # 25 list price - 5 coupon - 12.50 paid reservation deposit (D1).
+        assert Decimal(str(order["deposit_applied"])) == Decimal("12.50")
+        assert Decimal(order["total_amount"]) == Decimal("7.50")
         assert stock(api_db, group.variant, market.branches[index]) == (9, 3)
         paid = call(market_api, market.staff[index, "cajero"], "POST", f"/orders/{order['id']}/collect-cash",
                     expected_message="Pedido cobrado y entregado", json={"pickup_code": order["pickup_code"]})

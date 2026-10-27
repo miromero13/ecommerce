@@ -31,3 +31,7 @@ class StripeCheckoutResponse(BaseModel):
 
 class CollectCashRequest(BaseModel):
     pickup_code: str
+
+
+class QrWebhook(BaseModel):
+    reference: str
