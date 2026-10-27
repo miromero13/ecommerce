@@ -563,12 +563,83 @@ Ejecutar la transferencia reutiliza `inventory_service.register_transfer` (atóm
 | Pagos QR simulados (web, caja, móvil) | ✅ | 1P-CU16, 1P-CU18 | `services/qr_payment_service.py`, `routes/payment_routes.py` (`/payments/qr/...`), `shared/components/qr-payment-panel`, móvil `shared/widgets/qr_payment_dialog.dart` |
 | Anticipo 50 % no reembolsable (D1) | ✅ | 1P-CU14, 1P-CU17 | `reservation_service` (`pending_payment`, `complete_deposit_payment`, regla en `transition_reservation`), `/payments/qr/reservations/{id}`, `/payments/stripe/reservations/{id}`, `my-reservations-page`, móvil `reservations_page.dart` |
 | Delivery por distancia con repartidores de la plataforma | ✅ | CU20 | `services/delivery_service.py`, `routes/delivery_routes.py`, `delivery/pages/delivery-home-page`, `superadmin/pages/drivers-page`, `cart-page`, móvil `checkout_page.dart` |
-| Branding por empresa (logo, color) — 0.3 | ⏳ columnas creadas en `0041`; falta UI | CU1 | `models/tenant.py` |
-| Cupón en caja (CU15) | ⏳ | CU15 | `sales_schema.py`, `caja-page` |
-| Mensaje en español de recomendaciones (CU6) | ⏳ | CU6 | `recommendation_routes.py:29` |
+| Branding por empresa (logo, color) — 0.3 | ✅ | CU1 | `tenant_service` (`update_tenant_logo`, `get_branding`), `tenant_routes` (`/branding`, `/me/branding`, `/me/logo`, `/{id}/logo`), `core/services/branding.service.ts`, `shared/components/tenant-branding-editor`, `app-shell`, `simple-pdf.util` |
+| Cupón en caja (CU15) | ✅ | CU15 | `sales_service._apply_cashier_coupon`, `sales.customer_id` / `sales.promotion_code_id`, `caja-page` |
+| Mensaje en español de recomendaciones (CU6) | ✅ | CU6 | `recommendation_routes.py` |
+| Anticipo con tarjeta (web y móvil) | ✅ | 1P-CU14 | `shared/components/stripe-card-payment`, `my-reservations-page`, móvil `reservations_page.dart` |
+| Ubicación automática en el móvil | ✅ | CU20 | `checkout_page.dart` (`_useMyLocation`), permisos en `AndroidManifest.xml` e `Info.plist` |
 | Devoluciones con reembolso a tarjeta / efectivo (D3, D4) | ⏳ | CU21 | ver sección 1.7 |
 
 **Notas para quien continúe:**
 - La migración `0041` agrupa toda la Fase 0. Las bases que aplicaron una versión anterior de `0041` necesitan las columnas nuevas (`ALTER TABLE ... ADD COLUMN IF NOT EXISTS`).
 - `backend/tests/conftest.py::seeded_db` reconstruye el esquema `public` de la base desechable y corre el seed; no correr dos suites a la vez sobre la misma base de tests.
-- Móvil: el delivery usa latitud/longitud escritas a mano (no hay plugin de geolocalización); el anticipo se paga por QR.
+- Móvil: el delivery toma la ubicación del GPS (`geolocator`, botón "Usar mi ubicación") o latitud/longitud manual; el anticipo se paga por QR o con tarjeta (Stripe PaymentSheet).
+
+## 11. Referencia para la documentación (reglas, endpoints, pantallas y pruebas)
+
+### 11.1 Reglas de negocio implementadas
+| Código | Regla | Dónde se aplica |
+|---|---|---|
+| RN-01 | Un carrito pertenece a **una sola empresa**; agregar una prenda de otra empresa pide pagar o vaciar el carrito pendiente. | `cart_service.validate_cart_company` |
+| RN-02 | La fecha de visita de una reserva está entre hoy y **14 días**; máximo **5 prendas** por reserva y **3 reservas activas** por cliente y empresa. | `reservation_service.create_reservation` |
+| RN-03 | Toda reserva exige un **anticipo del 50 %** pagado en línea (QR o tarjeta) en **30 minutos**; si no, vence y libera el stock. | `reservation_service` (`pending_payment`) |
+| RN-04 | El anticipo **no es reembolsable**: cancelar, no presentarse o no comprar lo pierde; al comprar las prendas se descuenta del pedido. | `reservation_service.transition_reservation`, `order_service._new_order` |
+| RN-05 | Todo cobro en línea (tarjeta, QR, efectivo cobrado por el repartidor) entra a la **cuenta de la plataforma** y se registra por empresa con la comisión. | `payout_service.record_payment` |
+| RN-06 | Cada día se genera **una liquidación por empresa** con lo cobrado el día anterior; el superadministrador registra la transferencia bancaria. | `payout_service.run_daily_settlements`, `mark_settlement_paid` |
+| RN-07 | El efectivo en caja y el efectivo al retirar en tienda **no** pasan por la plataforma. | `order_service._consume_order`, `sales_service` |
+| RN-08 | Envío a domicilio: **8 Bs + 2,5 Bs/km** (distancia Haversine desde la sucursal), cobertura máxima **15 km**. | `delivery_service.shipping_quote`, `config.delivery_*` |
+| RN-09 | Los repartidores son **de la plataforma** (sin empresa ni sucursal) y toman pedidos listos de cualquier empresa; uno por pedido. | `delivery_service.claim_order`, `auth/dependencies.py` |
+| RN-10 | La entrega a domicilio se confirma con el **PIN de 4 dígitos** del cliente; el retiro en tienda, con el código de retiro (nunca visible para el personal). | `delivery_service.confirm_delivery`, `order_service.hand_over_order` |
+| RN-11 | Un cupón es de **un uso por cliente** y no se combina con productos en oferta; en caja exige el correo de un cliente registrado. | `promotion_service.validate_for_user`, `sales_service._apply_cashier_coupon` |
+| RN-12 | Un QR de caja cubre un **total exacto**: si cambian las prendas, el cupón o el cliente, se descarta; un QR no se reutiliza. | `qr_payment_service.consume_sale_qr`, `caja-page` |
+| RN-13 | El logo de la empresa es PNG/JPG/WEBP de hasta **2 MB**; el color es hexadecimal (`#RRGGBB`). | `tenant_service.update_tenant_logo`, `tenant_schema.HEX_COLOR` |
+| RN-14 | El personal solo opera sobre su empresa: un `X-Tenant-ID` distinto al del JWT se rechaza (403). | `auth/dependencies.get_current_user` |
+| RN-15 | El stock nunca es negativo ni hay más apartado que existencias (restricciones en la base de datos). | `models/inventory.py`, migración `0041` |
+
+### 11.2 Endpoints nuevos o modificados (prefijo `/api`)
+| Método y ruta | Rol | Uso |
+|---|---|---|
+| `POST /orders/{id}/hand-over` | cajero, encargado | Entregar pedido web (cobra si es efectivo) con el código de retiro |
+| `GET /payouts/summary` · `PUT /payouts/bank-account` | administrador | Saldo por transferir, movimientos y cuenta bancaria de la empresa |
+| `GET /payouts/settlements` | administrador, superadmin | Liquidaciones (el admin solo ve las suyas) |
+| `POST /payouts/settlements/run` · `PATCH /payouts/settlements/{id}/paid` | superadmin | Generar liquidaciones y registrar la transferencia |
+| `POST /payments/qr/checkout` | cliente | Pedido web pagado por QR |
+| `POST /payments/qr/sale-intent` | cajero | QR por el total exacto de una venta de caja |
+| `POST /payments/qr/reservations/{id}` · `POST /payments/stripe/reservations/{id}` | cliente | Pagar el anticipo por QR o tarjeta |
+| `GET /payments/qr/{ref}` · `POST /payments/qr/{ref}/simulate-payment` | creador o personal de la empresa | Estado del QR y confirmación simulada (modo demo `QR_SANDBOX`) |
+| `POST /payments/qr/webhook` | banco (encabezado `X-QR-Webhook-Secret`) | Aviso real de pago QR |
+| `POST /delivery/quotes` · `GET /delivery/my-orders` | cliente | Cotizar envío; envíos y PIN |
+| `GET /delivery/available` · `POST /delivery/orders/{id}/claim` · `GET /delivery/routes` · `POST /delivery/confirm-delivery` | repartidor | Bolsa de pedidos, tomar, hoja de ruta, entregar con PIN |
+| `GET/POST /delivery/drivers` | superadmin | Registrar repartidores de la plataforma |
+| `GET /saas/tenants/{id}/branding` | público | Logo, color y nombre de una empresa |
+| `PUT /saas/tenants/me/branding` · `POST /saas/tenants/me/logo` | administrador | Color y logo de su empresa |
+| `PATCH /saas/tenants/{id}` (`primary_color`, `platform_fee_percent`) · `POST /saas/tenants/{id}/logo` | superadmin | Marca y comisión de cualquier empresa |
+| `POST /sales/` (`payment_method: qr`, `qr_reference`, `promotion_code`, `customer_email`) | cajero | Venta en caja con QR y/o cupón |
+
+### 11.3 Pantallas
+| Rol | Ruta | Contenido |
+|---|---|---|
+| Cliente | `/app/cliente/cart` | Retiro o envío, cotización por distancia, pago en efectivo, tarjeta o QR |
+| Cliente | `/app/cliente/my-reservations` | Pago del anticipo (QR o tarjeta), estado del anticipo |
+| Cliente | `/app/cliente/orders` | Estado del envío, PIN, nota de venta PDF con la marca de la tienda |
+| Cajero | `/app/cajero/caja` | Efectivo o QR, cupón con correo del cliente, comprobante con la marca |
+| Cajero / encargado | `/app/cajero/orders`, `/app/encargado/orders` | Entregar pedidos web con código de retiro; despachar envíos |
+| Repartidor | `/app/delivery` | Bolsa de pedidos de todas las empresas y hoja de ruta con PIN |
+| Administrador | `/app/admin/payouts` | Cuenta bancaria, saldo, liquidaciones y movimientos |
+| Administrador | `/app/admin/subscription` | Marca de la empresa (logo y color) |
+| Superadmin | `/app/superadmin/settlements`, `/drivers`, `/tenants` | Liquidaciones, repartidores, marca y comisión por empresa |
+| Móvil | Checkout, Mis pedidos, Mis reservas | Mismas funciones para el cliente; GPS para la dirección |
+
+### 11.4 Pruebas automatizadas (backend, `pytest`)
+| Archivo | Qué verifica |
+|---|---|
+| `test_phase0_business_flows.py` | Entrega de pedidos, ventana de visita, stock imposible, moneda, precio con descuento, límites, carrito por empresa (con `autoflush=False` como producción), mensaje en español |
+| `test_tenant_middleware.py` | `X-Tenant-ID` / subdominio, 403 por empresa ajena, 404 empresa inexistente |
+| `test_payouts.py` | Libro de cobros con comisión, efectivo fuera del libro, liquidación diaria idempotente, transferencia y cuenta bancaria |
+| `test_qr_payments.py` | QR web y de caja, no reutilización, webhook con secreto |
+| `test_reservation_deposit.py` | Anticipo 50 %, vencimiento, pérdida al cancelar, webhook de tarjeta, PaymentIntent del anticipo |
+| `test_delivery.py` | Cotización y cobertura, flujo efectivo contra entrega entre empresas, PIN, repartidor sin acceso a datos de empresas |
+| `test_cashier_coupon.py` | Cupón en caja con cliente identificado, un uso, sin combinar con ofertas, QR con cupón |
+| `test_tenant_branding.py` | Marca pública, color y logo con validación, reemplazo de logo, edición por superadmin |
+
+Ejecución: `CU1_TEST_DATABASE_URL=postgresql://postgres:cu1-disposable-only@127.0.0.1:53419/cu1_test pytest` (base desechable; nunca la de desarrollo).
