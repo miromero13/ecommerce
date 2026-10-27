@@ -230,6 +230,11 @@ export const routes: Routes = [
                 (m) => m.PlanManagementPageComponent,
               ),
           },
+          {
+            path: 'drivers',
+            loadComponent: () =>
+              import('./features/superadmin/pages/drivers-page.component').then((m) => m.DriversPageComponent),
+          },
         ],
       },
       {

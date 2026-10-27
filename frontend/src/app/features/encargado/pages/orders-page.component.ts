@@ -40,6 +40,7 @@ export class EncargadoOrdersPageComponent {
 
   // Cash orders are charged at the counter; card orders were paid online and are only handed over.
   protected canHandOver(order: Order): boolean {
+    if (order.fulfillment_type === 'delivery') return false; // handed to a platform driver instead
     if (order.payment_method === 'cash') return order.payment_status === 'pending' && order.fulfillment_status === 'pending_pickup';
     return order.payment_status === 'paid' && ['pending_pickup', 'ready_for_pickup'].includes(order.fulfillment_status);
   }
@@ -53,11 +54,19 @@ export class EncargadoOrdersPageComponent {
     }
   }
 
+  // Delivery orders paid in cash are collected by the driver, so they can be dispatched unpaid.
+  protected canMarkReady(order: Order): boolean {
+    if (order.fulfillment_status !== 'pending_pickup') return false;
+    return order.payment_status === 'paid' || (order.fulfillment_type === 'delivery' && order.payment_method === 'cash');
+  }
+
   protected fulfillmentLabel(status: Order['fulfillment_status']): string {
     return ({
       pending_pickup: 'Pendiente de preparación',
       ready_for_pickup: 'Listo para recoger',
       collected: 'Entregado',
+      in_transit: 'En camino con repartidor',
+      delivered: 'Entregado a domicilio',
       expired: 'Vencido',
       cancelled: 'Cancelado',
     } satisfies Record<Order['fulfillment_status'], string>)[status];

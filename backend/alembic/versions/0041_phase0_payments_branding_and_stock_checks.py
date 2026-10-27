@@ -1,5 +1,6 @@
 """Phase 0: stock checks, tenant branding and payout bank account, platform
-collection ledger, daily settlements, QR payments and reservation deposits.
+collection ledger, daily settlements, QR payments, reservation deposits and
+CU20 delivery (branch coordinates, delivery orders, platform-level drivers).
 
 Revision ID: 0041
 Revises: 0040
@@ -24,6 +25,15 @@ REPAIR_CART_COMPANY = """
           FROM cart_items JOIN product_variants ON product_variants.id = cart_items.variant_id) AS lines
     WHERE carts.id = lines.cart_id AND carts.tenant_id IS NULL
 """
+ORDER_DELIVERY_COLUMNS = (
+    ("delivery_address", sa.String(255)),
+    ("delivery_reference", sa.String(255)),
+    ("delivery_latitude", sa.Numeric(9, 6)),
+    ("delivery_longitude", sa.Numeric(9, 6)),
+    ("delivery_distance_km", sa.Numeric(6, 2)),
+    ("delivery_pin", sa.String(4)),
+    ("delivered_at", sa.DateTime(timezone=True)),
+)
 TENANT_COLUMNS = (
     ("logo_url", sa.String(500)),
     ("primary_color", sa.String(7)),
@@ -63,6 +73,19 @@ def upgrade() -> None:
     # New values cannot be used inside this same transaction; nothing below does.
     op.execute("ALTER TYPE paymentmethodenum ADD VALUE IF NOT EXISTS 'qr'")
     op.execute("ALTER TYPE reservationstatusenum ADD VALUE IF NOT EXISTS 'pending_payment'")
+    op.execute("ALTER TYPE fulfillmentstatusenum ADD VALUE IF NOT EXISTS 'in_transit'")
+    op.execute("ALTER TYPE fulfillmentstatusenum ADD VALUE IF NOT EXISTS 'delivered'")
+
+    # CU20: drivers work for every company, so they keep no company or branch.
+    op.execute("UPDATE users SET tenant_id = NULL, branch_id = NULL WHERE rol = 'delivery'")
+    op.add_column("branches", sa.Column("latitude", sa.Numeric(9, 6), nullable=True))
+    op.add_column("branches", sa.Column("longitude", sa.Numeric(9, 6), nullable=True))
+    for name, column_type in ORDER_DELIVERY_COLUMNS:
+        op.add_column("orders", sa.Column(name, column_type, nullable=True))
+    op.add_column("orders", sa.Column("fulfillment_type", sa.String(10), nullable=False, server_default="pickup"))
+    op.add_column("orders", sa.Column("shipping_cost", sa.Numeric(10, 2), nullable=False, server_default="0"))
+    op.add_column("orders", sa.Column("delivery_driver_id", UUID(as_uuid=True), sa.ForeignKey("users.id"), nullable=True))
+    op.create_index("ix_orders_delivery_driver_id", "orders", ["delivery_driver_id"])
 
     op.create_table(
         "settlements",
@@ -120,6 +143,12 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    op.drop_index("ix_orders_delivery_driver_id", table_name="orders")
+    for name in ("delivery_driver_id", "shipping_cost", "fulfillment_type", *(n for n, _ in ORDER_DELIVERY_COLUMNS)):
+        op.drop_column("orders", name)
+    op.drop_column("branches", "longitude")
+    op.drop_column("branches", "latitude")
+    # Drivers stay platform-level; their old company/branch assignment is not restored.
     for column in ("stripe_payment_intent_id", "payment_expires_at", "deposit_status", "deposit_amount"):
         op.drop_column("reservations", column)
     op.drop_table("qr_payments")

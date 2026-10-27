@@ -23,7 +23,6 @@ async def list_branches_route(
             RolEnum.administrador,
             RolEnum.encargado,
             RolEnum.cajero,
-            RolEnum.delivery,
             RolEnum.proveedor,
         )
     ),

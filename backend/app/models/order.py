@@ -28,6 +28,17 @@ class Order(Base):
     subtotal = Column(Numeric(10, 2), nullable=False, default=0)
     discount_amount = Column(Numeric(10, 2), nullable=False, default=0)
     total_amount = Column(Numeric(10, 2), nullable=False, default=0)
+    # CU20 delivery: platform drivers (no company) take ready orders from any company.
+    fulfillment_type = Column(String(10), nullable=False, default="pickup", server_default="pickup")  # pickup | delivery
+    delivery_address = Column(String(255), nullable=True)
+    delivery_reference = Column(String(255), nullable=True)
+    delivery_latitude = Column(Numeric(9, 6), nullable=True)
+    delivery_longitude = Column(Numeric(9, 6), nullable=True)
+    delivery_distance_km = Column(Numeric(6, 2), nullable=True)
+    shipping_cost = Column(Numeric(10, 2), nullable=False, default=0, server_default="0")
+    delivery_pin = Column(String(4), nullable=True)
+    delivery_driver_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True, index=True)
+    delivered_at = Column(DateTime(timezone=True), nullable=True)
     currency = Column(String, nullable=False, default="usd")
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at = Column(DateTime(timezone=True), nullable=True, onupdate=func.now())

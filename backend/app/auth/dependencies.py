@@ -65,7 +65,7 @@ def get_current_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Usuario inactivo",
         )
-    if user.rol not in [RolEnum.cliente, RolEnum.superadministrador]:
+    if user.rol not in [RolEnum.cliente, RolEnum.superadministrador, RolEnum.delivery]:
         if user.tenant_id is None:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -77,7 +77,7 @@ def get_current_user(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="La empresa está suspendida. Contactá al administrador de la plataforma.",
             )
-        if user.rol in [RolEnum.encargado, RolEnum.cajero, RolEnum.delivery]:
+        if user.rol in [RolEnum.encargado, RolEnum.cajero]:
             if user.branch_id is None:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
@@ -152,7 +152,7 @@ def get_current_branch_id(payload: dict = Depends(get_current_payload)) -> UUID 
 def get_current_tenant_id(payload: dict = Depends(get_current_payload)) -> UUID | None:
     rol = payload.get("rol")
     tenant_id_str = payload.get("tenant_id")
-    if rol in [RolEnum.superadministrador.value, RolEnum.cliente.value]:
+    if rol in [RolEnum.superadministrador.value, RolEnum.cliente.value, RolEnum.delivery.value]:
         return UUID(tenant_id_str) if tenant_id_str else None
 
     if not tenant_id_str:
@@ -168,7 +168,7 @@ def get_tenant_and_branch_scope(
 ) -> tuple[UUID | None, UUID | None]:
     """
     Retorna (tenant_id, branch_id) para consultas jerárquicas:
-    1. Si el usuario tiene branch_id (cajero, encargado, delivery):
+    1. Si el usuario tiene branch_id (cajero, encargado):
        retorna (tenant_id, branch_id) -> filtra estrictamente por ambos.
     2. Si solo tiene tenant_id (administrador, proveedor):
        retorna (tenant_id, None) -> filtra por empresa completa (consolidado).
@@ -181,7 +181,7 @@ def get_tenant_and_branch_scope(
     tenant_id = UUID(tenant_id_str) if tenant_id_str else None
     branch_id = UUID(branch_id_str) if branch_id_str else None
 
-    if rol in [RolEnum.superadministrador.value, RolEnum.cliente.value]:
+    if rol in [RolEnum.superadministrador.value, RolEnum.cliente.value, RolEnum.delivery.value]:
         return (None, None)
 
     if not tenant_id:
@@ -190,7 +190,7 @@ def get_tenant_and_branch_scope(
             detail="Usuario sin empresa asociada",
         )
 
-    if rol in [RolEnum.cajero.value, RolEnum.encargado.value, RolEnum.delivery.value]:
+    if rol in [RolEnum.cajero.value, RolEnum.encargado.value]:
         if not branch_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

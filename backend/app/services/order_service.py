@@ -72,6 +72,9 @@ def _serialize_order(db: Session, order: Order) -> OrderRead:
         "fulfillment_status": order.fulfillment_status, "subtotal": order.subtotal,
         "discount_amount": order.discount_amount, "promotion_code_id": order.promotion_code_id,
         "total_amount": order.total_amount, "currency": order.currency,
+        "fulfillment_type": order.fulfillment_type, "shipping_cost": order.shipping_cost,
+        "delivery_address": order.delivery_address, "delivery_distance_km": order.delivery_distance_km,
+        "delivered_at": order.delivered_at,
         "created_at": order.created_at, "updated_at": order.updated_at, "items": items,
     })
 
@@ -104,7 +107,8 @@ def mark_order_ready(db: Session, order_id: UUID, branch_id: UUID, tenant_id: UU
     order = query.with_for_update().first()
     if not order:
         return None
-    if order.payment_status != PaymentStatusEnum.paid:
+    cash_on_delivery = order.fulfillment_type == "delivery" and order.payment_method == PaymentMethodEnum.cash
+    if order.payment_status != PaymentStatusEnum.paid and not cash_on_delivery:
         raise ValueError("El pedido debe estar pagado antes de marcarlo como listo")
     if order.fulfillment_status != FulfillmentStatusEnum.pending_pickup:
         raise ValueError("El pedido no está en preparación")
@@ -146,7 +150,7 @@ def _reserve_inventory(db: Session, rows, branch_id: UUID, user_id: UUID, tenant
             inventory.reserved_quantity += row.quantity
 
 
-def _new_order(db: Session, cart: Cart, user_id: UUID, branch_id: UUID, method: PaymentMethodEnum) -> Order:
+def _new_order(db: Session, cart: Cart, user_id: UUID, branch_id: UUID, method: PaymentMethodEnum, delivery=None) -> Order:
     rows = _cart_rows(db, cart.id)
     if not rows:
         raise ValueError("El carrito está vacío")
@@ -162,6 +166,10 @@ def _new_order(db: Session, cart: Cart, user_id: UUID, branch_id: UUID, method: 
             raise ValueError("El código promocional ya no existe")
         validate_for_user(db, code.code, user_id, branch_id, tenant_id=tenant_id)
     refresh_cart_totals(db, cart)
+    quote = None
+    if delivery is not None:
+        from app.services.delivery_service import shipping_quote
+        quote = shipping_quote(db, branch_id, delivery.latitude, delivery.longitude)
     _reserve_inventory(db, rows, branch_id, user_id, tenant_id, cart.id)
     subtotal = sum(Decimal(str(row.original_unit_price)) * row.quantity for row in rows)
     discount = Decimal(str(cart.discount_amount or 0))
@@ -179,9 +187,15 @@ def _new_order(db: Session, cart: Cart, user_id: UUID, branch_id: UUID, method: 
         fulfillment_status=FulfillmentStatusEnum.pending_pickup,
         subtotal=subtotal,
         discount_amount=discount,
-        total_amount=max(subtotal - discount, Decimal("0.00")),
+        total_amount=max(subtotal - discount, Decimal("0.00")) + (quote["shipping_cost"] if quote else Decimal("0.00")),
         currency=currency,
     )
+    if quote:
+        order.fulfillment_type = "delivery"
+        order.delivery_address, order.delivery_reference = delivery.address, delivery.reference
+        order.delivery_latitude, order.delivery_longitude = delivery.latitude, delivery.longitude
+        order.delivery_distance_km, order.shipping_cost = quote["distance_km"], quote["shipping_cost"]
+        order.delivery_pin = f"{secrets.randbelow(10000):04d}"
     db.add(order)
     db.flush()
     for row in rows:
@@ -199,13 +213,13 @@ def _new_order(db: Session, cart: Cart, user_id: UUID, branch_id: UUID, method: 
     return order
 
 
-def checkout_cash(db: Session, user_id: UUID, pickup_branch_id: UUID):
+def checkout_cash(db: Session, user_id: UUID, pickup_branch_id: UUID, delivery=None):
     try:
         expire_due_orders(db)
         cart = _locked_cart(db, user_id)
         if cart.status == CartStatusEnum.checkout_pending:
             raise ValueError("El carrito tiene un checkout pendiente")
-        order = _new_order(db, cart, user_id, pickup_branch_id, PaymentMethodEnum.cash)
+        order = _new_order(db, cart, user_id, pickup_branch_id, PaymentMethodEnum.cash, delivery)
         db.commit()
         db.refresh(order)
         notify_order_event(db, order.id, order.user_id, "pending")
@@ -215,7 +229,7 @@ def checkout_cash(db: Session, user_id: UUID, pickup_branch_id: UUID):
         raise
 
 
-def create_stripe_payment(db: Session, user_id: UUID, pickup_branch_id: UUID):
+def create_stripe_payment(db: Session, user_id: UUID, pickup_branch_id: UUID, delivery=None):
     try:
         expire_due_orders(db)
         # Fail before emptying the cart; retries of a created order use /stripe/orders/{id}.
@@ -224,7 +238,7 @@ def create_stripe_payment(db: Session, user_id: UUID, pickup_branch_id: UUID):
         cart = _locked_cart(db, user_id)
         if cart.status == CartStatusEnum.checkout_pending:
             raise ValueError("El carrito tiene un checkout pendiente")
-        order = _new_order(db, cart, user_id, pickup_branch_id, PaymentMethodEnum.stripe)
+        order = _new_order(db, cart, user_id, pickup_branch_id, PaymentMethodEnum.stripe, delivery)
         attempt = PaymentAttempt(order_id=order.id, cart_id=cart.id, status="pending", idempotency_key=secrets.token_urlsafe(24))
         db.add(attempt)
         db.commit()
@@ -405,7 +419,7 @@ def _consume_order(db: Session, order: Order, collected_by: UUID | None = None) 
         # Online money is collected by the platform and owed to the company (daily settlement).
         record_payment(db, order.tenant_id, "order", order.id,
                        "card" if order.payment_method == PaymentMethodEnum.stripe else "qr",
-                       order.total_amount, order.currency, order.stripe_payment_intent_id)
+                       order.total_amount - (order.shipping_cost or 0), order.currency, order.stripe_payment_intent_id)
     for reservation_id in reservation_ids:
         reservation = db.query(Reservation).filter(Reservation.id == reservation_id).with_for_update().first()
         if reservation and reservation.status == ReservationStatusEnum.purchase_pending:
@@ -458,6 +472,8 @@ def hand_over_order(db: Session, order_id: UUID, pickup_code: str, staff_branch_
         order = query.with_for_update().first()
         if not order or staff_branch_id != order.pickup_branch_id:
             raise ValueError("Pedido no encontrado")
+        if order.fulfillment_type == "delivery":
+            raise ValueError("Este pedido se entrega a domicilio")
         if order.pickup_code != pickup_code:
             raise ValueError("Código de retiro inválido")
         if order.payment_method == PaymentMethodEnum.cash:

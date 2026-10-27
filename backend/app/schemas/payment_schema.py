@@ -4,6 +4,8 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
+from app.schemas.delivery_schema import DeliveryAddress
+
 
 class CheckoutMethodEnum(str, Enum):
     cash = "cash"
@@ -12,10 +14,12 @@ class CheckoutMethodEnum(str, Enum):
 
 class CashPaymentRequest(BaseModel):
     pickup_branch_id: UUID
+    delivery: DeliveryAddress | None = None  # CU20: ship from pickup_branch_id instead of in-store pickup
 
 
 class StripePaymentRequest(BaseModel):
     pickup_branch_id: UUID
+    delivery: DeliveryAddress | None = None
 
 
 class StripeCheckoutResponse(BaseModel):

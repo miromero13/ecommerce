@@ -189,6 +189,7 @@ export class AppShellComponent {
               { label: 'Dashboard', route: '/app/superadmin/dashboard', icon: 'lucideLayoutDashboard', exact: true },
               { label: 'Gestión de Tenants', route: '/app/superadmin/tenants', icon: 'lucideBuilding2', exact: true },
               { label: 'Planes de Suscripción', route: '/app/superadmin/plans', icon: 'lucideShield', exact: true },
+              { label: 'Repartidores', route: '/app/superadmin/drivers', icon: 'lucideUsers', exact: true },
             ],
           },
         ];
