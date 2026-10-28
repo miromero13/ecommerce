@@ -24,7 +24,7 @@ async def cash_checkout_route(
     current_user: dict = Depends(require_roles(RolEnum.cliente)),
 ):
     try:
-        order = checkout_cash(db, UUID(current_user["sub"]), payload.pickup_branch_id, payload.delivery)
+        order = checkout_cash(db, UUID(current_user["sub"]), payload.pickup_branch_id, payload.delivery, payload.points_to_redeem)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return response(status_code=201, message="Pago en efectivo procesado exitosamente", data=order)
@@ -37,7 +37,7 @@ async def stripe_checkout_route(
     current_user: dict = Depends(require_roles(RolEnum.cliente)),
 ):
     try:
-        order, client_secret, payment_intent_id = create_stripe_payment(db, UUID(current_user["sub"]), payload.pickup_branch_id, payload.delivery)
+        order, client_secret, payment_intent_id = create_stripe_payment(db, UUID(current_user["sub"]), payload.pickup_branch_id, payload.delivery, payload.points_to_redeem)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return response(
@@ -111,7 +111,7 @@ async def qr_checkout_route(
     current_user: dict = Depends(require_roles(RolEnum.cliente)),
 ):
     try:
-        order, qr = checkout_qr(db, UUID(current_user["sub"]), payload.pickup_branch_id, payload.delivery)
+        order, qr = checkout_qr(db, UUID(current_user["sub"]), payload.pickup_branch_id, payload.delivery, payload.points_to_redeem)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return response(status_code=201, message="Pedido creado. Escanea el código QR para pagar.", data={"order": order, "qr": qr})

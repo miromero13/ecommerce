@@ -102,6 +102,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/cliente/pages/wishlist-page.component').then((m) => m.WishlistPageComponent),
       },
       {
+        path: 'cliente/loyalty',
+        canActivate: [roleGuard(['cliente'])],
+        loadComponent: () => import('./features/cliente/pages/loyalty-page.component').then((m) => m.LoyaltyPageComponent),
+      },
+      {
         path: 'cliente/cart',
         loadComponent: () =>
           import('./features/cliente/pages/cart-page.component').then((m) => m.CartPageComponent),

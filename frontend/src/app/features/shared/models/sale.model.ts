@@ -57,6 +57,7 @@ export interface CreateSaleRequest {
   qr_reference?: string | null;
   promotion_code?: string | null;
   customer_email?: string | null;
+  points_to_redeem?: number; // CU17: 10 points = 1 Bs
   items: CreateSaleItemRequest[];
 }
 

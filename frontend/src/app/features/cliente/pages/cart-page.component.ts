@@ -18,6 +18,7 @@ import { BrandingService } from '../../../core/services/branding.service';
 import { Cart } from '../../shared/models/cart.model';
 import { CatalogBranch } from '../../shared/models/catalog.model';
 import { CartApiService } from '../../shared/services/cart-api.service';
+import { LoyaltyApiService } from '../../shared/services/loyalty-api.service';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideMapPin, lucideStore } from '@ng-icons/lucide';
 import { CatalogApiService } from '../../shared/services/catalog-api.service';
@@ -82,6 +83,10 @@ export class CartPageComponent {
   protected readonly pickupBranchId = signal(this.getCartBranchId());
   protected readonly checkingOut = signal(false);
   protected readonly couponCode = signal('');
+  // CU17: points of the cart's company; 10 points = 1 Bs off the products.
+  private readonly loyaltyApi = inject(LoyaltyApiService);
+  protected readonly availablePoints = signal(0);
+  protected readonly pointsToRedeem = signal(0);
   // CU20: in-store pickup or home delivery shipped from the selected branch.
   private readonly deliveryApi = inject(DeliveryApiService);
   protected readonly fulfillment = signal<'pickup' | 'delivery'>('pickup');
@@ -201,14 +206,14 @@ export class CartPageComponent {
     this.checkingOut.set(true);
     try {
       if (this.checkoutMethod() === 'qr') {
-        const response = await firstValueFrom(this.qrApi.checkout({ pickup_branch_id: pickupBranchId, delivery }));
+        const response = await firstValueFrom(this.qrApi.checkout({ pickup_branch_id: pickupBranchId, delivery, points_to_redeem: this.pointsToRedeem() }));
         toast.success(response.message);
         this.lastOrder.set(response.data?.order ?? null);
         this.qrPayment.set(response.data?.qr ?? null);
         this.clearCartBranch();
       } else if (this.checkoutMethod() === 'cash') {
         const response = await requestWithToast(
-          this.checkoutApi.checkoutCash({ pickup_branch_id: pickupBranchId, delivery }),
+          this.checkoutApi.checkoutCash({ pickup_branch_id: pickupBranchId, delivery, points_to_redeem: this.pointsToRedeem() }),
           {
             loading: 'Creando pedido...',
             success: delivery ? 'Pedido con envío creado. Pagarás al recibirlo.' : 'Pedido para retiro creado.',
@@ -388,11 +393,27 @@ export class CartPageComponent {
     try {
       const response = await firstValueFrom(this.cartApi.getCurrentCart());
       this.cart.set(response.data ?? null);
+      void this.loadPoints();
     } catch (error) {
       toast.error(getErrorMessage(error, 'No se pudo cargar el carrito.'));
       this.cart.set(null);
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  protected setPoints(value: string): void {
+    this.pointsToRedeem.set(Math.max(0, Math.floor(Number(value) || 0)));
+  }
+
+  private async loadPoints(): Promise<void> {
+    this.pointsToRedeem.set(0);
+    const tenantId = this.cart()?.tenant_id;
+    try {
+      const balances = tenantId ? (await firstValueFrom(this.loyaltyApi.balances())).data ?? [] : [];
+      this.availablePoints.set(balances.find((row) => row.tenant_id === tenantId)?.points_balance ?? 0);
+    } catch {
+      this.availablePoints.set(0); // checkout still works without points
     }
   }
 
@@ -455,7 +476,7 @@ export class CartPageComponent {
       return;
     }
     const response = await requestWithToast(
-      this.checkoutApi.checkoutStripe({ pickup_branch_id: pickupBranchId, delivery }),
+      this.checkoutApi.checkoutStripe({ pickup_branch_id: pickupBranchId, delivery, points_to_redeem: this.pointsToRedeem() }),
       { loading: 'Iniciando Stripe...', success: 'Completa los datos de tu tarjeta.', error: 'No se pudo iniciar Stripe.' },
     );
     const checkout = response.data;

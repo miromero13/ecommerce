@@ -10,7 +10,7 @@ import { QrPayment } from '../models/qr-payment.model';
 export class QrPaymentApiService {
   private readonly api = inject(ApiService);
 
-  checkout(payload: { pickup_branch_id: string; delivery?: DeliveryAddress }) {
+  checkout(payload: { pickup_branch_id: string; delivery?: DeliveryAddress; points_to_redeem?: number }) {
     return this.api.post<ApiResponse<{ order: Order; qr: QrPayment }>>('/payments/qr/checkout', payload);
   }
 

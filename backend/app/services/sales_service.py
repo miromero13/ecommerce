@@ -177,6 +177,21 @@ def _apply_cashier_coupon(db: Session, sale: Sale, payload: SaleCreate, branch_i
     add_usage(db, code.id, sale.customer_id)
 
 
+def _apply_loyalty(db: Session, sale: Sale, payload: SaleCreate, tenant_id: UUID | None) -> None:
+    """CU17 at the till: redeem points of the identified customer, then earn on what is paid."""
+    from app.services import loyalty_service
+
+    if payload.points_to_redeem:
+        if not sale.customer_id:
+            raise ValueError("Ingresa el correo del cliente registrado para canjear puntos")
+        points_discount = loyalty_service.redeem(db, tenant_id, sale.customer_id, payload.points_to_redeem,
+                                                 sale.total_amount, "sale", sale.id)
+        sale.discount_amount += points_discount
+        sale.total_amount -= points_discount
+    if sale.customer_id:
+        loyalty_service.earn(db, tenant_id, sale.customer_id, sale.total_amount, "sale", sale.id)
+
+
 def _create_sale_from_items(
     db: Session,
     branch_id: UUID,
@@ -278,6 +293,7 @@ def _create_sale_from_items(
     sale.discount_amount = discount_total
     sale.total_amount = max(subtotal - discount_total, Decimal("0.00"))
     _apply_cashier_coupon(db, sale, payload, branch_id, tenant_id)
+    _apply_loyalty(db, sale, payload, tenant_id)
 
     if reservation:
         if reservation.status in {ReservationStatusEnum.pending, ReservationStatusEnum.confirmed}:

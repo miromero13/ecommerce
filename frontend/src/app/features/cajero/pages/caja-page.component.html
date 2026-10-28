@@ -139,6 +139,17 @@
               <input hlmInput type="email" placeholder="Correo del cliente registrado" [value]="customerEmail()" (input)="customerEmail.set($any($event.target).value)" />
               <p class="text-[11px] text-slate-500">Para aplicar un cupón se identifica al cliente: cada cupón se usa una sola vez por cliente y no se combina con productos en oferta.</p>
             </div>
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <label class="text-xs font-medium uppercase tracking-wide text-slate-500" for="till-points">Puntos del cliente (opcional)</label>
+                <button hlmBtn type="button" size="sm" variant="outline" (click)="lookupPoints()">Consultar</button>
+              </div>
+              @if (customerPoints(); as points) {
+                <p class="text-xs text-slate-600">{{ points.points_balance }} puntos · nivel {{ points.tier }} · equivalen a {{ points.balance_value | number: '1.2-2' }} Bs</p>
+              }
+              <input id="till-points" hlmInput type="number" min="0" step="10" placeholder="Puntos a canjear (10 = 1 Bs)" [value]="pointsToRedeem() || ''" (input)="setPoints($any($event.target).value)" />
+              <p class="text-[11px] text-slate-500">El cliente gana 1 punto por cada 10 Bs pagados cuando se ingresa su correo.</p>
+            </div>
             <div class="grid grid-cols-2 gap-2">
               <button hlmBtn type="button" [variant]="paymentMethod() === 'cash' ? 'default' : 'outline'" (click)="selectPaymentMethod('cash')">Efectivo</button>
               <button hlmBtn type="button" [variant]="paymentMethod() === 'qr' ? 'default' : 'outline'" (click)="selectPaymentMethod('qr')">QR</button>

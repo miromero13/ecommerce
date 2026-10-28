@@ -19,6 +19,8 @@ import { QrPaymentPanelComponent } from '../../shared/components/qr-payment-pane
 import { QrPayment } from '../../shared/models/qr-payment.model';
 import { QrPaymentApiService } from '../../shared/services/qr-payment-api.service';
 import { BrandingService } from '../../../core/services/branding.service';
+import { LoyaltyBalance } from '../../shared/models/loyalty.model';
+import { LoyaltyApiService } from '../../shared/services/loyalty-api.service';
 
 type SelectedSaleItem = {
   variant_id: string;
@@ -48,11 +50,16 @@ export class CajaPageComponent {
   // CU15 in store: a coupon needs the registered customer's email (one use per customer).
   protected readonly couponCode = signal('');
   protected readonly customerEmail = signal('');
+  // CU17: the identified customer can redeem points of this company (10 points = 1 Bs).
+  private readonly loyaltyApi = inject(LoyaltyApiService);
+  protected readonly pointsToRedeem = signal(0);
+  protected readonly customerPoints = signal<LoyaltyBalance | null>(null);
   // A QR is issued for an exact total: any change to the items invalidates it.
   private readonly resetQrOnItemsChange = effect(() => {
     this.selectedItems();
     this.couponCode();
     this.customerEmail();
+    this.pointsToRedeem();
     untracked(() => this.saleQr.set(null));
   });
 
@@ -194,6 +201,8 @@ export class CajaPageComponent {
       this.cashReference.set('');
       this.couponCode.set('');
       this.customerEmail.set('');
+      this.pointsToRedeem.set(0);
+      this.customerPoints.set(null);
       this.saleQr.set(null);
       await this.searchProducts();
     } catch {
@@ -203,8 +212,30 @@ export class CajaPageComponent {
     }
   }
 
-  private couponFields(): { promotion_code: string | null; customer_email: string | null } {
-    return { promotion_code: this.couponCode().trim() || null, customer_email: this.customerEmail().trim() || null };
+  private couponFields(): { promotion_code: string | null; customer_email: string | null; points_to_redeem: number } {
+    return {
+      promotion_code: this.couponCode().trim() || null,
+      customer_email: this.customerEmail().trim() || null,
+      points_to_redeem: this.pointsToRedeem(),
+    };
+  }
+
+  protected setPoints(value: string): void {
+    this.pointsToRedeem.set(Math.max(0, Math.floor(Number(value) || 0)));
+  }
+
+  protected async lookupPoints(): Promise<void> {
+    const email = this.customerEmail().trim();
+    if (!email) {
+      toast.warning('Ingresa el correo del cliente registrado.');
+      return;
+    }
+    try {
+      this.customerPoints.set((await firstValueFrom(this.loyaltyApi.customer(email))).data ?? null);
+    } catch (error) {
+      this.customerPoints.set(null);
+      toast.error(getErrorMessage(error, 'No se pudieron consultar los puntos del cliente.'));
+    }
   }
 
   protected selectPaymentMethod(method: 'cash' | 'qr'): void {

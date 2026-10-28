@@ -41,6 +41,7 @@ export interface Order {
   currency: string;
   fulfillment_type: 'pickup' | 'delivery';
   shipping_cost: string;
+  loyalty_discount?: string; // CU17 points redeemed
   delivery_address: string | null;
   delivery_distance_km: string | null;
   delivered_at: string | null;

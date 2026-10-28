@@ -35,6 +35,7 @@ from app.services.reservation_service import transition_reservation
 from app.services.recommendation_service import record_completed_order_interactions
 from app.services.notification_service import notify_low_stock, notify_order_event
 from app.services.payout_service import record_payment
+from app.services import loyalty_service
 
 
 STRIPE_RESERVATION_MINUTES = 30
@@ -73,7 +74,7 @@ def _serialize_order(db: Session, order: Order) -> OrderRead:
         "discount_amount": order.discount_amount, "promotion_code_id": order.promotion_code_id,
         "total_amount": order.total_amount, "currency": order.currency,
         "fulfillment_type": order.fulfillment_type, "shipping_cost": order.shipping_cost,
-        "deposit_applied": order.deposit_applied,
+        "deposit_applied": order.deposit_applied, "loyalty_discount": order.loyalty_discount,
         "delivery_address": order.delivery_address, "delivery_distance_km": order.delivery_distance_km,
         "delivered_at": order.delivered_at,
         "created_at": order.created_at, "updated_at": order.updated_at, "items": items,
@@ -151,7 +152,8 @@ def _reserve_inventory(db: Session, rows, branch_id: UUID, user_id: UUID, tenant
             inventory.reserved_quantity += row.quantity
 
 
-def _new_order(db: Session, cart: Cart, user_id: UUID, branch_id: UUID, method: PaymentMethodEnum, delivery=None) -> Order:
+def _new_order(db: Session, cart: Cart, user_id: UUID, branch_id: UUID, method: PaymentMethodEnum, delivery=None,
+               points_to_redeem: int = 0) -> Order:
     rows = _cart_rows(db, cart.id)
     if not rows:
         raise ValueError("El carrito está vacío")
@@ -205,6 +207,11 @@ def _new_order(db: Session, cart: Cart, user_id: UUID, branch_id: UUID, method: 
         order.delivery_pin = f"{secrets.randbelow(10000):04d}"
     db.add(order)
     db.flush()
+    if points_to_redeem:
+        # CU17: points only discount the products, never the shipping.
+        products_due = order.total_amount - (order.shipping_cost or Decimal("0.00"))
+        order.loyalty_discount = loyalty_service.redeem(db, tenant_id, user_id, points_to_redeem, products_due, "order", order.id)
+        order.total_amount -= order.loyalty_discount
     for row in rows:
         unit_price = _row_unit_price(row)
         db.add(OrderItem(order_id=order.id, variant_id=row.variant_id, quantity=row.quantity, unit_price=unit_price,
@@ -220,13 +227,13 @@ def _new_order(db: Session, cart: Cart, user_id: UUID, branch_id: UUID, method: 
     return order
 
 
-def checkout_cash(db: Session, user_id: UUID, pickup_branch_id: UUID, delivery=None):
+def checkout_cash(db: Session, user_id: UUID, pickup_branch_id: UUID, delivery=None, points_to_redeem: int = 0):
     try:
         expire_due_orders(db)
         cart = _locked_cart(db, user_id)
         if cart.status == CartStatusEnum.checkout_pending:
             raise ValueError("El carrito tiene un checkout pendiente")
-        order = _new_order(db, cart, user_id, pickup_branch_id, PaymentMethodEnum.cash, delivery)
+        order = _new_order(db, cart, user_id, pickup_branch_id, PaymentMethodEnum.cash, delivery, points_to_redeem)
         db.commit()
         db.refresh(order)
         notify_order_event(db, order.id, order.user_id, "pending")
@@ -236,7 +243,7 @@ def checkout_cash(db: Session, user_id: UUID, pickup_branch_id: UUID, delivery=N
         raise
 
 
-def checkout_qr(db: Session, user_id: UUID, pickup_branch_id: UUID, delivery=None):
+def checkout_qr(db: Session, user_id: UUID, pickup_branch_id: UUID, delivery=None, points_to_redeem: int = 0):
     """Create the order and a QR for its total; the bank confirmation completes it."""
     from app.services.qr_payment_service import create_qr, serialize
 
@@ -245,7 +252,7 @@ def checkout_qr(db: Session, user_id: UUID, pickup_branch_id: UUID, delivery=Non
         cart = _locked_cart(db, user_id)
         if cart.status == CartStatusEnum.checkout_pending:
             raise ValueError("El carrito tiene un checkout pendiente")
-        order = _new_order(db, cart, user_id, pickup_branch_id, PaymentMethodEnum.qr, delivery)
+        order = _new_order(db, cart, user_id, pickup_branch_id, PaymentMethodEnum.qr, delivery, points_to_redeem)
         qr = create_qr(db, tenant_id=order.tenant_id, purpose="order", amount=order.total_amount,
                        currency=order.currency, created_by=user_id, source_id=order.id)
         qr.expires_at = order.pickup_expires_at
@@ -291,7 +298,7 @@ def complete_qr_order(db: Session, qr) -> None:
     _consume_order(db, order)
 
 
-def create_stripe_payment(db: Session, user_id: UUID, pickup_branch_id: UUID, delivery=None):
+def create_stripe_payment(db: Session, user_id: UUID, pickup_branch_id: UUID, delivery=None, points_to_redeem: int = 0):
     try:
         expire_due_orders(db)
         # Fail before emptying the cart; retries of a created order use /stripe/orders/{id}.
@@ -300,7 +307,7 @@ def create_stripe_payment(db: Session, user_id: UUID, pickup_branch_id: UUID, de
         cart = _locked_cart(db, user_id)
         if cart.status == CartStatusEnum.checkout_pending:
             raise ValueError("El carrito tiene un checkout pendiente")
-        order = _new_order(db, cart, user_id, pickup_branch_id, PaymentMethodEnum.stripe, delivery)
+        order = _new_order(db, cart, user_id, pickup_branch_id, PaymentMethodEnum.stripe, delivery, points_to_redeem)
         attempt = PaymentAttempt(order_id=order.id, cart_id=cart.id, status="pending", idempotency_key=secrets.token_urlsafe(24))
         db.add(attempt)
         db.commit()
@@ -425,6 +432,7 @@ def _release_order(db: Session, order: Order, payment_status: PaymentStatusEnum,
     attempt = db.query(PaymentAttempt).filter(PaymentAttempt.order_id == order.id).first()
     if attempt:
         attempt.status = "failed"
+    loyalty_service.refund_redeem(db, "order", order.id)
 
 
 def expire_due_orders(db: Session) -> None:
@@ -501,6 +509,9 @@ def _consume_order(db: Session, order: Order, collected_by: UUID | None = None) 
     if order.promotion_code_id:
         add_usage(db, order.promotion_code_id, order.user_id)
     record_completed_order_interactions(db, order)
+    # CU17: points for the money paid for products (this order plus any reservation deposit).
+    loyalty_service.earn(db, order.tenant_id, order.user_id,
+                         order.total_amount - (order.shipping_cost or 0) + (order.deposit_applied or 0), "order", order.id)
 
 
 def cancel_order(db: Session, user_id: UUID, order_id: UUID):

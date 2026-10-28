@@ -9,11 +9,11 @@ import { Order } from '../models/order.model';
 export class CheckoutApiService {
   private readonly api = inject(ApiService);
 
-  checkoutCash(payload: { pickup_branch_id: string; delivery?: DeliveryAddress }) {
+  checkoutCash(payload: { pickup_branch_id: string; delivery?: DeliveryAddress; points_to_redeem?: number }) {
     return this.api.post<ApiResponse<Order>>('/payments/cash/checkout', payload);
   }
 
-  checkoutStripe(payload: { pickup_branch_id: string; delivery?: DeliveryAddress }) {
+  checkoutStripe(payload: { pickup_branch_id: string; delivery?: DeliveryAddress; points_to_redeem?: number }) {
     return this.api.post<ApiResponse<{ order_id: string; client_secret: string; payment_intent_id: string; pickup_expires_at: string }>>('/payments/stripe/checkout', payload);
   }
 

@@ -57,10 +57,11 @@ class OrderApi {
   Future<Map<String, dynamic>> checkoutQr({
     required String pickupBranchId,
     Map<String, dynamic>? delivery,
+    int points = 0,
   }) async {
     final response = await _client.post<Map<String, dynamic>>(
       'payments/qr/checkout',
-      data: {'pickup_branch_id': pickupBranchId, 'delivery': ?delivery},
+      data: {'pickup_branch_id': pickupBranchId, 'delivery': ?delivery, 'points_to_redeem': points},
       parser: (value) => Map<String, dynamic>.from(value as Map),
     );
     return Map<String, dynamic>.from(response.data!['qr'] as Map);
@@ -75,10 +76,10 @@ class OrderApi {
     };
   }
 
-  Future<OrderResult> checkoutCash({required String pickupBranchId, Map<String, dynamic>? delivery}) async {
+  Future<OrderResult> checkoutCash({required String pickupBranchId, Map<String, dynamic>? delivery, int points = 0}) async {
     final response = await _client.post<Order>(
       'payments/cash/checkout',
-      data: {'pickup_branch_id': pickupBranchId, 'delivery': ?delivery},
+      data: {'pickup_branch_id': pickupBranchId, 'delivery': ?delivery, 'points_to_redeem': points},
       parser: _parseOrder,
     );
     return _orderResult(response.data, response.message);
@@ -87,10 +88,11 @@ class OrderApi {
   Future<StripeCheckoutResult> checkoutStripe({
     required String pickupBranchId,
     Map<String, dynamic>? delivery,
+    int points = 0,
   }) async {
     final response = await _client.post<StripeCheckout>(
       'payments/stripe/checkout',
-      data: {'pickup_branch_id': pickupBranchId, 'delivery': ?delivery},
+      data: {'pickup_branch_id': pickupBranchId, 'delivery': ?delivery, 'points_to_redeem': points},
       parser: _parseStripeCheckout,
     );
     final checkout = response.data;

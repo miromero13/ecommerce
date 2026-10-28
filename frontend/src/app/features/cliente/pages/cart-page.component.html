@@ -122,6 +122,16 @@
            }
          </div>
 
+         @if (availablePoints() > 0) {
+           <div class="space-y-2 rounded-xl border border-slate-200 p-4">
+             <label class="text-xs font-medium text-slate-600" for="points-to-redeem">Usar puntos (tienes {{ availablePoints() }}; 10 puntos = 1 Bs)</label>
+             <input id="points-to-redeem" hlmInput type="number" min="0" step="10" [max]="availablePoints()" class="w-full" [value]="pointsToRedeem()" (input)="setPoints($any($event.target).value)" />
+             @if (pointsToRedeem() > 0) {
+               <p class="text-xs text-emerald-700">Descuento de {{ pointsToRedeem() / 10 | number: '1.2-2' }} Bs al confirmar el pedido.</p>
+             }
+           </div>
+         }
+
         <div class="flex gap-2">
           <button hlmBtn type="button" class="flex-1" (click)="clear()" [disabled]="!(cart()?.items?.length)">Vaciar carrito</button>
         </div>

@@ -30,7 +30,8 @@ class SaleCreate(BaseModel):
     cash_reference: str | None = None
     qr_reference: str | None = None  # required when payment_method is "qr"
     promotion_code: str | None = Field(default=None, max_length=40)
-    customer_email: EmailStr | None = None  # registered customer; required with a coupon
+    customer_email: EmailStr | None = None  # registered customer; required with a coupon or points
+    points_to_redeem: int = Field(default=0, ge=0)  # CU17: 10 points = 1 Bs
     items: list[SaleItemCreate] = Field(default_factory=list)
 
     @model_validator(mode="after")

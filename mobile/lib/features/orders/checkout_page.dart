@@ -49,10 +49,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
   final _reference = TextEditingController();
   final _latitude = TextEditingController();
   final _longitude = TextEditingController();
+  final _points = TextEditingController(); // CU17: 10 points = 1 Bs
   Map<String, dynamic>? _quote;
   bool _quoting = false;
 
   bool get _isOrderPayment => widget.orderId != null;
+
+  int get _pointsToRedeem => int.tryParse(_points.text.trim()) ?? 0;
 
   @override
   void initState() {
@@ -69,7 +72,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   void dispose() {
     widget.authController.removeListener(_handleAuthChanged);
     if (_ownsController) _controller.dispose();
-    for (final c in [_address, _reference, _latitude, _longitude]) {
+    for (final c in [_address, _reference, _latitude, _longitude, _points]) {
       c.dispose();
     }
     super.dispose();
@@ -205,6 +208,16 @@ class _CheckoutPageState extends State<CheckoutPage> {
               onChanged: isSaving
                   ? null
                   : (value) => setState(() => _pickupBranchId = value),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _points,
+              enabled: !isSaving,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Puntos a canjear (opcional)',
+                helperText: '10 puntos = 1 Bs de descuento. Consulta tu saldo en Mis puntos.',
+              ),
             ),
             const SizedBox(height: 12),
             SegmentedButton<String>(
@@ -360,7 +373,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
       ),
     );
     if (confirmed != true) return;
-    await _controller.checkoutCash(pickupBranchId: pickupBranchId, delivery: delivery);
+    await _controller.checkoutCash(pickupBranchId: pickupBranchId, delivery: delivery, points: _pointsToRedeem);
     if (!mounted) return;
     _showControllerFeedback();
     if (_controller.status == OrderControllerStatus.error ||
@@ -446,7 +459,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   Future<void> _checkoutQr(String pickupBranchId, Map<String, dynamic>? delivery) async {
     try {
-      final qr = await _controller.api.checkoutQr(pickupBranchId: pickupBranchId, delivery: delivery);
+      final qr = await _controller.api.checkoutQr(pickupBranchId: pickupBranchId, delivery: delivery, points: _pointsToRedeem);
       if (!mounted) return;
       final client = ApiClient(
         tokenProvider: () => widget.authController.accessToken,
@@ -474,7 +487,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
     final result = _isOrderPayment
         ? await _controller.payOrder(orderId: widget.orderId!)
-        : await _controller.checkoutStripe(pickupBranchId: pickupBranchId!, delivery: delivery);
+        : await _controller.checkoutStripe(pickupBranchId: pickupBranchId!, delivery: delivery, points: _pointsToRedeem);
     if (!mounted) return;
     if (result == null) {
       AppSnackBar.show(
