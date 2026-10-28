@@ -10,7 +10,7 @@ from typing import Callable
 from uuid import UUID
 
 from pydantic import BaseModel, ValidationError
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -121,20 +121,26 @@ def process_job(session_factory: Callable[[], Session], job_id: UUID, content: b
         db.commit()
 
 
-def get_job(db: Session, job_id: UUID, *, tenant_id: UUID, user_id: UUID, rol: str) -> RpaIngestJob:
-    query = db.query(RpaIngestJob).filter(RpaIngestJob.id == job_id, RpaIngestJob.tenant_id == tenant_id)
+def _visible(query, *, user_id: UUID, rol: str, branch_id: UUID | None):
     if rol == RolEnum.proveedor.value:
-        query = query.filter(RpaIngestJob.uploaded_by == user_id)  # suppliers only see their own documents
-    job = query.first()
+        return query.filter(RpaIngestJob.uploaded_by == user_id)  # suppliers only see their own documents
+    if rol == RolEnum.encargado.value:
+        # A manager sees the company's documents still waiting for a branch and those received in their branch,
+        # never what another branch received.
+        return query.filter(or_(RpaIngestJob.target_branch_id.is_(None), RpaIngestJob.target_branch_id == branch_id))
+    return query
+
+
+def get_job(db: Session, job_id: UUID, *, tenant_id: UUID, user_id: UUID, rol: str, branch_id: UUID | None = None) -> RpaIngestJob:
+    query = db.query(RpaIngestJob).filter(RpaIngestJob.id == job_id, RpaIngestJob.tenant_id == tenant_id)
+    job = _visible(query, user_id=user_id, rol=rol, branch_id=branch_id).first()
     if not job:
         raise LookupError("Documento no encontrado")
     return job
 
 
-def list_jobs(db: Session, *, tenant_id: UUID, user_id: UUID, rol: str) -> list[RpaIngestJob]:
-    query = db.query(RpaIngestJob).filter(RpaIngestJob.tenant_id == tenant_id)
-    if rol == RolEnum.proveedor.value:
-        query = query.filter(RpaIngestJob.uploaded_by == user_id)
+def list_jobs(db: Session, *, tenant_id: UUID, user_id: UUID, rol: str, branch_id: UUID | None = None) -> list[RpaIngestJob]:
+    query = _visible(db.query(RpaIngestJob).filter(RpaIngestJob.tenant_id == tenant_id), user_id=user_id, rol=rol, branch_id=branch_id)
     return query.order_by(RpaIngestJob.created_at.desc()).limit(50).all()
 
 

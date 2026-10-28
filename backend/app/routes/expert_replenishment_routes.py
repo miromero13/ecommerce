@@ -4,11 +4,13 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import (
+    require_roles,
     get_current_tenant_id,
     get_current_user,
     require_permission,
 )
 from app.core.database import get_db
+from app.schemas.enums import RolEnum
 from app.models.user import User
 from app.schemas.expert_replenishment_schema import (
     ApplyTransfersRequest,
@@ -32,7 +34,9 @@ router = APIRouter(
 
 @router.post(
     "/evaluate",
-    dependencies=[Depends(require_permission("replenishment:manage"))],
+    # Compares and moves stock across ALL branches: only the company administrator (rule: a manager or a
+    # supplier never sees other branches), on top of the permission.
+    dependencies=[Depends(require_roles(RolEnum.administrador)), Depends(require_permission("replenishment:manage"))],
 )
 def evaluate_replenishment(
     db: Session = Depends(get_db),
@@ -48,7 +52,9 @@ def evaluate_replenishment(
 
 @router.post(
     "/apply-transfers",
-    dependencies=[Depends(require_permission("replenishment:manage"))],
+    # Compares and moves stock across ALL branches: only the company administrator (rule: a manager or a
+    # supplier never sees other branches), on top of the permission.
+    dependencies=[Depends(require_roles(RolEnum.administrador)), Depends(require_permission("replenishment:manage"))],
 )
 def apply_replenishment_transfers(
     payload: ApplyTransfersRequest,
@@ -71,7 +77,9 @@ def apply_replenishment_transfers(
 
 @router.get(
     "/rules",
-    dependencies=[Depends(require_permission("replenishment:manage"))],
+    # Compares and moves stock across ALL branches: only the company administrator (rule: a manager or a
+    # supplier never sees other branches), on top of the permission.
+    dependencies=[Depends(require_roles(RolEnum.administrador)), Depends(require_permission("replenishment:manage"))],
 )
 def get_rules(
     db: Session = Depends(get_db),
@@ -87,7 +95,9 @@ def get_rules(
 
 @router.put(
     "/rules",
-    dependencies=[Depends(require_permission("replenishment:manage"))],
+    # Compares and moves stock across ALL branches: only the company administrator (rule: a manager or a
+    # supplier never sees other branches), on top of the permission.
+    dependencies=[Depends(require_roles(RolEnum.administrador)), Depends(require_permission("replenishment:manage"))],
 )
 def update_replenishment_rules(
     payload: ExpertRuleUpdate,
@@ -104,7 +114,9 @@ def update_replenishment_rules(
 
 @router.get(
     "/suggestions",
-    dependencies=[Depends(require_permission("replenishment:manage"))],
+    # Compares and moves stock across ALL branches: only the company administrator (rule: a manager or a
+    # supplier never sees other branches), on top of the permission.
+    dependencies=[Depends(require_roles(RolEnum.administrador)), Depends(require_permission("replenishment:manage"))],
 )
 def get_suggestions(
     status_filter: str | None = Query(default=None, alias="status"),

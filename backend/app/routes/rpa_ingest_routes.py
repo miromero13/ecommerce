@@ -23,7 +23,8 @@ def get_session_factory():
 
 def _job(db: Session, job_id: UUID, user: dict, tenant_id: UUID):
     try:
-        return service.get_job(db, job_id, tenant_id=tenant_id, user_id=UUID(user["sub"]), rol=user["rol"])
+        return service.get_job(db, job_id, tenant_id=tenant_id, user_id=UUID(user["sub"]), rol=user["rol"],
+                               branch_id=UUID(user["branch_id"]) if user.get("branch_id") else None)
     except LookupError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
@@ -52,7 +53,8 @@ async def upload_document_route(
 @router.get("/jobs")
 def list_jobs_route(db: Session = Depends(get_db), user: dict = Depends(UPLOADERS),
                     tenant_id: UUID = Depends(get_current_tenant_id)):
-    jobs = service.list_jobs(db, tenant_id=tenant_id, user_id=UUID(user["sub"]), rol=user["rol"])
+    jobs = service.list_jobs(db, tenant_id=tenant_id, user_id=UUID(user["sub"]), rol=user["rol"],
+                             branch_id=UUID(user["branch_id"]) if user.get("branch_id") else None)
     return response(status_code=200, message="Documentos obtenidos", data=[service.serialize(job) for job in jobs])
 
 
