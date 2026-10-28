@@ -30,13 +30,13 @@ def upgrade() -> None:
     op.execute("""
     DO $$
     BEGIN
-        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'billingcycleenum') THEN
+        IF to_regtype('billingcycleenum') IS NULL THEN  -- only the current schema (search_path), not other schemas
             CREATE TYPE billingcycleenum AS ENUM ('monthly', 'yearly');
         END IF;
-        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'subscriptionstatusenum') THEN
+        IF to_regtype('subscriptionstatusenum') IS NULL THEN  -- only the current schema (search_path), not other schemas
             CREATE TYPE subscriptionstatusenum AS ENUM ('active', 'trialing', 'past_due', 'canceled');
         END IF;
-        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'subscriptionpaymentmethodenum') THEN
+        IF to_regtype('subscriptionpaymentmethodenum') IS NULL THEN  -- only the current schema (search_path), not other schemas
             CREATE TYPE subscriptionpaymentmethodenum AS ENUM ('simulated_card', 'cash', 'stripe');
         END IF;
     END$$;
