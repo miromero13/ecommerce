@@ -91,8 +91,10 @@ def record_completed_order_interactions(db: Session, order) -> None:
         )
     }
     for item in order.items:
+        # One signal per garment: two sizes of the same product in one order must not repeat it.
         if item.product_id not in existing:
             record_interaction(db, order.user_id, item.product_id, COMPLETED_ORDER, order.id, item.variant_id, order.pickup_branch_id)
+            existing.add(item.product_id)
     db.flush()
 
 

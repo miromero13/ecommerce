@@ -57,3 +57,24 @@ def test_suspended_company_is_never_recommended(rec_api, api_db, market):
 def test_customer_only_reads_own_recommendations_in_spanish(rec_api, api_db, market):
     rejected(rec_api, api_db, market.customer, "GET", f"/recommendations/collaborative/user/{market.other.id}", 403,
              "Solo puedes consultar tus propias recomendaciones")
+
+
+def test_paying_two_sizes_of_the_same_garment_records_one_purchase_signal(rec_api, api_db, market):
+    from app.models.inventory import Inventory
+    from app.models.product_variant import ProductVariant
+    from test_marketplace_transactions import checkout, pay
+
+    own = market.own.variant
+    other_size = ProductVariant(tenant_id=own.tenant_id, product_id=own.product_id, sku=own.sku + "-XL",
+                                price=own.price, status=own.status)
+    api_db.add(other_size)
+    api_db.flush()
+    api_db.add(Inventory(tenant_id=own.tenant_id, variant_id=other_size.id, branch_id=market.branches[0].id, quantity=5))
+    api_db.commit()
+    for variant in (own, other_size):
+        call(rec_api, market.customer, "POST", "/cart/items", 201, json={
+            "variant_id": str(variant.id), "branch_id": str(market.branches[0].id), "quantity": 1})
+    order = checkout(rec_api, market)
+    pay(rec_api, market, order)  # used to fail on the unique (order, product, type) signal
+    assert call(rec_api, market.customer, "GET", f"/orders/{order['id']}")["payment_status"] == "paid"
+    assert [s for s in signals(api_db, market.customer) if s[0] == "completed_order"] == [("completed_order", 5)]
