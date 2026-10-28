@@ -305,44 +305,52 @@ def register_outcome(db: Session, payload: InventoryMovementCreate, created_by=N
         raise
 
 
+def _move_stock(db: Session, payload: InventoryTransferCreate, created_by=None, *, tenant_id):
+    """Validate and apply one transfer inside the caller's transaction (no commit)."""
+    if payload.from_branch_id == payload.to_branch_id:
+        raise ValueError("La sucursal origen y destino no pueden ser iguales")
+
+    _require_branch(db, payload.from_branch_id, tenant_id)
+    _require_branch(db, payload.to_branch_id, tenant_id)
+    _require_active_variant(db, payload.variant_id, tenant_id)
+    source_inventory = _get_or_create_inventory(db, payload.variant_id, payload.from_branch_id, tenant_id)
+    if _inventory_available(source_inventory) < payload.quantity:
+        raise ValueError("No hay stock disponible suficiente en la sucursal origen")
+
+    destination_inventory = _get_or_create_inventory(db, payload.variant_id, payload.to_branch_id, tenant_id)
+    source_inventory.quantity -= payload.quantity
+    destination_inventory.quantity += payload.quantity
+
+    out_movement = InventoryMovement(
+        variant_id=payload.variant_id,
+        branch_id=payload.from_branch_id,
+        tenant_id=tenant_id,
+        movement_type=InventoryMovementTypeEnum.transfer_out,
+        quantity=payload.quantity,
+        reference_branch_id=payload.to_branch_id,
+        note=payload.note,
+        created_by=created_by,
+    )
+    in_movement = InventoryMovement(
+        variant_id=payload.variant_id,
+        branch_id=payload.to_branch_id,
+        tenant_id=tenant_id,
+        movement_type=InventoryMovementTypeEnum.transfer_in,
+        quantity=payload.quantity,
+        reference_branch_id=payload.from_branch_id,
+        note=payload.note,
+        created_by=created_by,
+    )
+    db.add(out_movement)
+    db.add(in_movement)
+    db.flush()
+    return [out_movement, in_movement], [source_inventory, destination_inventory]
+
+
 def register_transfer(db: Session, payload: InventoryTransferCreate, created_by=None, *, tenant_id):
     try:
-        if payload.from_branch_id == payload.to_branch_id:
-            raise ValueError("La sucursal origen y destino no pueden ser iguales")
-
-        _require_branch(db, payload.from_branch_id, tenant_id)
-        _require_branch(db, payload.to_branch_id, tenant_id)
-        _require_active_variant(db, payload.variant_id, tenant_id)
-        source_inventory = _get_or_create_inventory(db, payload.variant_id, payload.from_branch_id, tenant_id)
-        if _inventory_available(source_inventory) < payload.quantity:
-            raise ValueError("No hay stock disponible suficiente en la sucursal origen")
-
-        destination_inventory = _get_or_create_inventory(db, payload.variant_id, payload.to_branch_id, tenant_id)
-        source_inventory.quantity -= payload.quantity
-        destination_inventory.quantity += payload.quantity
-
-        out_movement = InventoryMovement(
-            variant_id=payload.variant_id,
-            branch_id=payload.from_branch_id,
-            tenant_id=tenant_id,
-            movement_type=InventoryMovementTypeEnum.transfer_out,
-            quantity=payload.quantity,
-            reference_branch_id=payload.to_branch_id,
-            note=payload.note,
-            created_by=created_by,
-        )
-        in_movement = InventoryMovement(
-            variant_id=payload.variant_id,
-            branch_id=payload.to_branch_id,
-            tenant_id=tenant_id,
-            movement_type=InventoryMovementTypeEnum.transfer_in,
-            quantity=payload.quantity,
-            reference_branch_id=payload.from_branch_id,
-            note=payload.note,
-            created_by=created_by,
-        )
-        db.add(out_movement)
-        db.add(in_movement)
+        (out_movement, in_movement), (source_inventory, destination_inventory) = _move_stock(
+            db, payload, created_by, tenant_id=tenant_id)
         db.commit()
         db.refresh(source_inventory)
         db.refresh(destination_inventory)

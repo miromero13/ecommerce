@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routes import user_routes, auth, branch_routes, provider_routes, catalog_routes, garment_routes, inventory_routes, cart_routes, reservation_routes, order_routes, payment_routes, sales_routes, report_routes, dashboard_routes, promotion_routes, replenishment_routes, recommendation_routes, chatbot_routes, notification_routes, tenant_routes, subscription_routes, payout_routes, delivery_routes, rbac_routes
+from app.routes import user_routes, auth, branch_routes, provider_routes, catalog_routes, garment_routes, inventory_routes, cart_routes, reservation_routes, order_routes, payment_routes, sales_routes, report_routes, dashboard_routes, promotion_routes, replenishment_routes, recommendation_routes, chatbot_routes, notification_routes, tenant_routes, subscription_routes, payout_routes, delivery_routes, rbac_routes, expert_replenishment_routes
 from app.core.error_handlers import register_error_handlers
 from app.core.tenant_middleware import register_tenant_middleware
 from app.core.database import SessionLocal
@@ -36,16 +36,31 @@ async def _daily_expiration_loop() -> None:
             pass
 
 
+async def _expert_replenishment_loop() -> None:
+    while True:
+        await asyncio.sleep(21600)  # Every 6 hours
+        db = SessionLocal()
+        try:
+            from app.services.expert_replenishment_service import run_auto_evaluation_all_tenants
+            run_auto_evaluation_all_tenants(db)
+        except Exception:
+            db.rollback()
+        finally:
+            db.close()
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     task = asyncio.create_task(_expire_orders_loop())
     daily_task = asyncio.create_task(_daily_expiration_loop())
+    replenishment_task = asyncio.create_task(_expert_replenishment_loop())
     try:
         yield
     finally:
         task.cancel()
         daily_task.cancel()
-        await asyncio.gather(task, daily_task, return_exceptions=True)
+        replenishment_task.cancel()
+        await asyncio.gather(task, daily_task, replenishment_task, return_exceptions=True)
 
 app = FastAPI(title="ACI", lifespan=lifespan)
 
@@ -87,6 +102,7 @@ api_router.include_router(subscription_routes.router)
 api_router.include_router(payout_routes.router)
 api_router.include_router(delivery_routes.router)
 api_router.include_router(rbac_routes.router)
+api_router.include_router(expert_replenishment_routes.router)
 
 app.include_router(api_router)
 

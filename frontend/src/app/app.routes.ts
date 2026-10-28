@@ -301,6 +301,10 @@ export const routes: Routes = [
             loadComponent: () => import('./features/shared/pages/sales-history-page.component').then((m) => m.SalesHistoryPageComponent),
           },
           {
+            path: 'reports',
+            loadComponent: () => import('./features/admin/pages/admin-reports-page.component').then((m) => m.AdminReportsPageComponent),
+          },
+          {
             path: 'replenishment',
             loadComponent: () => import('./features/shared/pages/replenishment-page.component').then((m) => m.ReplenishmentPageComponent),
           },
@@ -323,8 +327,11 @@ export const routes: Routes = [
               ),
           },
           {
-            path: 'reports',
-            loadComponent: () => import('./features/admin/pages/admin-reports-page.component').then((m) => m.AdminReportsPageComponent),
+            path: 'expert-replenishment',
+            loadComponent: () =>
+              import(
+                './features/admin/pages/admin-expert-replenishment-page.component'
+              ).then((m) => m.AdminExpertReplenishmentPageComponent),
           },
         ],
       },

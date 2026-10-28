@@ -53,10 +53,27 @@ class Tenant(Base):
         cascade="all, delete-orphan",
         order_by="desc(TenantSubscription.created_at)",
     )
+    expert_replenishment_rule = relationship(
+        "ExpertReplenishmentRule",
+        back_populates="tenant",
+        uselist=False,
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    expert_transfer_suggestions = relationship(
+        "ExpertTransferSuggestion",
+        back_populates="tenant",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
 
 
 # Register the related mappers whenever the Tenant model is imported.
 from app.models.user import User  # noqa: E402, F401
 from app.models.branch import Branch  # noqa: E402, F401
 from app.models.tenant_subscription import TenantSubscription  # noqa: E402, F401
+from app.models.expert_replenishment import (  # noqa: E402, F401
+    ExpertReplenishmentRule,
+    ExpertTransferSuggestion,
+)
 
