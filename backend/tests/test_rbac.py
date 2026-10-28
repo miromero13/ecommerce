@@ -226,7 +226,7 @@ def test_require_permission_raises_403_when_lacking_permission():
             dep(payload={"sub": str(cajero_user.id)}, user=cajero_user, db=db)
 
         assert exc_info.value.status_code == 403
-        assert exc_info.value.detail == "No tenés permisos suficientes para realizar esta acción"
+        assert exc_info.value.detail == "No tienes permisos suficientes para realizar esta acción"
 
 
 def _tenant_with(db, *roles):

@@ -149,7 +149,7 @@ def require_permission(permission_name: str) -> Callable:
         if permission_name not in perms:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="No tenés permisos suficientes para realizar esta acción",
+                detail="No tienes permisos suficientes para realizar esta acción",
             )
         return payload
 
@@ -228,5 +228,5 @@ def validate_tenant_access(
     if current_tenant_id is not None and resource_tenant_id != current_tenant_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="No tenés permisos para acceder a los datos de esta empresa",
+            detail="No tienes permisos para acceder a los datos de esta empresa",
         )

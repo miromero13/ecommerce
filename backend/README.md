@@ -177,7 +177,7 @@ su alcance de sucursal y sus permisos existentes: el cajero solo consulta stock;
 traspasos y mínimos siguen reservados al administrador. Los ingresos, salidas,
 mínimos y ambos extremos de un traspaso validan sucursal, variante y producto
 antes de escribir. Una referencia de otra empresa responde 403
-`No tenés permisos para acceder a los datos de esta empresa`.
+`No tienes permisos para acceder a los datos de esta empresa`.
 
 Inventarios y movimientos nuevos reciben empresa. Se conservan los bloqueos de
 filas, reservas, mínimos y el cálculo disponible `max(quantity-reserved, 0)`;

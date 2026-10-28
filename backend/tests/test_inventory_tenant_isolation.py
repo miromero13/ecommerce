@@ -10,12 +10,12 @@ from test_catalog_tenant_isolation import TABLES, catalog
 from test_employee_authorization import DENIED, headers
 
 ROOT = "/api/inventory"
-TENANT_DENIED = "No tenés permisos para acceder a los datos de esta empresa"
+TENANT_DENIED = "No tienes permisos para acceder a los datos de esta empresa"
 BRANCH_DENIED = "No tienes permisos para esta sucursal"
 
 
 # Transfers are guarded by the CU3 permission "inventory:transfer" (message from the CU3 spec).
-PERMISSION_DENIED = "No tenés permisos suficientes para realizar esta acción"
+PERMISSION_DENIED = "No tienes permisos suficientes para realizar esta acción"
 
 
 def snapshot(db):
