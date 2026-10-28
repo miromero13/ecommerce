@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routes import user_routes, auth, branch_routes, provider_routes, catalog_routes, garment_routes, inventory_routes, cart_routes, reservation_routes, order_routes, payment_routes, sales_routes, report_routes, dashboard_routes, promotion_routes, replenishment_routes, recommendation_routes, chatbot_routes, notification_routes, tenant_routes, subscription_routes, payout_routes, delivery_routes, rbac_routes, expert_replenishment_routes
+from app.routes import user_routes, auth, branch_routes, provider_routes, catalog_routes, garment_routes, inventory_routes, cart_routes, reservation_routes, order_routes, payment_routes, sales_routes, report_routes, dashboard_routes, promotion_routes, replenishment_routes, recommendation_routes, chatbot_routes, notification_routes, tenant_routes, subscription_routes, payout_routes, delivery_routes, rbac_routes, expert_replenishment_routes, rpa_ingest_routes
 from app.core.error_handlers import register_error_handlers
 from app.core.tenant_middleware import register_tenant_middleware
 from app.core.database import SessionLocal
@@ -103,6 +103,7 @@ api_router.include_router(payout_routes.router)
 api_router.include_router(delivery_routes.router)
 api_router.include_router(rbac_routes.router)
 api_router.include_router(expert_replenishment_routes.router)
+api_router.include_router(rpa_ingest_routes.router)
 
 app.include_router(api_router)
 

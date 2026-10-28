@@ -119,6 +119,16 @@ export const routes: Routes = [
         loadComponent: () => import('./features/proveedor/pages/provider-products-page.component').then((m) => m.ProviderProductsPageComponent),
       },
       {
+        path: 'proveedor/rpa-ingest',
+        canActivate: [roleGuard(['proveedor'])],
+        loadComponent: () => import('./features/proveedor/pages/provider-rpa-ingest-page.component').then((m) => m.ProviderRpaIngestPageComponent),
+      },
+      {
+        path: 'encargado/rpa-ingest',
+        canActivate: [roleGuard(['encargado'])],
+        loadComponent: () => import('./features/proveedor/pages/provider-rpa-ingest-page.component').then((m) => m.ProviderRpaIngestPageComponent),
+      },
+      {
         path: 'proveedor/replenishment',
         canActivate: [roleGuard(['proveedor'])],
         loadComponent: () => import('./features/shared/pages/replenishment-page.component').then((m) => m.ReplenishmentPageComponent),
@@ -307,6 +317,10 @@ export const routes: Routes = [
           {
             path: 'replenishment',
             loadComponent: () => import('./features/shared/pages/replenishment-page.component').then((m) => m.ReplenishmentPageComponent),
+          },
+          {
+            path: 'rpa-ingest',
+            loadComponent: () => import('./features/proveedor/pages/provider-rpa-ingest-page.component').then((m) => m.ProviderRpaIngestPageComponent),
           },
           {
             path: 'payouts',

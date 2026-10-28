@@ -218,6 +218,7 @@ export class AppShellComponent {
               { label: 'Sucursales', route: '/app/admin/branch', icon: 'lucideLayoutDashboard' },
                { label: 'Proveedores', route: '/app/admin/provider', icon: 'lucideUsers' },
                { label: 'Solicitudes', route: '/app/admin/replenishment', icon: 'lucideClipboardList' },
+               { label: 'Ingesta RPA', route: '/app/admin/rpa-ingest', icon: 'lucidePackageSearch' },
                { label: 'Reabastecimiento IA', route: '/app/admin/expert-replenishment', icon: 'lucideBrainCircuit' },
                { label: 'Suscripción y Plan', route: '/app/admin/subscription', icon: 'lucideShield' },
                { label: 'Cobros y Liquidaciones', route: '/app/admin/payouts', icon: 'lucideShoppingCart' },
@@ -225,7 +226,7 @@ export class AppShellComponent {
           },
         ];
       case 'proveedor':
-         return [{ title: 'Operación', items: [this.homeItem(), { label: 'Productos', route: '/app/proveedor/products', icon: 'lucidePackageSearch' }, { label: 'Solicitudes', route: '/app/proveedor/replenishment', icon: 'lucideClipboardList' }] }];
+         return [{ title: 'Operación', items: [this.homeItem(), { label: 'Productos', route: '/app/proveedor/products', icon: 'lucidePackageSearch' }, { label: 'Solicitudes', route: '/app/proveedor/replenishment', icon: 'lucideClipboardList' }, { label: 'Ingesta RPA', route: '/app/proveedor/rpa-ingest', icon: 'lucidePackageSearch' }] }];
       case 'cliente':
         return [
           {
@@ -250,6 +251,7 @@ export class AppShellComponent {
                { label: 'Pedidos', route: '/app/encargado/orders', icon: 'lucideClipboardList' },
                { label: 'Proveedores', route: '/app/encargado/providers', icon: 'lucideUsers' },
                { label: 'Solicitudes', route: '/app/encargado/replenishment', icon: 'lucideClipboardList' },
+               { label: 'Ingesta RPA', route: '/app/encargado/rpa-ingest', icon: 'lucidePackageSearch' },
               { label: 'Promociones', route: '/app/encargado/promotions', icon: 'lucideTicket' },
               { label: 'Ventas', route: '/app/encargado/sales', icon: 'lucideShoppingCart' },
             ],

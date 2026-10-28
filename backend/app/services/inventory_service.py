@@ -250,22 +250,29 @@ def list_movements(db: Session, variant_id=None, branch_id=None, movement_type: 
     ]
 
 
+def _add_stock(db: Session, payload: InventoryMovementCreate, created_by=None, *, tenant_id):
+    """Validate and apply one stock income inside the caller's transaction (no commit)."""
+    _require_branch(db, payload.branch_id, tenant_id)
+    _require_active_variant(db, payload.variant_id, tenant_id)
+    inventory = _get_or_create_inventory(db, payload.variant_id, payload.branch_id, tenant_id)
+    inventory.quantity += payload.quantity
+    movement = InventoryMovement(
+        variant_id=payload.variant_id,
+        branch_id=payload.branch_id,
+        tenant_id=tenant_id,
+        movement_type=InventoryMovementTypeEnum.income,
+        quantity=payload.quantity,
+        note=payload.note,
+        created_by=created_by,
+    )
+    db.add(movement)
+    db.flush()
+    return movement, inventory
+
+
 def register_income(db: Session, payload: InventoryMovementCreate, created_by=None, *, tenant_id):
     try:
-        _require_branch(db, payload.branch_id, tenant_id)
-        _require_active_variant(db, payload.variant_id, tenant_id)
-        inventory = _get_or_create_inventory(db, payload.variant_id, payload.branch_id, tenant_id)
-        inventory.quantity += payload.quantity
-        movement = InventoryMovement(
-            variant_id=payload.variant_id,
-            branch_id=payload.branch_id,
-            tenant_id=tenant_id,
-            movement_type=InventoryMovementTypeEnum.income,
-            quantity=payload.quantity,
-            note=payload.note,
-            created_by=created_by,
-        )
-        db.add(movement)
+        movement, inventory = _add_stock(db, payload, created_by, tenant_id=tenant_id)
         db.commit()
         db.refresh(inventory)
         db.refresh(movement)
