@@ -335,6 +335,8 @@ def create_sale(db: Session, user_id: UUID, payload: SaleCreate, branch_id: UUID
             from app.services.receipt_service import issue_sale_receipt
             sold = _serialize_sale(db, sale).model_dump()
             receipt = issue_sale_receipt(db, sale, sold["items"], cash)
+            from app.services.recommendation_service import record_sale_interactions
+            record_sale_interactions(db, sale, sold["items"])  # CU6: in-store purchases also teach the model
         db.commit()
         db.refresh(sale)
         for variant_id in normalized_items:

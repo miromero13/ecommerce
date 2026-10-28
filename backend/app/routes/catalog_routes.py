@@ -345,7 +345,7 @@ async def record_product_view_route(
 ):
     if not record_product_view(db, UUID(current_user["sub"]), product_id, payload.variant_id if payload else None, payload.branch_id if payload else None):
         raise HTTPException(status_code=404, detail=f"Producto con id {product_id} no encontrado")
-    return response(status_code=201, message="Product view recorded", data={"product_id": str(product_id)})
+    return response(status_code=201, message="Vista de producto registrada", data={"product_id": str(product_id)})
 
 
 @router.post("/products", status_code=status.HTTP_201_CREATED)

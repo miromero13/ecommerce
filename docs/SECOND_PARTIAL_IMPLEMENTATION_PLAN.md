@@ -145,7 +145,7 @@ Rutas reales verificadas. "Brecha" = lo que falta para cerrar el CU según el ex
 | Tests | `backend/tests/test_recommendation_service.py` |
 | Front | `features/cliente/pages/catalog-page.component` + `features/shared/services/catalog-api.service.ts` |
 | Móvil | `mobile/lib/features/catalog/catalog_page.dart`, `catalog_api.dart` |
-| Doc dice (incorrecto) | `cliente-home-page` y `recommendation-api.service.ts` (no existe), endpoint `/me` |
+| Doc | Corregida en `SECOND_PARTIAL_USE_CASES.md` al contrato real (`/collaborative/user/{id}`, `catalog-page`) |
 
 **Brecha CU6:** `recommendation_routes.py:29` → `message="Recommendations retrieved"` está en inglés (viola regla 1.1) → `"Recomendaciones obtenidas exitosamente"`.
 
@@ -566,7 +566,7 @@ Ejecutar la transferencia reutiliza `inventory_service.register_transfer` (atóm
 | Delivery por distancia con repartidores de la plataforma | ✅ | CU20 | `services/delivery_service.py`, `routes/delivery_routes.py`, `delivery/pages/delivery-home-page`, `superadmin/pages/drivers-page`, `cart-page`, móvil `checkout_page.dart` |
 | Branding por empresa (logo, color) — 0.3 | ✅ | CU1 | `tenant_service` (`update_tenant_logo`, `get_branding`), `tenant_routes` (`/branding`, `/me/branding`, `/me/logo`, `/{id}/logo`), `core/services/branding.service.ts`, `shared/components/tenant-branding-editor`, `app-shell`, `simple-pdf.util` |
 | Cupón en caja (CU15) | ✅ | CU15 | `sales_service._apply_cashier_coupon`, `sales.customer_id` / `sales.promotion_code_id`, `caja-page` |
-| Mensaje en español de recomendaciones (CU6) | ✅ | CU6 | `recommendation_routes.py` |
+| Recomendaciones: mensajes en español, reentrenamiento nocturno, compras en caja y favoritos como señales, sin empresas suspendidas | ✅ | CU6 | `recommendation_service.py`, `recommendation_routes.py`, `wishlist_service.py`, `sales_service.py`, `main.py` |
 | Anticipo con tarjeta (web y móvil) | ✅ | 1P-CU14 | `shared/components/stripe-card-payment`, `my-reservations-page`, móvil `reservations_page.dart` |
 | Ubicación automática en el móvil | ✅ | CU20 | `checkout_page.dart` (`_useMyLocation`), permisos en `AndroidManifest.xml` e `Info.plist` |
 | RBAC: roles personalizados que reemplazan los permisos del rol base | ✅ | CU3 | `services/rbac_service.py` (`effective_permissions`, `assign_user_roles`), `routes/rbac_routes.py`, `auth/dependencies.require_permission`, migración `0042`, `admin/pages/rbac-roles-page`, `shared/directives/has-permission.directive.ts` |

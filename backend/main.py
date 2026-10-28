@@ -34,6 +34,15 @@ async def _daily_expiration_loop() -> None:
             run_daily_expiration()
         except Exception:
             pass
+        # CU6: retrain the ALS recommendation model with the day's views, favorites, carts and purchases.
+        db = SessionLocal()
+        try:
+            from app.services.recommendation_service import train
+            train(db)
+        except Exception:
+            db.rollback()
+        finally:
+            db.close()
 
 
 async def _expert_replenishment_loop() -> None:

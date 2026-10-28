@@ -590,56 +590,52 @@ Response 422 Unprocessable Entity:
 #### CU6 – Recibir recomendaciones personalizadas de catálogo
 * **Rama de IA:** **Machine Learning** (Filtrado Colaborativo con Implicit ALS)
 * **Actor Principal:** Cliente
-* **Estado:** **Hecho** (Implementado en `backend/app/services/recommendation_service.py` y `recommendation_routes.py`) | **Plataforma:** Ambas
-* **Descripción Funcional:** Generación de sugerencias personalizadas de prendas en portada y detalle a partir de la matriz de interacciones del cliente (vistas, carritos y compras), con fallback automático por popularidad para usuarios nuevos (*Cold Start*).
+* **Estado:** **Hecho** (`backend/app/services/recommendation_service.py`, `recommendation_routes.py`) | **Plataforma:** Ambas
+* **Descripción Funcional:** Sugerencias personalizadas de prendas en el catálogo a partir de la matriz de interacciones del cliente, con *fallback* por popularidad para usuarios nuevos (*Cold Start*) y un ajuste por afinidad (categoría, colección, temporada, talla, color y sucursal).
+* **Reglas implementadas:**
+  * Señales y pesos: vista **1**, carrito **2**, lista de deseos **3** (una vez por prenda), compra **5** (pedido web pagado o compra en caja con el cliente identificado por correo).
+  * El modelo ALS se **reentrena cada noche** en segundo plano (`main.py`, junto a la tarea diaria); también se puede entrenar a pedido con `python -m app.services.recommendation_service`.
+  * Solo se recomiendan prendas activas, con stock y de empresas **no suspendidas**; se excluye lo que el cliente ya compró.
+  * Un cliente solo consulta sus propias recomendaciones.
 
 ##### Endpoints Backend
 ```http
-GET /api/recommendations/me?limit=6
-Headers: Authorization: Bearer <jwt>
+GET /api/recommendations/collaborative/user/{user_id}?branch_id=<uuid opcional>
+Headers: Authorization: Bearer <client_jwt>
 Response 200 OK:
 {
   "statusCode": 200,
-  "message": "Recomendaciones generadas exitosamente",
-  "data": [
-    {
-      "product_id": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
-      "name": "Vestido Midi Seda Floral",
-      "score": 0.892,
-      "recommendation_reason": "Basado en tus compras recientes y favoritos"
-    }
-  ]
+  "message": "Recomendaciones obtenidas exitosamente",
+  "data": {
+    "logic_type": "implicit_als",          // o "popular_fallback" si el cliente aún no tiene vector entrenado
+    "user_id": "<uuid>",
+    "recommendations": [ { "product_id": "<uuid>", "score": 0.892 } ]
+  }
 }
 
-Response 404 Not Found:
-{
-  "statusCode": 404,
-  "message": "No se encontraron interacciones suficientes para generar recomendaciones personalizadas",
-  "error": "HTTPException"
-}
+Response 403 Forbidden:
+{ "statusCode": 403, "message": "Solo puedes consultar tus propias recomendaciones", "error": "HTTPException" }
 ```
 ```http
-POST /api/recommendations/interactions
-Request Body: { "product_id": "...", "interaction_type": "view" }
-Response 200 OK:
-{
-  "statusCode": 200,
-  "message": "Interacción registrada para el modelo de recomendaciones"
-}
+POST /api/catalog/products/{product_id}/view      (cliente: registra la vista; body opcional { "variant_id", "branch_id" })
+Response 201: { "statusCode": 201, "message": "Vista de producto registrada" }
 ```
+Las demás señales se registran solas: carrito (`cart_service`), lista de deseos (`wishlist_service`), pedido pagado (`order_service._consume_order`) y venta en caja con cliente identificado (`sales_service.create_sale`).
 
 ##### Ubicación en Frontend (Angular & Móvil)
-* **Página y Vista:** `frontend/src/app/features/cliente/pages/cliente-home-page.component.ts` (`cliente-home-page.component.html`)
-* **Servicio API:** `frontend/src/app/features/shared/services/recommendation-api.service.ts`
-* **Móvil Flutter:** Carrusel de recomendaciones en `mobile/lib/features/catalog/catalog_page.dart`
-* **Mensajes en UI:** Encabezado dinámico: `"Recomendado para vos"` / `"Prendas que combinan con tu estilo"`.
+* **Página y Vista:** carrusel de recomendaciones en `frontend/src/app/features/cliente/pages/catalog-page.component.ts` (`catalog-page.component.html`)
+* **Servicio API:** `frontend/src/app/features/shared/services/catalog-api.service.ts` (`getCollaborativeRecommendations`, `recordProductView`)
+* **Móvil Flutter:** carrusel en `mobile/lib/features/catalog/catalog_page.dart` con `catalog_api.dart`
+* **Pruebas:** `backend/tests/test_recommendation_service.py`, `backend/tests/test_recommendation_signals.py`
 
 ##### Checklist de Implementación
 - [x] Backend: Algoritmo Implicit ALS con NumPy en `recommendation_service.py`.
-- [x] Backend: Endpoint `/api/recommendations/me` con cálculo vectorial y fallback cold-start.
-- [x] Frontend: Carrusel de productos recomendados en `cliente-home-page`.
+- [x] Backend: Endpoint `/api/recommendations/collaborative/user/{user_id}` con cálculo vectorial y fallback cold-start.
+- [x] Backend: Reentrenamiento nocturno automático del modelo.
+- [x] Backend: Compras en caja y lista de deseos como señales; empresas suspendidas excluidas.
+- [x] Frontend: Carrusel de productos recomendados en `catalog-page`.
 - [x] Móvil: Integración de carrusel de recomendaciones en la portada del catálogo Flutter.
-- [x] Verificación: Comprobar actualización de recomendaciones tras registrar nuevas compras.
+- [x] Verificación: Comprobar actualización de recomendaciones tras registrar nuevas compras (`test_recommendation_signals.py`).
 
 ---
 

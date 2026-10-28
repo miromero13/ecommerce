@@ -62,7 +62,10 @@ def add_item(db: Session, user_id: UUID, product_id: UUID) -> WishlistItem:
     item = WishlistItem(tenant_id=product.tenant_id, user_id=user_id, product_id=product.id)
     db.add(item)
     try:
-        db.commit()  # the unique constraint is the source of truth, also under concurrent clicks
+        db.flush()  # the unique constraint is the source of truth, also under concurrent clicks
+        from app.services.recommendation_service import record_wishlist_interaction
+        record_wishlist_interaction(db, user_id, product.id)  # CU6 signal
+        db.commit()
     except IntegrityError as exc:
         db.rollback()
         raise AlreadySaved("La prenda ya se encuentra en tu lista de deseos") from exc
