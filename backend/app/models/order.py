@@ -45,3 +45,6 @@ class Order(Base):
     updated_at = Column(DateTime(timezone=True), nullable=True, onupdate=func.now())
 
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
+
+
+from app.models.order_item import OrderItem  # noqa: E402, F401

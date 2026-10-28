@@ -30,3 +30,6 @@ class Reservation(Base):
     updated_at = Column(DateTime(timezone=True), nullable=True, onupdate=func.now())
 
     items = relationship("ReservationItem", back_populates="reservation", cascade="all, delete-orphan")
+
+
+from app.models.reservation_item import ReservationItem  # noqa: E402, F401

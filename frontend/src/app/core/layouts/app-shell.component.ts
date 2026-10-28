@@ -211,6 +211,7 @@ export class AppShellComponent {
               { label: 'Promociones', route: '/app/admin/promotions', icon: 'lucideTicket' },
               { label: 'Inventario', route: '/app/admin/inventory', icon: 'lucidePackageSearch' },
               { label: 'Ventas', route: '/app/admin/sales', icon: 'lucideShoppingCart' },
+              { label: 'Reportes IA', route: '/app/admin/reports', icon: 'lucideClipboardList' },
               { label: 'Usuarios', route: '/app/admin/user', icon: 'lucideUsers' },
               { label: 'Roles y Permisos', route: '/app/admin/roles', icon: 'lucideShield' },
               { label: 'Sucursales', route: '/app/admin/branch', icon: 'lucideLayoutDashboard' },

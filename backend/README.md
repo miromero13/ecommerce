@@ -42,6 +42,48 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
 En Flutter usa `http://10.0.2.2:8000` como `BACKEND_URL`; `10.0.2.2` apunta al host desde el emulador Android.
 
+## CU8: reportes inteligentes
+
+Instalá `requirements.txt` actualizado: incluye Scikit-Learn, openpyxl y ReportLab.
+No se necesita migración ni guardar modelos o datos sintéticos en la base.
+
+- Web: `/app/admin/reports` → lenguaje natural/voz, reportes descriptivos, demanda y segmentos.
+- NLP compatible: `POST /api/reports/query` con `{ "query": "top 10 productos" }`.
+- ML (administrador con `ai_ml_smart_reports`, también en demostración):
+  `POST /api/reports/ml/predict-demand` con `{ "target_period_weeks": 4, "use_synthetic_data": true }`;
+  `POST /api/reports/ml/customer-clusters` con `{ "use_synthetic_data": true }`.
+  La página usa por defecto los datos reales de la empresa (completados con sintéticos si faltan
+  muestras) y ofrece un interruptor "Modo demostración" que envía `use_synthetic_data: true`
+  (solo datos simulados reproducibles en memoria). Nunca escribe en la base.
+  Scikit-Learn entrena regresión y K-Means reales y calcula las métricas; no son salidas prefijadas
+  ni un pronóstico del negocio. La demo de demanda no selecciona sucursal.
+  La API conserva el modo automático si se omite el indicador o es `false`:
+  demanda admite `{ "target_period_weeks": 4 }` y `branch_id` UUID opcional;
+  segmentación admite `{}` o ninguna carga JSON.
+- Reportes nuevos: `GET /api/reports/top-products`, `/branch-comparison`, `/critical-inventory`.
+- Exportar: `GET /api/reports/export/excel?type=top_products` o `/export/pdf?type=top_products`.
+  También acepta `sales`, `inventory`, `movements`, `branch_comparison`, `critical_inventory`;
+  filtros `branch_id`, `product_id`, `variant_id`, `from_date`, `to_date`, `q`.
+  Son exportaciones descriptivas con columnas estándar por tipo, no exportaciones de modelos ML
+  ni de la selección de columnas NLP. Los CSV anteriores se conservan.
+
+Los descriptivos, NLP y exportaciones siguen consultando datos reales. Los modelos identifican
+reales/mixtos/sintéticos mediante `data_source` y no inventan ventas persistidas. En la demo ML,
+`mode` es `synthetic`, `real_samples` es 0 y `synthetic_samples` es positivo. En modo automático,
+la API usa datos del tenant y completa con sintéticos solo si faltan muestras. La regresión evalúa cronológicamente y muestra R²/MSE, no precisión
+prometida. Los intervalos son aproximados. RFM usa clientes de pedidos pagados, no cajeros.
+
+Pruebas CU8 sin PostgreSQL ni credenciales reales (HTTP con SQLite temporal):
+
+```bash
+python -m pytest tests/test_ml_reports.py tests/test_smart_report_exports.py tests/test_cu8_api.py tests/test_natural_report_contract.py -q
+```
+
+Prueba de comportamiento de la página, desde `frontend/`:
+`node --test scripts/test-smart-reports.cjs`. `npm test` verifica la compilación Angular.
+La demo de voz necesita navegador compatible, permiso de micrófono y Gemini configurado;
+las pruebas usan un intérprete simulado, no llamadas externas.
+
 ## Swagger / Docs
 
 Sí, hay Swagger por defecto.

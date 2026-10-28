@@ -2,6 +2,42 @@ import { ApiResponse } from '../../../core/models/api.model';
 import { PaymentMethodEnum, PaymentStatusEnum } from './order.model';
 
 export type ReportType = 'sales' | 'inventory' | 'movements';
+export type SmartReportType = ReportType | 'top_products' | 'branch_comparison' | 'critical_inventory';
+
+export interface SmartReportPayload {
+  summary: Record<string, unknown>;
+  rows: Array<Record<string, unknown>>;
+}
+export type SmartReportResponse = ApiResponse<SmartReportPayload>;
+
+export interface ReportDataSource {
+  mode: 'real' | 'mixed' | 'synthetic';
+  real_samples: number;
+  synthetic_samples: number;
+  notice: string;
+}
+
+export interface DemandForecastRequest {
+  use_synthetic_data?: boolean;
+  branch_id?: string;
+  target_period_weeks: number;
+}
+
+export interface DemandForecast {
+  model_type: string;
+  evaluation_metrics: { r2_score: number; mse: number; test_samples: number };
+  forecast: Array<{ week: string | number; predicted_units: number; confidence_lower: number; confidence_upper: number }>;
+  data_source: ReportDataSource;
+}
+
+export interface CustomerClusters {
+  model_type: string;
+  clusters_count: 3;
+  evaluation_metrics: { silhouette_score: number };
+  segments: Array<{ cluster_id: number; name: string; size: number; avg_spend: number; real_customers: number; synthetic_customers: number }>;
+  data_source: ReportDataSource;
+}
+
 
 export interface ReportQuery {
   branch_id?: string | null;
@@ -74,12 +110,12 @@ export type MovementsReportResponse = ApiResponse<ReportPayload<MovementReportRo
 export type ReportResponse = SalesReportResponse | InventoryReportResponse | MovementsReportResponse;
 
 export interface NaturalReportPayload {
-  report_type: ReportType;
+  report_type: SmartReportType;
   format: 'pdf' | 'html' | 'csv';
   columns?: string[];
   filters: ReportQuery;
   interpretation: string;
-  report: ReportPayload<SalesReportRow> | ReportPayload<InventoryReportRow> | ReportPayload<MovementReportRow>;
+  report: ReportPayload<SalesReportRow> | ReportPayload<InventoryReportRow> | ReportPayload<MovementReportRow> | SmartReportPayload;
 }
 
 export type NaturalReportResponse = ApiResponse<NaturalReportPayload>;

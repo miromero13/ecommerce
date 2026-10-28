@@ -1,0 +1,150 @@
+<section class="space-y-4">
+  <header>
+    <h1 class="text-2xl font-semibold">Reportes IA</h1>
+    <p class="text-sm text-slate-500">Reportes descriptivos, predicción de demanda y segmentación de clientes.</p>
+  </header>
+
+  <nav class="flex flex-wrap gap-2" aria-label="Tipos de análisis">
+    @for (item of tabs; track item.key) {
+      <button hlmBtn type="button" [variant]="tab() === item.key ? 'default' : 'outline'"
+        [attr.aria-pressed]="tab() === item.key" [disabled]="loading()"
+        (click)="tab.set(item.key); error.set('')">{{ item.label }}</button>
+    }
+  </nav>
+  @if (error()) { <p role="alert" class="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{{ error() }}</p> }
+  @if (loading()) { <p role="status" class="text-sm text-slate-500">Procesando análisis…</p> }
+
+  @if (tab() === 'reports') {
+    <section hlmCard class="p-4 space-y-3">
+      <h2 class="font-semibold">Consulta en lenguaje natural</h2>
+      <p class="text-sm text-slate-500">Por ejemplo: ventas de esta semana por sucursal. Requiere reportes con IA en tu plan.</p>
+      <label for="natural-query" class="text-sm">Solicitud escrita o dictada</label>
+      <textarea id="natural-query" hlmInput rows="2" [(ngModel)]="naturalQuery" placeholder="¿Qué reporte necesitas?"></textarea>
+      <div class="flex flex-wrap gap-2">
+        <button hlmBtn type="button" variant="outline" (click)="startListening()" [attr.aria-pressed]="listening()">{{ listening() ? 'Detener dictado' : 'Dictar por voz' }}</button>
+        <button hlmBtn type="button" (click)="generateReport(true)" [disabled]="loading() || exporting()">Consultar IA</button>
+      </div>
+    </section>
+
+    <section hlmCard class="p-4 space-y-3">
+      <h2 class="font-semibold">Reportes descriptivos</h2>
+      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <label class="space-y-1 text-sm">Reporte
+          <select hlmInput class="w-full" [(ngModel)]="reportType">
+            @for (type of reportTypes; track type.key) { <option [value]="type.key">{{ type.label }}</option> }
+          </select>
+        </label>
+        <label class="space-y-1 text-sm">Sucursal (opcional)
+          <select hlmInput class="w-full" [(ngModel)]="branchId">
+            <option value="">Todas las sucursales</option>
+            @for (branch of branches(); track branch.id) { <option [value]="branch.id">{{ branch.name }}</option> }
+          </select>
+        </label>
+        <label class="space-y-1 text-sm">Desde (opcional)<input hlmInput type="date" [(ngModel)]="fromDate" /></label>
+        <label class="space-y-1 text-sm">Hasta (opcional)<input hlmInput type="date" [(ngModel)]="toDate" /></label>
+      </div>
+      <button hlmBtn type="button" (click)="generateReport()" [disabled]="loading() || exporting()">Generar reporte</button>
+    </section>
+
+    @if (report(); as result) {
+      <section hlmCard class="p-4 space-y-3">
+        <h2 class="font-semibold">Resultado descriptivo</h2>
+        @if (interpretation()) { <p class="text-sm">{{ interpretation() }}</p> }
+        <p class="text-sm text-slate-500">Las descargas corresponden al último resultado generado y sus filtros, no a cambios sin aplicar. No incluyen análisis ML.</p>
+        <div class="flex gap-2">
+          <button hlmBtn type="button" variant="outline" (click)="exportReport('excel')" [disabled]="exporting() || loading()">Exportar descriptivo Excel</button>
+          <button hlmBtn type="button" variant="outline" (click)="exportReport('pdf')" [disabled]="exporting() || loading()">Exportar descriptivo PDF</button>
+        </div>
+        <dl class="flex flex-wrap gap-4">
+          @for (item of summary(); track item.label) { <div><dt class="text-xs text-slate-500">{{ item.label }}</dt><dd class="font-semibold">{{ cell(item.value) }}</dd></div> }
+        </dl>
+        <div class="overflow-x-auto">
+          <table hlmTable class="w-full text-sm">
+            <caption class="sr-only">Resultado del reporte descriptivo</caption>
+            <thead><tr>@for (column of columns(); track column.key) { <th class="p-2 text-left">{{ column.label }}</th> }</tr></thead>
+            <tbody>
+              @for (row of result.rows; track $index) {
+                <tr class="border-t">@for (column of columns(); track column.key) { <td class="p-2">{{ cell(row[column.key]) }}</td> }</tr>
+              } @empty { <tr><td class="p-4" [attr.colspan]="columns().length || 1">Sin datos para los filtros seleccionados.</td></tr> }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    }
+  }
+
+  @if (tab() === 'demand' || tab() === 'clusters') {
+    <aside class="space-y-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+      <label class="flex cursor-pointer items-center gap-2 font-semibold">
+        <input type="checkbox" [checked]="demoMode()" (change)="demoMode.set($any($event.target).checked)" />
+        Modo demostración (solo datos sintéticos)
+      </label>
+      @if (demoMode()) {
+        <p>Scikit-Learn entrena regresión y K-Means reales con datos sintéticos reproducibles en memoria. No es un pronóstico del negocio ni una segmentación de tus clientes reales.</p>
+      } @else {
+        <p>Los modelos se entrenan con las ventas y los clientes reales de tu empresa. Si hay pocos datos, se completan con datos sintéticos y el resultado lo indica (datos reales, mixtos o sintéticos).</p>
+      }
+      <p>Las métricas (R², MSE, Silhouette) se calculan sobre los datos usados; no se modifica la base de datos.</p>
+    </aside>
+  }
+
+  @if (tab() === 'demand') {
+    <section hlmCard class="p-4 space-y-3">
+      <h2 class="font-semibold">Predicción de demanda</h2>
+      <p class="text-sm text-slate-500">Pronóstico semanal. Requiere analítica predictiva con Machine Learning en tu plan.</p>
+      <div class="flex flex-wrap items-end gap-3">
+        <label class="text-sm">Semanas (1–12)<input hlmInput type="number" min="1" max="12" step="1" [(ngModel)]="weeks" /></label>
+        <button hlmBtn type="button" (click)="predictDemand()" [disabled]="loading()">Predecir demanda</button>
+      </div>
+      @if (forecast(); as result) {
+        <p class="text-sm">Modelo: {{ result.model_type }} · R²: {{ result.evaluation_metrics.r2_score | number:'1.2-4' }} · MSE: {{ result.evaluation_metrics.mse | number:'1.2-4' }} · Muestras de prueba: {{ result.evaluation_metrics.test_samples }}</p>
+        <aside class="rounded-md bg-amber-50 p-3 text-sm text-amber-950">
+          <p>{{ result.data_source.notice }}</p>
+          <p>Datos: {{ result.data_source.mode === 'real' ? 'reales' : result.data_source.mode === 'mixed' ? 'mixtos (reales y sintéticos)' : 'sintéticos (demostración)' }}. Muestras reales: {{ result.data_source.real_samples }} · Sintéticas: {{ result.data_source.synthetic_samples }}</p>
+        </aside>
+        <p class="text-sm text-slate-500">El intervalo es aproximado, no garantiza ventas futuras. R² puede ser negativo; un MSE menor indica menos error en las muestras de prueba.</p>
+        @if (forecastChart().length) {
+          <div hlmOnBrowser><ngx-bar-chart [data]="forecastChart()" [categories]="demandCategories" [yAxis]="['units']" [height]="240" [yGridLine]="true" /></div>
+        }
+        <div class="overflow-x-auto">
+          <table hlmTable class="w-full text-sm">
+            <caption class="sr-only">Pronóstico e intervalo aproximado por semana</caption>
+            <thead><tr><th class="p-2 text-left">Semana</th><th>Unidades previstas</th><th>Límite inferior</th><th>Límite superior</th></tr></thead>
+            <tbody>@for (point of result.forecast; track $index) {
+              <tr class="border-t"><td class="p-2">{{ point.week }}</td><td>{{ point.predicted_units | number:'1.0-2' }}</td><td>{{ point.confidence_lower | number:'1.0-2' }}</td><td>{{ point.confidence_upper | number:'1.0-2' }}</td></tr>
+            } @empty { <tr><td colspan="4" class="p-3">Sin pronóstico disponible.</td></tr> }</tbody>
+          </table>
+        </div>
+      }
+    </section>
+  }
+
+  @if (tab() === 'clusters') {
+    <section hlmCard class="p-4 space-y-3">
+      <h2 class="font-semibold">Segmentación de clientes</h2>
+      <p class="text-sm text-slate-500">Análisis RFM de clientes simulados, sin datos de la empresa. Requiere analítica predictiva con Machine Learning en tu plan.</p>
+      <button hlmBtn type="button" (click)="segmentCustomers()" [disabled]="loading()">Analizar segmentos</button>
+      @if (clusters(); as result) {
+        <p class="text-sm">Modelo: {{ result.model_type }} · Segmentos: {{ result.clusters_count }} · Silhouette: {{ result.evaluation_metrics.silhouette_score | number:'1.2-4' }}</p>
+        <p class="text-sm text-slate-500">Silhouette mide la separación de grupos (−1 a 1); valores mayores indican grupos más diferenciados.</p>
+        <aside class="rounded-md bg-amber-50 p-3 text-sm text-amber-950">
+          <p>{{ result.data_source.notice }}</p>
+          <p>Datos: {{ result.data_source.mode === 'real' ? 'reales' : result.data_source.mode === 'mixed' ? 'mixtos (reales y sintéticos)' : 'sintéticos (demostración)' }}. Muestras reales: {{ result.data_source.real_samples }} · Sintéticas: {{ result.data_source.synthetic_samples }}</p>
+        </aside>
+        <div class="grid gap-3 md:grid-cols-3">
+          @for (segment of result.segments; track segment.cluster_id) {
+            <article class="rounded-md border p-3 space-y-1">
+              <h3 class="font-semibold">{{ segment.name }}</h3>
+              <p>{{ segment.size }} clientes simulados</p>
+              <p>Gasto promedio: {{ segment.avg_spend | number:'1.2-2' }}</p>
+              <p class="text-sm text-slate-500">Reales: {{ segment.real_customers }} · Sintéticos: {{ segment.synthetic_customers }}</p>
+            </article>
+          }
+        </div>
+        @if (clustersChart().length) {
+          <div hlmOnBrowser><ngx-bar-chart [data]="clustersChart()" [categories]="clusterCategories" [yAxis]="['customers']" [height]="240" [yGridLine]="true" /></div>
+        }
+      }
+    </section>
+  }
+</section>
