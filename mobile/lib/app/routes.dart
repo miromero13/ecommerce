@@ -15,6 +15,7 @@ import '../features/profile/profile_page.dart';
 import '../features/reservations/reservation_create_page.dart';
 import '../features/reservations/reservation_models.dart';
 import '../features/reservations/reservations_page.dart';
+import '../features/wishlist/wishlist_page.dart';
 import '../shared/widgets/app_scaffold.dart';
 
 abstract final class AppRoutes {
@@ -29,6 +30,7 @@ abstract final class AppRoutes {
   static const productDetail = '/product';
   static const login = '/login';
   static const notifications = '/notifications';
+  static const wishlist = '/wishlist';
 }
 
 abstract final class AppRouter {
@@ -121,6 +123,11 @@ abstract final class AppRouter {
               : null,
           authController: authController,
         ),
+      ),
+      AppRoutes.wishlist => _page(
+        settings,
+        WishlistPage(authController: authController),
+        selectedIndex: 1,
       ),
       AppRoutes.login => _page(
         settings,

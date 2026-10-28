@@ -52,11 +52,14 @@ export interface StoreConflictModal {
   currentName: string;
 }
 
+import { WishlistToggleButtonComponent } from '../components/wishlist-toggle-button.component';
+
 @Component({
   selector: 'app-catalog-page',
   standalone: true,
   imports: [
     CommonModule,
+    WishlistToggleButtonComponent,
     RouterLink,
     ReactiveFormsModule,
     NgIcon,

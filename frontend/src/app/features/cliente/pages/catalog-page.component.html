@@ -223,6 +223,7 @@
           >
             <!-- Imagen con ojito flotante -->
             <div class="relative h-60 w-full overflow-hidden bg-slate-100">
+              <app-wishlist-toggle-button class="absolute left-3 top-3 z-10" [productId]="product.id" />
               @if (currentProductImage(product); as image) {
                 <img
                   [src]="image"
@@ -340,6 +341,7 @@
           >
             <!-- Imagen con ojito en esquina superior derecha -->
             <div class="relative h-64 w-full overflow-hidden bg-slate-100">
+              <app-wishlist-toggle-button class="absolute left-3 top-3 z-10" [productId]="product.id" />
               @if (productImages(product).length > 0) {
                 <img
                   [src]="currentProductImage(product)!"
@@ -500,6 +502,7 @@
                 >
                   <!-- Imagen con ojito en esquina superior derecha -->
                   <div class="relative h-60 w-full overflow-hidden bg-slate-100">
+              <app-wishlist-toggle-button class="absolute left-3 top-3 z-10" [productId]="product.id" />
                     @if (productImages(product).length > 0) {
                       <img
                         [src]="currentProductImage(product)!"
