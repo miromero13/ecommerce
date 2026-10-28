@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
 import { toast } from '@spartan-ng/brain/sonner';
@@ -25,6 +26,7 @@ import { requestWithToast } from '../../../core/utils/request-toast.util';
 export class AdminBranchPageComponent {
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(AdminBranchService);
+  private readonly router = inject(Router);
 
   protected readonly branches = signal<AdminBranch[]>([]);
   protected readonly loading = signal(false);
@@ -59,6 +61,12 @@ export class AdminBranchPageComponent {
     this.editingBranchId.set(null);
     this.form.reset({ name: '', city: '', is_default: false, is_active: true, latitude: null, longitude: null });
     this.modalOpen.set(true);
+  }
+
+  /** Opens the panel of this branch only: its stock, sales, orders, staff and cash drawers. */
+  protected enterBranch(branch: AdminBranch): void {
+    this.openMenuId.set(null);
+    void this.router.navigate(['/app/admin/branch', branch.id]);
   }
 
   protected editBranch(branch: AdminBranch): void {

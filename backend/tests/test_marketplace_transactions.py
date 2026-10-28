@@ -66,6 +66,13 @@ def market(api_db, catalog):
                             branch_id=branch.id, is_active=True)
             api_db.add(employee)
             staff[index, role.value] = employee
+    api_db.flush()
+    # 1P-CU18: till sales need the cashier's open drawer; every cashier starts the day with one.
+    from app.models.cash_session import CashSession
+    for (index, role), employee in staff.items():
+        if role == "cajero":
+            api_db.add(CashSession(tenant_id=employee.tenant_id, branch_id=employee.branch_id,
+                                   cashier_id=employee.id, status="open", opening_amount=100))
     api_db.commit()
     return SimpleNamespace(customer=customer, other=other, staff=staff,
                            own=catalog.own, foreign=catalog.foreign,

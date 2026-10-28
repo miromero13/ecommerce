@@ -316,12 +316,17 @@ def create_sale(db: Session, user_id: UUID, payload: SaleCreate, branch_id: UUID
     from app.services.payout_service import record_payment
     from app.services.qr_payment_service import consume_sale_qr
 
+    from app.services import cash_session_service
+
     if payload.payment_method == PaymentMethodEnum.qr and not payload.qr_reference:
         raise ValueError("Genera y cobra el código QR antes de registrar la venta")
     try:
+        # 1P-CU18: every till sale belongs to the cashier's open drawer of this branch.
+        drawer = cash_session_service.require_open_session(db, user_id, branch_id, tenant_id)
         normalized_items = _resolve_items(db, payload, branch_id)
         with db.begin_nested():
             sale = _create_sale_from_items(db, branch_id, user_id, payload, normalized_items, tenant_id=tenant_id)
+            cash = cash_session_service.record_sale(db, drawer, sale, payload.cash_received)
             if payload.payment_method == PaymentMethodEnum.qr:
                 # QR money lands in the platform account and reaches the company in the settlement.
                 consume_sale_qr(db, payload.qr_reference, tenant_id=tenant_id, branch_id=branch_id,
@@ -337,7 +342,8 @@ def create_sale(db: Session, user_id: UUID, payload: SaleCreate, branch_id: UUID
             reservation = db.query(Reservation).filter(Reservation.id == payload.reservation_id).first()
             if reservation and reservation.status == ReservationStatusEnum.attended:
                 notify_reservation_event(db, reservation.id, reservation.user_id, reservation.status.value)
-        return _serialize_sale(db, sale).model_dump()
+        # The receipt shows what the customer paid and the change returned.
+        return {**_serialize_sale(db, sale).model_dump(), "cash_received": cash.cash_received, "change_given": cash.change_given}
     except Exception:
         db.rollback()
         raise

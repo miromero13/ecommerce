@@ -29,7 +29,9 @@
               <app-admin-action-menu
                 [isOpen]="openMenuId() === branch.id"
                 [activeLabel]="branch.is_active ? 'Desactivar' : 'Activar'"
+                [showEnter]="true"
                 (toggleMenu)="toggleMenu(branch.id)"
+                (enter)="enterBranch(branch)"
                 (edit)="editBranch(branch)"
                 (toggleActive)="toggleActive(branch)"
                 (delete)="askDelete(branch)"

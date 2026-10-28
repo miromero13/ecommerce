@@ -536,7 +536,8 @@ def cancel_order(db: Session, user_id: UUID, order_id: UUID):
         raise
 
 
-def hand_over_order(db: Session, order_id: UUID, pickup_code: str, staff_branch_id: UUID | None, staff_id: UUID, tenant_id: UUID | None = None):
+def hand_over_order(db: Session, order_id: UUID, pickup_code: str, staff_branch_id: UUID | None, staff_id: UUID,
+                    tenant_id: UUID | None = None, cash_received=None):
     """Deliver a web order at the counter: cash orders are charged here, card orders were paid online."""
     try:
         query = db.query(Order).filter(Order.id == order_id)
@@ -552,7 +553,14 @@ def hand_over_order(db: Session, order_id: UUID, pickup_code: str, staff_branch_
         if order.payment_method == PaymentMethodEnum.cash:
             if order.payment_status != PaymentStatusEnum.pending or order.pickup_expires_at < datetime.now(timezone.utc):
                 raise ValueError("El pedido no está disponible para cobro")
+            from app.services import cash_session_service
+
+            # 1P-CU18: the cash goes into the open drawer of the cashier who charges it.
+            if cash_session_service.get_open_session(db, staff_id) is None:
+                raise ValueError("Para cobrar en efectivo se necesita una caja abierta: lo registra un cajero desde su caja")
+            drawer = cash_session_service.require_open_session(db, staff_id, staff_branch_id, order.tenant_id)
             _consume_order(db, order, staff_id)
+            cash_session_service.record_order_collection(db, drawer, order, cash_received)
         else:
             # Stock was already consumed when the Stripe payment succeeded.
             if order.payment_status != PaymentStatusEnum.paid or order.fulfillment_status not in (

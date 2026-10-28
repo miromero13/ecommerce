@@ -19,6 +19,8 @@ import { QrPaymentPanelComponent } from '../../shared/components/qr-payment-pane
 import { QrPayment } from '../../shared/models/qr-payment.model';
 import { QrPaymentApiService } from '../../shared/services/qr-payment-api.service';
 import { BrandingService } from '../../../core/services/branding.service';
+import { CashDrawerPanelComponent } from '../components/cash-drawer-panel.component';
+import { CashSessionApiService } from '../../shared/services/cash-session-api.service';
 import { LoyaltyBalance } from '../../shared/models/loyalty.model';
 import { LoyaltyApiService } from '../../shared/services/loyalty-api.service';
 
@@ -38,7 +40,7 @@ type SelectedSaleItem = {
 @Component({
   selector: 'app-cajero-caja-page',
   standalone: true,
-  imports: [CommonModule, HlmButton, QrPaymentPanelComponent, ...HlmBadgeImports, ...HlmCardImports, ...HlmInputImports],
+  imports: [CommonModule, HlmButton, QrPaymentPanelComponent, CashDrawerPanelComponent, ...HlmBadgeImports, ...HlmCardImports, ...HlmInputImports],
   templateUrl: './caja-page.component.html',
 })
 export class CajaPageComponent {
@@ -74,12 +76,16 @@ export class CajaPageComponent {
   protected readonly loadingProducts = signal(false);
   protected readonly submitting = signal(false);
   protected readonly cashReference = signal('');
+  // 1P-CU18: the open drawer (loaded by the panel) and the cash handed over by the customer.
+  protected readonly cash = inject(CashSessionApiService);
+  protected readonly cashReceived = signal('');
 
   protected readonly branchId = computed(() => this.session.user()?.branch_id ?? null);
 
   protected readonly subtotal = computed(() => this.selectedItems().reduce((sum, item) => sum + Number(item.original_unit_price) * item.quantity, 0).toFixed(2));
   protected readonly discount = computed(() => this.selectedItems().reduce((sum, item) => sum + (Number(item.original_unit_price) - Number(item.unit_price)) * item.quantity, 0).toFixed(2));
   protected readonly total = computed(() => (Number(this.subtotal()) - Number(this.discount())).toFixed(2));
+  protected readonly estimatedChange = computed(() => Number(this.cashReceived()) - Number(this.total()));
 
   constructor() {
     void this.searchProducts();
@@ -176,6 +182,11 @@ export class CajaPageComponent {
       return;
     }
 
+    if (!this.cash.current()) {
+      toast.warning('Abre tu caja para registrar ventas.');
+      return;
+    }
+
     if (this.paymentMethod() === 'qr' && !this.saleQr()) {
       await this.generateSaleQr();
       return;
@@ -187,6 +198,8 @@ export class CajaPageComponent {
         branch_id: branchId,
         payment_method: this.paymentMethod(),
         cash_reference: this.paymentMethod() === 'cash' ? this.cashReference() || null : null,
+        // Empty means the customer paid the exact amount.
+        cash_received: this.paymentMethod() === 'cash' && this.cashReceived() !== '' ? Number(this.cashReceived()) : null,
         qr_reference: this.paymentMethod() === 'qr' ? this.saleQr()!.reference : null,
         ...this.couponFields(),
         items: this.selectedItems().map((item) => ({ variant_id: item.variant_id, quantity: item.quantity })),
@@ -199,6 +212,8 @@ export class CajaPageComponent {
       this.lastSale.set(response.data ?? null);
       this.selectedItems.set([]);
       this.cashReference.set('');
+      this.cashReceived.set('');
+      await this.cash.loadCurrent(); // refresh the drawer totals
       this.couponCode.set('');
       this.customerEmail.set('');
       this.pointsToRedeem.set(0);

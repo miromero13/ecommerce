@@ -38,6 +38,8 @@ export interface Sale {
   subtotal: string;
   discount_amount: string;
   total_amount: string;
+  cash_received?: string | null; // 1P-CU18: returned when the sale is registered
+  change_given?: string | null;
   currency: string;
   created_at: string;
   updated_at: string | null;
@@ -58,6 +60,7 @@ export interface CreateSaleRequest {
   promotion_code?: string | null;
   customer_email?: string | null;
   points_to_redeem?: number; // CU17: 10 points = 1 Bs
+  cash_received?: number | null; // 1P-CU18: cash handed over by the customer
   items: CreateSaleItemRequest[];
 }
 

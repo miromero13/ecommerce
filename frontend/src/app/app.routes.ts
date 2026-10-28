@@ -306,6 +306,13 @@ export const routes: Routes = [
               ),
           },
           {
+            path: 'branch/:branchId',
+            loadComponent: () =>
+              import('./features/admin/pages/admin-branch-detail-page.component').then(
+                (m) => m.AdminBranchDetailPageComponent,
+              ),
+          },
+          {
             path: 'provider',
             loadComponent: () =>
               import('./features/admin/pages/admin-provider-page.component').then(

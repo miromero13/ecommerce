@@ -9,6 +9,9 @@
     </div>
   </header>
 
+  <!-- 1P-CU18: the cashier's drawer; nothing can be sold or charged while it is closed. -->
+  <app-cash-drawer-panel />
+
   <section class="grid gap-4 xl:grid-cols-[1.2fr_1fr]">
     <div class="space-y-4">
        <section hlmCard class="bg-white shadow-sm">
@@ -155,6 +158,18 @@
               <button hlmBtn type="button" [variant]="paymentMethod() === 'qr' ? 'default' : 'outline'" (click)="selectPaymentMethod('qr')">QR</button>
             </div>
             @if (paymentMethod() === 'cash') {
+              <div class="space-y-2 rounded-xl border border-slate-200 p-3">
+                <label class="text-xs font-medium uppercase tracking-wide text-slate-500" for="till-cash-received">Efectivo recibido</label>
+                <input id="till-cash-received" hlmInput type="number" min="0" step="0.01" [value]="cashReceived()" (input)="cashReceived.set($any($event.target).value)" [placeholder]="'Total ' + total()" />
+                @if (cashReceived() !== '') {
+                  @if (estimatedChange() >= 0) {
+                    <p class="text-sm font-medium text-emerald-700">Cambio a entregar: {{ estimatedChange() | number: '1.2-2' }}</p>
+                  } @else {
+                    <p class="text-sm font-medium text-rose-700">Faltan {{ -estimatedChange() | number: '1.2-2' }} para cubrir el total.</p>
+                  }
+                }
+                <p class="text-[11px] text-slate-500">Con cupón o puntos el total final lo calcula el sistema; el comprobante muestra el cambio exacto.</p>
+              </div>
               <div class="space-y-2">
                 <label class="text-xs font-medium uppercase tracking-wide text-slate-500">Referencia de caja</label>
                 <input hlmInput type="text" [value]="cashReference()" (input)="cashReference.set($any($event.target).value)" placeholder="Opcional" />
@@ -164,7 +179,10 @@
             @if (paymentMethod() === 'qr' && saleQr()) {
               <app-qr-payment-panel title="Pide al cliente que escanee el código" [qr]="saleQr()" (paid)="submitSale()" />
             } @else {
-              <button hlmBtn type="button" class="w-full" (click)="submitSale()" [disabled]="submitting() || !selectedItems().length">
+              @if (!cash.current()) {
+                <p class="text-sm font-medium text-rose-700">Abre tu caja para registrar ventas.</p>
+              }
+              <button hlmBtn type="button" class="w-full" (click)="submitSale()" [disabled]="submitting() || !selectedItems().length || !cash.current()">
                 {{ submitting() ? 'Procesando...' : (paymentMethod() === 'qr' ? 'Cobrar con QR' : 'Confirmar venta') }}
               </button>
             }
@@ -194,6 +212,10 @@
               <div class="rounded-lg bg-slate-50 p-3"><p class="text-xs text-slate-500">Total</p><p class="font-medium">{{ lastSale()?.total_amount }}</p></div>
               <div class="rounded-lg bg-slate-50 p-3"><p class="text-xs text-slate-500">Medio</p><p class="font-medium">{{ lastSale()?.payment_method }}</p></div>
               <div class="rounded-lg bg-slate-50 p-3"><p class="text-xs text-slate-500">Items</p><p class="font-medium">{{ lastSale()?.items?.length ?? 0 }}</p></div>
+              @if (lastSale()?.cash_received) {
+                <div class="rounded-lg bg-slate-50 p-3"><p class="text-xs text-slate-500">Efectivo recibido</p><p class="font-medium">{{ lastSale()?.cash_received }}</p></div>
+                <div class="rounded-lg bg-emerald-50 p-3"><p class="text-xs text-emerald-700">Cambio entregado</p><p class="font-semibold text-emerald-800">{{ lastSale()?.change_given }}</p></div>
+              }
              </div>
              <div class="space-y-2 border-t pt-3 text-sm">
                @for (item of lastSale()?.items ?? []; track item.id) {

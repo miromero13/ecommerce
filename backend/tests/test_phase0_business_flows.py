@@ -46,7 +46,8 @@ def test_cash_order_hand_over_charges_and_consumes_stock(market_api, api_db, mar
                  json={"pickup_branch_id": str(market.branches[0].id)})
     quantity, reserved = stock(api_db, market.own.variant, market.branches[0])
 
-    handed = call(market_api, market.staff[0, "encargado"], "POST", f"/orders/{order['id']}/hand-over",
+    # 1P-CU18: the cash is charged into the cashier's open drawer.
+    handed = call(market_api, market.staff[0, "cajero"], "POST", f"/orders/{order['id']}/hand-over",
                   json={"pickup_code": order["pickup_code"]})
 
     assert handed["payment_status"] == "paid" and handed["fulfillment_status"] == "collected"

@@ -127,7 +127,10 @@ async def qr_sale_intent_route(
 ):
     from app.models.tenant import Tenant
 
+    from app.services.cash_session_service import require_open_session
+
     try:
+        require_open_session(db, UUID(current_user["sub"]), branch_id, tenant_id)  # 1P-CU18: no QR without an open drawer
         total = quote_sale_total(db, UUID(current_user["sub"]), payload, branch_id, tenant_id)
         currency = db.query(Tenant.currency).filter(Tenant.id == tenant_id).scalar()
         qr = create_qr(db, tenant_id=tenant_id, purpose="sale", amount=total, currency=currency,

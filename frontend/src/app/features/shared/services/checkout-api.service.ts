@@ -25,15 +25,18 @@ export class CheckoutApiService {
     return this.api.get<ApiResponse<Order[]>>('/orders/me');
   }
 
-  listBranchOrders() {
-    return this.api.get<ApiResponse<Order[]>>('/orders/branch');
+  /** Staff see their own branch; the administrator names one branch of the company. */
+  listBranchOrders(branchId?: string) {
+    const query = branchId ? `?branch_id=${encodeURIComponent(branchId)}` : '';
+    return this.api.get<ApiResponse<Order[]>>(`/orders/branch${query}`);
   }
 
   markReady(orderId: string) {
     return this.api.post<ApiResponse<Order>>(`/orders/${orderId}/ready`, {});
   }
 
-  handOver(orderId: string, pickupCode: string) {
-    return this.api.post<ApiResponse<Order>>(`/orders/${orderId}/hand-over`, { pickup_code: pickupCode });
+  /** 1P-CU18: for cash orders `cashReceived` is what the customer hands over (null = exact amount). */
+  handOver(orderId: string, pickupCode: string, cashReceived: number | null = null) {
+    return this.api.post<ApiResponse<Order>>(`/orders/${orderId}/hand-over`, { pickup_code: pickupCode, cash_received: cashReceived });
   }
 }
