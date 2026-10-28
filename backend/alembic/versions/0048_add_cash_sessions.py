@@ -45,7 +45,7 @@ def upgrade() -> None:
         sa.Column("source_id", UUID(as_uuid=True), nullable=True, index=True),
         sa.Column("reason", sa.String(255), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
-        sa.CheckConstraint("type IN ('sale', 'order', 'deposit', 'withdrawal')", name="ck_cash_movements_type"),
+        sa.CheckConstraint("type IN ('sale', 'deposit', 'withdrawal')", name="ck_cash_movements_type"),
         sa.CheckConstraint("method IN ('cash', 'qr')", name="ck_cash_movements_method"),
         sa.CheckConstraint("amount >= 0", name="ck_cash_movements_amount_non_negative"),  # a sale paid fully with points is 0
         sa.CheckConstraint("change_given IS NULL OR change_given >= 0", name="ck_cash_movements_change_non_negative"),

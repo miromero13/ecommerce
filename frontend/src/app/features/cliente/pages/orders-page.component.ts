@@ -43,7 +43,7 @@ export class OrdersPageComponent {
         ['Pedido', order.id],
         ['Fecha', new Date(order.created_at).toLocaleString('es-BO')],
         ['Pago', ({ pending: 'Pendiente', paid: 'Pagado', failed: 'Fallido' } satisfies Record<Order['payment_status'], string>)[order.payment_status]],
-        ['Método', order.payment_method === 'stripe' ? 'Tarjeta' : 'Efectivo'],
+        ['Método', order.payment_method === 'stripe' ? 'Tarjeta' : 'QR'],
         ...(order.pickup_code ? [['Código de retiro', order.pickup_code]] : []),
         ['Subtotal', `${order.subtotal} ${order.currency}`],
         ['Descuento', `${order.discount_amount} ${order.currency}`],

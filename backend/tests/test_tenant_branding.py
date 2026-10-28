@@ -2,7 +2,7 @@
 import pytest
 
 from test_catalog_tenant_isolation import catalog  # noqa: F401 (shared fixture)
-from test_marketplace_transactions import add, call, market, market_api, rejected  # noqa: F401
+from test_marketplace_transactions import add, call, checkout, market, market_api, rejected  # noqa: F401
 
 PNG = b"\x89PNG\r\n\x1a\n" + b"0" * 64
 
@@ -87,6 +87,5 @@ def test_superadmin_edits_any_company_branding(market_api, api_db, market, cloud
 
 def test_orders_expose_their_company_for_receipt_branding(market_api, api_db, market):
     add(market_api, market)
-    order = call(market_api, market.customer, "POST", "/payments/cash/checkout", 201,
-                 json={"pickup_branch_id": str(market.branches[0].id)})
+    order = checkout(market_api, market)
     assert order["tenant_id"] == str(market.own.tenant.id)

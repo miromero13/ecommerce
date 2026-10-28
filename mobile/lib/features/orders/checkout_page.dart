@@ -42,7 +42,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
   late final bool _ownsController;
   String? _loadedToken;
   String? _pickupBranchId;
-  PaymentMethod _paymentMethod = PaymentMethod.cash;
+  // Web orders are always paid online (card or QR); cash only exists at the store's till.
+  PaymentMethod _paymentMethod = PaymentMethod.qr;
   // CU20: in-store pickup or home delivery shipped from the selected branch.
   String _fulfillment = 'pickup';
   final _address = TextEditingController();
@@ -285,10 +286,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
               decoration: const InputDecoration(labelText: 'Método de pago'),
               items: const [
                 DropdownMenuItem(
-                  value: PaymentMethod.cash,
-                  child: Text('Efectivo (al retirar o al recibir)'),
-                ),
-                DropdownMenuItem(
                   value: PaymentMethod.stripe,
                   child: Text('Tarjeta'),
                 ),
@@ -306,13 +303,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
           AppButton(
             label: _isOrderPayment || _paymentMethod == PaymentMethod.stripe
                 ? 'Pagar con tarjeta'
-                : _paymentMethod == PaymentMethod.qr
-                    ? 'Generar código QR'
-                    : 'Comprar con efectivo',
+                : 'Generar código QR',
             icon: Icon(
               _isOrderPayment || _paymentMethod == PaymentMethod.stripe
                   ? Icons.credit_card_outlined
-                  : Icons.payments_outlined,
+                  : Icons.qr_code_2_outlined,
             ),
             onPressed: isSaving || (!_isOrderPayment && pickupBranchId == null)
                 ? null
@@ -345,45 +340,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
       AppSnackBar.show(context, 'Ingresa la dirección y calcula el costo de envío.', tone: AppSnackBarTone.warning);
       return;
     }
-    if (_paymentMethod == PaymentMethod.qr) {
-      await _checkoutQr(pickupBranchId, delivery);
-      return;
-    }
     if (_paymentMethod == PaymentMethod.stripe) {
       await _checkoutStripe(pickupBranchId: pickupBranchId, delivery: delivery);
       return;
     }
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirmar compra'),
-        content: const Text(
-          'Se creará un pedido con los productos del carrito.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Volver'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Confirmar'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    await _controller.checkoutCash(pickupBranchId: pickupBranchId, delivery: delivery, points: _pointsToRedeem);
-    if (!mounted) return;
-    _showControllerFeedback();
-    if (_controller.status == OrderControllerStatus.error ||
-        _controller.selectedOrder == null) {
-      return;
-    }
-    Navigator.of(context).pushReplacementNamed(
-      AppRoutes.orders,
-      arguments: _controller.selectedOrder!.id,
-    );
+    await _checkoutQr(pickupBranchId, delivery);
   }
 
   Map<String, dynamic>? _deliveryPayload() {
@@ -524,20 +485,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
         context,
         'No se pudo completar el pago.',
         tone: AppSnackBarTone.error,
-      );
-    }
-  }
-
-  void _showControllerFeedback() {
-    final isError = _controller.status == OrderControllerStatus.error;
-    final message = isError
-        ? _controller.errorMessage
-        : _controller.feedbackMessage;
-    if (message != null) {
-      AppSnackBar.show(
-        context,
-        message,
-        tone: isError ? AppSnackBarTone.error : AppSnackBarTone.success,
       );
     }
   }

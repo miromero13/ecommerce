@@ -212,7 +212,8 @@ class _OrdersPageState extends State<OrdersPage> {
                   'PIN para recibir tu pedido: ${_pins[order.id]}',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
-            ] else if (order.paymentMethod == PaymentMethod.cash) ...[
+            ] else ...[
+              // Pickup orders: the customer shows this code at the store.
               Text('Código de retiro: ${order.pickupCode ?? 'No disponible'}'),
               if (order.pickupExpiresAt != null)
                 Text('Vence: ${_displayDateTime(order.pickupExpiresAt!)}'),

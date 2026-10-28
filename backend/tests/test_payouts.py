@@ -43,12 +43,10 @@ def test_card_payment_is_recorded_for_its_company_with_fee(payouts_api, api_db, 
                                Decimal("2.50"), Decimal("22.50"), None)]
 
 
-def test_cash_collection_never_enters_the_platform_ledger(payouts_api, api_db, market):
-    add(payouts_api, market)
-    order = call(payouts_api, market.customer, "POST", "/payments/cash/checkout", 201,
-                 json={"pickup_branch_id": str(market.branches[0].id)})
-    call(payouts_api, market.staff[0, "cajero"], "POST", f"/orders/{order['id']}/hand-over",
-         json={"pickup_code": order["pickup_code"]})
+def test_till_cash_sale_never_enters_the_platform_ledger(payouts_api, api_db, market):
+    # Cash only exists in the store's till: it stays with the company.
+    call(payouts_api, market.staff[0, "cajero"], "POST", "/sales/", 201,
+         json={"items": [{"variant_id": str(market.own.variant.id), "quantity": 1}]})
     assert ledger(api_db) == []
 
 

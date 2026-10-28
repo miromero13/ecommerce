@@ -5,16 +5,12 @@ import 'package:mobile/features/orders/order_controller.dart';
 import 'package:mobile/features/orders/order_models.dart';
 
 void main() {
-  test('carga detalle y agrega el checkout al listado', () async {
+  test('carga el listado y el detalle', () async {
     final controller = OrderController(api: _FakeOrderApi());
 
     await controller.load();
     expect(controller.status, OrderControllerStatus.ready);
     expect(controller.orders, hasLength(1));
-
-    await controller.checkoutCash(pickupBranchId: 'branch-id');
-    expect(controller.orders, hasLength(2));
-    expect(controller.selectedOrder?.id, 'created-order');
 
     await controller.loadDetail('order-id');
     expect(controller.selectedOrder?.id, 'order-id');
@@ -55,14 +51,6 @@ class _FakeOrderApi extends OrderApi {
   }
 
   @override
-  Future<OrderResult> checkoutCash({required String pickupBranchId, Map<String, dynamic>? delivery, int points = 0}) async {
-    return OrderResult(
-      order: _order('created-order'),
-      message: 'Pago en efectivo procesado exitosamente',
-    );
-  }
-
-  @override
   Future<OrderResult> getById({required String orderId}) async {
     return OrderResult(
       order: _order(orderId),
@@ -88,7 +76,7 @@ Order _order(String id) {
     id: id,
     userId: 'user-id',
     status: OrderStatus.paid,
-    paymentMethod: PaymentMethod.cash,
+    paymentMethod: PaymentMethod.qr,
     paymentStatus: PaymentStatus.paid,
     subtotal: 100,
     discountAmount: 0,

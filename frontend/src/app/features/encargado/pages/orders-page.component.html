@@ -22,17 +22,8 @@
             @if (canHandOver(order)) {
               <div class="flex gap-2">
                 <input hlmInput class="w-40" placeholder="Código de retiro" [value]="pickupCodes()[order.id] ?? ''" (input)="setPickupCode(order.id, $event)" />
-                @if (order.payment_method === 'cash') {
-                  <!-- 1P-CU18: the cash goes into the cashier's open drawer, with the change returned. -->
-                  <input hlmInput class="w-36" type="number" min="0" step="0.01" [placeholder]="'Recibido (total ' + order.total_amount + ')'" [value]="cashReceived()[order.id] ?? ''" (input)="setCashReceived(order.id, $event)" />
-                  @if (changeFor(order); as change) {
-                    <span class="self-center text-sm font-medium" [class.text-emerald-700]="change.value >= 0" [class.text-rose-700]="change.value < 0">
-                      {{ change.value >= 0 ? 'Cambio: ' + (change.value | number: '1.2-2') : 'Falta: ' + (-change.value | number: '1.2-2') }}
-                    </span>
-                  }
-                }
                 <button hlmBtn type="button" [disabled]="!pickupCodes()[order.id]" (click)="handOver(order)">
-                  {{ order.payment_method === 'cash' ? 'Cobrar y entregar' : 'Entregar' }}
+                  Entregar
                 </button>
               </div>
             }

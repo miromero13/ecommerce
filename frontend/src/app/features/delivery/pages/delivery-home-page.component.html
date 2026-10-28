@@ -17,9 +17,6 @@
             <p>Entregar a <span class="font-medium">{{ order.client_name }}</span> en {{ order.address }}</p>
             @if (order.reference) { <p class="text-xs text-slate-500">Referencia: {{ order.reference }}</p> }
             <p class="text-xs text-slate-500">{{ order.distance_km }} km · Envío {{ order.shipping_cost }} {{ order.currency | uppercase }}</p>
-            @if (order.collect_on_delivery) {
-              <span class="inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800">Cobrar {{ order.total_amount }} {{ order.currency | uppercase }} en efectivo</span>
-            }
           </div>
           <button hlmBtn type="button" [disabled]="busyId() === order.order_id" (click)="claim(order)">Tomar pedido</button>
         </div>
@@ -38,9 +35,6 @@
             <p class="font-semibold text-slate-900">{{ order.client_name }} · {{ order.address }}</p>
             <p class="text-xs text-slate-500">Retirar en {{ order.tenant_name }} — {{ order.branch_name }} ({{ order.branch_city }})</p>
             <span class="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">{{ statusLabel(order.status) }}</span>
-            @if (order.collect_on_delivery && order.status === 'in_transit') {
-              <p class="text-xs font-medium text-amber-700">Cobra {{ order.total_amount }} {{ order.currency | uppercase }} en efectivo antes de entregar.</p>
-            }
           </div>
           @if (order.status === 'in_transit') {
             <div class="flex gap-2">

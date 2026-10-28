@@ -1,11 +1,11 @@
 """1P-CU18 cash drawer. Rules:
 - each cashier opens their own session, always in their own branch and company; drawers of different branches never mix;
-- selling (cash or QR) and charging a web order in cash require the cashier's open session;
+- selling at the till (cash or QR) requires the cashier's open session; web orders are always paid online;
 - a cash payment records what the customer handed over and the change returned;
 - deposits and withdrawals need a reason; a withdrawal cannot take more cash than the drawer holds;
-- expected cash = opening + cash sales + cash order collections + deposits - withdrawals (QR never enters the drawer);
+- expected cash = opening + cash sales + deposits - withdrawals (QR never enters the drawer);
 - closing stores the counted cash and the difference (counted - expected).
-Helpers that take part in a sale or an order flush but never commit: the caller owns the transaction."""
+record_sale takes part in the sale's transaction: it flushes but never commits."""
 from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal
 from uuid import UUID
@@ -17,7 +17,7 @@ from app.models.cash_session import CashMovement, CashSession
 from app.models.user import User
 
 CENT = Decimal("0.01")
-NO_OPEN_SESSION = "Abre tu caja para registrar ventas y cobros"
+NO_OPEN_SESSION = "Abre tu caja para registrar ventas"
 LOCAL_TZ = timezone(timedelta(hours=-4))  # America/La_Paz
 
 
@@ -54,30 +54,21 @@ def expected_cash(session: CashSession) -> Decimal:
     return _money(total)
 
 
-def _record_payment(db: Session, session: CashSession, type_: str, method: str, total: Decimal,
-                    cash_received, source_id: UUID) -> CashMovement:
-    total = _money(total)
+def record_sale(db: Session, session: CashSession, sale, cash_received=None) -> CashMovement:
+    method = "qr" if getattr(sale.payment_method, "value", sale.payment_method) == "qr" else "cash"
+    total = _money(sale.total_amount)
     received = change = None
     if method == "cash":
         received = total if cash_received is None else _money(cash_received)  # None: exact amount, no change
         if received < total:
             raise ValueError(f"El monto recibido ({received} Bs.) es menor al total a cobrar ({total} Bs.)")
         change = received - total
-    movement = CashMovement(session_id=session.id, type=type_, method=method, amount=total,
-                            cash_received=received, change_given=change, source_id=source_id)
+    movement = CashMovement(session_id=session.id, type="sale", method=method, amount=total,
+                            cash_received=received, change_given=change, source_id=sale.id)
     db.add(movement)
     db.flush()
     db.refresh(session)  # keep session.movements in sync for expected_cash
     return movement
-
-
-def record_sale(db: Session, session: CashSession, sale, cash_received=None) -> CashMovement:
-    method = "qr" if getattr(sale.payment_method, "value", sale.payment_method) == "qr" else "cash"
-    return _record_payment(db, session, "sale", method, sale.total_amount, cash_received if method == "cash" else None, sale.id)
-
-
-def record_order_collection(db: Session, session: CashSession, order, cash_received=None) -> CashMovement:
-    return _record_payment(db, session, "order", "cash", order.total_amount, cash_received, order.id)
 
 
 def open_session(db: Session, cashier: User, opening_amount) -> dict:
@@ -128,7 +119,6 @@ def _totals(session: CashSession) -> dict:
     return {
         "cash_sales": total(type="sale", method="cash"),
         "qr_sales": total(type="sale", method="qr"),
-        "order_collections": total(type="order"),
         "deposits": total(type="deposit"),
         "withdrawals": total(type="withdrawal"),
         "change_given": _money(sum((m.change_given or 0 for m in session.movements), Decimal("0"))),

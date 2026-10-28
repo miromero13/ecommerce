@@ -25,10 +25,9 @@ import { CashSessionApiService } from '../../shared/services/cash-session-api.se
             <p class="text-2xl font-semibold text-slate-900">{{ drawer.expected_amount }} Bs.</p>
           </div>
         </div>
-        <dl class="mt-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-3 lg:grid-cols-6">
+        <dl class="mt-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-3 lg:grid-cols-5">
           <div class="rounded-lg bg-slate-50 p-2"><dt class="text-xs text-slate-500">Inicial</dt><dd class="font-medium">{{ drawer.opening_amount }}</dd></div>
           <div class="rounded-lg bg-slate-50 p-2"><dt class="text-xs text-slate-500">Ventas efectivo</dt><dd class="font-medium">+{{ drawer.cash_sales }}</dd></div>
-          <div class="rounded-lg bg-slate-50 p-2"><dt class="text-xs text-slate-500">Cobros de pedidos</dt><dd class="font-medium">+{{ drawer.order_collections }}</dd></div>
           <div class="rounded-lg bg-slate-50 p-2"><dt class="text-xs text-slate-500">Ingresos</dt><dd class="font-medium">+{{ drawer.deposits }}</dd></div>
           <div class="rounded-lg bg-slate-50 p-2"><dt class="text-xs text-slate-500">Retiros</dt><dd class="font-medium">-{{ drawer.withdrawals }}</dd></div>
           <div class="rounded-lg bg-slate-50 p-2"><dt class="text-xs text-slate-500">Vuelto entregado</dt><dd class="font-medium">{{ drawer.change_given }}</dd></div>
@@ -63,7 +62,7 @@ import { CashSessionApiService } from '../../shared/services/cash-session-api.se
         <div class="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 class="text-lg font-semibold">Caja cerrada</h2>
-            <p class="text-sm text-slate-500">Abre tu caja con el monto inicial en efectivo para registrar ventas y cobros.</p>
+            <p class="text-sm text-slate-500">Abre tu caja con el monto inicial en efectivo para registrar ventas.</p>
             @if (lastClosing(); as closing) {
               <p class="mt-1 text-xs text-slate-600">Último cierre: esperado {{ closing.expected_amount }} Bs., contado {{ closing.counted_amount }} Bs., diferencia {{ closing.difference }} Bs.</p>
             }

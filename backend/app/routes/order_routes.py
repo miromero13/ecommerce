@@ -101,9 +101,7 @@ async def hand_over_order_route(
     _: dict = Depends(require_roles(RolEnum.cajero, RolEnum.encargado)),
 ):
     try:
-        order = hand_over_order(db, order_id, payload.pickup_code, staff.branch_id, staff.id, staff.tenant_id,
-                                cash_received=payload.cash_received)
+        order = hand_over_order(db, order_id, payload.pickup_code, staff.branch_id, staff.tenant_id)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-    message = "Pedido cobrado y entregado" if order["payment_method"] == "cash" else "Pedido entregado al cliente"
-    return response(status_code=200, message=message, data=order)
+    return response(status_code=200, message="Pedido entregado al cliente", data=order)

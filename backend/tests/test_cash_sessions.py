@@ -55,29 +55,14 @@ def test_selling_needs_an_open_drawer_and_closing_reports_the_difference(cash_ap
     # 100 + 25 + 10 - 35 = 100 expected; 98 counted.
     assert (Decimal(str(closed["expected_amount"])), Decimal(str(closed["difference"]))) == (Decimal("100.00"), Decimal("-2.00"))
     assert drawer(cash_api, cashier) is None
-    rejected(cash_api, api_db, cashier, "POST", "/sales/", 400, "Abre tu caja para registrar ventas y cobros", json=sale(market))
-    rejected(cash_api, api_db, cashier, "POST", "/payments/qr/sale-intent", 400, "Abre tu caja para registrar ventas y cobros",
+    rejected(cash_api, api_db, cashier, "POST", "/sales/", 400, "Abre tu caja para registrar ventas", json=sale(market))
+    rejected(cash_api, api_db, cashier, "POST", "/payments/qr/sale-intent", 400, "Abre tu caja para registrar ventas",
              json=sale(market))
     opened = call(cash_api, cashier, "POST", "/cash-sessions/open", 201, expected_message="Caja abierta exitosamente",
                   json={"opening_amount": "80"})
     assert Decimal(str(opened["expected_amount"])) == Decimal("80.00")
     rejected(cash_api, api_db, cashier, "POST", "/cash-sessions/open", 409,
              "Ya tienes una caja abierta: ciérrala antes de abrir otra", json={"opening_amount": "10"})
-
-
-def test_web_cash_order_is_charged_into_the_cashier_drawer(cash_api, api_db, market):
-    add(cash_api, market)
-    order = call(cash_api, market.customer, "POST", "/payments/cash/checkout", 201,
-                 json={"pickup_branch_id": str(market.branches[0].id)})
-    rejected(cash_api, api_db, market.staff[0, "encargado"], "POST", f"/orders/{order['id']}/collect-cash", 400,
-             "Para cobrar en efectivo se necesita una caja abierta: lo registra un cajero desde su caja",
-             json={"pickup_code": order["pickup_code"]})
-    cashier = market.staff[0, "cajero"]
-    call(cash_api, cashier, "POST", f"/orders/{order['id']}/collect-cash",
-         json={"pickup_code": order["pickup_code"], "cash_received": "30"})
-    movement = drawer(cash_api, cashier)["movements"][-1]
-    assert (movement["type"], Decimal(str(movement["amount"])), Decimal(str(movement["change_given"]))) == (
-        "order", Decimal("25.00"), Decimal("5.00"))
 
 
 def test_drawers_of_different_branches_never_mix(cash_api, api_db, market):

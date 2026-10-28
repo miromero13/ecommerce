@@ -9,10 +9,6 @@ import { Order } from '../models/order.model';
 export class CheckoutApiService {
   private readonly api = inject(ApiService);
 
-  checkoutCash(payload: { pickup_branch_id: string; delivery?: DeliveryAddress; points_to_redeem?: number }) {
-    return this.api.post<ApiResponse<Order>>('/payments/cash/checkout', payload);
-  }
-
   checkoutStripe(payload: { pickup_branch_id: string; delivery?: DeliveryAddress; points_to_redeem?: number }) {
     return this.api.post<ApiResponse<{ order_id: string; client_secret: string; payment_intent_id: string; pickup_expires_at: string }>>('/payments/stripe/checkout', payload);
   }
@@ -35,8 +31,8 @@ export class CheckoutApiService {
     return this.api.post<ApiResponse<Order>>(`/orders/${orderId}/ready`, {});
   }
 
-  /** 1P-CU18: for cash orders `cashReceived` is what the customer hands over (null = exact amount). */
-  handOver(orderId: string, pickupCode: string, cashReceived: number | null = null) {
-    return this.api.post<ApiResponse<Order>>(`/orders/${orderId}/hand-over`, { pickup_code: pickupCode, cash_received: cashReceived });
+  /** Hands over a web order already paid online; nothing is charged at the counter. */
+  handOver(orderId: string, pickupCode: string) {
+    return this.api.post<ApiResponse<Order>>(`/orders/${orderId}/hand-over`, { pickup_code: pickupCode });
   }
 }

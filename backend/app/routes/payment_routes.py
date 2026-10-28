@@ -6,9 +6,9 @@ from sqlalchemy.orm import Session
 from app.auth.dependencies import get_current_branch_id, get_current_payload, get_current_tenant_id, get_current_user, require_roles
 from app.core.database import get_db
 from app.schemas.enums import RolEnum
-from app.schemas.payment_schema import CashPaymentRequest, QrWebhook, StripePaymentRequest, StripeCheckoutResponse
+from app.schemas.payment_schema import OnlineCheckoutRequest, QrWebhook, StripePaymentRequest, StripeCheckoutResponse
 from app.schemas.sales_schema import SaleCreate
-from app.services.order_service import checkout_cash, checkout_qr, create_deposit_stripe_payment, create_stripe_payment, create_stripe_payment_for_order, process_stripe_event
+from app.services.order_service import checkout_qr, create_deposit_stripe_payment, create_stripe_payment, create_stripe_payment_for_order, process_stripe_event
 from app.services.qr_payment_service import confirm_qr_payment, create_qr, get_qr, serialize as serialize_qr
 from app.services.sales_service import quote_sale_total
 from app.utils.response import response
@@ -17,17 +17,7 @@ from app.utils.response import response
 router = APIRouter(prefix="/payments", tags=["Payments"])
 
 
-@router.post("/cash/checkout")
-async def cash_checkout_route(
-    payload: CashPaymentRequest,
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(require_roles(RolEnum.cliente)),
-):
-    try:
-        order = checkout_cash(db, UUID(current_user["sub"]), payload.pickup_branch_id, payload.delivery, payload.points_to_redeem)
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-    return response(status_code=201, message="Pago en efectivo procesado exitosamente", data=order)
+# Web orders are always paid online (card or QR): cash only exists for in-store sales at the till.
 
 
 @router.post("/stripe/checkout")
@@ -106,7 +96,7 @@ def _qr_access(db: Session, qr, payload: dict) -> None:
 
 @router.post("/qr/checkout", status_code=status.HTTP_201_CREATED)
 async def qr_checkout_route(
-    payload: CashPaymentRequest,
+    payload: OnlineCheckoutRequest,
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_roles(RolEnum.cliente)),
 ):

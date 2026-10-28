@@ -4,7 +4,7 @@ from decimal import Decimal
 import pytest
 
 from test_catalog_tenant_isolation import catalog  # noqa: F401 (shared fixture)
-from test_marketplace_transactions import add, call, market, market_api, rejected  # noqa: F401
+from test_marketplace_transactions import add, call, checkout as web_checkout, market, market_api, pay, rejected  # noqa: F401
 
 
 @pytest.fixture
@@ -35,9 +35,8 @@ def balance(api, market):
     return {row["tenant_name"]: (row["points_balance"], row["lifetime_points"], row["tier"]) for row in rows}
 
 
-def checkout(api, market, points=0, code=201):
-    return call(api, market.customer, "POST", "/payments/cash/checkout", code,
-                json={"pickup_branch_id": str(market.branches[0].id), "points_to_redeem": points})
+def checkout(api, market, points=0):
+    return web_checkout(api, market, points_to_redeem=points)
 
 
 def test_tiers_and_conversions():
@@ -51,8 +50,7 @@ def test_paid_web_order_earns_points_once(loyalty_api, api_db, pricey):
     add(loyalty_api, pricey)
     order = checkout(loyalty_api, pricey)
     assert balance(loyalty_api, pricey) == {}  # nothing earned while unpaid
-    call(loyalty_api, pricey.staff[0, "cajero"], "POST", f"/orders/{order['id']}/collect-cash",
-         json={"pickup_code": order["pickup_code"]})
+    pay(loyalty_api, pricey, order)
     assert balance(loyalty_api, pricey) == {pricey.own.tenant.name: (25, 25, "Bronce")}
     history = call(loyalty_api, pricey.customer, "GET", "/loyalty/transactions")
     assert [(row["type"], row["points"], row["source_id"]) for row in history] == [("earn", 25, order["id"])]
@@ -72,12 +70,12 @@ def test_redeemed_points_discount_the_order_and_return_when_cancelled(loyalty_ap
 def test_invalid_redemptions_are_rejected_without_side_effects(loyalty_api, api_db, pricey):
     add(loyalty_api, pricey)
     body = {"pickup_branch_id": str(pricey.branches[0].id)}
-    rejected(loyalty_api, api_db, pricey.customer, "POST", "/payments/cash/checkout", 400,
+    rejected(loyalty_api, api_db, pricey.customer, "POST", "/payments/qr/checkout", 400,
              "Puntos insuficientes: tienes 0 puntos en esta empresa", json={**body, "points_to_redeem": 10})
     give_points(api_db, pricey, 5000)
-    rejected(loyalty_api, api_db, pricey.customer, "POST", "/payments/cash/checkout", 400,
+    rejected(loyalty_api, api_db, pricey.customer, "POST", "/payments/qr/checkout", 400,
              "Los puntos se canjean en múltiplos de 10", json={**body, "points_to_redeem": 15})
-    rejected(loyalty_api, api_db, pricey.customer, "POST", "/payments/cash/checkout", 400,
+    rejected(loyalty_api, api_db, pricey.customer, "POST", "/payments/qr/checkout", 400,
              "Los puntos canjeados superan el monto a pagar", json={**body, "points_to_redeem": 2510})
     assert balance(loyalty_api, pricey)[pricey.own.tenant.name][0] == 5000
 

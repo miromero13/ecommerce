@@ -13,7 +13,7 @@ from app.models.order import Order
 from app.models.tenant import Tenant
 from app.models.user import User
 from app.schemas.enums import RolEnum
-from app.schemas.order_schema import FulfillmentStatusEnum, PaymentMethodEnum, PaymentStatusEnum
+from app.schemas.order_schema import FulfillmentStatusEnum
 
 CENT = Decimal("0.01")
 EARTH_RADIUS_KM = 6371.0
@@ -62,8 +62,6 @@ def _summary(db: Session, order: Order, include_pin: bool = False) -> dict:
         "shipping_cost": order.shipping_cost,
         "total_amount": order.total_amount,
         "currency": order.currency,
-        # Cash on delivery: the driver must collect this amount for the platform.
-        "collect_on_delivery": order.payment_method == PaymentMethodEnum.cash,
         "status": order.fulfillment_status,
         "driver_name": db.query(User.name).filter(User.id == order.delivery_driver_id).scalar()
         if order.delivery_driver_id else None,
@@ -108,9 +106,6 @@ def driver_route(db: Session, driver_id: UUID) -> list[dict]:
 
 
 def confirm_delivery(db: Session, order_id: UUID, security_pin: str, driver_id: UUID) -> dict:
-    from app.services.order_service import _consume_order
-    from app.services.payout_service import record_payment
-
     order = _delivery_orders(db).filter(Order.id == order_id, Order.delivery_driver_id == driver_id).with_for_update().first()
     if not order:
         raise LookupError("Pedido no encontrado en tu hoja de ruta")
@@ -118,11 +113,6 @@ def confirm_delivery(db: Session, order_id: UUID, security_pin: str, driver_id: 
         raise ValueError("La orden no se encuentra en estado en tránsito para ser entregada")
     if order.delivery_pin != security_pin:
         raise ValueError("El código PIN de seguridad es incorrecto")
-    if order.payment_method == PaymentMethodEnum.cash and order.payment_status == PaymentStatusEnum.pending:
-        # The driver collects the cash for the platform; it reaches the company in the daily settlement.
-        _consume_order(db, order, driver_id)
-        record_payment(db, order.tenant_id, "order", order.id, "cash",
-                       order.total_amount - order.shipping_cost, order.currency)
     order.fulfillment_status = FulfillmentStatusEnum.delivered
     order.delivered_at = datetime.now(timezone.utc)
     db.commit()

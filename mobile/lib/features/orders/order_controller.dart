@@ -67,24 +67,6 @@ class OrderController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> checkoutCash({required String pickupBranchId, Map<String, dynamic>? delivery, int points = 0}) async {
-    status = OrderControllerStatus.saving;
-    errorMessage = null;
-    feedbackMessage = null;
-    notifyListeners();
-    try {
-      final result = await _api.checkoutCash(pickupBranchId: pickupBranchId, delivery: delivery, points: points);
-      orders = [result.order, ...orders];
-      selectedOrder = result.order;
-      feedbackMessage = result.message;
-      status = OrderControllerStatus.ready;
-    } catch (error) {
-      status = OrderControllerStatus.error;
-      errorMessage = _messageFor(error);
-    }
-    notifyListeners();
-  }
-
   Future<StripeCheckoutResult?> checkoutStripe({
     required String pickupBranchId,
     Map<String, dynamic>? delivery,

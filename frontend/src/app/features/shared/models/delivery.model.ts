@@ -25,7 +25,6 @@ export interface DeliveryOrder {
   shipping_cost: number;
   total_amount: number;
   currency: string;
-  collect_on_delivery: boolean;
   status: FulfillmentStatusEnum;
   driver_name: string | null;
   delivered_at: string | null;

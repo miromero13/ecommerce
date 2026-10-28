@@ -76,15 +76,6 @@ class OrderApi {
     };
   }
 
-  Future<OrderResult> checkoutCash({required String pickupBranchId, Map<String, dynamic>? delivery, int points = 0}) async {
-    final response = await _client.post<Order>(
-      'payments/cash/checkout',
-      data: {'pickup_branch_id': pickupBranchId, 'delivery': ?delivery, 'points_to_redeem': points},
-      parser: _parseOrder,
-    );
-    return _orderResult(response.data, response.message);
-  }
-
   Future<StripeCheckoutResult> checkoutStripe({
     required String pickupBranchId,
     Map<String, dynamic>? delivery,

@@ -5,7 +5,7 @@ import pytest
 from sqlalchemy import text
 
 from test_catalog_tenant_isolation import catalog  # noqa: F401 (shared fixture)
-from test_marketplace_transactions import add, call, market, market_api, rejected, stock  # noqa: F401
+from test_marketplace_transactions import add, call, market, market_api, pay, rejected, stock  # noqa: F401
 
 # Branch A1 at Plaza 24 de Septiembre (Santa Cruz); destinations measured from it.
 BRANCH = (-17.783300, -63.182100)
@@ -29,13 +29,14 @@ def delivery_api(market_api, api_db, market):
     return market_api
 
 
-def delivery_checkout(api, market, method="cash"):
+def delivery_checkout(api, market):
+    """Delivery order paid online by QR (web orders are never paid in cash)."""
     add(api, market)
-    path = "/payments/cash/checkout" if method == "cash" else "/payments/stripe/checkout"
-    return call(api, market.customer, "POST", path, 201, json={
+    data = call(api, market.customer, "POST", "/payments/qr/checkout", 201, json={
         "pickup_branch_id": str(market.branches[0].id),
         "delivery": {"address": "Av. San Martín 450", "reference": "Edificio azul", **NEAR},
     })
+    return {**data["order"], "qr": data["qr"]}
 
 
 def test_quote_charges_by_distance_and_enforces_coverage(delivery_api, api_db, market):
@@ -48,8 +49,13 @@ def test_quote_charges_by_distance_and_enforces_coverage(delivery_api, api_db, m
              json={"branch_id": str(market.branches[0].id), **FAR})
 
 
-def test_cash_on_delivery_flow_across_companies(delivery_api, api_db, market):
+def test_paid_delivery_flow_across_companies(delivery_api, api_db, market):
     order = delivery_checkout(delivery_api, market)
+    rejected(delivery_api, api_db, market.staff[0, "encargado"], "POST", f"/orders/{order['id']}/ready", 400,
+             "El pedido debe estar pagado antes de marcarlo como listo")
+    quantity, reserved = stock(api_db, market.own.variant, market.branches[0])
+    pay(delivery_api, market, order)  # the stock leaves when the online payment succeeds
+    assert stock(api_db, market.own.variant, market.branches[0]) == (quantity - 1, reserved - 1)
     assert order["fulfillment_type"] == "delivery"
     assert Decimal(str(order["total_amount"])) == Decimal("25") + Decimal(str(order["shipping_cost"]))
     mine = call(delivery_api, market.customer, "GET", "/delivery/my-orders")
@@ -73,15 +79,13 @@ def test_cash_on_delivery_flow_across_companies(delivery_api, api_db, market):
              json={"order_id": order["id"], "security_pin": pin})
     rejected(delivery_api, api_db, driver, "POST", "/delivery/confirm-delivery", 400, "El código PIN de seguridad es incorrecto",
              json={"order_id": order["id"], "security_pin": "0000" if pin != "0000" else "1111"})
-    quantity, reserved = stock(api_db, market.own.variant, market.branches[0])
     done = call(delivery_api, driver, "POST", "/delivery/confirm-delivery",
                 expected_message="Entrega confirmada y registrada exitosamente",
                 json={"order_id": order["id"], "security_pin": pin})
     assert done["delivered_at"]
-    assert stock(api_db, market.own.variant, market.branches[0]) == (quantity - 1, reserved - 1)
-    # Driver collected cash for the platform: the company is owed the garments, not the shipping.
+    # Paid online to the platform: the company is owed the garments, not the shipping.
     row = api_db.execute(text("SELECT tenant_id, method, gross_amount FROM payment_transactions")).one()
-    assert tuple(row) == (market.own.tenant.id, "cash", Decimal("25.00"))
+    assert tuple(row) == (market.own.tenant.id, "qr", Decimal("25.00"))
 
 
 def test_company_admins_cannot_create_platform_drivers(delivery_api, api_db, market):

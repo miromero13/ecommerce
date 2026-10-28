@@ -37,11 +37,11 @@ class CashMovement(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     session_id = Column(UUID(as_uuid=True), ForeignKey("cash_sessions.id", ondelete="CASCADE"), nullable=False, index=True)
-    type = Column(String(12), nullable=False)  # sale | order | deposit | withdrawal
+    type = Column(String(12), nullable=False)  # sale | deposit | withdrawal
     method = Column(String(6), nullable=False, default="cash")  # cash | qr (qr never touches the drawer)
     amount = Column(Numeric(10, 2), nullable=False)  # always positive; the type gives the sign
-    cash_received = Column(Numeric(10, 2), nullable=True)  # cash payments: what the customer handed over
-    change_given = Column(Numeric(10, 2), nullable=True)  # cash payments: change returned
-    source_id = Column(UUID(as_uuid=True), nullable=True, index=True)  # sale or order id
+    cash_received = Column(Numeric(10, 2), nullable=True)  # cash sales: what the customer handed over
+    change_given = Column(Numeric(10, 2), nullable=True)  # cash sales: change returned
+    source_id = Column(UUID(as_uuid=True), nullable=True, index=True)  # sale id
     reason = Column(String(255), nullable=True)  # deposits and withdrawals
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())

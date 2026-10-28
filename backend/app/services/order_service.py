@@ -39,7 +39,6 @@ from app.services import loyalty_service
 
 
 STRIPE_RESERVATION_MINUTES = 30
-CASH_RESERVATION_HOURS = 24
 
 
 def _cart_rows(db: Session, cart_id: UUID):
@@ -109,8 +108,7 @@ def mark_order_ready(db: Session, order_id: UUID, branch_id: UUID, tenant_id: UU
     order = query.with_for_update().first()
     if not order:
         return None
-    cash_on_delivery = order.fulfillment_type == "delivery" and order.payment_method == PaymentMethodEnum.cash
-    if order.payment_status != PaymentStatusEnum.paid and not cash_on_delivery:
+    if order.payment_status != PaymentStatusEnum.paid:
         raise ValueError("El pedido debe estar pagado antes de marcarlo como listo")
     if order.fulfillment_status != FulfillmentStatusEnum.pending_pickup:
         raise ValueError("El pedido no está en preparación")
@@ -180,8 +178,8 @@ def _new_order(db: Session, cart: Cart, user_id: UUID, branch_id: UUID, method: 
     reservation_ids = {row.reservation_id for row in rows if row.reservation_id}
     deposit_credit = sum((r.deposit_amount for r in db.query(Reservation).filter(
         Reservation.id.in_(reservation_ids), Reservation.deposit_status == "paid")), Decimal("0.00"))
-    # Online payments (card, QR) hold stock briefly; cash at pickup holds it for a day.
-    expires = datetime.now(timezone.utc) + timedelta(minutes=CASH_RESERVATION_HOURS * 60 if method == PaymentMethodEnum.cash else STRIPE_RESERVATION_MINUTES)
+    # Web orders are paid online (card or QR) and hold the stock only briefly until paid.
+    expires = datetime.now(timezone.utc) + timedelta(minutes=STRIPE_RESERVATION_MINUTES)
     order = Order(
         tenant_id=tenant_id,
         user_id=user_id,
@@ -225,22 +223,6 @@ def _new_order(db: Session, cart: Cart, user_id: UUID, branch_id: UUID, method: 
     cart.promotion_code_id = None
     refresh_cart_totals(db, cart)
     return order
-
-
-def checkout_cash(db: Session, user_id: UUID, pickup_branch_id: UUID, delivery=None, points_to_redeem: int = 0):
-    try:
-        expire_due_orders(db)
-        cart = _locked_cart(db, user_id)
-        if cart.status == CartStatusEnum.checkout_pending:
-            raise ValueError("El carrito tiene un checkout pendiente")
-        order = _new_order(db, cart, user_id, pickup_branch_id, PaymentMethodEnum.cash, delivery, points_to_redeem)
-        db.commit()
-        db.refresh(order)
-        notify_order_event(db, order.id, order.user_id, "pending")
-        return _serialize_order(db, order).model_dump()
-    except Exception:
-        db.rollback()
-        raise
 
 
 def checkout_qr(db: Session, user_id: UUID, pickup_branch_id: UUID, delivery=None, points_to_redeem: int = 0):
@@ -485,11 +467,10 @@ def _consume_order(db: Session, order: Order, collected_by: UUID | None = None) 
     order.payment_status = PaymentStatusEnum.paid
     order.status = OrderStatusEnum.paid
     order.fulfillment_status = FulfillmentStatusEnum.collected if collected_by else FulfillmentStatusEnum.pending_pickup
-    if order.payment_method != PaymentMethodEnum.cash:
-        # Online money is collected by the platform and owed to the company (daily settlement).
-        record_payment(db, order.tenant_id, "order", order.id,
-                       "card" if order.payment_method == PaymentMethodEnum.stripe else "qr",
-                       order.total_amount - (order.shipping_cost or 0), order.currency, order.stripe_payment_intent_id)
+    # Online money is collected by the platform and owed to the company (daily settlement).
+    record_payment(db, order.tenant_id, "order", order.id,
+                   "card" if order.payment_method == PaymentMethodEnum.stripe else "qr",
+                   order.total_amount - (order.shipping_cost or 0), order.currency, order.stripe_payment_intent_id)
     for reservation_id in reservation_ids:
         reservation = db.query(Reservation).filter(Reservation.id == reservation_id).with_for_update().first()
         if reservation and reservation.status == ReservationStatusEnum.purchase_pending:
@@ -536,9 +517,9 @@ def cancel_order(db: Session, user_id: UUID, order_id: UUID):
         raise
 
 
-def hand_over_order(db: Session, order_id: UUID, pickup_code: str, staff_branch_id: UUID | None, staff_id: UUID,
-                    tenant_id: UUID | None = None, cash_received=None):
-    """Deliver a web order at the counter: cash orders are charged here, card orders were paid online."""
+def hand_over_order(db: Session, order_id: UUID, pickup_code: str, staff_branch_id: UUID | None,
+                    tenant_id: UUID | None = None):
+    """Deliver at the counter a web order already paid online; nothing is charged here."""
     try:
         query = db.query(Order).filter(Order.id == order_id)
         if tenant_id is not None:
@@ -550,23 +531,11 @@ def hand_over_order(db: Session, order_id: UUID, pickup_code: str, staff_branch_
             raise ValueError("Este pedido se entrega a domicilio")
         if order.pickup_code != pickup_code:
             raise ValueError("Código de retiro inválido")
-        if order.payment_method == PaymentMethodEnum.cash:
-            if order.payment_status != PaymentStatusEnum.pending or order.pickup_expires_at < datetime.now(timezone.utc):
-                raise ValueError("El pedido no está disponible para cobro")
-            from app.services import cash_session_service
-
-            # 1P-CU18: the cash goes into the open drawer of the cashier who charges it.
-            if cash_session_service.get_open_session(db, staff_id) is None:
-                raise ValueError("Para cobrar en efectivo se necesita una caja abierta: lo registra un cajero desde su caja")
-            drawer = cash_session_service.require_open_session(db, staff_id, staff_branch_id, order.tenant_id)
-            _consume_order(db, order, staff_id)
-            cash_session_service.record_order_collection(db, drawer, order, cash_received)
-        else:
-            # Stock was already consumed when the Stripe payment succeeded.
-            if order.payment_status != PaymentStatusEnum.paid or order.fulfillment_status not in (
-                    FulfillmentStatusEnum.pending_pickup, FulfillmentStatusEnum.ready_for_pickup):
-                raise ValueError("El pedido no está disponible para entrega")
-            order.fulfillment_status = FulfillmentStatusEnum.collected
+        # Stock was already consumed when the online payment succeeded.
+        if order.payment_status != PaymentStatusEnum.paid or order.fulfillment_status not in (
+                FulfillmentStatusEnum.pending_pickup, FulfillmentStatusEnum.ready_for_pickup):
+            raise ValueError("El pedido no está disponible para entrega")
+        order.fulfillment_status = FulfillmentStatusEnum.collected
         db.commit()
         for item in order.items:
             inventory = db.query(Inventory).filter(Inventory.variant_id == item.variant_id, Inventory.branch_id == order.pickup_branch_id).first()

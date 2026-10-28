@@ -195,7 +195,7 @@ const TABS: { key: BranchTab; label: string }[] = [
                     </tr>
                     @if (openDrawerId() === drawer.id && drawerDetail(); as detail) {
                       <tr class="bg-slate-50"><td colspan="8" class="p-3">
-                        <p class="mb-2 text-xs text-slate-600">Ventas efectivo {{ detail.cash_sales }} · QR {{ detail.qr_sales }} · Cobros de pedidos {{ detail.order_collections }} · Ingresos {{ detail.deposits }} · Retiros {{ detail.withdrawals }} · Vuelto entregado {{ detail.change_given }}@if (detail.closing_note) { · Nota: {{ detail.closing_note }} }</p>
+                        <p class="mb-2 text-xs text-slate-600">Ventas efectivo {{ detail.cash_sales }} · QR {{ detail.qr_sales }} · Ingresos {{ detail.deposits }} · Retiros {{ detail.withdrawals }} · Vuelto entregado {{ detail.change_given }}@if (detail.closing_note) { · Nota: {{ detail.closing_note }} }</p>
                         <ul class="space-y-1 text-xs">
                           @for (m of detail.movements ?? []; track m.id) {
                             <li>{{ m.created_at | date: 'HH:mm' }} · {{ movementLabel(m.type) }} {{ m.method === 'qr' ? '(QR)' : '' }} · {{ m.amount }}@if (m.cash_received) { · recibido {{ m.cash_received }}, cambio {{ m.change_given }} }@if (m.reason) { · {{ m.reason }} }</li>
@@ -249,7 +249,7 @@ export class AdminBranchDetailPageComponent {
   }
 
   protected movementLabel(type: string): string {
-    return ({ sale: 'Venta', order: 'Cobro de pedido', deposit: 'Ingreso', withdrawal: 'Retiro' } as Record<string, string>)[type] ?? type;
+    return ({ sale: 'Venta', deposit: 'Ingreso', withdrawal: 'Retiro' } as Record<string, string>)[type] ?? type;
   }
 
   protected setCashDay(day: string): void {

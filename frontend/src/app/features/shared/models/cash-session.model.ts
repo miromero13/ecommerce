@@ -1,7 +1,7 @@
 /** 1P-CU18: one movement of a cashier's drawer. */
 export interface CashMovement {
   id: string;
-  type: 'sale' | 'order' | 'deposit' | 'withdrawal';
+  type: 'sale' | 'deposit' | 'withdrawal';
   method: 'cash' | 'qr';
   amount: string;
   cash_received: string | null;
@@ -28,7 +28,6 @@ export interface CashSession {
   closed_at: string | null;
   cash_sales: string;
   qr_sales: string;
-  order_collections: string;
   deposits: string;
   withdrawals: string;
   change_given: string;

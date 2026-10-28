@@ -6,7 +6,8 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
 from test_catalog_tenant_isolation import catalog  # noqa: F401 (shared fixture)
-from test_marketplace_transactions import add, call, market, market_api, rejected, stock  # noqa: F401
+from test_employee_authorization import headers
+from test_marketplace_transactions import add, call, checkout, market, market_api, rejected, stock  # noqa: F401
 
 
 def _stripe_paid_order(api, db, market):
@@ -15,8 +16,7 @@ def _stripe_paid_order(api, db, market):
     from app.services.order_service import _consume_order
 
     add(api, market)
-    created = call(api, market.customer, "POST", "/payments/cash/checkout", 201,
-                   json={"pickup_branch_id": str(market.branches[0].id)})
+    created = checkout(api, market)
     order = db.query(Order).filter(Order.id == created["id"]).one()
     order.payment_method = PaymentMethodEnum.stripe
     _consume_order(db, order)  # what the Stripe webhook does on payment_intent.succeeded
@@ -40,18 +40,15 @@ def test_stripe_paid_order_is_handed_over_with_pickup_code(market_api, api_db, m
              400, "El pedido no está disponible para entrega", json={"pickup_code": order["pickup_code"]})
 
 
-def test_cash_order_hand_over_charges_and_consumes_stock(market_api, api_db, market):
+def test_unpaid_web_order_is_never_handed_over_or_charged_at_the_counter(market_api, api_db, market):
+    # Rule: web orders are paid online only; the counter never takes cash for them.
     add(market_api, market)
-    order = call(market_api, market.customer, "POST", "/payments/cash/checkout", 201,
-                 json={"pickup_branch_id": str(market.branches[0].id)})
-    quantity, reserved = stock(api_db, market.own.variant, market.branches[0])
-
-    # 1P-CU18: the cash is charged into the cashier's open drawer.
-    handed = call(market_api, market.staff[0, "cajero"], "POST", f"/orders/{order['id']}/hand-over",
-                  json={"pickup_code": order["pickup_code"]})
-
-    assert handed["payment_status"] == "paid" and handed["fulfillment_status"] == "collected"
-    assert stock(api_db, market.own.variant, market.branches[0]) == (quantity - 1, reserved - 1)
+    gone = market_api.post("/api/payments/cash/checkout", headers=headers(market.customer),
+                           json={"pickup_branch_id": str(market.branches[0].id)})
+    assert gone.status_code == 404  # the web cash checkout no longer exists
+    order = checkout(market_api, market)
+    rejected(market_api, api_db, market.staff[0, "cajero"], "POST", f"/orders/{order['id']}/hand-over",
+             400, "El pedido no está disponible para entrega", json={"pickup_code": order["pickup_code"]})
 
 
 @pytest.mark.parametrize("days, message", [
@@ -79,8 +76,7 @@ def test_inventory_rejects_impossible_stock(api_db, market, assignment):
 
 def test_branch_staff_never_see_customer_pickup_code(market_api, api_db, market):
     add(market_api, market)
-    call(market_api, market.customer, "POST", "/payments/cash/checkout", 201,
-         json={"pickup_branch_id": str(market.branches[0].id)})
+    checkout(market_api, market)
     for role in ("encargado", "cajero"):
         orders = call(market_api, market.staff[0, role], "GET", "/orders/branch")
         assert len(orders) == 1 and orders[0]["pickup_code"] is None
@@ -92,8 +88,7 @@ def _visit(days=2):
 
 def test_orders_and_sales_use_the_company_currency(market_api, api_db, market):
     add(market_api, market)
-    order = call(market_api, market.customer, "POST", "/payments/cash/checkout", 201,
-                 json={"pickup_branch_id": str(market.branches[0].id)})
+    order = checkout(market_api, market)
     sale = call(market_api, market.staff[0, "cajero"], "POST", "/sales/", 201,
                 json={"items": [{"variant_id": str(market.own.variant.id), "quantity": 1}]})
     assert order["currency"] == sale["currency"] == "bob"  # identities() companies default to BOB

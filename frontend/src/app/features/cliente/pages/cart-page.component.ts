@@ -77,7 +77,8 @@ export class CartPageComponent {
   protected readonly stripePaymentStatus = signal<string | null>(null);
   protected readonly loading = signal(false);
   protected readonly updatingItemId = signal<string | null>(null);
-  protected readonly checkoutMethod = signal<'cash' | 'stripe' | 'qr'>('cash');
+  // Web orders are always paid online (rule): card or QR, never cash.
+  protected readonly checkoutMethod = signal<'stripe' | 'qr'>('qr');
   private readonly qrApi = inject(QrPaymentApiService);
   protected readonly qrPayment = signal<QrPayment | null>(null);
   protected readonly pickupBranchId = signal(this.getCartBranchId());
@@ -211,24 +212,12 @@ export class CartPageComponent {
         this.lastOrder.set(response.data?.order ?? null);
         this.qrPayment.set(response.data?.qr ?? null);
         this.clearCartBranch();
-      } else if (this.checkoutMethod() === 'cash') {
-        const response = await requestWithToast(
-          this.checkoutApi.checkoutCash({ pickup_branch_id: pickupBranchId, delivery, points_to_redeem: this.pointsToRedeem() }),
-          {
-            loading: 'Creando pedido...',
-            success: delivery ? 'Pedido con envío creado. Pagarás al recibirlo.' : 'Pedido para retiro creado.',
-            error: 'No se pudo crear el pedido.',
-          },
-        );
-        this.lastOrder.set(response.data ?? null);
-        this.clearStripeCheckout();
-        this.clearCartBranch();
       } else {
         await this.startStripeCheckout(pickupBranchId, delivery);
       }
       await this.loadCart();
     } catch (error) {
-      // Cash and card show their toast through requestWithToast; QR reports here.
+      // Card shows its toast through requestWithToast; QR reports here.
       if (this.checkoutMethod() === 'qr') toast.error(getErrorMessage(error, 'No se pudo generar el código QR.'));
     } finally {
       this.checkingOut.set(false);
@@ -253,7 +242,7 @@ export class CartPageComponent {
         ['Pedido', order.id],
         ['Fecha', new Date(order.created_at).toLocaleString('es-BO')],
         ['Pago', ({ pending: 'Pendiente', paid: 'Pagado', failed: 'Fallido' } satisfies Record<Order['payment_status'], string>)[order.payment_status]],
-        ['Método', order.payment_method === 'stripe' ? 'Tarjeta' : 'Efectivo'],
+        ['Método', order.payment_method === 'stripe' ? 'Tarjeta' : 'QR'],
         ...(order.pickup_code ? [['Código de retiro', order.pickup_code]] : []),
         ['Subtotal', `${order.subtotal} ${order.currency}`],
         ['Descuento', `${order.discount_amount} ${order.currency}`],
@@ -270,7 +259,7 @@ export class CartPageComponent {
     });
   }
 
-  protected selectCheckoutMethod(method: 'cash' | 'stripe' | 'qr'): void {
+  protected selectCheckoutMethod(method: 'stripe' | 'qr'): void {
     this.checkoutMethod.set(method);
   }
 

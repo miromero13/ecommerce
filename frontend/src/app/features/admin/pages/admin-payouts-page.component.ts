@@ -11,7 +11,7 @@ import { PayoutSummary, Settlement } from '../../shared/models/payout.model';
 import { PayoutApiService } from '../../shared/services/payout-api.service';
 
 const SOURCE: Record<string, string> = { order: 'Pedido web', sale: 'Venta en caja', reservation_deposit: 'Anticipo de reserva' };
-const METHOD: Record<string, string> = { card: 'Tarjeta', qr: 'QR', cash: 'Efectivo (repartidor)' };
+const METHOD: Record<string, string> = { card: 'Tarjeta', qr: 'QR' };
 
 // Online payments land in the platform account; each day the company is paid its net amount.
 @Component({

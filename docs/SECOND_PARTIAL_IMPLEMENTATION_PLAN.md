@@ -222,7 +222,7 @@ Rutas reales verificadas. "Brecha" = lo que falta para cerrar el CU según el ex
 | I2 | No hay tipo `adjustment` con motivo (merma, daño, conteo físico); hoy se usa `outcome` genérico. Lo necesitan CU21 (merma) y CU23 (conflictos). | Media | `backend/app/schemas/inventory_schema.py` [EDIT] (`adjustment` + `reason`), `inventory_service.py` [EDIT] |
 
 ### Pasarela de pago
-**Cómo funciona:** **Stripe** (PaymentIntent + webhook `POST /api/payments/stripe/webhook`, idempotencia con `payment_attempts.idempotency_key` y `stripe_events`) o **efectivo al retirar**. El pedido aparta stock 30 min (Stripe) o 24 h (efectivo). Expira solo (`expire_due_orders`, loop cada 60 s en `main.py`). Archivos: `backend/app/services/order_service.py`, `backend/app/routes/payment_routes.py`, `backend/app/models/payment_attempt.py`, `stripe_event.py`, `frontend/src/app/features/shared/services/checkout-api.service.ts`, `mobile/lib/features/orders/checkout_page.dart`.
+**Cómo funciona:** **Stripe** (PaymentIntent + webhook `POST /api/payments/stripe/webhook`, idempotencia con `payment_attempts.idempotency_key` y `stripe_events`) o **QR**; **nunca en efectivo** (regla RN-22: el efectivo solo existe en la caja de la tienda). El pedido aparta stock 30 min hasta que se paga. Expira solo (`expire_due_orders`, loop cada 60 s en `main.py`). Archivos: `backend/app/services/order_service.py`, `backend/app/routes/payment_routes.py`, `backend/app/models/payment_attempt.py`, `stripe_event.py`, `frontend/src/app/features/shared/services/checkout-api.service.ts`, `mobile/lib/features/orders/checkout_page.dart`.
 
 | # | Brecha | Gravedad | Archivos |
 |---|---|---|---|
@@ -574,10 +574,15 @@ Ejecutar la transferencia reutiliza `inventory_service.register_transfer` (atóm
 | Ingesta RPA de remitos con Gemini | ✅ | CU10 | `services/rpa_ingest_service.py`, `routes/rpa_ingest_routes.py`, `inventory_service._add_stock`, migración `0044`, `proveedor/pages/provider-rpa-ingest-page`, `docs/demo/remito_demo.pdf` |
 | Lista de deseos con mover al carrito (web y móvil) | ✅ | CU16 | `services/wishlist_service.py`, `routes/wishlist_routes.py`, migración `0045`, `cliente/pages/wishlist-page`, `cliente/components/wishlist-toggle-button`, móvil `features/wishlist/` |
 | Puntos de fidelidad por empresa con niveles (web, caja y móvil) | ✅ | CU17 | `services/loyalty_service.py`, `routes/loyalty_routes.py`, `order_service` (`_new_order`, `_consume_order`, `_release_order`), `sales_service._apply_loyalty`, migración `0046`, `cliente/pages/loyalty-page`, `cart-page`, `caja-page`, móvil `features/loyalty/`, `checkout_page.dart` |
+| Superadmin entra al panel de una empresa como su administrador; tenants solo con plan; historial de pagos | ✅ | CU1, CU2 | `tenant_service` (`open_tenant_panel`, `register_tenant_admin`, `list_tenants`), `tenant_routes` (`/panel-session`, `/admin`), `subscription_service.list_subscription_history`, migración `0047`, `session.service.ts` (`enterTenantPanel`), `tenant-management-page`, `subscription-page` |
+| Pedidos web solo con pago en línea (sin efectivo ni contra entrega) | ✅ | 1P-CU16, CU20 | `payment_routes.py` (sin `/payments/cash/checkout`), `order_service.hand_over_order`, `delivery_service.confirm_delivery`, `cart-page`, móvil `checkout_page.dart` |
+| Caja por cajero: apertura, vuelto, ingresos/retiros y cierre con diferencia | ✅ | 1P-CU18 | `models/cash_session.py`, migración `0048`, `services/cash_session_service.py`, `routes/cash_session_routes.py`, `sales_service.create_sale`, `cajero/components/cash-drawer-panel`, `caja-page` |
+| Panel de una sucursal para el administrador | ✅ | 1P (gestión de sucursales) | `admin/pages/admin-branch-detail-page`, `order_routes` (`/orders/branch?branch_id=`), `admin-branch-page` |
+| Traspaso: selección de la prenda del inventario de la sucursal de origen | ✅ | CU11 | `admin/pages/admin-inventory-page` |
 | Devoluciones con reembolso a tarjeta / efectivo (D3, D4) | ⏳ | CU21 | ver sección 1.7 |
 
 **Notas para quien continúe:**
-- Migraciones: `0041` Fase 0, `0042` CU3, `0043` CU9, `0044` CU10, `0045` CU16, `0046` CU17.
+- Migraciones: `0041` Fase 0, `0042` CU3, `0043` CU9, `0044` CU10, `0045` CU16, `0046` CU17, `0047` monto de cada suscripción, `0048` caja.
 - La migración `0041` agrupa toda la Fase 0. Las bases que aplicaron una versión anterior de `0041` necesitan las columnas nuevas (`ALTER TABLE ... ADD COLUMN IF NOT EXISTS`).
 - `backend/tests/conftest.py::seeded_db` reconstruye el esquema `public` de la base desechable y corre el seed; no correr dos suites a la vez sobre la misma base de tests.
 - Móvil: el delivery toma la ubicación del GPS (`geolocator`, botón "Usar mi ubicación") o latitud/longitud manual; el anticipo se paga por QR o con tarjeta (Stripe PaymentSheet).
@@ -591,9 +596,9 @@ Ejecutar la transferencia reutiliza `inventory_service.register_transfer` (atóm
 | RN-02 | La fecha de visita de una reserva está entre hoy y **14 días**; máximo **5 prendas** por reserva y **3 reservas activas** por cliente y empresa. | `reservation_service.create_reservation` |
 | RN-03 | Toda reserva exige un **anticipo del 50 %** pagado en línea (QR o tarjeta) en **30 minutos**; si no, vence y libera el stock. | `reservation_service` (`pending_payment`) |
 | RN-04 | El anticipo **no es reembolsable**: cancelar, no presentarse o no comprar lo pierde; al comprar las prendas se descuenta del pedido. | `reservation_service.transition_reservation`, `order_service._new_order` |
-| RN-05 | Todo cobro en línea (tarjeta, QR, efectivo cobrado por el repartidor) entra a la **cuenta de la plataforma** y se registra por empresa con la comisión. | `payout_service.record_payment` |
+| RN-05 | Todo cobro en línea (tarjeta, QR) entra a la **cuenta de la plataforma** y se registra por empresa con la comisión. | `payout_service.record_payment` |
 | RN-06 | Cada día se genera **una liquidación por empresa** con lo cobrado el día anterior; el superadministrador registra la transferencia bancaria. | `payout_service.run_daily_settlements`, `mark_settlement_paid` |
-| RN-07 | El efectivo en caja y el efectivo al retirar en tienda **no** pasan por la plataforma. | `order_service._consume_order`, `sales_service` |
+| RN-07 | El efectivo de la caja **no** pasa por la plataforma. | `sales_service` |
 | RN-08 | Envío a domicilio: **8 Bs + 2,5 Bs/km** (distancia Haversine desde la sucursal), cobertura máxima **15 km**. | `delivery_service.shipping_quote`, `config.delivery_*` |
 | RN-09 | Los repartidores son **de la plataforma** (sin empresa ni sucursal) y toman pedidos listos de cualquier empresa; uno por pedido. | `delivery_service.claim_order`, `auth/dependencies.py` |
 | RN-10 | La entrega a domicilio se confirma con el **PIN de 4 dígitos** del cliente; el retiro en tienda, con el código de retiro (nunca visible para el personal). | `delivery_service.confirm_delivery`, `order_service.hand_over_order` |
@@ -608,11 +613,14 @@ Ejecutar la transferencia reutiliza `inventory_service.register_transfer` (atóm
 | RN-19 | Ingesta RPA: PDF/PNG/JPG/WEBP de hasta 10 MB; los SKU desconocidos se informan y **no se crean**; confirma el administrador o el encargado (solo su sucursal); el ingreso es atómico. | `rpa_ingest_service.validate_upload`, `_match`, `commit_job` |
 | RN-20 | Una prenda se guarda una sola vez en la lista de deseos; al moverla al carrito se elige talla/color y rige la regla de un carrito por empresa. | `wishlist_service` |
 | RN-21 | Puntos por empresa: **1 punto por cada 10 Bs** pagados por prendas (el envío no suma); **10 puntos = 1 Bs**, en múltiplos de 10 y sin superar el monto de las prendas; se devuelven si el pedido vence o se cancela; niveles **Bronce < 500, Plata 500–1499, Oro ≥ 1500** puntos acumulados; en caja exige el correo del cliente. | `loyalty_service`, `order_service`, `sales_service._apply_loyalty` |
+| RN-22 | Un **pedido web siempre se paga en línea** (tarjeta o QR), con retiro en tienda o envío; **nunca en efectivo** ni contra entrega. El efectivo solo se acepta en la venta presencial en caja. El mostrador solo entrega pedidos ya pagados. | `payment_routes.py`, `order_service.hand_over_order`, `order_service.mark_order_ready`, `delivery_service.confirm_delivery` |
+| RN-23 | Cada cajero abre **su propia caja** en su sucursal con un monto inicial; sin caja abierta no se vende (efectivo ni QR). La venta en efectivo registra lo recibido y el **vuelto**; los ingresos y retiros llevan motivo y no se retira más de lo que hay. Al cerrar: esperado = inicial + ventas en efectivo + ingresos − retiros; se guarda lo contado y la diferencia (sobrante/faltante). Las cajas de distintas sucursales nunca se mezclan. | `cash_session_service`, `sales_service.create_sale`, `payment_routes` (`/qr/sale-intent`) |
+| RN-24 | Solo aparecen como tenants las empresas suscritas a un plan; cada período pagado guarda su monto en el historial. El superadmin entra al panel de una empresa activa como su administrador (queda `impersonated_by` en el token). | `tenant_service.list_tenants`, `subscription_service`, `tenant_service.open_tenant_panel` |
 
 ### 11.2 Endpoints nuevos o modificados (prefijo `/api`)
 | Método y ruta | Rol | Uso |
 |---|---|---|
-| `POST /orders/{id}/hand-over` | cajero, encargado | Entregar pedido web (cobra si es efectivo) con el código de retiro |
+| `POST /orders/{id}/hand-over` | cajero, encargado | Entregar con el código de retiro un pedido web ya pagado en línea |
 | `GET /payouts/summary` · `PUT /payouts/bank-account` | administrador | Saldo por transferir, movimientos y cuenta bancaria de la empresa |
 | `GET /payouts/settlements` | administrador, superadmin | Liquidaciones (el admin solo ve las suyas) |
 | `POST /payouts/settlements/run` · `PATCH /payouts/settlements/{id}/paid` | superadmin | Generar liquidaciones y registrar la transferencia |
@@ -635,14 +643,22 @@ Ejecutar la transferencia reutiliza `inventory_service.register_transfer` (atóm
 | `GET /wishlist` · `POST /wishlist/items` · `DELETE /wishlist/items/{product_id}` · `POST /wishlist/items/{product_id}/move-to-cart` | cliente | Lista de deseos (CU16) |
 | `GET /loyalty/balance`, `/loyalty/transactions` · `points_to_redeem` en `/payments/cash|stripe|qr/checkout` | cliente | Puntos por empresa y canje al pagar (CU17) |
 | `GET /loyalty/customer?email=` | cajero | Saldo del cliente en su empresa (CU17) |
+| `GET /cash-sessions/current` · `POST /cash-sessions/open` · `POST /cash-sessions/current/movements` · `POST /cash-sessions/current/close` | cajero | Abrir caja, ingresos/retiros y cierre con arqueo (1P-CU18) |
+| `GET /cash-sessions?branch_id=&day=` · `GET /cash-sessions/{id}` | administrador (por sucursal), encargado (su sucursal), cajero (sus cajas) | Cajas y movimientos |
+| `GET /orders/branch?branch_id=` | administrador | Pedidos de una sucursal de su empresa (panel de sucursal) |
+| `POST /saas/tenants/{id}/panel-session` · `POST /saas/tenants/{id}/admin` | superadmin | Entrar al panel de una empresa; registrar su administrador |
+| `GET /saas/subscriptions/history` | administrador (su empresa), superadmin (`tenant_id`) | Historial de pagos del plan |
+| ~~`POST /payments/cash/checkout`~~ | — | Eliminado por RN-22 |
 
 ### 11.3 Pantallas
 | Rol | Ruta | Contenido |
 |---|---|---|
-| Cliente | `/app/cliente/cart` | Retiro o envío, cotización por distancia, pago en efectivo, tarjeta o QR |
+| Cliente | `/app/cliente/cart` | Retiro o envío, cotización por distancia, pago con tarjeta o QR |
 | Cliente | `/app/cliente/my-reservations` | Pago del anticipo (QR o tarjeta), estado del anticipo |
 | Cliente | `/app/cliente/orders` | Estado del envío, PIN, nota de venta PDF con la marca de la tienda |
-| Cajero | `/app/cajero/caja` | Efectivo o QR, cupón con correo del cliente, comprobante con la marca |
+| Cajero | `/app/cajero/caja` | Abrir/cerrar caja, ingresos y retiros, efectivo recibido y vuelto, QR, cupón y puntos, comprobante con la marca |
+| Administrador | `/app/admin/branch/:branchId` | Panel de una sucursal: resumen, inventario, ventas, pedidos y reservas, personal y cajas |
+| Administrador | `/app/admin/subscription` | Plan, cambio de plan e historial de pagos |
 | Cajero / encargado | `/app/cajero/orders`, `/app/encargado/orders` | Entregar pedidos web con código de retiro; despachar envíos |
 | Repartidor | `/app/delivery` | Bolsa de pedidos de todas las empresas y hoja de ruta con PIN |
 | Administrador | `/app/admin/payouts` | Cuenta bancaria, saldo, liquidaciones y movimientos |
@@ -662,10 +678,13 @@ Ejecutar la transferencia reutiliza `inventory_service.register_transfer` (atóm
 |---|---|
 | `test_phase0_business_flows.py` | Entrega de pedidos, ventana de visita, stock imposible, moneda, precio con descuento, límites, carrito por empresa (con `autoflush=False` como producción), mensaje en español |
 | `test_tenant_middleware.py` | `X-Tenant-ID` / subdominio, 403 por empresa ajena, 404 empresa inexistente |
-| `test_payouts.py` | Libro de cobros con comisión, efectivo fuera del libro, liquidación diaria idempotente, transferencia y cuenta bancaria |
+| `test_payouts.py` | Libro de cobros con comisión, efectivo de caja fuera del libro, liquidación diaria idempotente, transferencia y cuenta bancaria |
 | `test_qr_payments.py` | QR web y de caja, no reutilización, webhook con secreto |
 | `test_reservation_deposit.py` | Anticipo 50 %, vencimiento, pérdida al cancelar, webhook de tarjeta, PaymentIntent del anticipo |
-| `test_delivery.py` | Cotización y cobertura, flujo efectivo contra entrega entre empresas, PIN, repartidor sin acceso a datos de empresas |
+| `test_delivery.py` | Cotización y cobertura, envío pagado en línea entre empresas, PIN, repartidor sin acceso a datos de empresas |
+| `test_cash_sessions.py` | Vuelto, caja obligatoria, ingresos/retiros, cierre con faltante, cajas de sucursales separadas |
+| `test_branch_panel.py` | Pedidos de una sola sucursal de la empresa para el administrador |
+| `test_tenant_panel.py`, `test_subscription_history.py` | Entrar al panel de una empresa, registrar administrador, tenants solo con plan, historial de pagos |
 | `test_cashier_coupon.py` | Cupón en caja con cliente identificado, un uso, sin combinar con ofertas, QR con cupón |
 | `test_tenant_branding.py` | Marca pública, color y logo con validación, reemplazo de logo, edición por superadmin |
 | `test_rbac.py` | Rol restrictivo que reemplaza permisos, bloqueo en endpoints, asignación solo a personal de la empresa |

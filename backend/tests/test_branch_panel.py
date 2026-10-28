@@ -1,12 +1,11 @@
 """Admin branch panel: the administrator lists the orders of ONE branch of their company, never another company's."""
 from test_catalog_tenant_isolation import catalog  # noqa: F401 (shared fixture)
-from test_marketplace_transactions import add, call, market, market_api, rejected  # noqa: F401
+from test_marketplace_transactions import add, call, checkout, market, market_api, rejected  # noqa: F401
 
 
 def test_admin_sees_only_the_orders_of_the_branch_it_enters(market_api, api_db, market):
     add(market_api, market)
-    order = call(market_api, market.customer, "POST", "/payments/cash/checkout", 201,
-                 json={"pickup_branch_id": str(market.branches[0].id)})
+    order = checkout(market_api, market)
     admin = market.staff[0, "administrador"]
     branch0 = call(market_api, admin, "GET", "/orders/branch", params={"branch_id": str(market.branches[0].id)})
     assert [row["id"] for row in branch0] == [order["id"]]
