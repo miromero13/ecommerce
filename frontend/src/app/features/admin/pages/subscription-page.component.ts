@@ -32,6 +32,7 @@ import { PLAN_FEATURES, SubscriptionPayment, SubscriptionPlan, SubscriptionSumma
 import { SubscriptionApiService } from '../../shared/services/subscription-api.service';
 import { TenantBrandingEditorComponent } from '../../shared/components/tenant-branding-editor.component';
 import { SessionService } from '../../shared/services/session.service';
+import { ReceiptActionsComponent } from '../../shared/components/receipt-actions.component';
 
 @Component({
   selector: 'app-subscription-page',
@@ -42,6 +43,7 @@ import { SessionService } from '../../shared/services/session.service';
     FormsModule,
     NgIcon,
     PricingTableComponent,
+    ReceiptActionsComponent,
     ...HlmButtonImports,
     ...HlmCardImports,
     ...HlmBadgeImports,

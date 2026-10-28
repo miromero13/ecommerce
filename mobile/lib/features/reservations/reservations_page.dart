@@ -13,6 +13,7 @@ import '../../shared/widgets/app_section_title.dart';
 import '../../shared/widgets/app_snack_bar.dart';
 import '../../shared/widgets/product_image.dart';
 import '../../shared/widgets/product_price.dart';
+import '../../shared/widgets/receipt_email_button.dart';
 import '../auth/auth_controller.dart';
 import '../auth/login_dialog.dart';
 import 'reservation_controller.dart';
@@ -227,6 +228,10 @@ class _ReservationsPageState extends State<ReservationsPage> {
                     ? () => _transfer(reservation)
                     : null,
               ),
+              if (reservation.depositStatus == 'paid') ...[
+                const SizedBox(height: 4),
+                ReceiptEmailButton(authController: widget.authController, kind: 'reservation_deposit', sourceId: reservation.id),
+              ],
               const SizedBox(height: 12),
             ],
           ],

@@ -561,6 +561,8 @@ def complete_deposit_payment(db: Session, reservation_id: UUID, method: str, ref
     # The deposit is collected by the platform and owed to the company even if the customer never comes.
     record_payment(db, reservation.tenant_id, "reservation_deposit", reservation.id, method,
                    reservation.deposit_amount, currency, reference)
+    from app.services.receipt_service import issue_deposit_receipt
+    issue_deposit_receipt(db, reservation, currency)
     return reservation
 
 

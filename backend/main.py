@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routes import user_routes, auth, branch_routes, provider_routes, catalog_routes, garment_routes, inventory_routes, cart_routes, reservation_routes, order_routes, payment_routes, sales_routes, report_routes, dashboard_routes, promotion_routes, replenishment_routes, recommendation_routes, chatbot_routes, notification_routes, tenant_routes, subscription_routes, payout_routes, delivery_routes, rbac_routes, expert_replenishment_routes, rpa_ingest_routes, wishlist_routes, loyalty_routes, cash_session_routes
+from app.routes import user_routes, auth, branch_routes, provider_routes, catalog_routes, garment_routes, inventory_routes, cart_routes, reservation_routes, order_routes, payment_routes, sales_routes, report_routes, dashboard_routes, promotion_routes, replenishment_routes, recommendation_routes, chatbot_routes, notification_routes, tenant_routes, subscription_routes, payout_routes, delivery_routes, rbac_routes, expert_replenishment_routes, rpa_ingest_routes, wishlist_routes, loyalty_routes, cash_session_routes, receipt_routes
 from app.core.error_handlers import register_error_handlers
 from app.core.tenant_middleware import register_tenant_middleware
 from app.core.database import SessionLocal
@@ -49,18 +49,32 @@ async def _expert_replenishment_loop() -> None:
             db.close()
 
 
+async def _receipt_email_loop() -> None:
+    """Payment receipts reach the payer's inbox; a mail failure never undoes a payment."""
+    from app.services.receipt_service import send_pending_receipts
+
+    while True:
+        await asyncio.sleep(60)
+        try:
+            await send_pending_receipts(SessionLocal)
+        except Exception:
+            pass
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     task = asyncio.create_task(_expire_orders_loop())
     daily_task = asyncio.create_task(_daily_expiration_loop())
     replenishment_task = asyncio.create_task(_expert_replenishment_loop())
+    receipt_task = asyncio.create_task(_receipt_email_loop())
     try:
         yield
     finally:
         task.cancel()
         daily_task.cancel()
         replenishment_task.cancel()
-        await asyncio.gather(task, daily_task, replenishment_task, return_exceptions=True)
+        receipt_task.cancel()
+        await asyncio.gather(task, daily_task, replenishment_task, receipt_task, return_exceptions=True)
 
 app = FastAPI(title="ACI", lifespan=lifespan)
 
@@ -107,6 +121,7 @@ api_router.include_router(rpa_ingest_routes.router)
 api_router.include_router(wishlist_routes.router)
 api_router.include_router(loyalty_routes.router)
 api_router.include_router(cash_session_routes.router)
+api_router.include_router(receipt_routes.router)
 
 app.include_router(api_router)
 

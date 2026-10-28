@@ -202,6 +202,10 @@
             }
             <div>
               <p class="text-xs uppercase tracking-wide text-slate-500">Comprobante</p>
+              @if (lastSale()?.id; as saleId) {
+                <!-- Numbered receipt (PDF); emailed when the customer is registered. -->
+                <div class="my-2 print:hidden"><app-receipt-actions kind="sale" [sourceId]="saleId" [showResend]="!!customerEmailUsed()" /></div>
+              }
               <p class="text-lg font-semibold text-slate-900">{{ saleLabel() }}</p>
             </div>
             <div class="rounded-xl p-3 text-sm" [ngClass]="saleStatusClass()">

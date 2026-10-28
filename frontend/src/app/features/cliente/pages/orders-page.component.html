@@ -17,7 +17,9 @@
               }
             </div>
           } @else if (order.pickup_code && order.fulfillment_status !== 'collected') { <p class="text-xs text-slate-500">Código de retiro: <strong>{{ order.pickup_code }}</strong></p> }
-          <button hlmBtn type="button" variant="outline" class="w-full" (click)="downloadSalesNote(order)">Descargar nota de venta</button>
+          @if (order.payment_status === 'paid') {
+            <app-receipt-actions kind="order" [sourceId]="order.id" />
+          }
         </div>
       </article>
     } @empty { <div class="rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">Aún no tienes pedidos.</div> }

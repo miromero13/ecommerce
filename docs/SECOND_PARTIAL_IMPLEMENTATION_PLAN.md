@@ -580,10 +580,11 @@ Ejecutar la transferencia reutiliza `inventory_service.register_transfer` (atóm
 | Caja por cajero: apertura, vuelto, ingresos/retiros y cierre con diferencia | ✅ | 1P-CU18 | `models/cash_session.py`, migración `0048`, `services/cash_session_service.py`, `routes/cash_session_routes.py`, `sales_service.create_sale`, `cajero/components/cash-drawer-panel`, `caja-page` |
 | Panel de una sucursal para el administrador | ✅ | 1P (gestión de sucursales) | `admin/pages/admin-branch-detail-page`, `order_routes` (`/orders/branch?branch_id=`), `admin-branch-page` |
 | Traspaso: selección de la prenda del inventario de la sucursal de origen | ✅ | CU11 | `admin/pages/admin-inventory-page` |
+| Comprobante de pago por cada transacción (PDF y correo) | ✅ | 1P-CU16, 1P-CU18, 1P-CU14, CU2 | `models/payment_receipt.py`, migración `0049`, `services/receipt_service.py` (emisión, PDF con reportlab, envío), `routes/receipt_routes.py`, tarea `_receipt_email_loop` en `main.py`, `email_service` (adjuntos), `shared/components/receipt-actions`, `shared/pages/receipts-page`, móvil `shared/widgets/receipt_email_button.dart` |
 | Devoluciones con reembolso a tarjeta / efectivo (D3, D4) | ⏳ | CU21 | ver sección 1.7 |
 
 **Notas para quien continúe:**
-- Migraciones: `0041` Fase 0, `0042` CU3, `0043` CU9, `0044` CU10, `0045` CU16, `0046` CU17, `0047` monto de cada suscripción, `0048` caja.
+- Migraciones: `0041` Fase 0, `0042` CU3, `0043` CU9, `0044` CU10, `0045` CU16, `0046` CU17, `0047` monto de cada suscripción, `0048` caja, `0049` comprobantes.
 - La migración `0041` agrupa toda la Fase 0. Las bases que aplicaron una versión anterior de `0041` necesitan las columnas nuevas (`ALTER TABLE ... ADD COLUMN IF NOT EXISTS`).
 - `backend/tests/conftest.py::seeded_db` reconstruye el esquema `public` de la base desechable y corre el seed; no correr dos suites a la vez sobre la misma base de tests.
 - Móvil: el delivery toma la ubicación del GPS (`geolocator`, botón "Usar mi ubicación") o latitud/longitud manual; el pedido y el anticipo se pagan solo con tarjeta (Stripe PaymentSheet).
@@ -617,6 +618,7 @@ Ejecutar la transferencia reutiliza `inventory_service.register_transfer` (atóm
 | RN-22 | Todo lo que se paga por internet (pedido web o móvil, con retiro o envío, y el anticipo de una reserva) se paga **solo con tarjeta vía Stripe**; **nunca con QR ni en efectivo**, tampoco contra entrega. El **QR y el efectivo solo existen en la venta presencial en caja**. El mostrador solo entrega pedidos ya pagados. | `payment_routes.py`, `order_service.hand_over_order`, `order_service.mark_order_ready`, `delivery_service.confirm_delivery` |
 | RN-23 | Cada cajero abre **su propia caja** en su sucursal con un monto inicial; sin caja abierta no se vende (efectivo ni QR). La venta en efectivo registra lo recibido y el **vuelto**; los ingresos y retiros llevan motivo y no se retira más de lo que hay. Al cerrar: esperado = inicial + ventas en efectivo + ingresos − retiros; se guarda lo contado y la diferencia (sobrante/faltante). Las cajas de distintas sucursales nunca se mezclan. | `cash_session_service`, `sales_service.create_sale`, `payment_routes` (`/qr/sale-intent`) |
 | RN-24 | Solo aparecen como tenants las empresas suscritas a un plan; cada período pagado guarda su monto en el historial. El superadmin entra al panel de una empresa activa como su administrador (queda `impersonated_by` en el token). | `tenant_service.list_tenants`, `subscription_service`, `tenant_service.open_tenant_panel` |
+| RN-25 | **Toda transacción de pago emite un comprobante simple** (no es factura fiscal): pedido web pagado, venta en caja (con efectivo recibido y cambio), anticipo de reserva y pago de suscripción. Numeración correlativa sin huecos por empresa (`C-000001`) y de la plataforma para los planes (`P-000001`); uno por pago aunque el webhook se repita. Se descarga en PDF y se envía por correo con el PDF adjunto (reintentos; un fallo de correo nunca anula el pago). | `receipt_service`, `_receipt_email_loop` |
 
 ### 11.2 Endpoints nuevos o modificados (prefijo `/api`)
 | Método y ruta | Rol | Uso |
@@ -650,6 +652,8 @@ Ejecutar la transferencia reutiliza `inventory_service.register_transfer` (atóm
 | `POST /saas/tenants/{id}/panel-session` · `POST /saas/tenants/{id}/admin` | superadmin | Entrar al panel de una empresa; registrar su administrador |
 | `GET /saas/subscriptions/history` | administrador (su empresa), superadmin (`tenant_id`) | Historial de pagos del plan |
 | ~~`POST /payments/cash/checkout`~~ | — | Eliminado por RN-22 |
+| `GET /receipts?kind=` | cliente (los suyos), administrador (su empresa y sus planes), encargado/cajero (su sucursal), superadmin (planes) | Comprobantes de pago |
+| `GET /receipts/{kind}/{source_id}/pdf` · `POST /receipts/{kind}/{source_id}/resend` | mismos permisos | Descargar el PDF; reenviarlo por correo |
 
 ### 11.3 Pantallas
 | Rol | Ruta | Contenido |
@@ -659,7 +663,10 @@ Ejecutar la transferencia reutiliza `inventory_service.register_transfer` (atóm
 | Cliente | `/app/cliente/orders` | Estado del envío, PIN, nota de venta PDF con la marca de la tienda |
 | Cajero | `/app/cajero/caja` | Abrir/cerrar caja, ingresos y retiros, efectivo recibido y vuelto, QR, cupón y puntos, comprobante con la marca |
 | Administrador | `/app/admin/branch/:branchId` | Panel de una sucursal: resumen, inventario, ventas, pedidos y reservas, personal y cajas |
-| Administrador | `/app/admin/subscription` | Plan, cambio de plan e historial de pagos |
+| Administrador | `/app/admin/subscription` | Plan, cambio de plan e historial de pagos con su comprobante |
+| Administrador / cajero | `/app/admin/receipts`, `/app/cajero/receipts` | Comprobantes con filtro por tipo, PDF y reenvío por correo |
+| Cliente | `/app/cliente/orders`, `/app/cliente/my-reservations` | Comprobante PDF y reenvío por correo del pedido pagado y del anticipo |
+| Móvil | Mis pedidos, Mis reservas | «Enviar comprobante a mi correo» |
 | Cajero / encargado | `/app/cajero/orders`, `/app/encargado/orders` | Entregar pedidos web con código de retiro; despachar envíos |
 | Repartidor | `/app/delivery` | Bolsa de pedidos de todas las empresas y hoja de ruta con PIN |
 | Administrador | `/app/admin/payouts` | Cuenta bancaria, saldo, liquidaciones y movimientos |
@@ -686,6 +693,7 @@ Ejecutar la transferencia reutiliza `inventory_service.register_transfer` (atóm
 | `test_cash_sessions.py` | Vuelto, caja obligatoria, ingresos/retiros, cierre con faltante, cajas de sucursales separadas |
 | `test_branch_panel.py` | Pedidos de una sola sucursal de la empresa para el administrador |
 | `test_tenant_panel.py`, `test_subscription_history.py` | Entrar al panel de una empresa, registrar administrador, tenants solo con plan, historial de pagos |
+| `test_receipts.py` | Un comprobante por pago, numeración por empresa y de plataforma, PDF, permisos, envío por correo con adjunto y reenvío |
 | `test_cashier_coupon.py` | Cupón en caja con cliente identificado, un uso, sin combinar con ofertas, QR con cupón |
 | `test_tenant_branding.py` | Marca pública, color y logo con validación, reemplazo de logo, edición por superadmin |
 | `test_rbac.py` | Rol restrictivo que reemplaza permisos, bloqueo en endpoints, asignación solo a personal de la empresa |

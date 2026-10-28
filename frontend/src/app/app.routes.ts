@@ -198,6 +198,11 @@ export const routes: Routes = [
           import('./features/cajero/pages/cajero-home-page.component').then((m) => m.CajeroHomePageComponent),
       },
       {
+        path: 'cajero/receipts',
+        canActivate: [roleGuard(['cajero'])],
+        loadComponent: () => import('./features/shared/pages/receipts-page.component').then((m) => m.ReceiptsPageComponent),
+      },
+      {
         path: 'cajero/caja',
         canActivate: [roleGuard(['cajero'])],
         loadComponent: () =>
@@ -338,6 +343,10 @@ export const routes: Routes = [
           {
             path: 'rpa-ingest',
             loadComponent: () => import('./features/proveedor/pages/provider-rpa-ingest-page.component').then((m) => m.ProviderRpaIngestPageComponent),
+          },
+          {
+            path: 'receipts',
+            loadComponent: () => import('./features/shared/pages/receipts-page.component').then((m) => m.ReceiptsPageComponent),
           },
           {
             path: 'payouts',

@@ -28,6 +28,7 @@ class EmailService:
         html: str | None = None,
         text: str | None = None,
         category: str = "application",
+        attachments: list[dict] | None = None,
     ) -> bool:
         """
         Send an email via Mailtrap API or fallback to logging if unconfigured.
@@ -40,9 +41,10 @@ class EmailService:
         if not self.is_configured:
             logger.info(
                 "📧 [EMAIL SIMULATED / MAILTRAP DISABLED]\n"
-                "To: %s\nSubject: %s\nText:\n%s\nHTML:\n%s\n",
+                "To: %s\nSubject: %s\nAttachments: %s\nText:\n%s\nHTML:\n%s\n",
                 ", ".join(recipients),
                 subject,
+                ", ".join(a["filename"] for a in attachments or []) or "-",
                 text or "",
                 html or "",
             )
@@ -61,6 +63,8 @@ class EmailService:
             payload["html"] = html
         if text:
             payload["text"] = text
+        if attachments:
+            payload["attachments"] = attachments
 
         headers = {
             "Content-Type": "application/json",

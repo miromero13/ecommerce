@@ -440,6 +440,8 @@ def _consume_order(db: Session, order: Order, collected_by: UUID | None = None) 
     # Online money is collected by the platform and owed to the company (daily settlement).
     record_payment(db, order.tenant_id, "order", order.id, "card",
                    order.total_amount - (order.shipping_cost or 0), order.currency, order.stripe_payment_intent_id)
+    from app.services.receipt_service import issue_order_receipt
+    issue_order_receipt(db, order)  # every payment issues its receipt (PDF + email)
     for reservation_id in reservation_ids:
         reservation = db.query(Reservation).filter(Reservation.id == reservation_id).with_for_update().first()
         if reservation and reservation.status == ReservationStatusEnum.purchase_pending:

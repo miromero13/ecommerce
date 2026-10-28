@@ -332,6 +332,9 @@ def create_sale(db: Session, user_id: UUID, payload: SaleCreate, branch_id: UUID
                 consume_sale_qr(db, payload.qr_reference, tenant_id=tenant_id, branch_id=branch_id,
                                 amount=sale.total_amount, sale_id=sale.id)
                 record_payment(db, tenant_id, "sale", sale.id, "qr", sale.total_amount, sale.currency, payload.qr_reference)
+            from app.services.receipt_service import issue_sale_receipt
+            sold = _serialize_sale(db, sale).model_dump()
+            receipt = issue_sale_receipt(db, sale, sold["items"], cash)
         db.commit()
         db.refresh(sale)
         for variant_id in normalized_items:
@@ -343,7 +346,8 @@ def create_sale(db: Session, user_id: UUID, payload: SaleCreate, branch_id: UUID
             if reservation and reservation.status == ReservationStatusEnum.attended:
                 notify_reservation_event(db, reservation.id, reservation.user_id, reservation.status.value)
         # The receipt shows what the customer paid and the change returned.
-        return {**_serialize_sale(db, sale).model_dump(), "cash_received": cash.cash_received, "change_given": cash.change_given}
+        return {**_serialize_sale(db, sale).model_dump(), "cash_received": cash.cash_received,
+                "change_given": cash.change_given, "receipt_id": receipt.id}
     except Exception:
         db.rollback()
         raise

@@ -225,6 +225,8 @@ def create_or_update_tenant_subscription(
     )
     db.add(new_sub)
     db.flush()
+    from app.services.receipt_service import issue_subscription_receipt
+    issue_subscription_receipt(db, new_sub, plan)
     return new_sub
 
 
@@ -448,6 +450,9 @@ def provision_tenant_onboarding(
         end_date=now + timedelta(days=duration_days),
     )
     db.add(subscription)
+    db.flush()
+    from app.services.receipt_service import issue_subscription_receipt
+    issue_subscription_receipt(db, subscription, plan)
     db.commit()
     db.refresh(tenant)
     db.refresh(admin_user)
@@ -544,6 +549,9 @@ def provision_tenant_by_superadmin(
         end_date=now + timedelta(days=duration_days),
     )
     db.add(subscription)
+    db.flush()
+    from app.services.receipt_service import issue_subscription_receipt
+    issue_subscription_receipt(db, subscription, plan)
     db.commit()
     db.refresh(tenant)
     db.refresh(admin_user)

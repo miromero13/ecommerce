@@ -221,6 +221,7 @@ export class AppShellComponent {
                { label: 'Ingesta RPA', route: '/app/admin/rpa-ingest', icon: 'lucidePackageSearch' },
                { label: 'Reabastecimiento IA', route: '/app/admin/expert-replenishment', icon: 'lucideBrainCircuit' },
                { label: 'Suscripción y Plan', route: '/app/admin/subscription', icon: 'lucideShield' },
+               { label: 'Comprobantes', route: '/app/admin/receipts', icon: 'lucideClipboardList' },
                { label: 'Cobros y Liquidaciones', route: '/app/admin/payouts', icon: 'lucideShoppingCart' },
             ],
           },
@@ -266,6 +267,7 @@ export class AppShellComponent {
             items: [
               this.homeItem(),
               { label: 'Caja', route: '/app/cajero/caja', icon: 'lucideShoppingCart' },
+              { label: 'Comprobantes', route: '/app/cajero/receipts', icon: 'lucideClipboardList' },
               { label: 'Pedidos web', route: '/app/cajero/orders', icon: 'lucideClipboardList' },
               { label: 'Ventas', route: '/app/cajero/sales', icon: 'lucideShoppingCart' },
             ],

@@ -12,11 +12,12 @@ import { requestWithToast } from '../../../core/utils/request-toast.util';
 import { Reservation } from '../../shared/models/reservation.model';
 import { ReservationApiService } from '../../shared/services/reservation-api.service';
 import { StripeCardPaymentComponent } from '../../shared/components/stripe-card-payment.component';
+import { ReceiptActionsComponent } from '../../shared/components/receipt-actions.component';
 
 @Component({
   selector: 'app-my-reservations-page',
   standalone: true,
-  imports: [CommonModule, HlmButton, StripeCardPaymentComponent, ...HlmBadgeImports, ...HlmCardImports],
+  imports: [CommonModule, HlmButton, StripeCardPaymentComponent, ReceiptActionsComponent, ...HlmBadgeImports, ...HlmCardImports],
   templateUrl: './my-reservations-page.component.html',
 })
 export class MyReservationsPageComponent {

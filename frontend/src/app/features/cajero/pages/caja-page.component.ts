@@ -20,6 +20,7 @@ import { QrPayment } from '../../shared/models/qr-payment.model';
 import { QrPaymentApiService } from '../../shared/services/qr-payment-api.service';
 import { BrandingService } from '../../../core/services/branding.service';
 import { CashDrawerPanelComponent } from '../components/cash-drawer-panel.component';
+import { ReceiptActionsComponent } from '../../shared/components/receipt-actions.component';
 import { CashSessionApiService } from '../../shared/services/cash-session-api.service';
 import { LoyaltyBalance } from '../../shared/models/loyalty.model';
 import { LoyaltyApiService } from '../../shared/services/loyalty-api.service';
@@ -40,7 +41,7 @@ type SelectedSaleItem = {
 @Component({
   selector: 'app-cajero-caja-page',
   standalone: true,
-  imports: [CommonModule, HlmButton, QrPaymentPanelComponent, CashDrawerPanelComponent, ...HlmBadgeImports, ...HlmCardImports, ...HlmInputImports],
+  imports: [CommonModule, HlmButton, QrPaymentPanelComponent, CashDrawerPanelComponent, ReceiptActionsComponent, ...HlmBadgeImports, ...HlmCardImports, ...HlmInputImports],
   templateUrl: './caja-page.component.html',
 })
 export class CajaPageComponent {
@@ -79,6 +80,8 @@ export class CajaPageComponent {
   // 1P-CU18: the open drawer (loaded by the panel) and the cash handed over by the customer.
   protected readonly cash = inject(CashSessionApiService);
   protected readonly cashReceived = signal('');
+  // Whether the last sale identified a registered customer (its receipt can be emailed).
+  protected readonly customerEmailUsed = signal(false);
 
   protected readonly branchId = computed(() => this.session.user()?.branch_id ?? null);
 
@@ -210,6 +213,7 @@ export class CajaPageComponent {
         { loading: 'Registrando venta...', success: 'Venta registrada.', error: 'No se pudo registrar la venta.' },
       );
       this.lastSale.set(response.data ?? null);
+      this.customerEmailUsed.set(!!payload.customer_email);
       this.selectedItems.set([]);
       this.cashReference.set('');
       this.cashReceived.set('');

@@ -13,6 +13,7 @@ from app.models.rpa_ingest_job import RpaIngestJob  # noqa: F401
 from app.models.wishlist_item import WishlistItem  # noqa: F401
 from app.models.loyalty import LoyaltyAccount, LoyaltyLedger  # noqa: F401
 from app.models.cash_session import CashMovement, CashSession  # noqa: F401
+from app.models.payment_receipt import PaymentReceipt  # noqa: F401
 from app.models.expert_replenishment import (  # noqa: F401
     ExpertReplenishmentRule,
     ExpertTransferSuggestion,

@@ -9,6 +9,7 @@ import '../../shared/widgets/app_loading.dart';
 import '../../shared/widgets/app_section_title.dart';
 import '../../shared/widgets/product_image.dart';
 import '../../shared/widgets/product_price.dart';
+import '../../shared/widgets/receipt_email_button.dart';
 import '../auth/auth_controller.dart';
 import '../auth/login_dialog.dart';
 import 'order_controller.dart';
@@ -217,6 +218,10 @@ class _OrdersPageState extends State<OrdersPage> {
               Text('Código de retiro: ${order.pickupCode ?? 'No disponible'}'),
               if (order.pickupExpiresAt != null)
                 Text('Vence: ${_displayDateTime(order.pickupExpiresAt!)}'),
+            ],
+            if (order.paymentStatus == PaymentStatus.paid) ...[
+              const SizedBox(height: 8),
+              ReceiptEmailButton(authController: widget.authController, kind: 'order', sourceId: order.id),
             ],
             const SizedBox(height: 16),
             for (final item in order.items)
