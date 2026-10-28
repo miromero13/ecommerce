@@ -44,6 +44,7 @@ export interface CatalogProductVariant {
   image_url?: string | null;
   image_public_id?: string | null;
   garment_points: Point[] | null;
+  try_on_image_url?: string | null; // CU5: transparent cut-out for the fitting rooms
   status: ProductStatus;
   branch_quantity?: number | null;
   provider_quantity?: number | null;

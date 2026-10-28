@@ -177,8 +177,8 @@
             @if (product.try_on_enabled) {
               <div class="flex flex-row gap-4 justify-center items-center">
                 <app-photo-try-on [productName]="product.name" [variants]="tryOnOptions()" [initialVariantId]="variant.id" />
-                <app-detector-ropa [variantId]="variant.id" [garmentPoints]="variant.garment_points" [garmentImageUrl]="variant.image_url ?? product.image_url ?? null" />
-                <app-detector-mediapipe [variantId]="variant.id" [garmentPoints]="variant.garment_points" [garmentImageUrl]="variant.image_url ?? product.image_url ?? null" />
+                <app-detector-ropa [variantId]="variant.id" [garmentPoints]="variant.garment_points" [garmentImageUrl]="variant.try_on_image_url ?? variant.image_url ?? product.image_url ?? null" />
+                <app-detector-mediapipe [variantId]="variant.id" [garmentPoints]="variant.garment_points" [garmentImageUrl]="variant.try_on_image_url ?? variant.image_url ?? product.image_url ?? null" />
               </div>
             }
           }

@@ -244,7 +244,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   MaterialPageRoute<void>(
                     builder: (_) => VirtualTryOnPage(
                       productName: product.name,
-                      garmentImageUrl: imageUrl,
+                      garmentImageUrl: variant?.tryOnImageUrl ?? imageUrl,
                     ),
                   ),
                 );

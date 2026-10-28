@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import require_roles
@@ -34,7 +35,8 @@ async def catalog_garment_route(
     db: Session = Depends(get_db),
     _: dict = Depends(require_roles(RolEnum.cliente)),
 ):
-    variant = db.query(ProductVariant).filter(ProductVariant.image_url == request.source_url).first()
+    variant = db.query(ProductVariant).filter(or_(ProductVariant.image_url == request.source_url,
+                                                  ProductVariant.try_on_image_url == request.source_url)).first()
     if not variant:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="La imagen no pertenece a una prenda del catálogo")
     _require_try_on(db, variant.tenant_id)
@@ -66,12 +68,14 @@ async def virtual_try_on_route(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Prenda no encontrada")
     variant, product, _tenant = row
     _require_try_on(db, variant.tenant_id)
-    if not variant.image_url:
+    # The transparent cut-out fits the AI best; the catalog photo is the fallback.
+    garment_url = variant.try_on_image_url or variant.image_url
+    if not garment_url:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="La prenda no tiene una imagen para el vestidor")
 
     image = await photo.read(MAX_PHOTO_BYTES + 1)
     try:
-        data = await generate_try_on(image, variant.image_url, product.name)
+        data = await generate_try_on(image, garment_url, product.name)
     except CatalogGarmentError as error:
         return response(status_code=error.status_code, message=error.detail, error=error.detail)
     return response(status_code=status.HTTP_200_OK, message="Prueba virtual generada exitosamente", data=data)
