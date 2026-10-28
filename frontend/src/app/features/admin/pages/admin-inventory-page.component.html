@@ -152,7 +152,7 @@
         <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div class="flex gap-2">
             <button hlmBtn type="button" (click)="openMovementModal()">Registrar movimiento</button>
-            <button hlmBtn type="button" (click)="openTransferModal()">Registrar traspaso</button>
+            <button hlmBtn type="button" *hasPermission="'inventory:transfer'" (click)="openTransferModal()">Registrar traspaso</button>
             @if (isAdmin() || isManager()) {
               <div class="relative" (cdkObserveContent)="null" (clickOutside)="reportMenuOpen.set(false)">
                 <button hlmBtn type="button" (click)="toggleReportMenu()">Generar reporte</button>

@@ -28,6 +28,7 @@ import { SessionService } from '../../shared/services/session.service';
 import { ReportsApiService } from '../../shared/services/reports-api.service';
 import { requestWithToast } from '../../../core/utils/request-toast.util';
 import { AdminBranchService } from '../services/admin-branch.service';
+import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
 
 type InventoryTab = 'consolidated' | 'branch' | 'movements';
 type InventoryMovementType = 'income' | 'outcome';
@@ -74,7 +75,7 @@ const REPORT_COLUMNS: Record<InventoryReportType, ReportColumn[]> = {
 @Component({
   selector: 'app-admin-inventory-page',
   standalone: true,
-  imports: [CommonModule, NgIcon, ReactiveFormsModule, HlmButton, HlmTable, ...HlmBadgeImports, ...HlmCardImports, ...HlmFieldImports, ...HlmSelectImports, ...HlmTabsImports],
+  imports: [CommonModule, NgIcon, ReactiveFormsModule, HlmButton, HlmTable, HasPermissionDirective, ...HlmBadgeImports, ...HlmCardImports, ...HlmFieldImports, ...HlmSelectImports, ...HlmTabsImports],
   providers: [provideIcons({ lucideMic, lucideSquare })],
   templateUrl: './admin-inventory-page.component.html',
 })

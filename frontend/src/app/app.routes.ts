@@ -315,6 +315,13 @@ export const routes: Routes = [
                 (m) => m.SubscriptionPageComponent,
               ),
           },
+          {
+            path: 'roles',
+            loadComponent: () =>
+              import('./features/admin/pages/rbac-roles-page.component').then(
+                (m) => m.RbacRolesPageComponent,
+              ),
+          },
         ],
       },
     ],

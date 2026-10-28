@@ -1,0 +1,235 @@
+<div class="space-y-8 p-6 max-w-7xl mx-auto">
+  <!-- Header -->
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/40 pb-5">
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight text-foreground">Gestión de Roles y Permisos (RBAC)</h1>
+      <p class="text-sm text-muted-foreground mt-1">
+        Crea perfiles a medida asignando permisos granulares por módulo o consulta los roles del sistema.
+      </p>
+    </div>
+    <div class="flex items-center gap-3">
+      <button hlmBtn variant="default" (click)="openCreateModal()" class="flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        Nuevo Rol Personalizado
+      </button>
+    </div>
+  </div>
+
+  <!-- Roles Grid -->
+  <div>
+    <h2 class="text-lg font-semibold text-foreground mb-4">Roles Disponibles en la Organización</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      @for (role of roles(); track role.id) {
+        <div class="rounded-xl border border-border bg-card p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between gap-2 mb-2">
+              <span class="font-bold text-base text-foreground">{{ role.name }}</span>
+              @if (role.is_system) {
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
+                  Sistema
+                </span>
+              } @else {
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                  Personalizado
+                </span>
+              }
+            </div>
+            <p class="text-xs font-mono text-muted-foreground mb-4">Código: {{ role.code }}</p>
+
+            <div class="space-y-2">
+              <div class="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Permisos asignados:</span>
+                <span class="font-semibold text-foreground">{{ role.permissions.length }}</span>
+              </div>
+              <div class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pt-1">
+                @for (perm of role.permissions; track perm.id) {
+                  <span class="inline-block px-2 py-0.5 text-[11px] font-mono rounded bg-secondary text-secondary-foreground border border-border/50">
+                    {{ perm.name }}
+                  </span>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-5 mt-4 border-t border-border/40 flex justify-end">
+            @if (role.is_system) {
+              <span class="text-xs text-muted-foreground italic">Rol protegido del sistema</span>
+            } @else {
+              <button hlmBtn variant="outline" size="sm" (click)="openEditModal(role)">
+                Editar Permisos
+              </button>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- User Assignment Section -->
+  <div class="rounded-xl border border-border bg-card p-6 shadow-sm">
+    <div class="mb-4">
+      <h2 class="text-lg font-semibold text-foreground">Asignación de Roles Personalizados a Empleados</h2>
+      <p class="text-sm text-muted-foreground mt-0.5">
+        Asigna perfiles a medida a encargados, cajeros y proveedores. Los roles personalizados <strong>reemplazan</strong> los permisos por defecto del rol: el empleado solo podrá hacer lo que permitan sus roles. Sin roles personalizados conserva los permisos de su rol base.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+      <!-- Select user -->
+      <div class="space-y-3">
+        <label class="block text-sm font-medium text-foreground">Seleccionar Usuario / Empleado</label>
+        <select
+          class="w-full h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          [value]="selectedUserId()"
+          (change)="onSelectUser($any($event.target).value)"
+        >
+          <option value="">-- Selecciona un usuario --</option>
+          @for (user of users(); track user.id) {
+            <option [value]="user.id">{{ user.name }} ({{ user.email }}) - Rol: {{ user.rol }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Select roles -->
+      @if (selectedUserId()) {
+        <div class="space-y-4">
+          <label class="block text-sm font-medium text-foreground">Roles Personalizados Disponibles</label>
+          <div class="space-y-2 max-h-48 overflow-y-auto p-3 rounded-md border border-border bg-muted/20">
+            @for (role of roles(); track role.id) {
+              @if (!role.is_system) {
+                <label class="flex items-center gap-3 text-sm cursor-pointer hover:bg-muted/50 p-1.5 rounded">
+                  <input
+                    type="checkbox"
+                    class="rounded border-input text-primary focus:ring-primary w-4 h-4"
+                    [checked]="selectedUserRoles().has(role.id)"
+                    (change)="toggleUserRole(role.id)"
+                  />
+                  <div>
+                    <span class="font-medium text-foreground">{{ role.name }}</span>
+                    <span class="text-xs text-muted-foreground ml-2">({{ role.code }})</span>
+                  </div>
+                </label>
+              }
+            }
+          </div>
+
+          <div class="flex justify-end">
+            <button
+              hlmBtn
+              variant="default"
+              [disabled]="isAssigning()"
+              (click)="saveUserRoles()"
+            >
+              {{ isAssigning() ? 'Guardando...' : 'Guardar Asignación de Roles' }}
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Modal Create/Edit Role -->
+  @if (isModalOpen()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+      <div class="w-full max-w-3xl rounded-xl border border-border bg-card p-6 shadow-xl max-h-[90vh] flex flex-col">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between border-b border-border pb-4 mb-4">
+          <div>
+            <h3 class="text-lg font-bold text-foreground">
+              {{ modalMode() === 'create' ? 'Crear Nuevo Rol Personalizado' : 'Editar Rol' }}
+            </h3>
+            <p class="text-xs text-muted-foreground">
+              Define el nombre, código y selecciona los permisos asignados a este perfil.
+            </p>
+          </div>
+          <button (click)="closeModal()" class="text-muted-foreground hover:text-foreground">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Modal Body (Scrollable) -->
+        <div class="overflow-y-auto flex-1 space-y-6 pr-2">
+          <!-- Form Inputs -->
+          <form [formGroup]="roleForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-1.5">
+              <label class="text-sm font-medium text-foreground">Nombre del Rol *</label>
+              <input
+                hlmInput
+                class="w-full"
+                placeholder="ej. Encargado de Almacén"
+                formControlName="name"
+              />
+            </div>
+            <div class="space-y-1.5">
+              <label class="text-sm font-medium text-foreground">Código Único *</label>
+              <input
+                hlmInput
+                class="w-full font-mono text-xs"
+                placeholder="ej. warehouse_manager"
+                formControlName="code"
+              />
+            </div>
+          </form>
+
+          <!-- Permissions by Module -->
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <h4 class="text-sm font-semibold text-foreground uppercase tracking-wider">Permisos Granulares</h4>
+              <span class="text-xs text-muted-foreground">
+                Seleccionados: <strong>{{ selectedPermissionIds().size }}</strong> permisos
+              </span>
+            </div>
+
+            <div class="space-y-4">
+              @for (group of permissionsByModule(); track group.module) {
+                <div class="border border-border/60 rounded-lg p-4 bg-muted/10">
+                  <div class="flex items-center justify-between pb-2 mb-3 border-b border-border/40">
+                    <span class="font-semibold text-sm text-foreground">{{ group.moduleLabel }}</span>
+                    <button
+                      type="button"
+                      class="text-xs text-primary hover:underline font-medium"
+                      (click)="toggleModule(group.permissions)"
+                    >
+                      {{ isModuleAllSelected(group.permissions) ? 'Desmarcar módulo' : 'Marcar todo' }}
+                    </button>
+                  </div>
+
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    @for (perm of group.permissions; track perm.id) {
+                      <label class="flex items-start gap-2.5 cursor-pointer p-2 rounded hover:bg-muted/40 transition-colors">
+                        <input
+                          type="checkbox"
+                          class="rounded border-input text-primary focus:ring-primary mt-0.5 w-4 h-4"
+                          [checked]="selectedPermissionIds().has(perm.id)"
+                          (change)="togglePermission(perm.id)"
+                        />
+                        <div class="flex-1 leading-tight">
+                          <span class="font-mono text-xs font-semibold text-foreground block">{{ perm.name }}</span>
+                          <span class="text-xs text-muted-foreground block mt-0.5">{{ perm.description }}</span>
+                        </div>
+                      </label>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="border-t border-border pt-4 mt-4 flex items-center justify-end gap-3">
+          <button hlmBtn variant="outline" (click)="closeModal()">Cancelar</button>
+          <button hlmBtn variant="default" (click)="saveRole()">
+            {{ modalMode() === 'create' ? 'Crear Rol' : 'Guardar Cambios' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

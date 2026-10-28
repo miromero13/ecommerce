@@ -38,7 +38,7 @@ class UserOut(BaseModel):
     tenant_id: UUID | None = None
     branch_id: UUID | None = None
     is_active: bool
-
+    permissions: list[str] = Field(default_factory=list)
 
     class Config:
         from_attributes = True
@@ -53,6 +53,7 @@ class UserRead(BaseModel):
     tenant_id: UUID | None = None
     branch_id: UUID | None = None
     is_active: bool
+    permissions: list[str] = Field(default_factory=list)
 
     model_config = {
         "from_attributes": True

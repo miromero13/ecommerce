@@ -138,6 +138,24 @@ def require_roles(*allowed_roles: RolEnum) -> Callable:
     return role_dependency
 
 
+def require_permission(permission_name: str) -> Callable:
+    def permission_dependency(
+        payload: dict = Depends(get_current_payload),
+        user: User = Depends(get_current_user),
+        db: Session = Depends(get_db),
+    ) -> dict:
+        from app.services.rbac_service import effective_permissions
+        perms = effective_permissions(db, user)
+        if permission_name not in perms:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tenés permisos suficientes para realizar esta acción",
+            )
+        return payload
+
+    return permission_dependency
+
+
 def get_current_branch_id(payload: dict = Depends(get_current_payload)) -> UUID | None:
     if payload.get("rol") in [RolEnum.administrador.value, RolEnum.superadministrador.value, RolEnum.cliente.value]:
         return None

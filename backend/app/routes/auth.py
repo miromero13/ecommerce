@@ -9,6 +9,9 @@ from app.services.user_service import create_user
 from app.utils.response import response
 
 
+from app.services.rbac_service import effective_permissions
+
+
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 @router.post("/register", summary="Registro de customer/cliente")
@@ -18,16 +21,19 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
+    perms = effective_permissions(db, db_user)
     access_token = create_access_token(
         data={
             "sub": str(db_user.id),
             "rol": db_user.rol.value,
             "tenant_id": str(db_user.tenant_id) if db_user.tenant_id else None,
             "branch_id": str(db_user.branch_id) if db_user.branch_id else None,
+            "permissions": perms,
         }
     )
 
     user_data = UserRead.model_validate(db_user).model_dump()
+    user_data["permissions"] = perms
 
     return response(
         status_code=status.HTTP_201_CREATED,
@@ -58,15 +64,18 @@ def login(user_data: UserLogin, db: Session = Depends(get_db)):
             status_code=status.HTTP_403_FORBIDDEN,
             detail="El usuario no pertenece al rol solicitado",
         )
+    perms = effective_permissions(db, user)
     access_token = create_access_token(
         data={
             "sub": str(user.id),
             "rol": user.rol.value,
             "tenant_id": str(user.tenant_id) if user.tenant_id else None,
             "branch_id": str(user.branch_id) if user.branch_id else None,
+            "permissions": perms,
         }
     )
     user_out = UserRead.model_validate(user).model_dump()
+    user_out["permissions"] = perms
     return response(
         status_code=status.HTTP_200_OK,
         message="Inicio de sesión exitoso",

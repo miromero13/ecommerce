@@ -128,6 +128,15 @@ export class SessionService {
     }
   }
 
+  hasPermission(permission: string): boolean {
+    const user = this.userSignal();
+    if (!user) return false;
+    if (user.rol === 'administrador' || user.rol === 'superadministrador') {
+      return true;
+    }
+    return user.permissions?.includes(permission) ?? false;
+  }
+
   private normalizeUser(user: Partial<UsuarioAuth>): UsuarioAuth {
     return {
       id: user.id ?? '',
@@ -135,8 +144,10 @@ export class SessionService {
       email: this.normalizeEmail(user.email ?? ''),
       gender: user.gender ?? 'masculino',
       rol: user.rol ?? 'cliente',
+      tenant_id: user.tenant_id ?? null,
       branch_id: user.branch_id ?? null,
       is_active: user.is_active ?? true,
+      permissions: user.permissions ?? [],
     };
   }
 
