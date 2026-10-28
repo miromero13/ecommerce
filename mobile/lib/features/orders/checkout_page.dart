@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../core/network/api_client.dart';
 import '../../core/network/api_exception.dart';
-import '../../shared/widgets/qr_payment_dialog.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter_stripe/flutter_stripe.dart' hide PaymentMethod;
 
@@ -42,8 +40,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   late final bool _ownsController;
   String? _loadedToken;
   String? _pickupBranchId;
-  // Web orders are always paid online (card or QR); cash only exists at the store's till.
-  PaymentMethod _paymentMethod = PaymentMethod.qr;
+  // Web and mobile orders are paid online by card (Stripe) only; QR and cash only exist at the store's till.
   // CU20: in-store pickup or home delivery shipped from the selected branch.
   String _fulfillment = 'pickup';
   final _address = TextEditingController();
@@ -280,35 +277,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 ),
             ],
             const SizedBox(height: 12),
-            DropdownButtonFormField<PaymentMethod>(
-              isExpanded: true,
-              initialValue: _paymentMethod,
-              decoration: const InputDecoration(labelText: 'Método de pago'),
-              items: const [
-                DropdownMenuItem(
-                  value: PaymentMethod.stripe,
-                  child: Text('Tarjeta'),
-                ),
-                DropdownMenuItem(
-                  value: PaymentMethod.qr,
-                  child: Text('QR'),
-                ),
-              ],
-              onChanged: isSaving
-                  ? null
-                  : (value) => setState(() => _paymentMethod = value!),
-            ),
-            const SizedBox(height: 12),
           ],
           AppButton(
-            label: _isOrderPayment || _paymentMethod == PaymentMethod.stripe
-                ? 'Pagar con tarjeta'
-                : 'Generar código QR',
-            icon: Icon(
-              _isOrderPayment || _paymentMethod == PaymentMethod.stripe
-                  ? Icons.credit_card_outlined
-                  : Icons.qr_code_2_outlined,
-            ),
+            label: 'Pagar con tarjeta',
+            icon: const Icon(Icons.credit_card_outlined),
             onPressed: isSaving || (!_isOrderPayment && pickupBranchId == null)
                 ? null
                 : () => _submit(pickupBranchId),
@@ -340,11 +312,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
       AppSnackBar.show(context, 'Ingresa la dirección y calcula el costo de envío.', tone: AppSnackBarTone.warning);
       return;
     }
-    if (_paymentMethod == PaymentMethod.stripe) {
-      await _checkoutStripe(pickupBranchId: pickupBranchId, delivery: delivery);
-      return;
-    }
-    await _checkoutQr(pickupBranchId, delivery);
+    await _checkoutStripe(pickupBranchId: pickupBranchId, delivery: delivery);
   }
 
   Map<String, dynamic>? _deliveryPayload() {
@@ -415,24 +383,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
           tone: AppSnackBarTone.error);
     } finally {
       if (mounted) setState(() => _quoting = false);
-    }
-  }
-
-  Future<void> _checkoutQr(String pickupBranchId, Map<String, dynamic>? delivery) async {
-    try {
-      final qr = await _controller.api.checkoutQr(pickupBranchId: pickupBranchId, delivery: delivery, points: _pointsToRedeem);
-      if (!mounted) return;
-      final client = ApiClient(
-        tokenProvider: () => widget.authController.accessToken,
-        onUnauthorized: widget.authController.handleUnauthorized,
-      );
-      await QrPaymentDialog.show(context, client, qr);
-      if (!mounted) return;
-      Navigator.of(context).pushReplacementNamed(AppRoutes.orders, arguments: qr['source_id']);
-    } catch (error) {
-      if (!mounted) return;
-      AppSnackBar.show(context, error is ApiException ? error.message : 'No se pudo generar el código QR.',
-          tone: AppSnackBarTone.error);
     }
   }
 

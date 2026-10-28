@@ -25,9 +25,6 @@ import { CatalogApiService } from '../../shared/services/catalog-api.service';
 import { Order } from '../../shared/models/order.model';
 import { CheckoutApiService } from '../../shared/services/checkout-api.service';
 import { DeliveryApiService } from '../../shared/services/delivery-api.service';
-import { QrPaymentApiService } from '../../shared/services/qr-payment-api.service';
-import { QrPaymentPanelComponent } from '../../shared/components/qr-payment-panel.component';
-import { QrPayment } from '../../shared/models/qr-payment.model';
 import { DeliveryAddress, DeliveryQuote } from '../../shared/models/delivery.model';
 import { environment } from '../../../../environments/environment';
 
@@ -48,7 +45,6 @@ type StripeCheckout = {
     ...HlmBadgeImports,
     ...HlmCardImports,
     ...HlmInputImports,
-    QrPaymentPanelComponent,
   ],
   providers: [provideIcons({ lucideStore, lucideMapPin })],
   templateUrl: './cart-page.component.html',
@@ -77,10 +73,7 @@ export class CartPageComponent {
   protected readonly stripePaymentStatus = signal<string | null>(null);
   protected readonly loading = signal(false);
   protected readonly updatingItemId = signal<string | null>(null);
-  // Web orders are always paid online (rule): card or QR, never cash.
-  protected readonly checkoutMethod = signal<'stripe' | 'qr'>('qr');
-  private readonly qrApi = inject(QrPaymentApiService);
-  protected readonly qrPayment = signal<QrPayment | null>(null);
+  // Web orders are always paid online by card (Stripe); QR and cash only exist at the till.
   protected readonly pickupBranchId = signal(this.getCartBranchId());
   protected readonly checkingOut = signal(false);
   protected readonly couponCode = signal('');
@@ -206,19 +199,10 @@ export class CartPageComponent {
 
     this.checkingOut.set(true);
     try {
-      if (this.checkoutMethod() === 'qr') {
-        const response = await firstValueFrom(this.qrApi.checkout({ pickup_branch_id: pickupBranchId, delivery, points_to_redeem: this.pointsToRedeem() }));
-        toast.success(response.message);
-        this.lastOrder.set(response.data?.order ?? null);
-        this.qrPayment.set(response.data?.qr ?? null);
-        this.clearCartBranch();
-      } else {
-        await this.startStripeCheckout(pickupBranchId, delivery);
-      }
+      await this.startStripeCheckout(pickupBranchId, delivery);
       await this.loadCart();
-    } catch (error) {
-      // Card shows its toast through requestWithToast; QR reports here.
-      if (this.checkoutMethod() === 'qr') toast.error(getErrorMessage(error, 'No se pudo generar el código QR.'));
+    } catch {
+      // requestWithToast already showed the error.
     } finally {
       this.checkingOut.set(false);
     }
@@ -257,15 +241,6 @@ export class CartPageComponent {
         `${item.line_total} ${order.currency}`,
       ]),
     });
-  }
-
-  protected selectCheckoutMethod(method: 'stripe' | 'qr'): void {
-    this.checkoutMethod.set(method);
-  }
-
-  protected async onQrPaid(): Promise<void> {
-    const order = this.lastOrder();
-    if (order) this.lastOrder.set((await firstValueFrom(this.checkoutApi.getOrder(order.id))).data ?? order);
   }
 
   protected selectFulfillment(type: 'pickup' | 'delivery'): void {

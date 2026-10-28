@@ -141,10 +141,6 @@
             <button hlmBtn type="button" [variant]="fulfillment() === 'pickup' ? 'default' : 'outline'" (click)="selectFulfillment('pickup')">Retiro en tienda</button>
             <button hlmBtn type="button" [variant]="fulfillment() === 'delivery' ? 'default' : 'outline'" (click)="selectFulfillment('delivery')">Envío a domicilio</button>
           </div>
-          <div class="flex gap-2">
-            <button hlmBtn type="button" [variant]="checkoutMethod() === 'stripe' ? 'default' : 'outline'" (click)="selectCheckoutMethod('stripe')">Tarjeta</button>
-            <button hlmBtn type="button" [variant]="checkoutMethod() === 'qr' ? 'default' : 'outline'" (click)="selectCheckoutMethod('qr')">QR</button>
-          </div>
 
           @if (cart()?.tenant_name) {
             <p class="text-xs text-slate-500">Compra en <span class="font-semibold text-slate-800">{{ cart()?.tenant_name }}</span>. Para comprar en otra empresa, paga o vacía primero este carrito.</p>
@@ -179,12 +175,11 @@
             </div>
           }
 
-          <p class="text-xs text-slate-500">Los pedidos web se pagan en línea con tarjeta o QR; el efectivo solo se acepta en compras presenciales en la tienda.</p>
+          <p class="text-xs text-slate-500">Los pedidos web se pagan en línea con tarjeta (Stripe); el QR y el efectivo solo se aceptan en compras presenciales en la tienda.</p>
 
           <button hlmBtn type="button" class="w-full" (click)="checkout()" [disabled]="checkingOut() || !(cart()?.items?.length) || !!stripeCheckout()">
-            {{ checkingOut() ? 'Procesando...' : (checkoutMethod() === 'qr' ? 'Generar código QR' : 'Pagar con tarjeta') }}
+            {{ checkingOut() ? 'Procesando...' : 'Pagar con tarjeta' }}
           </button>
-          <app-qr-payment-panel [qr]="qrPayment()" (paid)="onQrPaid()" />
         </div>
 
         @if (lastOrder()) {

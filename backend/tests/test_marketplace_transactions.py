@@ -24,6 +24,40 @@ TABLES = (
 )
 
 
+def fake_stripe(monkeypatch):
+    """Online payments are Stripe only: a local fake stands in for the API (no network)."""
+    import itertools
+    from types import SimpleNamespace
+
+    import stripe
+    from app.core.config import settings
+
+    ids = itertools.count(1)
+    monkeypatch.setattr(settings, "stripe_secret_key", "sk_test_fake")
+    monkeypatch.setattr(stripe.PaymentIntent, "create",
+                        lambda **kwargs: SimpleNamespace(id=f"pi_test_{next(ids)}", client_secret="secret_test"))
+    monkeypatch.setattr(stripe.PaymentIntent, "retrieve",
+                        lambda intent_id, **kwargs: SimpleNamespace(id=intent_id, client_secret="secret_test"))
+    monkeypatch.setattr(stripe.PaymentIntent, "cancel", lambda intent_id, **kwargs: None)
+
+
+def stripe_webhook(api, intent_id, cents, currency, metadata):
+    """What Stripe sends on payment_intent.succeeded, processed by the real handler in a request-like session."""
+    from app.core.database import get_db
+    from app.services.order_service import process_stripe_event
+
+    sessions = api.app.dependency_overrides[get_db]()
+    try:
+        process_stripe_event(next(sessions), {"id": f"evt_{intent_id}", "type": "payment_intent.succeeded", "data": {
+            "object": {"id": intent_id, "amount": cents, "currency": currency, "metadata": metadata}}})
+    finally:
+        sessions.close()
+
+
+def cents(amount):
+    return int((Decimal(str(amount)) * 100).to_integral_value())
+
+
 @pytest.fixture
 def market_api(api, monkeypatch):
     from app.routes import (
@@ -35,6 +69,7 @@ def market_api(api, monkeypatch):
     # Keep notification persistence, deduplication and recipients real. No push
     # token can cause Firebase/network access, even if fixture data later grows.
     monkeypatch.setattr(notification_delivery, "_send_push", lambda *args: None)
+    fake_stripe(monkeypatch)
     for module in (cart_routes, order_routes, payment_routes, promotion_routes,
                    reservation_routes, sales_routes):
         api.app.include_router(module.router, prefix="/api")
@@ -125,23 +160,31 @@ def reserve(api, market, group=None, branch=None):
         "branch_id": str(branch.id), "visit_date": (date.today() + timedelta(days=2)).isoformat(),
         "items": [{"variant_id": str(group.variant.id), "quantity": 1}],
     })
-    # D1: the reservation holds the visit once its 50 % deposit is paid (here by simulated QR).
-    qr = call(api, market.customer, "POST", f"/payments/qr/reservations/{reservation['id']}", 201)
-    call(api, market.customer, "POST", f"/payments/qr/{qr['reference']}/simulate-payment")
+    # D1: the reservation holds the visit once its 50 % deposit is paid online (Stripe).
+    pay_deposit(api, market, reservation)
     return call(api, market.customer, "GET", f"/reservations/{reservation['id']}")
 
 
 def checkout(api, market, branch=None, **extra):
-    """Web order: always paid online. Created with QR (sandbox); returns the pending order and its QR."""
+    """Web order: always paid online with Stripe. Returns the pending order and its PaymentIntent id."""
     branch = branch or market.branches[0]
-    data = call(api, market.customer, "POST", "/payments/qr/checkout", 201,
-                json={"pickup_branch_id": str(branch.id), **extra})
-    return {**data["order"], "qr": data["qr"]}
+    started = call(api, market.customer, "POST", "/payments/stripe/checkout", 201,
+                   json={"pickup_branch_id": str(branch.id), **extra})
+    order = call(api, market.customer, "GET", f"/orders/{started['order_id']}")
+    return {**order, "payment_intent_id": started["payment_intent_id"]}
 
 
 def pay(api, market, order):
-    """The customer pays the order's QR (the bank confirmation consumes the stock)."""
-    call(api, market.customer, "POST", f"/payments/qr/{order['qr']['reference']}/simulate-payment")
+    """Stripe confirms the card payment (the webhook consumes the stock)."""
+    stripe_webhook(api, order["payment_intent_id"], cents(order["total_amount"]), order["currency"],
+                   {"order_id": order["id"]})
+
+
+def pay_deposit(api, market, reservation):
+    """The 50 % reservation deposit paid by card (Stripe)."""
+    started = call(api, market.customer, "POST", f"/payments/stripe/reservations/{reservation['id']}")
+    stripe_webhook(api, started["payment_intent_id"], cents(reservation["deposit_amount"]), "bob",
+                   {"reservation_id": reservation["id"]})
 
 
 def purchase_pending(api, market, group=None, index=0):
@@ -211,7 +254,7 @@ def test_customer_online_purchases_both_companies_keep_own_history(market_api, a
         ids.add(order["id"])
         assert order["pickup_branch_id"] == str(market.branches[index].id)
         assert order["user_id"] == str(market.customer.id)
-        assert order["payment_method"] == "qr" and order["payment_status"] == "pending"
+        assert order["payment_method"] == "stripe" and order["payment_status"] == "pending"
         assert Decimal(order["total_amount"]) == 25
         assert [item["variant_id"] for item in order["items"]] == [str(group.variant.id)]
         assert_tenant(api_db, "orders", order["id"], group.tenant)
@@ -234,7 +277,7 @@ def test_customer_online_purchases_both_companies_keep_own_history(market_api, a
 
 def test_checkout_rejects_other_company_pickup_without_reserving_stock(market_api, api_db, market):
     add(market_api, market)
-    rejected(market_api, api_db, market.customer, "POST", "/payments/qr/checkout",
+    rejected(market_api, api_db, market.customer, "POST", "/payments/stripe/checkout",
              json={"pickup_branch_id": str(market.branches[2].id)})
 
 

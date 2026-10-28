@@ -5,7 +5,6 @@ import '../../app/theme.dart';
 import '../../core/config/app_config.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_exception.dart';
-import '../../shared/widgets/qr_payment_dialog.dart';
 import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/app_empty_view.dart';
 import '../../shared/widgets/app_error_view.dart';
@@ -68,27 +67,6 @@ class _ReservationsPageState extends State<ReservationsPage> {
     } catch (error) {
       if (!mounted) return;
       AppSnackBar.show(context, error is ApiException ? error.message : 'No se pudo completar el pago.',
-          tone: AppSnackBarTone.error);
-    }
-  }
-
-  Future<void> _payDeposit(Reservation reservation) async {
-    final client = ApiClient(
-      tokenProvider: () => widget.authController.accessToken,
-      onUnauthorized: widget.authController.handleUnauthorized,
-    );
-    try {
-      final response = await client.post<Map<String, dynamic>>(
-        'payments/qr/reservations/${reservation.id}',
-        parser: (value) => Map<String, dynamic>.from(value as Map),
-      );
-      if (!mounted || response.data == null) return;
-      final paid = await QrPaymentDialog.show(context, client, response.data!,
-          title: 'Escanea el QR para pagar el anticipo');
-      if (paid && mounted) await _controller.load();
-    } catch (error) {
-      if (!mounted) return;
-      AppSnackBar.show(context, error is ApiException ? error.message : 'No se pudo generar el QR del anticipo.',
           tone: AppSnackBarTone.error);
     }
   }
@@ -221,18 +199,10 @@ class _ReservationsPageState extends State<ReservationsPage> {
                       Text('El anticipo no es reembolsable si cancelas o no te presentas.',
                           style: Theme.of(context).textTheme.bodySmall),
                       const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        children: [
-                          FilledButton(
-                            onPressed: () => _payDeposit(reservation),
-                            child: const Text('Pagar anticipo con QR'),
-                          ),
-                          OutlinedButton(
-                            onPressed: () => _payDepositByCard(reservation),
-                            child: const Text('Pagar con tarjeta'),
-                          ),
-                        ],
+                      // Online deposits are paid by card (Stripe) only.
+                      FilledButton(
+                        onPressed: () => _payDepositByCard(reservation),
+                        child: const Text('Pagar anticipo con tarjeta'),
                       ),
                     ],
                   ),

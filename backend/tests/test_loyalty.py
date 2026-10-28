@@ -70,12 +70,12 @@ def test_redeemed_points_discount_the_order_and_return_when_cancelled(loyalty_ap
 def test_invalid_redemptions_are_rejected_without_side_effects(loyalty_api, api_db, pricey):
     add(loyalty_api, pricey)
     body = {"pickup_branch_id": str(pricey.branches[0].id)}
-    rejected(loyalty_api, api_db, pricey.customer, "POST", "/payments/qr/checkout", 400,
+    rejected(loyalty_api, api_db, pricey.customer, "POST", "/payments/stripe/checkout", 400,
              "Puntos insuficientes: tienes 0 puntos en esta empresa", json={**body, "points_to_redeem": 10})
     give_points(api_db, pricey, 5000)
-    rejected(loyalty_api, api_db, pricey.customer, "POST", "/payments/qr/checkout", 400,
+    rejected(loyalty_api, api_db, pricey.customer, "POST", "/payments/stripe/checkout", 400,
              "Los puntos se canjean en múltiplos de 10", json={**body, "points_to_redeem": 15})
-    rejected(loyalty_api, api_db, pricey.customer, "POST", "/payments/qr/checkout", 400,
+    rejected(loyalty_api, api_db, pricey.customer, "POST", "/payments/stripe/checkout", 400,
              "Los puntos canjeados superan el monto a pagar", json={**body, "points_to_redeem": 2510})
     assert balance(loyalty_api, pricey)[pricey.own.tenant.name][0] == 5000
 

@@ -11,23 +11,18 @@ import { getErrorMessage } from '../../../core/utils/http-error.util';
 import { requestWithToast } from '../../../core/utils/request-toast.util';
 import { Reservation } from '../../shared/models/reservation.model';
 import { ReservationApiService } from '../../shared/services/reservation-api.service';
-import { QrPaymentPanelComponent } from '../../shared/components/qr-payment-panel.component';
 import { StripeCardPaymentComponent } from '../../shared/components/stripe-card-payment.component';
-import { QrPayment } from '../../shared/models/qr-payment.model';
-import { QrPaymentApiService } from '../../shared/services/qr-payment-api.service';
 
 @Component({
   selector: 'app-my-reservations-page',
   standalone: true,
-  imports: [CommonModule, HlmButton, QrPaymentPanelComponent, StripeCardPaymentComponent, ...HlmBadgeImports, ...HlmCardImports],
+  imports: [CommonModule, HlmButton, StripeCardPaymentComponent, ...HlmBadgeImports, ...HlmCardImports],
   templateUrl: './my-reservations-page.component.html',
 })
 export class MyReservationsPageComponent {
   private readonly reservationApi = inject(ReservationApiService);
 
   protected readonly reservations = signal<Reservation[]>([]);
-  private readonly qrApi = inject(QrPaymentApiService);
-  protected readonly depositQr = signal<Record<string, QrPayment>>({});
   protected readonly depositCard = signal<Partial<Record<string, string>>>({}); // reservation id -> client secret
 
   protected async payDepositByCard(reservationId: string): Promise<void> {
@@ -49,21 +44,6 @@ export class MyReservationsPageComponent {
       await new Promise((resolve) => setTimeout(resolve, 2000));
     }
     toast.info('Tu pago está en proceso. Actualiza en unos segundos.');
-  }
-
-  protected async payDeposit(reservationId: string): Promise<void> {
-    try {
-      const response = await firstValueFrom(this.qrApi.reservationDeposit(reservationId));
-      toast.success(response.message);
-      if (response.data) this.depositQr.update((qrs) => ({ ...qrs, [reservationId]: response.data! }));
-    } catch (error) {
-      toast.error(getErrorMessage(error, 'No se pudo generar el código QR del anticipo.'));
-    }
-  }
-
-  protected async onDepositPaid(reservationId: string): Promise<void> {
-    this.depositQr.update(({ [reservationId]: _, ...rest }) => rest);
-    await this.loadReservations();
   }
 
   constructor() {

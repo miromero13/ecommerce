@@ -54,19 +54,6 @@ class OrderApi {
     return {...?response.data, 'message': response.message};
   }
 
-  Future<Map<String, dynamic>> checkoutQr({
-    required String pickupBranchId,
-    Map<String, dynamic>? delivery,
-    int points = 0,
-  }) async {
-    final response = await _client.post<Map<String, dynamic>>(
-      'payments/qr/checkout',
-      data: {'pickup_branch_id': pickupBranchId, 'delivery': ?delivery, 'points_to_redeem': points},
-      parser: (value) => Map<String, dynamic>.from(value as Map),
-    );
-    return Map<String, dynamic>.from(response.data!['qr'] as Map);
-  }
-
   /// Delivery orders of the customer, including the PIN shown to the driver.
   Future<Map<String, String>> deliveryPins() async {
     final response = await _client.get<List<dynamic>>('delivery/my-orders', parser: (value) => value as List);

@@ -7,20 +7,13 @@ from sqlalchemy.exc import IntegrityError
 
 from test_catalog_tenant_isolation import catalog  # noqa: F401 (shared fixture)
 from test_employee_authorization import headers
-from test_marketplace_transactions import add, call, checkout, market, market_api, rejected, stock  # noqa: F401
+from test_marketplace_transactions import add, call, checkout, market, market_api, pay, rejected, stock  # noqa: F401
 
 
 def _stripe_paid_order(api, db, market):
-    from app.models.order import Order
-    from app.schemas.order_schema import PaymentMethodEnum
-    from app.services.order_service import _consume_order
-
     add(api, market)
     created = checkout(api, market)
-    order = db.query(Order).filter(Order.id == created["id"]).one()
-    order.payment_method = PaymentMethodEnum.stripe
-    _consume_order(db, order)  # what the Stripe webhook does on payment_intent.succeeded
-    db.commit()
+    pay(api, market, created)  # Stripe webhook: payment_intent.succeeded
     return created
 
 

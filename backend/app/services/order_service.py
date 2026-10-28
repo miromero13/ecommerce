@@ -178,7 +178,7 @@ def _new_order(db: Session, cart: Cart, user_id: UUID, branch_id: UUID, method: 
     reservation_ids = {row.reservation_id for row in rows if row.reservation_id}
     deposit_credit = sum((r.deposit_amount for r in db.query(Reservation).filter(
         Reservation.id.in_(reservation_ids), Reservation.deposit_status == "paid")), Decimal("0.00"))
-    # Web orders are paid online (card or QR) and hold the stock only briefly until paid.
+    # Web orders are paid online with Stripe and hold the stock only briefly until paid.
     expires = datetime.now(timezone.utc) + timedelta(minutes=STRIPE_RESERVATION_MINUTES)
     order = Order(
         tenant_id=tenant_id,
@@ -225,27 +225,6 @@ def _new_order(db: Session, cart: Cart, user_id: UUID, branch_id: UUID, method: 
     return order
 
 
-def checkout_qr(db: Session, user_id: UUID, pickup_branch_id: UUID, delivery=None, points_to_redeem: int = 0):
-    """Create the order and a QR for its total; the bank confirmation completes it."""
-    from app.services.qr_payment_service import create_qr, serialize
-
-    try:
-        expire_due_orders(db)
-        cart = _locked_cart(db, user_id)
-        if cart.status == CartStatusEnum.checkout_pending:
-            raise ValueError("El carrito tiene un checkout pendiente")
-        order = _new_order(db, cart, user_id, pickup_branch_id, PaymentMethodEnum.qr, delivery, points_to_redeem)
-        qr = create_qr(db, tenant_id=order.tenant_id, purpose="order", amount=order.total_amount,
-                       currency=order.currency, created_by=user_id, source_id=order.id)
-        qr.expires_at = order.pickup_expires_at
-        db.commit()
-        db.refresh(order)
-        return _serialize_order(db, order).model_dump(), serialize(qr)
-    except Exception:
-        db.rollback()
-        raise
-
-
 def create_deposit_stripe_payment(db: Session, user_id: UUID, reservation_id: UUID):
     """Card payment of the D1 reservation deposit, collected by the platform account."""
     from app.services.reservation_service import get_deposit_reservation
@@ -269,15 +248,6 @@ def create_deposit_stripe_payment(db: Session, user_id: UUID, reservation_id: UU
         reservation.stripe_payment_intent_id = intent.id
         db.commit()
     return intent.client_secret, intent.id
-
-
-def complete_qr_order(db: Session, qr) -> None:
-    order = db.query(Order).filter(Order.id == qr.source_id).with_for_update().first()
-    if (not order or order.payment_method != PaymentMethodEnum.qr
-            or order.payment_status != PaymentStatusEnum.pending
-            or order.fulfillment_status != FulfillmentStatusEnum.pending_pickup):
-        raise ValueError("El pedido ya no está disponible para pago")
-    _consume_order(db, order)
 
 
 def create_stripe_payment(db: Session, user_id: UUID, pickup_branch_id: UUID, delivery=None, points_to_redeem: int = 0):
@@ -468,8 +438,7 @@ def _consume_order(db: Session, order: Order, collected_by: UUID | None = None) 
     order.status = OrderStatusEnum.paid
     order.fulfillment_status = FulfillmentStatusEnum.collected if collected_by else FulfillmentStatusEnum.pending_pickup
     # Online money is collected by the platform and owed to the company (daily settlement).
-    record_payment(db, order.tenant_id, "order", order.id,
-                   "card" if order.payment_method == PaymentMethodEnum.stripe else "qr",
+    record_payment(db, order.tenant_id, "order", order.id, "card",
                    order.total_amount - (order.shipping_cost or 0), order.currency, order.stripe_payment_intent_id)
     for reservation_id in reservation_ids:
         reservation = db.query(Reservation).filter(Reservation.id == reservation_id).with_for_update().first()

@@ -6,9 +6,9 @@ from sqlalchemy.orm import Session
 from app.auth.dependencies import get_current_branch_id, get_current_payload, get_current_tenant_id, get_current_user, require_roles
 from app.core.database import get_db
 from app.schemas.enums import RolEnum
-from app.schemas.payment_schema import OnlineCheckoutRequest, QrWebhook, StripePaymentRequest, StripeCheckoutResponse
+from app.schemas.payment_schema import QrWebhook, StripePaymentRequest, StripeCheckoutResponse
 from app.schemas.sales_schema import SaleCreate
-from app.services.order_service import checkout_qr, create_deposit_stripe_payment, create_stripe_payment, create_stripe_payment_for_order, process_stripe_event
+from app.services.order_service import create_deposit_stripe_payment, create_stripe_payment, create_stripe_payment_for_order, process_stripe_event
 from app.services.qr_payment_service import confirm_qr_payment, create_qr, get_qr, serialize as serialize_qr
 from app.services.sales_service import quote_sale_total
 from app.utils.response import response
@@ -17,7 +17,7 @@ from app.utils.response import response
 router = APIRouter(prefix="/payments", tags=["Payments"])
 
 
-# Web orders are always paid online (card or QR): cash only exists for in-store sales at the till.
+# Web and mobile orders are paid online with Stripe only: QR and cash exist only at the store's till.
 
 
 @router.post("/stripe/checkout")
@@ -85,26 +85,13 @@ async def stripe_webhook_route(
     return response(status_code=200, message="Evento recibido", data={"event_type": event["type"]})
 
 
-# --- Simulated QR payments (platform collection account) -------------------------------------
+# --- Simulated QR payments: only for in-store till sales (platform collection account) ----------
 
 def _qr_access(db: Session, qr, payload: dict) -> None:
     """The QR's creator, or staff of its company, may follow and (in sandbox) confirm it."""
     same_company = payload.get("tenant_id") and str(qr.tenant_id) == payload["tenant_id"]
     if str(qr.created_by) != payload["sub"] and not same_company:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pago QR no encontrado")
-
-
-@router.post("/qr/checkout", status_code=status.HTTP_201_CREATED)
-async def qr_checkout_route(
-    payload: OnlineCheckoutRequest,
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(require_roles(RolEnum.cliente)),
-):
-    try:
-        order, qr = checkout_qr(db, UUID(current_user["sub"]), payload.pickup_branch_id, payload.delivery, payload.points_to_redeem)
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-    return response(status_code=201, message="Pedido creado. Escanea el código QR para pagar.", data={"order": order, "qr": qr})
 
 
 @router.post("/qr/sale-intent", status_code=status.HTTP_201_CREATED)
@@ -175,29 +162,7 @@ async def qr_webhook_route(body: QrWebhook, db: Session = Depends(get_db),
 
 
 
-# --- D1: 50 % non-refundable reservation deposit (card or QR) ---------------------------------
-
-@router.post("/qr/reservations/{reservation_id}", status_code=status.HTTP_201_CREATED)
-async def deposit_qr_route(reservation_id: UUID, db: Session = Depends(get_db),
-                           current_user: dict = Depends(require_roles(RolEnum.cliente))):
-    from app.models.tenant import Tenant
-    from app.services.reservation_service import get_deposit_reservation
-
-    try:
-        reservation = get_deposit_reservation(db, UUID(current_user["sub"]), reservation_id)
-        currency = db.query(Tenant.currency).filter(Tenant.id == reservation.tenant_id).scalar()
-        qr = create_qr(db, tenant_id=reservation.tenant_id, purpose="reservation_deposit",
-                       amount=reservation.deposit_amount, currency=currency,
-                       created_by=UUID(current_user["sub"]), source_id=reservation.id)
-        qr.expires_at = reservation.payment_expires_at
-        db.commit()
-    except LookupError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
-    except ValueError as exc:
-        db.rollback()
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-    return response(status_code=201, message="Escanea el código QR para pagar el anticipo del 50 %", data=serialize_qr(qr))
-
+# --- D1: 50 % non-refundable reservation deposit, paid online by card (Stripe) ------------------
 
 @router.post("/stripe/reservations/{reservation_id}")
 async def deposit_stripe_route(reservation_id: UUID, db: Session = Depends(get_db),

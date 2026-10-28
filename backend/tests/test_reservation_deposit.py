@@ -1,11 +1,11 @@
-"""D1: 50 % non-refundable reservation deposit, paid online (QR or card)."""
+"""D1: 50 % non-refundable reservation deposit, paid online by card (Stripe)."""
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 
 from sqlalchemy import text
 
 from test_catalog_tenant_isolation import catalog  # noqa: F401 (shared fixture)
-from test_marketplace_transactions import call, market, market_api, rejected, stock  # noqa: F401
+from test_marketplace_transactions import call, market, market_api, pay_deposit, rejected, stock  # noqa: F401
 
 
 def create(api, market):
@@ -27,13 +27,11 @@ def test_reservation_waits_for_its_deposit_while_holding_stock(market_api, api_d
     assert Decimal(str(reservation["deposit_amount"])) == Decimal("12.50")
     assert stock(api_db, market.own.variant, market.branches[0]) == (before[0], before[1] + 1)
 
-    qr = call(market_api, market.customer, "POST", f"/payments/qr/reservations/{reservation['id']}", 201)
-    assert Decimal(str(qr["amount"])) == Decimal("12.50")
-    call(market_api, market.customer, "POST", f"/payments/qr/{qr['reference']}/simulate-payment")
+    pay_deposit(market_api, market, reservation)
     paid = call(market_api, market.customer, "GET", f"/reservations/{reservation['id']}")
     assert (paid["status"], paid["deposit_status"]) == ("pending", "paid")
-    assert deposits(api_db) == [("reservation_deposit", "qr", Decimal("12.50"))]
-    rejected(market_api, api_db, market.customer, "POST", f"/payments/qr/reservations/{reservation['id']}", 400,
+    assert deposits(api_db) == [("reservation_deposit", "card", Decimal("12.50"))]
+    rejected(market_api, api_db, market.customer, "POST", f"/payments/stripe/reservations/{reservation['id']}", 400,
              "La reserva ya no espera el pago del anticipo")
 
 
@@ -50,11 +48,10 @@ def test_unpaid_deposit_expires_and_releases_stock(market_api, api_db, market):
 
 def test_cancelled_reservation_forfeits_the_deposit(market_api, api_db, market):
     reservation = create(market_api, market)
-    qr = call(market_api, market.customer, "POST", f"/payments/qr/reservations/{reservation['id']}", 201)
-    call(market_api, market.customer, "POST", f"/payments/qr/{qr['reference']}/simulate-payment")
+    pay_deposit(market_api, market, reservation)
     cancelled = call(market_api, market.customer, "PATCH", f"/reservations/{reservation['id']}/cancel")
     assert (cancelled["status"], cancelled["deposit_status"]) == ("cancelled", "forfeited")
-    assert deposits(api_db) == [("reservation_deposit", "qr", Decimal("12.50"))]  # never refunded
+    assert deposits(api_db) == [("reservation_deposit", "card", Decimal("12.50"))]  # never refunded
 
 
 def test_card_deposit_is_confirmed_by_the_stripe_webhook(market_api, api_db, market):

@@ -545,7 +545,7 @@ def cancel_branch_reservation(db: Session, reservation_id: UUID, branch_id: UUID
 
 
 def complete_deposit_payment(db: Session, reservation_id: UUID, method: str, reference: str | None = None) -> Reservation:
-    """Online deposit confirmed (QR bank notice or Stripe webhook): the reservation now holds the visit."""
+    """Online deposit confirmed by the Stripe webhook: the reservation now holds the visit."""
     from app.services.payout_service import record_payment
 
     reservation = db.query(Reservation).filter(Reservation.id == reservation_id).with_for_update().first()

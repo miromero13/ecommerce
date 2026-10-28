@@ -23,15 +23,10 @@
               <div class="mt-3 space-y-2 rounded-lg border border-orange-200 bg-orange-50 p-3 text-sm">
                 <p>Paga el anticipo de <strong>{{ reservation.deposit_amount }} BOB</strong> (50 %) antes de las {{ reservation.payment_expires_at | date: 'shortTime' }} para confirmar tu reserva.</p>
                 <p class="text-xs text-orange-700">El anticipo del 50 % no es reembolsable si cancelas o no te presentas.</p>
-                @if (depositQr()[reservation.id]; as qr) {
-                  <app-qr-payment-panel title="Escanea el QR para pagar el anticipo" [qr]="qr" (paid)="onDepositPaid(reservation.id)" />
-                } @else if (depositCard()[reservation.id]; as clientSecret) {
+                @if (depositCard()[reservation.id]; as clientSecret) {
                   <app-stripe-card-payment title="Pagar el anticipo con tarjeta" [clientSecret]="clientSecret" (paid)="onDepositCardPaid(reservation.id)" />
                 } @else {
-                  <div class="flex flex-wrap gap-2">
-                    <button hlmBtn type="button" (click)="payDeposit(reservation.id)">Pagar anticipo con QR</button>
-                    <button hlmBtn type="button" variant="outline" (click)="payDepositByCard(reservation.id)">Pagar con tarjeta</button>
-                  </div>
+                  <button hlmBtn type="button" (click)="payDepositByCard(reservation.id)">Pagar anticipo con tarjeta</button>
                 }
               </div>
             } @else if (reservation.deposit_status === 'paid') {

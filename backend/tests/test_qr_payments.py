@@ -1,35 +1,25 @@
-"""Simulated QR payments: web checkout and in-store cashier, collected by the platform."""
+"""Simulated QR payments: only at the store's till, collected by the platform (online is Stripe only)."""
 from decimal import Decimal
 
 import pytest
 from sqlalchemy import text
 
 from test_catalog_tenant_isolation import catalog  # noqa: F401 (shared fixture)
-from test_marketplace_transactions import add, call, market, market_api, rejected, stock  # noqa: F401
+from test_employee_authorization import headers
+from test_marketplace_transactions import add, call, market, market_api, rejected  # noqa: F401
 
 
 def ledger(db):
     return [tuple(r) for r in db.execute(text("SELECT source_type, method, gross_amount FROM payment_transactions"))]
 
 
-def test_web_order_paid_by_qr_is_consumed_and_recorded(market_api, api_db, market):
+def test_qr_is_not_offered_for_online_orders_or_deposits(market_api, api_db, market):
     add(market_api, market)
-    data = call(market_api, market.customer, "POST", "/payments/qr/checkout", 201,
-                json={"pickup_branch_id": str(market.branches[0].id)})
-    order, qr = data["order"], data["qr"]
-    assert order["payment_method"] == "qr" and order["payment_status"] == "pending"
-    assert qr["qr_image"].startswith("data:image/png;base64,") and Decimal(str(qr["amount"])) == Decimal("25")
-
-    rejected(market_api, api_db, market.other, "POST", f"/payments/qr/{qr['reference']}/simulate-payment", 404,
-             "Pago QR no encontrado")
-    quantity, reserved = stock(api_db, market.own.variant, market.branches[0])
-    paid = call(market_api, market.customer, "POST", f"/payments/qr/{qr['reference']}/simulate-payment",
-                expected_message="Pago QR confirmado")
-    assert paid["status"] == "used"
-    mine = call(market_api, market.customer, "GET", f"/orders/{order['id']}")
-    assert mine["payment_status"] == "paid"
-    assert stock(api_db, market.own.variant, market.branches[0]) == (quantity - 1, reserved - 1)
-    assert ledger(api_db) == [("order", "qr", Decimal("25.00"))]
+    auth = headers(market.customer)
+    web = market_api.post("/api/payments/qr/checkout", headers=auth, json={"pickup_branch_id": str(market.branches[0].id)})
+    deposit = market_api.post(f"/api/payments/qr/reservations/{market.branches[0].id}", headers=auth)
+    # Online payments are Stripe only: neither endpoint exists (405 when the path matches GET /qr/{reference}).
+    assert web.status_code in (404, 405) and deposit.status_code == 404
 
 
 def test_cashier_qr_sale_requires_payment_and_cannot_reuse_it(market_api, api_db, market):

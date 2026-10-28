@@ -1,4 +1,5 @@
 """Simulated QR payments (QR Simple style) collected by the platform account.
+QR only exists at the store's till: online orders and deposits are paid with Stripe.
 
 A real bank would call the webhook when the customer pays; in sandbox mode the
 payer can trigger the same confirmation from the UI ("Simular pago")."""
@@ -16,7 +17,7 @@ from sqlalchemy.orm import Session
 from app.models.payout import QrPayment
 
 QR_MINUTES = 15
-PURPOSES = {"order", "sale", "reservation_deposit"}
+PURPOSES = {"sale"}
 
 
 def _payload(qr: QrPayment) -> str:
@@ -58,7 +59,7 @@ def get_qr(db: Session, reference: str, for_update: bool = False) -> QrPayment:
 
 
 def confirm_qr_payment(db: Session, reference: str) -> QrPayment:
-    """Bank notification: idempotent; fulfils orders and reservation deposits right away."""
+    """Bank notification: idempotent. The QR stays "paid" until the cashier registers the sale with it."""
     qr = get_qr(db, reference, for_update=True)
     if qr.status in {"paid", "used"}:
         return qr
@@ -67,15 +68,6 @@ def confirm_qr_payment(db: Session, reference: str) -> QrPayment:
         db.commit()
         raise ValueError("El código QR expiró; genera uno nuevo")
     qr.status, qr.paid_at = "paid", datetime.now(timezone.utc)
-    if qr.purpose == "order":
-        from app.services.order_service import complete_qr_order
-        complete_qr_order(db, qr)
-        qr.status = "used"
-    elif qr.purpose == "reservation_deposit":
-        from app.services.reservation_service import complete_deposit_payment
-        complete_deposit_payment(db, qr.source_id, "qr", qr.reference)
-        qr.status = "used"
-    # purpose "sale": stays "paid" until the cashier registers the sale with this reference.
     db.commit()
     db.refresh(qr)
     return qr

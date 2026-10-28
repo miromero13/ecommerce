@@ -222,7 +222,7 @@ Rutas reales verificadas. "Brecha" = lo que falta para cerrar el CU según el ex
 | I2 | No hay tipo `adjustment` con motivo (merma, daño, conteo físico); hoy se usa `outcome` genérico. Lo necesitan CU21 (merma) y CU23 (conflictos). | Media | `backend/app/schemas/inventory_schema.py` [EDIT] (`adjustment` + `reason`), `inventory_service.py` [EDIT] |
 
 ### Pasarela de pago
-**Cómo funciona:** **Stripe** (PaymentIntent + webhook `POST /api/payments/stripe/webhook`, idempotencia con `payment_attempts.idempotency_key` y `stripe_events`) o **QR**; **nunca en efectivo** (regla RN-22: el efectivo solo existe en la caja de la tienda). El pedido aparta stock 30 min hasta que se paga. Expira solo (`expire_due_orders`, loop cada 60 s en `main.py`). Archivos: `backend/app/services/order_service.py`, `backend/app/routes/payment_routes.py`, `backend/app/models/payment_attempt.py`, `stripe_event.py`, `frontend/src/app/features/shared/services/checkout-api.service.ts`, `mobile/lib/features/orders/checkout_page.dart`.
+**Cómo funciona:** **Stripe** (PaymentIntent + webhook `POST /api/payments/stripe/webhook`, idempotencia con `payment_attempts.idempotency_key` y `stripe_events`) **únicamente**: ni QR ni efectivo (regla RN-22: el QR y el efectivo solo existen en la caja de la tienda). El pedido aparta stock 30 min hasta que se paga. Expira solo (`expire_due_orders`, loop cada 60 s en `main.py`). Archivos: `backend/app/services/order_service.py`, `backend/app/routes/payment_routes.py`, `backend/app/models/payment_attempt.py`, `stripe_event.py`, `frontend/src/app/features/shared/services/checkout-api.service.ts`, `mobile/lib/features/orders/checkout_page.dart`.
 
 | # | Brecha | Gravedad | Archivos |
 |---|---|---|---|
@@ -560,7 +560,8 @@ Ejecutar la transferencia reutiliza `inventory_service.register_transfer` (atóm
 | Moneda de la empresa (P2) | ✅ | CU1 | `order_service._new_order`, `sales_service` |
 | Carrito: una empresa por carrito (bug de autoflush) | ✅ | 1P-CU15 | `cart_service.refresh_cart_totals`, `cart-page`, móvil `catalog_page.dart` |
 | Cuenta recaudadora + liquidación diaria (D2) | ✅ | CU1, CU2 | `models/payout.py`, `services/payout_service.py`, `routes/payout_routes.py`, `admin/pages/admin-payouts-page`, `superadmin/pages/settlements-page` |
-| Pagos QR simulados (web, caja, móvil) | ✅ | 1P-CU16, 1P-CU18 | `services/qr_payment_service.py`, `routes/payment_routes.py` (`/payments/qr/...`), `shared/components/qr-payment-panel`, móvil `shared/widgets/qr_payment_dialog.dart` |
+| Pagos QR simulados, **solo en caja** | ✅ | 1P-CU18 | `services/qr_payment_service.py` (propósito `sale`), `routes/payment_routes.py` (`/payments/qr/sale-intent`, `/qr/{ref}`, `/qr/webhook`), `shared/components/qr-payment-panel`, `caja-page` |
+| Pago en línea solo con Stripe (pedidos web/móvil y anticipo de reservas) | ✅ | 1P-CU16 (pasarela, RF19), 1P-CU14 | `order_service` (`create_stripe_payment`, `create_deposit_stripe_payment`, `process_stripe_event`), `payment_routes.py` (`/payments/stripe/...`), `cart-page`, `my-reservations-page`, móvil `checkout_page.dart`, `reservations_page.dart` |
 | Anticipo 50 % no reembolsable (D1) | ✅ | 1P-CU14, 1P-CU17 | `reservation_service` (`pending_payment`, `complete_deposit_payment`, regla en `transition_reservation`), `/payments/qr/reservations/{id}`, `/payments/stripe/reservations/{id}`, `my-reservations-page`, móvil `reservations_page.dart` |
 | Delivery por distancia con repartidores de la plataforma | ✅ | CU20 | `services/delivery_service.py`, `routes/delivery_routes.py`, `delivery/pages/delivery-home-page`, `superadmin/pages/drivers-page`, `cart-page`, móvil `checkout_page.dart` |
 | Branding por empresa (logo, color) — 0.3 | ✅ | CU1 | `tenant_service` (`update_tenant_logo`, `get_branding`), `tenant_routes` (`/branding`, `/me/branding`, `/me/logo`, `/{id}/logo`), `core/services/branding.service.ts`, `shared/components/tenant-branding-editor`, `app-shell`, `simple-pdf.util` |
@@ -585,7 +586,7 @@ Ejecutar la transferencia reutiliza `inventory_service.register_transfer` (atóm
 - Migraciones: `0041` Fase 0, `0042` CU3, `0043` CU9, `0044` CU10, `0045` CU16, `0046` CU17, `0047` monto de cada suscripción, `0048` caja.
 - La migración `0041` agrupa toda la Fase 0. Las bases que aplicaron una versión anterior de `0041` necesitan las columnas nuevas (`ALTER TABLE ... ADD COLUMN IF NOT EXISTS`).
 - `backend/tests/conftest.py::seeded_db` reconstruye el esquema `public` de la base desechable y corre el seed; no correr dos suites a la vez sobre la misma base de tests.
-- Móvil: el delivery toma la ubicación del GPS (`geolocator`, botón "Usar mi ubicación") o latitud/longitud manual; el anticipo se paga por QR o con tarjeta (Stripe PaymentSheet).
+- Móvil: el delivery toma la ubicación del GPS (`geolocator`, botón "Usar mi ubicación") o latitud/longitud manual; el pedido y el anticipo se pagan solo con tarjeta (Stripe PaymentSheet).
 
 ## 11. Referencia para la documentación (reglas, endpoints, pantallas y pruebas)
 
@@ -594,9 +595,9 @@ Ejecutar la transferencia reutiliza `inventory_service.register_transfer` (atóm
 |---|---|---|
 | RN-01 | Un carrito pertenece a **una sola empresa**; agregar una prenda de otra empresa pide pagar o vaciar el carrito pendiente. | `cart_service.validate_cart_company` |
 | RN-02 | La fecha de visita de una reserva está entre hoy y **14 días**; máximo **5 prendas** por reserva y **3 reservas activas** por cliente y empresa. | `reservation_service.create_reservation` |
-| RN-03 | Toda reserva exige un **anticipo del 50 %** pagado en línea (QR o tarjeta) en **30 minutos**; si no, vence y libera el stock. | `reservation_service` (`pending_payment`) |
+| RN-03 | Toda reserva exige un **anticipo del 50 %** pagado en línea con tarjeta (Stripe) en **30 minutos**; si no, vence y libera el stock. | `reservation_service` (`pending_payment`) |
 | RN-04 | El anticipo **no es reembolsable**: cancelar, no presentarse o no comprar lo pierde; al comprar las prendas se descuenta del pedido. | `reservation_service.transition_reservation`, `order_service._new_order` |
-| RN-05 | Todo cobro en línea (tarjeta, QR) entra a la **cuenta de la plataforma** y se registra por empresa con la comisión. | `payout_service.record_payment` |
+| RN-05 | Todo cobro digital (tarjeta en línea; QR en caja) entra a la **cuenta de la plataforma** y se registra por empresa con la comisión. | `payout_service.record_payment` |
 | RN-06 | Cada día se genera **una liquidación por empresa** con lo cobrado el día anterior; el superadministrador registra la transferencia bancaria. | `payout_service.run_daily_settlements`, `mark_settlement_paid` |
 | RN-07 | El efectivo de la caja **no** pasa por la plataforma. | `sales_service` |
 | RN-08 | Envío a domicilio: **8 Bs + 2,5 Bs/km** (distancia Haversine desde la sucursal), cobertura máxima **15 km**. | `delivery_service.shipping_quote`, `config.delivery_*` |
@@ -613,7 +614,7 @@ Ejecutar la transferencia reutiliza `inventory_service.register_transfer` (atóm
 | RN-19 | Ingesta RPA: PDF/PNG/JPG/WEBP de hasta 10 MB; los SKU desconocidos se informan y **no se crean**; confirma el administrador o el encargado (solo su sucursal); el ingreso es atómico. | `rpa_ingest_service.validate_upload`, `_match`, `commit_job` |
 | RN-20 | Una prenda se guarda una sola vez en la lista de deseos; al moverla al carrito se elige talla/color y rige la regla de un carrito por empresa. | `wishlist_service` |
 | RN-21 | Puntos por empresa: **1 punto por cada 10 Bs** pagados por prendas (el envío no suma); **10 puntos = 1 Bs**, en múltiplos de 10 y sin superar el monto de las prendas; se devuelven si el pedido vence o se cancela; niveles **Bronce < 500, Plata 500–1499, Oro ≥ 1500** puntos acumulados; en caja exige el correo del cliente. | `loyalty_service`, `order_service`, `sales_service._apply_loyalty` |
-| RN-22 | Un **pedido web siempre se paga en línea** (tarjeta o QR), con retiro en tienda o envío; **nunca en efectivo** ni contra entrega. El efectivo solo se acepta en la venta presencial en caja. El mostrador solo entrega pedidos ya pagados. | `payment_routes.py`, `order_service.hand_over_order`, `order_service.mark_order_ready`, `delivery_service.confirm_delivery` |
+| RN-22 | Todo lo que se paga por internet (pedido web o móvil, con retiro o envío, y el anticipo de una reserva) se paga **solo con tarjeta vía Stripe**; **nunca con QR ni en efectivo**, tampoco contra entrega. El **QR y el efectivo solo existen en la venta presencial en caja**. El mostrador solo entrega pedidos ya pagados. | `payment_routes.py`, `order_service.hand_over_order`, `order_service.mark_order_ready`, `delivery_service.confirm_delivery` |
 | RN-23 | Cada cajero abre **su propia caja** en su sucursal con un monto inicial; sin caja abierta no se vende (efectivo ni QR). La venta en efectivo registra lo recibido y el **vuelto**; los ingresos y retiros llevan motivo y no se retira más de lo que hay. Al cerrar: esperado = inicial + ventas en efectivo + ingresos − retiros; se guarda lo contado y la diferencia (sobrante/faltante). Las cajas de distintas sucursales nunca se mezclan. | `cash_session_service`, `sales_service.create_sale`, `payment_routes` (`/qr/sale-intent`) |
 | RN-24 | Solo aparecen como tenants las empresas suscritas a un plan; cada período pagado guarda su monto en el historial. El superadmin entra al panel de una empresa activa como su administrador (queda `impersonated_by` en el token). | `tenant_service.list_tenants`, `subscription_service`, `tenant_service.open_tenant_panel` |
 
@@ -624,9 +625,9 @@ Ejecutar la transferencia reutiliza `inventory_service.register_transfer` (atóm
 | `GET /payouts/summary` · `PUT /payouts/bank-account` | administrador | Saldo por transferir, movimientos y cuenta bancaria de la empresa |
 | `GET /payouts/settlements` | administrador, superadmin | Liquidaciones (el admin solo ve las suyas) |
 | `POST /payouts/settlements/run` · `PATCH /payouts/settlements/{id}/paid` | superadmin | Generar liquidaciones y registrar la transferencia |
-| `POST /payments/qr/checkout` | cliente | Pedido web pagado por QR |
+| ~~`POST /payments/qr/checkout`~~ | — | Eliminado por RN-22 (lo online es solo Stripe) |
 | `POST /payments/qr/sale-intent` | cajero | QR por el total exacto de una venta de caja |
-| `POST /payments/qr/reservations/{id}` · `POST /payments/stripe/reservations/{id}` | cliente | Pagar el anticipo por QR o tarjeta |
+| `POST /payments/stripe/reservations/{id}` | cliente | Pagar el anticipo con tarjeta (el QR del anticipo se eliminó por RN-22) |
 | `GET /payments/qr/{ref}` · `POST /payments/qr/{ref}/simulate-payment` | creador o personal de la empresa | Estado del QR y confirmación simulada (modo demo `QR_SANDBOX`) |
 | `POST /payments/qr/webhook` | banco (encabezado `X-QR-Webhook-Secret`) | Aviso real de pago QR |
 | `POST /delivery/quotes` · `GET /delivery/my-orders` | cliente | Cotizar envío; envíos y PIN |
@@ -653,8 +654,8 @@ Ejecutar la transferencia reutiliza `inventory_service.register_transfer` (atóm
 ### 11.3 Pantallas
 | Rol | Ruta | Contenido |
 |---|---|---|
-| Cliente | `/app/cliente/cart` | Retiro o envío, cotización por distancia, pago con tarjeta o QR |
-| Cliente | `/app/cliente/my-reservations` | Pago del anticipo (QR o tarjeta), estado del anticipo |
+| Cliente | `/app/cliente/cart` | Retiro o envío, cotización por distancia, pago con tarjeta (Stripe) |
+| Cliente | `/app/cliente/my-reservations` | Pago del anticipo con tarjeta (Stripe), estado del anticipo |
 | Cliente | `/app/cliente/orders` | Estado del envío, PIN, nota de venta PDF con la marca de la tienda |
 | Cajero | `/app/cajero/caja` | Abrir/cerrar caja, ingresos y retiros, efectivo recibido y vuelto, QR, cupón y puntos, comprobante con la marca |
 | Administrador | `/app/admin/branch/:branchId` | Panel de una sucursal: resumen, inventario, ventas, pedidos y reservas, personal y cajas |
@@ -679,7 +680,7 @@ Ejecutar la transferencia reutiliza `inventory_service.register_transfer` (atóm
 | `test_phase0_business_flows.py` | Entrega de pedidos, ventana de visita, stock imposible, moneda, precio con descuento, límites, carrito por empresa (con `autoflush=False` como producción), mensaje en español |
 | `test_tenant_middleware.py` | `X-Tenant-ID` / subdominio, 403 por empresa ajena, 404 empresa inexistente |
 | `test_payouts.py` | Libro de cobros con comisión, efectivo de caja fuera del libro, liquidación diaria idempotente, transferencia y cuenta bancaria |
-| `test_qr_payments.py` | QR web y de caja, no reutilización, webhook con secreto |
+| `test_qr_payments.py` | QR solo en caja (no existe para pedidos ni anticipos), no reutilización, webhook con secreto |
 | `test_reservation_deposit.py` | Anticipo 50 %, vencimiento, pérdida al cancelar, webhook de tarjeta, PaymentIntent del anticipo |
 | `test_delivery.py` | Cotización y cobertura, envío pagado en línea entre empresas, PIN, repartidor sin acceso a datos de empresas |
 | `test_cash_sessions.py` | Vuelto, caja obligatoria, ingresos/retiros, cierre con faltante, cajas de sucursales separadas |

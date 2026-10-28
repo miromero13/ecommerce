@@ -12,13 +12,6 @@ class CheckoutMethodEnum(str, Enum):
     stripe = "stripe"
 
 
-class OnlineCheckoutRequest(BaseModel):
-    """Web order paid by QR; card checkout uses StripePaymentRequest."""
-    pickup_branch_id: UUID
-    delivery: DeliveryAddress | None = None  # CU20: ship from pickup_branch_id instead of in-store pickup
-    points_to_redeem: int = Field(default=0, ge=0)  # CU17: 10 points = 1 Bs off the products
-
-
 class StripePaymentRequest(BaseModel):
     pickup_branch_id: UUID
     delivery: DeliveryAddress | None = None

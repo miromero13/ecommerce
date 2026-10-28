@@ -5,7 +5,7 @@ import pytest
 from sqlalchemy import text
 
 from test_catalog_tenant_isolation import catalog  # noqa: F401 (shared fixture)
-from test_marketplace_transactions import add, call, market, market_api, pay, rejected, stock  # noqa: F401
+from test_marketplace_transactions import add, call, checkout, market, market_api, pay, rejected, stock  # noqa: F401
 
 # Branch A1 at Plaza 24 de Septiembre (Santa Cruz); destinations measured from it.
 BRANCH = (-17.783300, -63.182100)
@@ -30,13 +30,9 @@ def delivery_api(market_api, api_db, market):
 
 
 def delivery_checkout(api, market):
-    """Delivery order paid online by QR (web orders are never paid in cash)."""
+    """Delivery order, paid online with Stripe like every web order."""
     add(api, market)
-    data = call(api, market.customer, "POST", "/payments/qr/checkout", 201, json={
-        "pickup_branch_id": str(market.branches[0].id),
-        "delivery": {"address": "Av. San Martín 450", "reference": "Edificio azul", **NEAR},
-    })
-    return {**data["order"], "qr": data["qr"]}
+    return checkout(api, market, delivery={"address": "Av. San Martín 450", "reference": "Edificio azul", **NEAR})
 
 
 def test_quote_charges_by_distance_and_enforces_coverage(delivery_api, api_db, market):
@@ -85,7 +81,7 @@ def test_paid_delivery_flow_across_companies(delivery_api, api_db, market):
     assert done["delivered_at"]
     # Paid online to the platform: the company is owed the garments, not the shipping.
     row = api_db.execute(text("SELECT tenant_id, method, gross_amount FROM payment_transactions")).one()
-    assert tuple(row) == (market.own.tenant.id, "qr", Decimal("25.00"))
+    assert tuple(row) == (market.own.tenant.id, "card", Decimal("25.00"))
 
 
 def test_company_admins_cannot_create_platform_drivers(delivery_api, api_db, market):

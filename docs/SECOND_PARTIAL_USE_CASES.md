@@ -1310,7 +1310,7 @@ Response 400 Bad Request:
 * **Descripción Funcional:** Billetera de puntos **por empresa**. Acumula puntos cuando una compra queda pagada (pedido web o venta en caja con el cliente identificado) y permite canjearlos como descuento en el checkout web/móvil o en caja.
 * **Reglas implementadas:**
   * Se gana **1 punto por cada 10 Bs** pagados por prendas (el envío no suma; el anticipo de una reserva sí). Un pedido suma puntos una sola vez, al quedar pagado.
-  * Se canjean **10 puntos = 1 Bs**, en múltiplos de 10, sin superar el monto de las prendas; el canje se elige al confirmar el pedido (tarjeta o QR; los pedidos web nunca se pagan en efectivo) o en caja.
+  * Se canjean **10 puntos = 1 Bs**, en múltiplos de 10, sin superar el monto de las prendas; el canje se elige al confirmar el pedido (pagado con tarjeta vía Stripe; los pedidos web nunca se pagan con QR ni en efectivo) o en caja.
   * Si un pedido con puntos canjeados vence o se cancela, los puntos se devuelven.
   * Nivel por puntos acumulados (nunca baja): **Bronce** (< 500), **Plata** (500–1499), **Oro** (≥ 1500).
   * En caja el canje y la acumulación exigen el correo de un cliente registrado.
