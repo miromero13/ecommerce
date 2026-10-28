@@ -705,3 +705,18 @@ Ejecutar la transferencia reutiliza `inventory_service.register_transfer` (atóm
 | `test_loyalty.py` | Niveles y conversión, puntos al pagar (una vez), canje y devolución al cancelar, validaciones, caja, puntos por empresa |
 
 Ejecución: `CU1_TEST_DATABASE_URL=postgresql://postgres:cu1-disposable-only@127.0.0.1:53419/cu1_test pytest` (base desechable; nunca la de desarrollo).
+
+## 12. Datos de demostración (base poblada para probar todos los casos de uso)
+
+Se generan **con los servicios reales** (los mismos que usa la API) y después cada operación se mueve a su fecha, así cada pago tiene su comprobante, puntos, registro contable, movimiento de stock y notificación como en el uso real.
+
+| Paso | Comando (desde `backend/`) | Qué hace |
+|---|---|---|
+| 1 | `python -m scripts.build_demo_catalog --package "<ruta>/PAQUETE_CATALOGO_Y_VESTIDOR_IA" [--storage cloudinary]` | Toma las 72 prendas reales del paquete del primer parcial (descarta las 17 de prueba), sus fotos y los 17 recortes sin fondo para el vestidor; escribe `scripts/data/demo_catalog.json`. `local` copia las imágenes a `backend/demo_assets/` (servidas en `/demo-assets`); `cloudinary` las sube y guarda sus URLs (para la base desplegada). |
+| 2 | `python -m scripts.seed_demo --reset [--database-url URL] [--assets-base-url URL] [--days 200]` | Borra todas las empresas y sus datos (conserva planes, permisos y roles del sistema) y carga la demo. Sin `--reset` se niega a correr sobre una base con empresas. Termina con 12 verificaciones de coherencia. |
+| 3 | `python -m scripts.demo_documents` | Regenera `docs/TEST_CREDENTIALS.md` y el remito de prueba `docs/demo/remito_demo.pdf` (CU10) con SKUs reales. |
+
+**Contenido:** superadministrador, 4 repartidores de la plataforma, 66 clientes y 4 empresas (una por plan) con 11 sucursales en La Paz, El Alto, Cochabamba, Santa Cruz, Sucre, Tarija y Oruro. Cada empresa tiene su administrador y sus proveedores; cada sucursal, un encargado y dos cajeros. El catálogo se reparte por estilo de marca (Ayni Moda: blusas, sastrería y vestidos; Kantuta Boutique: vestidos y enterizos; Urbana Denim: jeans y básicos; Luna Satén: pijamas) con stock propio por sucursal. Historial de unos 200 días: cajas abiertas y cerradas con vuelto, ventas en efectivo o QR con cupones y puntos, pedidos web pagados con Stripe (retiro y envío con repartidor y PIN), reservas con anticipo, favoritos, vistas, solicitudes a proveedores, renovaciones del plan y liquidaciones diarias. El estado de hoy deja cajas abiertas, pedidos para entregar o despachar, reservas por atender o esperando anticipo, solicitudes en cada estado y stock crítico para el sistema experto.
+
+**Notas:** los correos usan dominios `.demo.bo` (ningún comprobante llega a una casilla real) y los comprobantes del historial quedan como ya enviados. Con imágenes locales, el vestidor web funciona (el backend lee `/demo-assets` del disco sin abrir excepciones de red); el vestidor del móvil (Decart) necesita URLs públicas: usar `--storage cloudinary` cuando haya credenciales reales.
+

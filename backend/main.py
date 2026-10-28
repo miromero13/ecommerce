@@ -1,9 +1,11 @@
 import asyncio
 from contextlib import asynccontextmanager
+from pathlib import Path
 from datetime import datetime, timedelta
 
 from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.routes import user_routes, auth, branch_routes, provider_routes, catalog_routes, garment_routes, inventory_routes, cart_routes, reservation_routes, order_routes, payment_routes, sales_routes, report_routes, dashboard_routes, promotion_routes, replenishment_routes, recommendation_routes, chatbot_routes, notification_routes, tenant_routes, subscription_routes, payout_routes, delivery_routes, rbac_routes, expert_replenishment_routes, rpa_ingest_routes, wishlist_routes, loyalty_routes, cash_session_routes, receipt_routes
 from app.core.error_handlers import register_error_handlers
@@ -98,6 +100,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Demo catalog images (scripts/build_demo_catalog.py --storage local); the deployed demo uses Cloudinary URLs.
+DEMO_ASSETS = Path(__file__).parent / "demo_assets"
+if DEMO_ASSETS.is_dir():
+    app.mount("/demo-assets", StaticFiles(directory=DEMO_ASSETS), name="demo-assets")
 
 # Routers
 api_router = APIRouter(prefix="/api")

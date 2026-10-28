@@ -320,16 +320,70 @@ previos: requieren la base de desarrollo sembrada, no el contenedor desechable.
 ## Migraciones y seeders
 
 - `alembic/versions/` contiene el historial canónico de migraciones.
-- `seed.py` carga datos de demostración; no ejecutarlo sobre datos reales.
-- El esquema no se crea automáticamente al arrancar la app.
-- Seeder demo:
+- El esquema no se crea automáticamente al arrancar la app: siempre `python -m alembic upgrade head`.
+- Los datos de demostración vigentes son los de **«Datos de demostración»** (más abajo). `seed.py` es el seeder antiguo
+  (catálogo Myntra) y queda solo como referencia; no ejecutarlo sobre datos reales.
+
+## Datos de demostración
+
+4 empresas (una por plan), 11 sucursales con su encargado y dos cajeros, proveedores, repartidores, 66 clientes, el
+catálogo real de 72 prendas del primer parcial (con recortes para el vestidor) y unos 200 días de historial generados
+con los servicios reales: cajas con vuelto, ventas en caja, pedidos web pagados con Stripe (retiro y envío), reservas
+con anticipo, comprobantes, puntos, favoritos, solicitudes a proveedores, suscripciones y liquidaciones.
+Las cuentas están en `docs/TEST_CREDENTIALS.md` (personal `Fashion2026!`, clientes `Cliente2026!`,
+superadmin `superadmin@fashionstore.com` / `SuperAdmin2026!`). Detalle en `docs/SECOND_PARTIAL_IMPLEMENTATION_PLAN.md`, sección 12.
+
+> ⚠️ Cargar la demo **borra todas las empresas y datos** de la base destino. Nunca sobre una base con datos reales.
+
+### Opción A — Base desplegada: restaurar el volcado (recomendada, ~1 minuto)
+
+No se ejecuta ningún script contra la base desplegada: solo migraciones y `psql`. El volcado
+`scripts/data/demo_data.sql.gz` tiene **solo datos**; las tablas las crean las migraciones.
+
+1. **Desplegar el backend** de esta rama, incluida la carpeta `backend/demo_assets/` (las imágenes del catálogo;
+   el backend las sirve en `/demo-assets`).
+2. **Crear las tablas** con la `DATABASE_URL` de la base desplegada:
+   ```bash
+   DATABASE_URL="postgresql://usuario:clave@host:5432/base" python -m alembic upgrade head
+   ```
+   Debe quedar en la migración **0051** (`python -m alembic current`). El volcado se niega a cargar en otra versión.
+3. **Descomprimir** el volcado (Linux/macOS: `gunzip -k scripts/data/demo_data.sql.gz`; Windows o cualquier SO):
+   ```bash
+   python -c "import gzip,shutil;shutil.copyfileobj(gzip.open('scripts/data/demo_data.sql.gz','rb'),open('demo_data.sql','wb'))"
+   ```
+4. **Cargar los datos** (una sola transacción: si algo falla no queda nada a medias):
+   ```bash
+   psql "postgresql://usuario:clave@host:5432/base" -v ON_ERROR_STOP=1 -f demo_data.sql
+   ```
+5. **Apuntar las imágenes al backend desplegado** (el volcado trae `http://localhost:8000`):
+   ```bash
+   psql "postgresql://usuario:clave@host:5432/base" -v ON_ERROR_STOP=1 -v backend_url=https://TU-BACKEND -f scripts/data/demo_set_backend_url.sql
+   ```
+   `TU-BACKEND` es la URL pública del backend, sin `/` final (p. ej. `https://fashionstore-api.onrender.com`).
+6. Comprobar: entrar con `superadmin@fashionstore.com` y ver las 4 empresas en «Gestión de Tenants».
+
+`psql` viene con PostgreSQL (en Windows: `C:\Program Files\PostgreSQL\<versión>\bin\psql.exe`). Si el proveedor
+pide SSL, agregar `?sslmode=require` al final de la URL. Las fechas del historial quedan como se generaron
+(hasta el 28/10/2026); para tener «hoy» con fechas actuales, usar la opción B.
+
+### Opción B — Generar la demo desde cero (local, ~25 minutos)
+
+Desde `backend/`, con la base destino en `DATABASE_URL` (o `--database-url`):
 
 ```bash
-./.venv/bin/python -m alembic upgrade head
-./.venv/bin/python seed.py
+python -m alembic upgrade head
+python -m scripts.build_demo_catalog --package "<ruta>/PAQUETE_CATALOGO_Y_VESTIDOR_IA"   # solo si cambia el catálogo
+python -m scripts.seed_demo --reset [--assets-base-url https://TU-BACKEND] [--days 200]
+python -m scripts.demo_documents        # credenciales y remito de prueba (CU10)
+python -m scripts.export_demo_data      # regenera scripts/data/demo_data.sql.gz para la opción A
 ```
 
-Contraseña de demo para todas las cuentas seed: `Fashion123!`
+`seed_demo` hace miles de operaciones: contra una base remota tarda mucho; conviene generarla localmente y llevarla
+con la opción A. Termina con 12 verificaciones de coherencia (stock, comprobantes, cajas, sucursales...).
+
+**Imágenes:** hoy se sirven desde el backend (`/demo-assets`). Con credenciales reales de Cloudinary en `.env`,
+`python -m scripts.build_demo_catalog --package ... --storage cloudinary` las sube y el catálogo usa esas URLs
+(necesario para el vestidor del móvil, que usa un servicio externo y no alcanza `localhost`).
 
 Nota: si `which alembic` apunta a `/opt/homebrew/bin/alembic`, usa `python -m alembic` para evitar el binario global roto. `python` sí puede salir del `venv`, así que `seed.py` funciona con ese intérprete.
 
@@ -345,7 +399,7 @@ python -m alembic downgrade -1
 
 `python -m alembic downgrade -1` revierte la última migración aplicada. El `-1` significa "retrocede un paso".
 
-Para cualquier clon o instalación nueva, ejecuta `python -m alembic upgrade head` antes de levantar la API. Esto aplicará todas las migraciones en orden (0001 a 0040) y creará la estructura completa de tablas, tipos enum, restricciones e índices en PostgreSQL. Luego ejecuta `python seed.py` para cargar los datos de prueba.
+Para cualquier clon o instalación nueva, ejecuta `python -m alembic upgrade head` antes de levantar la API. Esto aplicará todas las migraciones en orden (0001 a 0051) y creará la estructura completa de tablas, tipos enum, restricciones e índices en PostgreSQL. Luego carga los datos de demostración (sección «Datos de demostración»).
 
 ### Pruebas del snapshot (PostgreSQL desechable)
 
