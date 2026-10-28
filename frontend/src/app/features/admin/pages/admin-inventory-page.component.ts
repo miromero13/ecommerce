@@ -198,6 +198,72 @@ export class AdminInventoryPageComponent {
     await this.loadMovements();
   }
 
+  // CU11 transfer modal: its own copy of the origin branch's stock, so it never depends on the page's selected branch.
+  protected readonly transferStock = signal<InventoryBranchStock[]>([]);
+  protected readonly transferStockLoading = signal(false);
+  protected readonly transferSearch = signal('');
+  protected readonly transferVariant = signal<InventoryBranchStock | null>(null);
+  protected readonly transferOptions = computed(() => {
+    const query = this.transferSearch().trim().toLowerCase();
+    return this.transferStock()
+      .filter((item) => item.status === 'active' && item.available_quantity > 0)
+      .filter((item) => !query || [item.product_name, item.variant_sku, item.size_name, item.color_name]
+        .some((value) => value?.toLowerCase().includes(query)));
+  });
+
+  protected readonly originSelectLabel = (branchId: string | null | undefined): string =>
+    branchId ? this.branchLabel(branchId) : 'Selecciona la sucursal de origen';
+
+  protected readonly destinationSelectLabel = (branchId: string | null | undefined): string =>
+    branchId ? this.branchLabel(branchId) : 'Selecciona la sucursal destino';
+
+  protected async selectTransferOrigin(branchId: string | null | undefined): Promise<void> {
+    const origin = branchId ?? '';
+    this.transferForm.controls.from_branch_id.setValue(origin);
+    if (this.transferForm.controls.to_branch_id.value === origin) this.transferForm.controls.to_branch_id.setValue('');
+    this.clearTransferVariant();
+    await this.loadTransferStock(origin);
+  }
+
+  protected pickTransferVariant(item: InventoryBranchStock): void {
+    this.transferVariant.set(item);
+    this.transferForm.controls.variant_id.setValue(item.variant_id);
+    const quantity = this.transferForm.controls.quantity;
+    quantity.setValidators([Validators.required, Validators.min(1), Validators.max(item.available_quantity)]);
+    if (quantity.value > item.available_quantity) quantity.setValue(item.available_quantity);
+    quantity.updateValueAndValidity();
+  }
+
+  protected transferError(): string {
+    const form = this.transferForm.controls;
+    if (!form.from_branch_id.value) return 'Selecciona la sucursal de origen.';
+    if (!form.variant_id.value) return 'Selecciona una prenda del inventario.';
+    if (!form.to_branch_id.value) return 'Selecciona la sucursal destino.';
+    const max = this.transferVariant()?.available_quantity;
+    return max ? `La cantidad debe estar entre 1 y ${max}.` : 'Ingresa una cantidad mayor que cero.';
+  }
+
+  private clearTransferVariant(): void {
+    this.transferVariant.set(null);
+    this.transferForm.controls.variant_id.setValue('');
+    this.transferForm.controls.quantity.setValidators([Validators.required, Validators.min(1)]);
+    this.transferForm.controls.quantity.updateValueAndValidity();
+  }
+
+  private async loadTransferStock(branchId: string): Promise<void> {
+    this.transferStock.set([]);
+    if (!branchId) return;
+    this.transferStockLoading.set(true);
+    try {
+      const response = await firstValueFrom(this.inventoryApi.getBranchStock(branchId));
+      this.transferStock.set(response.data ?? []);
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'No se pudo cargar el inventario de la sucursal de origen.'));
+    } finally {
+      this.transferStockLoading.set(false);
+    }
+  }
+
   protected activeBranchStock(): InventoryBranchStock[] {
     return this.branchStock().filter((item) => item.status === 'active');
   }
@@ -414,7 +480,9 @@ export class AdminInventoryPageComponent {
   }
 
   protected openTransferModal(): void {
-    const branchId = this.isAdmin() ? '' : this.selectedBranchId();
+    // The administrator starts from the branch shown on the page (may be none); the manager, from their own.
+    const branchId = this.selectedBranchId();
+    this.transferSearch.set('');
     this.transferForm.reset({
       variant_id: '',
       from_branch_id: branchId,
@@ -422,7 +490,10 @@ export class AdminInventoryPageComponent {
       quantity: 1,
       note: '',
     });
+    this.clearTransferVariant();
+    this.transferForm.markAsUntouched();
     this.transferModalOpen.set(true);
+    void this.loadTransferStock(branchId);
   }
 
   protected closeTransferModal(): void {
@@ -479,7 +550,6 @@ export class AdminInventoryPageComponent {
         success: 'Traspaso registrado correctamente.',
         error: 'No se pudo registrar el traspaso.',
       });
-      this.transferForm.patchValue({ quantity: 1, note: '' });
       this.closeTransferModal();
       await this.refresh();
     } catch {
