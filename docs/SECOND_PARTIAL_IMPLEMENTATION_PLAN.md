@@ -8,13 +8,12 @@
 | Orden | CU | Estado real en código | Avance |
 |---|---|---|---|
 | 0 | **Fase 0 – brechas en CUs "Hecho"** (CU1, CU6, CU15 + docs) | ver sección 1.5 | Presentación 2 |
-| 1 | CU3 RBAC dinámico | 0 % (roles = `RolEnum` fijo) | Presentación 2 |
-| 2 | CU8 Reportes IA + ML | ~40 % (NLP Gemini + voz hechos) | Presentación 2 |
-| 3 | CU9 Reabastecimiento experto | 0 % | Presentación 2 |
-| 4 | CU10 Ingesta RPA | 0 % | Presentación 2/3 |
-| 5 | CU16 Wishlist | 0 % | Presentación 2/3 |
-| 6 | CU17 Loyalty | 0 % | Presentación 2/3 |
-
+| 1 | CU3 RBAC dinámico | ✅ Hecho (commit `234220e`) | Presentación 2 |
+| 2 | CU8 Reportes IA + ML | ✅ Hecho (commit `bccdaf9`); falta solo el ensayo en vivo con micrófono | Presentación 2 |
+| 3 | CU9 Reabastecimiento experto | ✅ Hecho (commit `f902a81`) | Presentación 2 |
+| 4 | CU10 Ingesta RPA | ✅ Hecho (commit `4633449`) | Presentación 2/3 |
+| 5 | CU16 Wishlist | ✅ Hecho (commit `e34967e`) | Presentación 2/3 |
+| 6 | CU17 Loyalty | ✅ Hecho (commit `9456c75`) | Presentación 2/3 |
 | 7 | CU21 Devoluciones (RMA, 30 días) | 0 % — añadido por D3 (sección 1.7) | Presentación 3 |
 
 Fuera de alcance de este plan: CU18–CU20, CU22, CU23.
@@ -199,7 +198,7 @@ Rutas reales verificadas. "Brecha" = lo que falta para cerrar el CU según el ex
 | Front | `features/shared/pages/sales-history-page` (`/app/admin/sales`), `admin-inventory-page`, `reports-api.service.ts`, `report.model.ts`, `core/utils/simple-pdf.util.ts` |
 | Doc dice (incorrecto) | `admin-reports-page` y `/app/admin/reports` (los crea CU8) |
 
-**Brecha CU14:** solo CSV → Excel/PDF de backend se cierra en CU8.
+**Brecha CU14 cerrada por CU8:** CSV conservado y exportaciones Excel/PDF de backend implementadas.
 
 ### CU15 – Cupones
 | Capa | Archivos |
@@ -346,7 +345,7 @@ No se crean casos de uso nuevos ni relaciones include/extend: cada tarea corrige
 | 4 | `backend/app/schemas/rbac_schema.py` [NEW] | `PermissionRead`, `RoleCreate(name, code, permission_ids min 1)`, `RoleUpdate`, `RoleRead`, `UserRolesAssign(role_ids)` |
 | 5 | `backend/app/services/rbac_service.py` [NEW] | `PERMISSIONS` (catálogo: `inventory:read`, `inventory:transfer`, `inventory:adjust`, `sales:create`, `sales:read`, `reports:read`, `reports:ai`, `catalog:manage`, `users:manage`, `rbac:manage`, `replenishment:manage`, `promotions:manage`, `orders:manage`, `reservations:manage`), `list_permissions`, `list_roles(tenant_id)`, `create_role` (409 código repetido, 400 sin permisos), `update_role`, `assign_user_roles` (usuario del mismo tenant), `effective_permissions(db, user) -> list[str]` |
 | 6 | `backend/app/routes/rbac_routes.py` [NEW] | `APIRouter(prefix="/rbac")`: `GET /permissions`, `GET /roles`, `POST /roles`, `PUT /roles/{role_id}`, `POST /users/{user_id}/roles` — protegidos con `require_permission("rbac:manage")` |
-| 7 | `backend/app/auth/dependencies.py` [EDIT] | agregar `require_permission(name)` (usa `effective_permissions`; 403 `"No tenés permisos suficientes para realizar esta acción"`) |
+| 7 | `backend/app/auth/dependencies.py` [EDIT] | agregar `require_permission(name)` (usa `effective_permissions`; 403 `"No tienes permisos suficientes para realizar esta acción"`) |
 | 8 | `backend/app/routes/auth.py` [EDIT] | añadir claim `"permissions": effective_permissions(db, user)` en los 2 `create_access_token` y en el `user` devuelto |
 | 9 | `backend/app/routes/inventory_routes.py` [EDIT] | demo: `transfer_route` pasa a `require_permission("inventory:transfer")` (manteniendo `_require_branch_access`) |
 | 10 | `backend/main.py` [EDIT] | registrar `rbac_routes` |
@@ -370,8 +369,9 @@ No se crean casos de uso nuevos ni relaciones include/extend: cada tarea corrige
 
 ## 3. CU8 – Reportes IA + Machine Learning
 
-**Ya hecho:** `backend/app/services/natural_report_service.py`, `POST /api/reports/query` en `backend/app/routes/report_routes.py`, voz (Web Speech) en `sales-history-page`.
-**Falta:** datos sintéticos, regresión, K-Means, exportación Excel/PDF, página de reportes IA, 4 tipos de reportes demostrables.
+**Implementado:** NLP compatible en `/api/reports/query`; regresión real Scikit-Learn con evaluación cronológica/R²/MSE, RFM con K-Means/Silhouette, exportación Excel/PDF y página `/app/admin/reports` con voz, gráficos y cuatro reportes descriptivos. La página usa **datos reales por defecto**; el interruptor «Modo demostración (solo datos sintéticos)» envía `use_synthetic_data: true` (entrenamiento reproducible en memoria, sin consultas de ventas/clientes ni escrituras) y avisa que no es un pronóstico del negocio. Descriptivos/NLP/exportaciones siempre usan datos reales.
+**Compatibilidad API:** `POST /api/reports/ml/predict-demand` con `{ "target_period_weeks": 4, "use_synthetic_data": true }`; clusters con `{ "use_synthetic_data": true }`. El indicador es opcional y vale `false` por defecto: conserva el modo automático con datos reales del tenant y complemento sintético si faltan muestras. Clusters sigue aceptando `{}` o ningún cuerpo. Las métricas son calculadas, no prefijadas; `data_source` declara 0 reales y sintéticos positivos en la demo. No hay tablas nuevas ni persistencia de entrenamiento.
+**Verificación:** pruebas HTTP en `backend/tests/test_cu8_api.py`, modelos en `test_ml_reports.py`, exportación en `test_smart_report_exports.py`, flujo de la página en `frontend/scripts/test-smart-reports.cjs`. Queda el ensayo manual con micrófono.
 **Gate de plan:** endpoints ML exigen `tenant_has_feature(db, tenant_id, "ai_ml_smart_reports")` (403 si el plan no lo incluye).
 
 ### Backend
@@ -379,11 +379,11 @@ No se crean casos de uso nuevos ni relaciones include/extend: cada tarea corrige
 |---|---|---|
 | 1 | `backend/requirements.txt` [EDIT] | `scikit-learn`, `openpyxl`, `reportlab` (pandas ya está) |
 | 2 | `backend/app/services/ml/__init__.py` [NEW] | vacío |
-| 3 | `backend/app/services/ml/synthetic_data_generator.py` [NEW] | genera semanas sintéticas (estacionalidad + ruido, semilla fija) y clientes sintéticos RFM; se **combina** con datos reales de `sales`/`orders` del tenant |
+| 3 | `backend/app/services/ml/synthetic_data_generator.py` [NEW] | genera semanas sintéticas (estacionalidad + ruido, semilla fija) y clientes sintéticos RFM; demo solo sintética, combinación con datos del tenant únicamente en modo API automático |
 | 4 | `backend/app/services/ml/demand_forecast_service.py` [NEW] | features semana/mes/lag → `LinearRegression` o `RandomForestRegressor`, split train/test, `r2_score`, `mean_squared_error`, pronóstico N semanas con intervalo (±1.96·RMSE) |
 | 5 | `backend/app/services/ml/customer_segmentation_service.py` [NEW] | RFM por cliente (frecuencia, monto, recencia) → `StandardScaler` + `KMeans(k=3)`, `silhouette_score`, nombre de segmento por centroide |
 | 6 | `backend/app/services/report_export_service.py` [NEW] | `to_excel(rows, headers) -> bytes` (openpyxl), `to_pdf(title, rows, headers) -> bytes` (reportlab); reutiliza las consultas de `report_service.py` |
-| 7 | `backend/app/schemas/report_schema.py` [EDIT] | `DemandForecastRequest(branch_id?, target_period_weeks 1-12)`, respuestas ML |
+| 7 | `backend/app/schemas/report_schema.py` [EDIT] | `DemandForecastRequest(branch_id?, target_period_weeks 1-12, use_synthetic_data=false)`, `CustomerClustersRequest(use_synthetic_data=false)`, respuestas ML |
 | 8 | `backend/app/routes/report_routes.py` [EDIT] | `POST /reports/ml/predict-demand`, `POST /reports/ml/customer-clusters`, `GET /reports/export/excel?type=sales|inventory|movements|top_products`, `GET /reports/export/pdf?...` (reusar `_scoped_filters`) |
 | 9 | `backend/app/services/report_service.py` [EDIT] | si falta: `top_products` (ranking top 10) y `branch_comparison` → completan los 4 tipos obligatorios (ventas por sucursal, top 10, stock crítico, comparativa) |
 | 10 | `backend/tests/test_ml_reports.py` [NEW] | métricas en rango, k=3 segmentos, export devuelve bytes xlsx/pdf válidos, aislamiento tenant |
@@ -547,7 +547,7 @@ Ejecutar la transferencia reutiliza `inventory_service.register_transfer` (atóm
 
 ---
 
-## 10. Estado de implementación — Fase 0, pagos y delivery (actualizado 2026-10-27)
+## 10. Estado de implementación — Fase 0, pagos, delivery y CU3–CU17 (actualizado 2026-10-28)
 
 > Sección mantenida por Claude Code. Commits en la rama `marilyn` (sin push). Cada punto tiene tests en `backend/tests/`.
 
@@ -568,9 +568,16 @@ Ejecutar la transferencia reutiliza `inventory_service.register_transfer` (atóm
 | Mensaje en español de recomendaciones (CU6) | ✅ | CU6 | `recommendation_routes.py` |
 | Anticipo con tarjeta (web y móvil) | ✅ | 1P-CU14 | `shared/components/stripe-card-payment`, `my-reservations-page`, móvil `reservations_page.dart` |
 | Ubicación automática en el móvil | ✅ | CU20 | `checkout_page.dart` (`_useMyLocation`), permisos en `AndroidManifest.xml` e `Info.plist` |
+| RBAC: roles personalizados que reemplazan los permisos del rol base | ✅ | CU3 | `services/rbac_service.py` (`effective_permissions`, `assign_user_roles`), `routes/rbac_routes.py`, `auth/dependencies.require_permission`, migración `0042`, `admin/pages/rbac-roles-page`, `shared/directives/has-permission.directive.ts` |
+| Reportes IA + ML (regresión, K-Means, 4 reportes, Excel/PDF, modo demostración) | ✅ | CU8 | `services/ml/*`, `services/report_export_service.py`, `routes/report_routes.py`, `admin/pages/admin-reports-page` |
+| Sistema experto de reabastecimiento | ✅ | CU9 | `services/expert_replenishment_service.py`, `routes/expert_replenishment_routes.py`, `inventory_service._move_stock`, tarea en `main.py`, migración `0043`, `admin/pages/admin-expert-replenishment-page` |
+| Ingesta RPA de remitos con Gemini | ✅ | CU10 | `services/rpa_ingest_service.py`, `routes/rpa_ingest_routes.py`, `inventory_service._add_stock`, migración `0044`, `proveedor/pages/provider-rpa-ingest-page`, `docs/demo/remito_demo.pdf` |
+| Lista de deseos con mover al carrito (web y móvil) | ✅ | CU16 | `services/wishlist_service.py`, `routes/wishlist_routes.py`, migración `0045`, `cliente/pages/wishlist-page`, `cliente/components/wishlist-toggle-button`, móvil `features/wishlist/` |
+| Puntos de fidelidad por empresa con niveles (web, caja y móvil) | ✅ | CU17 | `services/loyalty_service.py`, `routes/loyalty_routes.py`, `order_service` (`_new_order`, `_consume_order`, `_release_order`), `sales_service._apply_loyalty`, migración `0046`, `cliente/pages/loyalty-page`, `cart-page`, `caja-page`, móvil `features/loyalty/`, `checkout_page.dart` |
 | Devoluciones con reembolso a tarjeta / efectivo (D3, D4) | ⏳ | CU21 | ver sección 1.7 |
 
 **Notas para quien continúe:**
+- Migraciones: `0041` Fase 0, `0042` CU3, `0043` CU9, `0044` CU10, `0045` CU16, `0046` CU17.
 - La migración `0041` agrupa toda la Fase 0. Las bases que aplicaron una versión anterior de `0041` necesitan las columnas nuevas (`ALTER TABLE ... ADD COLUMN IF NOT EXISTS`).
 - `backend/tests/conftest.py::seeded_db` reconstruye el esquema `public` de la base desechable y corre el seed; no correr dos suites a la vez sobre la misma base de tests.
 - Móvil: el delivery toma la ubicación del GPS (`geolocator`, botón "Usar mi ubicación") o latitud/longitud manual; el anticipo se paga por QR o con tarjeta (Stripe PaymentSheet).
@@ -595,6 +602,12 @@ Ejecutar la transferencia reutiliza `inventory_service.register_transfer` (atóm
 | RN-13 | El logo de la empresa es PNG/JPG/WEBP de hasta **2 MB**; el color es hexadecimal (`#RRGGBB`). | `tenant_service.update_tenant_logo`, `tenant_schema.HEX_COLOR` |
 | RN-14 | El personal solo opera sobre su empresa: un `X-Tenant-ID` distinto al del JWT se rechaza (403). | `auth/dependencies.get_current_user` |
 | RN-15 | El stock nunca es negativo ni hay más apartado que existencias (restricciones en la base de datos). | `models/inventory.py`, migración `0041` |
+| RN-16 | Un rol personalizado **reemplaza** los permisos del rol base; administrador y superadmin tienen todos; solo se asignan roles al personal de la propia empresa (encargado, cajero, proveedor). | `rbac_service.effective_permissions`, `assign_user_roles` |
+| RN-17 | Los modelos ML usan datos reales de la empresa (completados con sintéticos si faltan muestras); el modo demostración usa solo sintéticos y lo declara en `data_source`. | `services/ml/*`, `admin-reports-page` |
+| RN-18 | El sistema experto no promete dos veces el mismo excedente, solo usa sucursales activas y aplica los traspasos en una sola transacción. | `expert_replenishment_service` |
+| RN-19 | Ingesta RPA: PDF/PNG/JPG/WEBP de hasta 10 MB; los SKU desconocidos se informan y **no se crean**; confirma el administrador o el encargado (solo su sucursal); el ingreso es atómico. | `rpa_ingest_service.validate_upload`, `_match`, `commit_job` |
+| RN-20 | Una prenda se guarda una sola vez en la lista de deseos; al moverla al carrito se elige talla/color y rige la regla de un carrito por empresa. | `wishlist_service` |
+| RN-21 | Puntos por empresa: **1 punto por cada 10 Bs** pagados por prendas (el envío no suma); **10 puntos = 1 Bs**, en múltiplos de 10 y sin superar el monto de las prendas; se devuelven si el pedido vence o se cancela; niveles **Bronce < 500, Plata 500–1499, Oro ≥ 1500** puntos acumulados; en caja exige el correo del cliente. | `loyalty_service`, `order_service`, `sales_service._apply_loyalty` |
 
 ### 11.2 Endpoints nuevos o modificados (prefijo `/api`)
 | Método y ruta | Rol | Uso |
@@ -614,7 +627,14 @@ Ejecutar la transferencia reutiliza `inventory_service.register_transfer` (atóm
 | `GET /saas/tenants/{id}/branding` | público | Logo, color y nombre de una empresa |
 | `PUT /saas/tenants/me/branding` · `POST /saas/tenants/me/logo` | administrador | Color y logo de su empresa |
 | `PATCH /saas/tenants/{id}` (`primary_color`, `platform_fee_percent`) · `POST /saas/tenants/{id}/logo` | superadmin | Marca y comisión de cualquier empresa |
-| `POST /sales/` (`payment_method: qr`, `qr_reference`, `promotion_code`, `customer_email`) | cajero | Venta en caja con QR y/o cupón |
+| `POST /sales/` (`payment_method: qr`, `qr_reference`, `promotion_code`, `customer_email`, `points_to_redeem`) | cajero | Venta en caja con QR, cupón y/o puntos |
+| `GET /rbac/permissions` · `GET/POST /rbac/roles` · `PUT /rbac/roles/{id}` · `POST /rbac/users/{id}/roles` | administrador | Catálogo de permisos, roles personalizados y asignación (CU3) |
+| `POST /reports/ml/predict-demand` · `POST /reports/ml/customer-clusters` · `GET /reports/top-products`, `/branch-comparison`, `/critical-inventory` · `GET /reports/export/excel`, `/export/pdf` | administrador (encargado en descriptivos) | Reportes IA + ML y exportación (CU8) |
+| `POST /inventory/expert-replenishment/evaluate` · `/apply-transfers` · `GET/PUT /rules` · `GET /suggestions` | permiso `replenishment:manage` | Sistema experto de reabastecimiento (CU9) |
+| `POST /rpa/ingest/upload-document` · `GET /rpa/ingest/jobs`, `/jobs/{id}` · `PATCH /jobs/{id}/items` · `POST /jobs/{id}/commit` | proveedor, administrador, encargado (confirmar: admin/encargado) | Ingesta RPA (CU10) |
+| `GET /wishlist` · `POST /wishlist/items` · `DELETE /wishlist/items/{product_id}` · `POST /wishlist/items/{product_id}/move-to-cart` | cliente | Lista de deseos (CU16) |
+| `GET /loyalty/balance`, `/loyalty/transactions` · `points_to_redeem` en `/payments/cash|stripe|qr/checkout` | cliente | Puntos por empresa y canje al pagar (CU17) |
+| `GET /loyalty/customer?email=` | cajero | Saldo del cliente en su empresa (CU17) |
 
 ### 11.3 Pantallas
 | Rol | Ruta | Contenido |
@@ -628,7 +648,14 @@ Ejecutar la transferencia reutiliza `inventory_service.register_transfer` (atóm
 | Administrador | `/app/admin/payouts` | Cuenta bancaria, saldo, liquidaciones y movimientos |
 | Administrador | `/app/admin/subscription` | Marca de la empresa (logo y color) |
 | Superadmin | `/app/superadmin/settlements`, `/drivers`, `/tenants` | Liquidaciones, repartidores, marca y comisión por empresa |
-| Móvil | Checkout, Mis pedidos, Mis reservas | Mismas funciones para el cliente; GPS para la dirección |
+| Administrador | `/app/admin/roles` | Roles personalizados con permisos por módulo (CU3) |
+| Administrador | `/app/admin/reports` | Consulta por voz/texto, regresión, K-Means, 4 reportes, Excel/PDF, modo demostración (CU8) |
+| Administrador | `/app/admin/expert-replenishment` | Sugerencias del sistema experto, reglas y aprobación en lote (CU9) |
+| Proveedor / encargado / admin | `/app/proveedor/rpa-ingest`, `/app/encargado/rpa-ingest`, `/app/admin/rpa-ingest` | Subir remito, revisar líneas y confirmar el ingreso (CU10) |
+| Cliente | `/app/cliente/wishlist` (+ corazón en catálogo y detalle) | Favoritos y mover al carrito (CU16) |
+| Cliente | `/app/cliente/loyalty` (+ «Usar puntos» en el carrito) | Puntos, nivel e historial por empresa (CU17) |
+| Cajero | `/app/cajero/caja` | Consulta y canje de puntos del cliente (CU17) |
+| Móvil | Checkout, Mis pedidos, Mis reservas, Lista de deseos, Mis puntos | Mismas funciones para el cliente; GPS para la dirección; puntos a canjear en el checkout |
 
 ### 11.4 Pruebas automatizadas (backend, `pytest`)
 | Archivo | Qué verifica |
@@ -641,5 +668,11 @@ Ejecutar la transferencia reutiliza `inventory_service.register_transfer` (atóm
 | `test_delivery.py` | Cotización y cobertura, flujo efectivo contra entrega entre empresas, PIN, repartidor sin acceso a datos de empresas |
 | `test_cashier_coupon.py` | Cupón en caja con cliente identificado, un uso, sin combinar con ofertas, QR con cupón |
 | `test_tenant_branding.py` | Marca pública, color y logo con validación, reemplazo de logo, edición por superadmin |
+| `test_rbac.py` | Rol restrictivo que reemplaza permisos, bloqueo en endpoints, asignación solo a personal de la empresa |
+| `test_cu8_api.py`, `test_ml_reports.py`, `test_smart_report_exports.py` | Endpoints ML con datos reales y sintéticos, métricas, exportación Excel/PDF segura |
+| `test_expert_replenishment.py` | Reglas del sistema experto, excedente no prometido dos veces, traspasos atómicos |
+| `test_rpa_ingest.py` | Validación de archivos, extracción, SKU desconocidos, corrección, confirmación atómica y por sucursal |
+| `test_wishlist.py` | Guardar, duplicados, privacidad, mover al carrito con stock y talla/color válidos |
+| `test_loyalty.py` | Niveles y conversión, puntos al pagar (una vez), canje y devolución al cancelar, validaciones, caja, puntos por empresa |
 
 Ejecución: `CU1_TEST_DATABASE_URL=postgresql://postgres:cu1-disposable-only@127.0.0.1:53419/cu1_test pytest` (base desechable; nunca la de desarrollo).

@@ -137,21 +137,21 @@ Para mantener la cohesión y respetar **estrictamente la estructura existente de
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **CU1** | **Plataforma Multi-Tenant (Multi-empresa)** | M1: Plataforma SaaS y Seguridad | **Hecho** | Superadministrador | Web |
 | **CU2** | **Gestión de planes y suscripciones B2B** | M1: Plataforma SaaS y Seguridad | **Hecho** | Superadministrador, Administrador | Web |
-| **CU3** | **Gestión granular de roles y permisos (RBAC)** | M1: Plataforma SaaS y Seguridad | **Pendiente** | Superadministrador, Administrador | Web |
+| **CU3** | **Gestión granular de roles y permisos (RBAC)** | M1: Plataforma SaaS y Seguridad | **Hecho** | Superadministrador, Administrador | Web |
 | **CU4** | **Landing page y catálogo de planes** | M1: Plataforma SaaS y Seguridad | **Hecho** | Prospecto / Marca B2B | Web |
 | **CU5** | **Usar vestidor virtual en tiempo real** | M2: Inteligencia Artificial | **Hecho** | Cliente | Móvil / Web |
 | **CU6** | **Recibir recomendaciones de catálogo** | M2: Inteligencia Artificial | **Hecho** | Cliente | Ambas |
 | **CU7** | **Consultar asistente virtual / Chatbot** | M2: Inteligencia Artificial | **Hecho** | Cliente | Ambas |
-| **CU8** | **Generar reportes inteligentes con IA y Machine Learning** | M2: Inteligencia Artificial | **Pendiente** | Administrador | Web |
-| **CU9** | **Reabastecimiento automático de stock (Sistema Experto)** | M2: Inteligencia Artificial | **Pendiente** | Administrador, Sistema | Web |
-| **CU10** | **Ingesta de mercadería con RPA e IA** | M2: Inteligencia Artificial | **Pendiente** | Proveedor, Sistema | Web |
+| **CU8** | **Generar reportes inteligentes con IA y Machine Learning** | M2: Inteligencia Artificial | **Hecho** | Administrador | Web |
+| **CU9** | **Reabastecimiento automático de stock (Sistema Experto)** | M2: Inteligencia Artificial | **Hecho** | Administrador, Sistema | Web |
+| **CU10** | **Ingesta de mercadería con RPA e IA** | M2: Inteligencia Artificial | **Hecho** | Proveedor, Sistema | Web |
 | **CU11** | **Traspaso manual de inventario** | M3: Inventario y Operaciones | **Hecho** | Administrador, Encargado | Web |
 | **CU12** | **Notificaciones push móviles** | M3: Inventario y Operaciones | **Hecho** | Cliente, Sistema | Móvil |
 | **CU13** | **Dashboard de control y métricas** | M4: Business Intelligence | **Hecho** | Administrador | Web |
 | **CU14** | **Generación y exportación de reportes** | M4: Business Intelligence | **Hecho** | Administrador | Web |
 | **CU15** | **Gestionar y aplicar cupones promocionales** | M5: Promociones y Fidelización | **Hecho** | Cliente, Admin, Encargado | Ambas |
-| **CU16** | **Gestionar lista de deseos (*Wishlist*)** | M5: Promociones y Fidelización | **Pendiente** | Cliente | Ambas |
-| **CU17** | **Fidelización y billetera de puntos (*Loyalty*)** | M5: Promociones y Fidelización | **Pendiente** | Cliente, Cajero | Ambas |
+| **CU16** | **Gestionar lista de deseos (*Wishlist*)** | M5: Promociones y Fidelización | **Hecho** | Cliente | Ambas |
+| **CU17** | **Fidelización y billetera de puntos (*Loyalty*)** | M5: Promociones y Fidelización | **Hecho** | Cliente, Cajero | Ambas |
 | **CU18** | **Emitir y comprar tarjetas de regalo (*Gift Cards*)** | M5: Promociones y Fidelización | **Pendiente** | Cliente | Ambas |
 | **CU19** | **Gestionar billetera digital (*Store Wallet*)** | M5: Promociones y Fidelización | **Pendiente** | Cliente, Cajero | Ambas |
 | **CU20** | **Delivery y despacho a domicilio** | M6: Logística y Posventa | **Pendiente** | Cliente, Delivery | Ambas |
@@ -377,7 +377,8 @@ Response 403 Forbidden:
 #### CU3 – Gestión granular de roles y permisos (RBAC dinámico)
 * **Módulo:** M1: Plataforma SaaS y Seguridad
 * **Actor Principal:** Superadministrador, Administrador
-* **Estado:** Pendiente | **Plataforma:** Web
+* **Estado:** **Hecho** (`rbac_service.py`, `rbac_routes.py`, migración `0042`, `rbac-roles-page`) | **Plataforma:** Web
+* **Regla implementada:** un rol personalizado **reemplaza** los permisos del rol base (perfil restrictivo); sin roles personalizados rigen los permisos por defecto del rol base. Administrador y superadministrador tienen todos los permisos. Solo se asignan roles al personal de la propia empresa (encargado, cajero, proveedor).
 * **Descripción Funcional:** Sustitución del enum rígido de roles por un sistema de permisos dinámicos (`permissions`, `roles`, `role_permissions`). Permite crear perfiles a medida asignando permisos granulares por módulo y verbo (ej. `inventory:read`, `inventory:transfer`, `sales:create`).
 
 ##### Endpoints Backend
@@ -427,7 +428,7 @@ Response 400 Bad Request:
 Response 403 Forbidden:
 {
   "statusCode": 403,
-  "message": "No tenés permisos suficientes para realizar esta acción",
+  "message": "No tienes permisos suficientes para realizar esta acción",
   "error": "HTTPException"
 }
 ```
@@ -447,12 +448,12 @@ POST /api/rbac/users/{user_id}/roles
 * **Mensajes en UI:** El toast proyecta `res.message` al guardar roles y `getErrorMessage(...)` ante rechazos de permisos.
 
 ##### Checklist de Implementación
-- [ ] Backend: Modelar tablas `permissions`, `roles`, `role_permissions` y `user_roles`.
-- [ ] Backend: Inyectar matriz de permisos en el payload del token JWT (`permissions: [...]`).
-- [ ] Backend: Crear dependencia FastAPI `require_permission("permission_name")`.
-- [ ] Frontend: Crear directiva `*hasPermission="'inventory:transfer'"` para ocultar elementos en el DOM.
-- [ ] Frontend: Desarrollar pantalla `rbac-roles-page` con checkboxes de permisos agrupados por módulo.
-- [ ] Verificación: Asignar rol restrictivo a un usuario de prueba y validar bloqueo en endpoints y UI.
+- [x] Backend: Modelar tablas `permissions`, `roles`, `role_permissions` y `user_roles`.
+- [x] Backend: Inyectar matriz de permisos en el payload del token JWT (`permissions: [...]`).
+- [x] Backend: Crear dependencia FastAPI `require_permission("permission_name")`.
+- [x] Frontend: Crear directiva `*hasPermission="'inventory:transfer'"` para ocultar elementos en el DOM.
+- [x] Frontend: Desarrollar pantalla `rbac-roles-page` con checkboxes de permisos agrupados por módulo.
+- [x] Verificación: Asignar rol restrictivo a un usuario de prueba y validar bloqueo en endpoints y UI (`tests/test_rbac.py`).
 
 ---
 
@@ -703,35 +704,35 @@ GET /api/chatbot/messages
 #### CU8 – Generar reportes inteligentes con IA y Machine Learning
 * **Rama de IA:** **Procesamiento de Lenguaje Natural (PLN)** + **IA Generativa** (*Text-to-Filters* con Gemini) + **Machine Learning** (Supervisado y No Supervisado con Scikit-Learn)
 * **Actor Principal:** Administrador
-* **Estado:** **Pendiente** (Base de lenguaje natural implementada; pendiente evolución de modelos de Machine Learning, exportación a Excel/PDF y demostración de 4 tipos de reportes) | **Plataforma:** Web
+* **Estado:** **Hecho** (NLP, regresión, K-Means, cuatro reportes y exportaciones con pruebas automatizadas; falta solo el ensayo en vivo con micrófono) | **Plataforma:** Web
 * **Descripción Funcional:** Motor analítico avanzado para la generación de reportes empresariales inteligentes acorde al Desafío V del examen. Permite a usuarios autorizados formular solicitudes en lenguaje natural escrito o por voz (Web Speech API), interpretando intenciones para generar tanto reportes convencionales como reportes predictivos y de patrones:
   1. **Reportes Descriptivos e Históricos (NLP con Gemini):** Traducción de consultas en lenguaje natural a filtros SQL parametrizados y seguros contra datos reales de PostgreSQL, garantizando la demostración de al menos cuatro tipos de reportes (ventas por sucursal, ranking de productos más vendidos, existencias críticas/inventario bajo, y comparativas de ventas entre sucursales).
-  2. **Reportes Predictivos con Machine Learning Supervisado:** Invocación de un modelo de regresión (entrenado con datos sintéticos y reales) para predecir variables objetivo como la demanda de prendas o la proyección de ventas de la próxima temporada, reportando métricas de evaluación ($R^2$, MSE).
+  2. **Reportes Predictivos con Machine Learning Supervisado:** Invocación de un modelo de regresión real de Scikit-Learn (por defecto con los datos reales de la empresa, completados con sintéticos si faltan muestras; el interruptor «Modo demostración» entrena solo con datos sintéticos reproducibles en memoria) para predecir variables objetivo como la demanda de prendas o la proyección de ventas de la próxima temporada, reportando métricas de evaluación ($R^2$, MSE).
   3. **Reportes de Patrones con Machine Learning No Supervisado:** Invocación de un modelo de clustering (K-Means) para descubrir patrones de compra o segmentar clientes según frecuencia y volumen de compra, reportando métricas de calidad (Silhouette Score).
   4. **Exportación Dinámica:** Capacidad de visualizar resultados en tablas o gráficos dinámicos y exportar los reportes generados a archivos formateados de **Excel (.xlsx)** y **PDF**.
 
 ##### Endpoints Backend
 ```http
-POST /api/reports/natural-query
+POST /api/reports/query
 Headers: Authorization: Bearer <admin_jwt>
 Request Body:
 {
-  "query_text": "Cuánto vendimos de blusas en la sucursal Centro la semana pasada"
+  "query": "Cuánto vendimos de blusas en la sucursal Centro la semana pasada"
 }
 Response 200 OK:
 {
   "statusCode": 200,
-  "message": "Consulta en lenguaje natural interpretada exitosamente",
+  "message": "Reporte interpretado exitosamente",
   "data": {
-    "report_kind": "descriptive_sql",
-    "interpreted_filters": {
-      "branch_name": "Sucursal Centro",
-      "category": "Blusas",
-      "date_from": "2026-04-01",
-      "date_to": "2026-04-07"
-    },
-    "metrics": { "total_sales_amount": 3450.00, "total_units_sold": 23 },
-    "rows": [ ... ]
+    "report_type": "sales",
+    "format": "pdf",
+    "columns": ["branch_name", "quantity_sold", "gross_sales"],
+    "filters": { "from_date": "2026-04-01", "to_date": "2026-04-07" },
+    "interpretation": "Ventas de la semana solicitada",
+    "report": {
+      "summary": { "total_sales": "3450.00", "total_units": 23 },
+      "rows": [ ... ]
+    }
   }
 }
 
@@ -747,8 +748,8 @@ POST /api/reports/ml/predict-demand
 Headers: Authorization: Bearer <admin_jwt>
 Request Body:
 {
-  "branch_id": "branch_central",
-  "target_period_weeks": 4
+  "target_period_weeks": 4,
+  "use_synthetic_data": true
 }
 Response 200 OK:
 {
@@ -766,6 +767,8 @@ Response 200 OK:
 ```http
 POST /api/reports/ml/customer-clusters
 Headers: Authorization: Bearer <admin_jwt>
+Request Body:
+{ "use_synthetic_data": true }
 Response 200 OK:
 {
   "statusCode": 200,
@@ -783,26 +786,30 @@ Response 200 OK:
 }
 ```
 ```http
-GET /api/reports/export/excel?type=sales&start_date=2026-04-01&end_date=2026-04-10
-GET /api/reports/export/pdf?type=sales&start_date=2026-04-01&end_date=2026-04-10
+GET /api/reports/export/excel?type=sales&from_date=2026-04-01&to_date=2026-04-10
+GET /api/reports/export/pdf?type=sales&from_date=2026-04-01&to_date=2026-04-10
 ```
+
+**Contrato vigente y métricas:** `/query` conserva `{report_type, format, columns, filters, interpretation, report: {summary, rows}}`; los ejemplos omiten campos secundarios por brevedad. Los identificadores son UUID reales. Los modelos agregan `data_source: {mode, real_samples, synthetic_samples, notice}`. La página usa **datos reales por defecto** (`use_synthetic_data: false`). El interruptor «Modo demostración (solo datos sintéticos)» envía `use_synthetic_data: true`: entrenamiento real de Scikit-Learn solo con datos sintéticos reproducibles en memoria, sin consultar ventas/clientes ni insertar datos o modelos; en ese modo la página avisa que no es un pronóstico del negocio y `data_source` declara `mode: "synthetic"`, `real_samples: 0`. La API mantiene `use_synthetic_data: false` por defecto si se omite: lee datos del tenant y completa con sintéticos cuando faltan muestras (menos de 26 semanas observadas o 30 clientes/3 perfiles distintos). En automático, demanda sigue admitiendo `branch_id` UUID opcional y clusters acepta `{}` o ningún cuerpo. Los ejemplos numéricos de respuesta son ilustrativos, no métricas garantizadas ni prefijadas. Descriptivos, NLP y exportaciones siguen usando datos reales. La evaluación cronológica usa el último 20 %; R² puede ser negativo. Intervalos ±1.96·RMSE aproximados, no garantías. El historial excluye la semana en curso. RFM usa pedidos pagados por cliente, nunca el cajero `Sale.user_id`; los segmentos distinguen clientes reales y sintéticos. Silhouette usa hasta 2000 muestras reproducibles.
+
+Los endpoints ML exigen administrador y `ai_ml_smart_reports` (403 sin prestación); NLP conserva `ai_text_reports`. Nuevos GET: `/api/reports/top-products`, `/branch-comparison`, `/critical-inventory`. Exportación `type=sales|inventory|movements|top_products|branch_comparison|critical_inventory`; filtros `branch_id`, `product_id`, `variant_id`, `from_date`, `to_date`, `q`. Exporta reportes descriptivos y conserva el alcance del encargado. Top 10/comparativa cuentan operaciones completadas y pagadas; stock crítico compara disponible con el mínimo de la sucursal. JSON/CSV anteriores no cambian. Excel trata nombres/SKU como texto, no fórmulas.
 
 ##### Ubicación en Frontend (Angular)
 * **Página y Vista:** `frontend/src/app/features/admin/pages/admin-reports-page.component.ts` (`admin-reports-page.component.html`)
 * **Servicio API:** `frontend/src/app/features/shared/services/reports-api.service.ts`
 * **Ruta Angular:** `/app/admin/reports`
-* **Mensajes en UI:** El toast proyecta `res.message`: `"Consulta en lenguaje natural interpretada exitosamente"` y los mensajes de estado del modelo.
+* **Mensajes en UI:** El toast proyecta `res.message`: `"Reporte interpretado exitosamente"` y los mensajes de estado del modelo. Las tablas NLP respetan las columnas solicitadas; las descargas descriptivas usan columnas estándar por tipo.
 
 ##### Checklist de Implementación
 - [x] Backend: Servicio `natural_report_service.py` con prompt estructurado JSON hacia Gemini para interpretar intenciones.
-- [x] Backend: Endpoint `/api/reports/natural-query` con ejecución de consultas dinámicas de ventas, inventario y movimientos.
+- [x] Backend: Endpoint `/api/reports/query` con ejecución de consultas dinámicas de ventas, inventario y movimientos.
 - [x] Frontend: Barra de consulta por voz/texto en `admin-reports-page` con Web Speech API.
-- [ ] Backend (Datos Sintéticos): Implementar generador de datos sintéticos (`synthetic_data_generator.py`) para entrenamiento y validación de los modelos de Machine Learning.
-- [ ] Backend (ML Supervisado): Desarrollar y entrenar modelo supervisado de regresión para proyección de demanda y ventas con cálculo de métricas ($R^2$ / MSE).
-- [ ] Backend (ML No Supervisado): Desarrollar y entrenar modelo no supervisado de clustering (K-Means) para segmentación de clientes y detección de patrones de compra con Silhouette Score.
-- [ ] Backend (Exportación Excel/PDF): Implementar generación y exportación de reportes dinámicos a Excel (.xlsx con `openpyxl`) y PDF formateado.
-- [ ] Backend (4 Tipos de Reportes): Probar y asegurar la demostración de los 4 tipos de reportes obligatorios con datos reales (ventas por sucursal, top 10 productos, inventario con menor stock, y comparativa temporal/proyección).
-- [ ] Frontend: Visualización de gráficos para clusters y proyecciones en `admin-reports-page` y botones de exportación a Excel y PDF.
+- [x] Backend (Datos Sintéticos): Implementar generador de datos sintéticos (`synthetic_data_generator.py`) para entrenamiento y validación de los modelos de Machine Learning.
+- [x] Backend (ML Supervisado): Desarrollar y entrenar modelo supervisado de regresión para proyección de demanda y ventas con cálculo de métricas ($R^2$ / MSE).
+- [x] Backend (ML No Supervisado): Desarrollar y entrenar modelo no supervisado de clustering (K-Means) para segmentación de clientes y detección de patrones de compra con Silhouette Score.
+- [x] Backend (Exportación Excel/PDF): Implementar generación y exportación de reportes dinámicos a Excel (.xlsx con `openpyxl`) y PDF formateado.
+- [x] Backend (4 Tipos de Reportes): Probar y asegurar la demostración de los 4 tipos de reportes obligatorios con datos reales (ventas por sucursal, top 10 productos, inventario con menor stock, y comparativa temporal/proyección).
+- [x] Frontend: Visualización de gráficos para clusters y proyecciones en `admin-reports-page` y botones de exportación a Excel y PDF.
 - [ ] Verificación: Ejecutar en vivo consultas por voz y texto demostrando reportes históricos de PostgreSQL, reportes predictivos de ML supervisado y segmentaciones de ML no supervisado.
 
 ---
@@ -810,7 +817,8 @@ GET /api/reports/export/pdf?type=sales&start_date=2026-04-01&end_date=2026-04-10
 #### CU9 – Reabastecimiento automático de stock (Sistema Experto)
 * **Rama de IA:** **Sistemas Expertos** (Motor de Inferencia de Reglas Determinísticas)
 * **Actor Principal:** Administrador, Sistema
-* **Estado:** Pendiente | **Plataforma:** Web
+* **Estado:** **Hecho** (`expert_replenishment_service.py`, `expert_replenishment_routes.py`, migración `0043`, tarea periódica en `main.py`, `admin-expert-replenishment-page`) | **Plataforma:** Web
+* **Regla implementada:** un excedente nunca se promete dos veces; solo participan sucursales activas; aprobar traspasos es atómico (todos o ninguno).
 * **Descripción Funcional:** Motor de inferencia autónomo que evalúa reglas de inventario (umbrales mínimos, velocidad de ventas de los últimos 7 días y stock disponible en depósitos) para emitir órdenes automáticas de traspaso (`transfer`) entre sucursales, previniendo quiebres de stock.
 
 ##### Endpoints Backend
@@ -875,19 +883,20 @@ PUT /api/inventory/expert-replenishment/rules
 * **Mensajes en UI:** Toast con `res.message`: `"Evaluación del sistema experto finalizada"` y `"Órdenes de traspaso automático aplicadas al inventario"`.
 
 ##### Checklist de Implementación
-- [ ] Backend: Servicio `expert_replenishment_service.py` con motor de reglas lógicas basadas en hechos.
-- [ ] Backend: Endpoints `/api/inventory/expert-replenishment/...` para evaluar y confirmar transferencias.
-- [ ] Backend: Tarea programada en segundo plano para evaluación automática periódica.
-- [ ] Frontend: Crear `ExpertReplenishmentApiService` y página `admin-expert-replenishment-page`.
-- [ ] Frontend: Tabla de sugerencias del sistema experto con botón para aprobar traspasos en lote.
-- [ ] Verificación: Provocar nivel de stock crítico en una sucursal y validar la recomendación generada por el motor.
+- [x] Backend: Servicio `expert_replenishment_service.py` con motor de reglas lógicas basadas en hechos.
+- [x] Backend: Endpoints `/api/inventory/expert-replenishment/...` para evaluar y confirmar transferencias.
+- [x] Backend: Tarea programada en segundo plano para evaluación automática periódica.
+- [x] Frontend: Crear `ExpertReplenishmentApiService` y página `admin-expert-replenishment-page`.
+- [x] Frontend: Tabla de sugerencias del sistema experto con botón para aprobar traspasos en lote.
+- [x] Verificación: Provocar nivel de stock crítico en una sucursal y validar la recomendación generada por el motor (`tests/test_expert_replenishment.py`).
 
 ---
 
 #### CU10 – Ingesta de mercadería con RPA e IA
 * **Rama de IA:** **RPA con IA** (*Intelligent Document Processing* - IDP)
 * **Actor Principal:** Proveedor, Sistema
-* **Estado:** Pendiente | **Plataforma:** Web
+* **Estado:** **Hecho** (`rpa_ingest_service.py`, `rpa_ingest_routes.py`, migración `0044`, `provider-rpa-ingest-page`) | **Plataforma:** Web
+* **Regla implementada:** el proveedor, el administrador o el encargado suben el documento (PDF, PNG, JPG o WEBP, máx. 10 MB); Gemini extrae las líneas en segundo plano; confirman el ingreso el administrador o el encargado (solo de su sucursal). Los SKU desconocidos se informan y **nunca se crean**; la confirmación es atómica. Documento de prueba: `docs/demo/remito_demo.pdf`.
 * **Descripción Funcional:** Bot desatendido que procesa notas de remisión, facturas y catálogos en PDF o imágenes enviados por proveedores. Utiliza OCR y extracción semántica para reconocer atributos de prendas (talle, color, costo, cantidades) y crear borradores de ingreso de mercadería sin tipeo manual.
 
 ##### Endpoints Backend
@@ -960,10 +969,10 @@ Response 201 Created:
 * **Mensajes en UI:** Toast con el mensaje devuelto por el backend: `"Mercadería ingresada al inventario y catálogo sincronizado exitosamente"`.
 
 ##### Checklist de Implementación
-- [ ] Backend: Servicio `rpa_ingest_service.py` con OCR y extracción estructurada con Gemini Flash / Vision.
-- [ ] Backend: Endpoints `/api/rpa/ingest/...` para subida de documentos, consulta de job y confirmación.
-- [ ] Frontend: Desarrollar vista `provider-rpa-ingest-page` con zona de arrastre de archivos y grilla de ítems detectados.
-- [ ] Verificación: Subir un PDF de prueba de remito y corroborar la carga automática en existencias.
+- [x] Backend: Servicio `rpa_ingest_service.py` con OCR y extracción estructurada con Gemini Flash / Vision.
+- [x] Backend: Endpoints `/api/rpa/ingest/...` para subida de documentos, consulta de job y confirmación.
+- [x] Frontend: Desarrollar vista `provider-rpa-ingest-page` con zona de arrastre de archivos y grilla de ítems detectados.
+- [x] Verificación: Subir un PDF de prueba de remito y corroborar la carga en existencias (`tests/test_rpa_ingest.py`, `docs/demo/remito_demo.pdf`).
 
 ---
 
@@ -1097,7 +1106,7 @@ Response 200 OK:
 Response 403 Forbidden:
 {
   "statusCode": 403,
-  "message": "No tenés permisos para visualizar métricas globales de otras sucursales",
+  "message": "No tienes permisos para visualizar métricas globales de otras sucursales",
   "error": "HTTPException"
 }
 ```
@@ -1205,7 +1214,8 @@ Response 400 Bad Request:
 #### CU16 – Gestionar lista de deseos (*Wishlist*)
 * **Módulo:** M5: Promociones y Fidelización
 * **Actor Principal:** Cliente
-* **Estado:** Pendiente | **Plataforma:** Ambas
+* **Estado:** **Hecho** (`wishlist_service.py`, `wishlist_routes.py`, migración `0045`) | **Plataforma:** Ambas
+* **Regla implementada:** una prenda se guarda una sola vez por cliente; el favorito pertenece a la empresa de la prenda. Mover al carrito exige elegir talla/color, respeta la regla de un carrito por empresa y quita la prenda de la lista solo si se agregó al carrito.
 * **Descripción Funcional:** Permite al cliente autenticado guardar prendas en su lista de favoritos mediante el botón de corazón en catálogo y detalle, con vista consolidada para transferir directamente al carrito.
 
 ##### Endpoints Backend
@@ -1255,8 +1265,11 @@ Response 409 Conflict:
 ```
 ```http
 DELETE /api/wishlist/items/{product_id}
+Response 200 OK: { "statusCode": 200, "message": "Prenda eliminada de tu lista de deseos" }
+
 POST /api/wishlist/items/{product_id}/move-to-cart
-Response 200 OK:
+Request Body: { "variant_id": "<uuid>", "branch_id": "<uuid opcional>", "quantity": 1 }
+Response 200 OK (data = carrito):
 {
   "statusCode": 200,
   "message": "Prenda movida al carrito de compras con éxito"
@@ -1271,94 +1284,100 @@ Response 400 Bad Request:
 ```
 
 ##### Ubicación en Frontend (Angular & Móvil)
-* **Página y Vista:** `frontend/src/app/features/cliente/pages/wishlist-page.component.ts` (`wishlist-page.component.html`)
+* **Página y Vista:** `frontend/src/app/features/cliente/pages/wishlist-page.component.ts` (plantilla en línea)
 * **Componente de Botón:** `frontend/src/app/features/cliente/components/wishlist-toggle-button.component.ts`
 * **Servicio API:** `frontend/src/app/features/shared/services/wishlist-api.service.ts`
 * **Modelo TypeScript:** `frontend/src/app/features/shared/models/wishlist.model.ts`
 * **Ruta Angular:** `/app/cliente/wishlist` (`canActivate: [roleGuard(['cliente'])]`)
 * **Integración en Menú:** Ítem `"Lista de deseos"` en la barra de navegación del Cliente y enlace en la pantalla de Perfil.
-* **Móvil Flutter:** `mobile/lib/features/profile/wishlist_page.dart` accesible desde el Menú de Perfil.
+* **Móvil Flutter:** `mobile/lib/features/wishlist/wishlist_page.dart` y `wishlist_api.dart` (tarjeta «Lista de deseos» en `management_page.dart`; corazón en `catalog/product_detail_page.dart`).
 * **Mensajes en UI:** Toast con `res.message`: `"Prenda añadida a tu lista de deseos"`.
 
 ##### Checklist de Implementación
-- [ ] Backend: Modelo `WishlistItem` con claves `user_id`, `product_id`, `tenant_id` y restricción de unicidad.
-- [ ] Backend: Endpoints CRUD `/api/wishlist/...` y acción `/move-to-cart`.
-- [ ] Frontend: Crear `WishlistApiService` e integrarlo en tarjetas de producto y detalle.
-- [ ] Frontend: Desarrollar página `wishlist-page` con grilla de favoritos y botón para mover al carrito.
-- [ ] Móvil: Pantalla de favoritos en Flutter integrada al menú de perfil.
-- [ ] Verificación: Añadir prenda a favoritos y verificar persistencia entre sesiones.
+- [x] Backend: Modelo `WishlistItem` con claves `user_id`, `product_id`, `tenant_id` y restricción de unicidad.
+- [x] Backend: Endpoints CRUD `/api/wishlist/...` y acción `/move-to-cart`.
+- [x] Frontend: Crear `WishlistApiService` e integrarlo en tarjetas de producto y detalle.
+- [x] Frontend: Desarrollar página `wishlist-page` con grilla de favoritos y botón para mover al carrito.
+- [x] Móvil: Pantalla de favoritos en Flutter integrada al menú del cliente.
+- [x] Verificación: Añadir prenda a favoritos y verificar persistencia (`tests/test_wishlist.py`).
 
 ---
 
 #### CU17 – Fidelización y billetera de puntos (*Loyalty*)
 * **Módulo:** M5: Promociones y Fidelización
 * **Actor Principal:** Cliente, Cajero
-* **Estado:** Pendiente | **Plataforma:** Ambas
-* **Descripción Funcional:** Motor de fidelización basado en los `garment_points` configurados en las prendas. Acumula puntos tras compras completadas y permite canjearlos como descuento monetario en compras digitales o en caja física.
+* **Estado:** **Hecho** (`loyalty_service.py`, `loyalty_routes.py`, migración `0046`) | **Plataforma:** Ambas
+* **Descripción Funcional:** Billetera de puntos **por empresa**. Acumula puntos cuando una compra queda pagada (pedido web o venta en caja con el cliente identificado) y permite canjearlos como descuento en el checkout web/móvil o en caja.
+* **Reglas implementadas:**
+  * Se gana **1 punto por cada 10 Bs** pagados por prendas (el envío no suma; el anticipo de una reserva sí). Un pedido suma puntos una sola vez, al quedar pagado.
+  * Se canjean **10 puntos = 1 Bs**, en múltiplos de 10, sin superar el monto de las prendas; el canje se elige al confirmar el pedido (efectivo, tarjeta o QR) o en caja.
+  * Si un pedido con puntos canjeados vence o se cancela, los puntos se devuelven.
+  * Nivel por puntos acumulados (nunca baja): **Bronce** (< 500), **Plata** (500–1499), **Oro** (≥ 1500).
+  * En caja el canje y la acumulación exigen el correo de un cliente registrado.
 
 ##### Endpoints Backend
 ```http
 GET /api/loyalty/balance
-Headers: Authorization: Bearer <jwt>
+Headers: Authorization: Bearer <client_jwt>
 Response 200 OK:
 {
   "statusCode": 200,
-  "message": "Saldo de puntos de fidelización obtenido",
-  "data": {
-    "total_points": 450,
-    "cash_equivalent": 45.00,
-    "tier": "Gold"
-  }
+  "message": "Puntos obtenidos exitosamente",
+  "data": [
+    {
+      "tenant_id": "<uuid>",
+      "tenant_name": "Moda Andina",
+      "points_balance": 450,
+      "lifetime_points": 620,
+      "tier": "Plata",
+      "balance_value": 45.00
+    }
+  ]
 }
+
+GET /api/loyalty/transactions          (cliente: movimientos earn | redeem | refund)
+GET /api/loyalty/customer?email=...    (cajero: saldo del cliente en su empresa)
 ```
 ```http
-POST /api/loyalty/redeem
-Headers: Authorization: Bearer <jwt>
-Request Body:
-{
-  "order_or_sale_id": "ord_9901",
-  "points_to_redeem": 200
-}
-Response 200 OK:
-{
-  "statusCode": 200,
-  "message": "Puntos canjeados correctamente en la compra",
-  "data": {
-    "discount_applied": 20.00,
-    "remaining_points": 250
-  }
-}
+El canje viaja en la compra misma (no hay endpoint aparte, así el monto del QR o de Stripe ya incluye el descuento):
+
+POST /api/payments/cash/checkout | /api/payments/stripe/checkout | /api/payments/qr/checkout
+Request Body: { "pickup_branch_id": "<uuid>", "points_to_redeem": 200 }
+Response 201: el pedido incluye "loyalty_discount": 20.00 y el total ya descontado.
+
+POST /api/sales/   (cajero)
+Request Body: { "items": [...], "customer_email": "cliente@correo.com", "points_to_redeem": 200 }
 
 Response 400 Bad Request:
 {
   "statusCode": 400,
-  "message": "Puntos insuficientes para realizar el canje solicitado",
+  "message": "Puntos insuficientes: tienes 120 puntos en esta empresa",
   "error": "HTTPException"
 }
 
 Response 400 Bad Request:
 {
   "statusCode": 400,
-  "message": "El valor del canje no puede superar el importe total de la orden",
+  "message": "Los puntos canjeados superan el monto a pagar",
   "error": "HTTPException"
 }
 ```
 
 ##### Ubicación en Frontend (Angular & Móvil)
-* **Páginas y Vistas:** `frontend/src/app/features/cliente/pages/loyalty-page.component.ts` (`loyalty-page.component.html`), `frontend/src/app/features/cajero/pages/caja-page.component.ts` (Canje en mostrador)
+* **Páginas y Vistas:** `frontend/src/app/features/cliente/pages/loyalty-page.component.ts` (plantilla en línea), campo «Usar puntos» en `cliente/pages/cart-page`, `frontend/src/app/features/cajero/pages/caja-page.component.ts` (consulta y canje en mostrador)
 * **Servicio API:** `frontend/src/app/features/shared/services/loyalty-api.service.ts`
 * **Modelo TypeScript:** `frontend/src/app/features/shared/models/loyalty.model.ts`
 * **Rutas Angular:** `/app/cliente/loyalty`, `/app/cajero/caja`
-* **Móvil Flutter:** `mobile/lib/features/profile/loyalty_points_page.dart` accesible desde el Menú de Perfil.
-* **Mensajes en UI:** La vista muestra directamente el mensaje del backend: `"Puntos canjeados correctamente en la compra"`.
+* **Móvil Flutter:** `mobile/lib/features/loyalty/loyalty_page.dart` (tarjeta «Mis puntos» en `management_page.dart`) y campo «Puntos a canjear» en `orders/checkout_page.dart`.
+* **Mensajes en UI:** La vista muestra directamente el mensaje del backend (por ejemplo `"Los puntos se canjean en múltiplos de 10"`).
 
 ##### Checklist de Implementación
-- [ ] Backend: Modelar tablas `loyalty_accounts` y `loyalty_ledger_transactions` vinculadas a `tenant_id`.
-- [ ] Backend: Hook post-venta para acreditar puntos automáticos según las prendas adquiridas.
-- [ ] Backend: Endpoints `/api/loyalty/balance` y `/api/loyalty/redeem`.
-- [ ] Frontend: Crear `LoyaltyApiService` y pantalla `loyalty-page` con nivel de cliente e historial.
-- [ ] Frontend: Integrar selector de canje de puntos en el módulo de caja (`caja-page.component.ts`).
-- [ ] Verificación: Completar compra presencial y constatar acreditación inmediata de puntos.
+- [x] Backend: Modelar tablas `loyalty_accounts` y `loyalty_ledger` vinculadas a `tenant_id`.
+- [x] Backend: Hook post-venta (`order_service._consume_order`, `sales_service._apply_loyalty`) para acreditar puntos.
+- [x] Backend: Endpoints `/api/loyalty/balance`, `/transactions`, `/customer` y `points_to_redeem` en checkout y caja.
+- [x] Frontend: Crear `LoyaltyApiService` y pantalla `loyalty-page` con nivel de cliente e historial.
+- [x] Frontend: Integrar selector de canje de puntos en el módulo de caja (`caja-page.component.ts`).
+- [x] Verificación: Completar compra presencial y constatar acreditación inmediata de puntos (`tests/test_loyalty.py`).
 
 ---
 
