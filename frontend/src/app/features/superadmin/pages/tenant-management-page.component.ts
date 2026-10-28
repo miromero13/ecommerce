@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
+import { toast } from '@spartan-ng/brain/sonner';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
   lucideBuilding2,
@@ -24,6 +25,7 @@ import { HlmBadgeImports } from '../../../components/badge/src';
 import { HlmSelectImports } from '../../../components/select/src';
 import { Tenant, TenantStatus } from '../../shared/models/tenant.model';
 import { TenantApiService } from '../../shared/services/tenant-api.service';
+import { SessionService } from '../../shared/services/session.service';
 import { SubscriptionApiService } from '../../shared/services/subscription-api.service';
 import { SubscriptionPlan } from '../../shared/models/subscription.model';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
@@ -69,6 +71,7 @@ export class TenantManagementPageComponent {
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(TenantApiService);
   private readonly subscriptionApi = inject(SubscriptionApiService);
+  private readonly session = inject(SessionService);
 
   protected readonly countries: CountryOption[] = COUNTRIES_LIST;
   protected readonly currencies: string[] = CURRENCIES_LIST;
@@ -116,6 +119,13 @@ export class TenantManagementPageComponent {
     admin_name: ['', [Validators.required, Validators.minLength(2)]],
     plan_id: ['plan_basic', [Validators.required]],
     billing_cycle: ['monthly', [Validators.required]],
+  });
+
+  protected readonly adminForm = this.fb.nonNullable.group({
+    name: ['', [Validators.required, Validators.minLength(2)]],
+    email: ['', [Validators.required, Validators.email]],
+    password: ['', [Validators.required, Validators.minLength(8)]],
+    gender: ['femenino' as 'femenino' | 'masculino', [Validators.required]],
   });
 
   protected readonly metrics = computed(() => {
@@ -223,6 +233,40 @@ export class TenantManagementPageComponent {
     this.closeMenu();
     this.selectedTenant.set(tenant);
     this.viewModalOpen.set(true);
+  }
+
+  /** CU1: the superadmin works inside the company's panel as its administrator. */
+  protected async enterPanel(tenant: Tenant): Promise<void> {
+    this.closeMenu();
+    this.submitting.set(true);
+    try {
+      const res = await firstValueFrom(this.api.openPanelSession(tenant.id));
+      if (!res.data) return;
+      toast.success(res.message);
+      await this.session.enterTenantPanel(res.data, tenant.name);
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, 'No se pudo entrar al panel de la empresa'));
+      // Show the detail so the superadmin can register the missing administrator.
+      if (!tenant.has_admin) this.openDetailModal(tenant);
+    } finally {
+      this.submitting.set(false);
+    }
+  }
+
+  protected async registerAdmin(tenant: Tenant): Promise<void> {
+    if (this.adminForm.invalid) return;
+    this.submitting.set(true);
+    try {
+      const res = await firstValueFrom(this.api.registerAdmin(tenant.id, this.adminForm.getRawValue()));
+      toast.success(res.message);
+      this.adminForm.reset();
+      if (res.data) this.selectedTenant.set(res.data);
+      await this.loadTenants();
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, 'No se pudo registrar el administrador'));
+    } finally {
+      this.submitting.set(false);
+    }
   }
 
   protected closeDetailModal(): void {

@@ -28,7 +28,7 @@ import { HlmCardImports } from '../../../components/card/src';
 import { HlmBadgeImports } from '../../../components/badge/src';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
 import { PricingTableComponent } from '../../shared/components/pricing-table.component';
-import { PLAN_FEATURES, SubscriptionPlan, SubscriptionSummary } from '../../shared/models/subscription.model';
+import { PLAN_FEATURES, SubscriptionPayment, SubscriptionPlan, SubscriptionSummary } from '../../shared/models/subscription.model';
 import { SubscriptionApiService } from '../../shared/services/subscription-api.service';
 import { TenantBrandingEditorComponent } from '../../shared/components/tenant-branding-editor.component';
 import { SessionService } from '../../shared/services/session.service';
@@ -73,6 +73,7 @@ export class SubscriptionPageComponent implements OnInit {
   protected readonly tenantId = inject(SessionService).user()?.tenant_id ?? null;
 
   readonly summary = signal<SubscriptionSummary | null>(null);
+  readonly payments = signal<SubscriptionPayment[]>([]);
   readonly loading = signal<boolean>(true);
   readonly error = signal<string | null>(null);
   readonly features = PLAN_FEATURES;
@@ -100,6 +101,7 @@ export class SubscriptionPageComponent implements OnInit {
         // Without a current plan the company is blocked: offer the plans right away.
         if (!res.data.has_active_subscription) this.showPlans.set(true);
       }
+      await this.loadPayments();
     } catch (err: any) {
       this.error.set(err?.error?.message || 'No se pudo cargar la información de la suscripción.');
     } finally {
@@ -137,12 +139,21 @@ export class SubscriptionPageComponent implements OnInit {
       }));
       toast.success(res.message);
       if (res.data) this.summary.set(res.data);
+      await this.loadPayments();
       this.selected.set(null);
       this.showPlans.set(false);
     } catch (err) {
       toast.error(getErrorMessage(err, 'No se pudo cambiar el plan.'));
     } finally {
       this.changing.set(false);
+    }
+  }
+
+  private async loadPayments(): Promise<void> {
+    try {
+      this.payments.set((await firstValueFrom(this.subscriptionApi.getPaymentHistory())).data ?? []);
+    } catch {
+      this.payments.set([]); // the history is informative; the page still works without it
     }
   }
 

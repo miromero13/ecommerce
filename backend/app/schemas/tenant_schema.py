@@ -8,11 +8,19 @@ from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field
 
-from app.schemas.enums import TenantStatusEnum
+from app.schemas.enums import GenderEnum, TenantStatusEnum
 
 
 
 HEX_COLOR = r"^#[0-9A-Fa-f]{6}$"  # CU1 branding color, e.g. #1f2937
+
+class TenantAdminCreate(BaseModel):
+    """Administrator of a company, registered by the superadmin."""
+    name: str = Field(..., min_length=2, max_length=120)
+    email: EmailStr
+    password: str = Field(..., min_length=8)
+    gender: GenderEnum
+
 
 class TenantCreate(BaseModel):
     name: str = Field(..., min_length=2, max_length=120, description="Nombre de la marca o e-commerce")

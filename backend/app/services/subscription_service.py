@@ -108,6 +108,10 @@ CHATBOT_FEATURE = "chatbot"
 NO_ACTIVE_SUBSCRIPTION ="Tu empresa no tiene una suscripción activa. Renová o elegí un plan para continuar."
 
 
+def _period_price(plan: SubscriptionPlan, billing_cycle: BillingCycleEnum):
+    return plan.price_yearly if billing_cycle == BillingCycleEnum.yearly else plan.price_monthly
+
+
 def _is_current() -> tuple:
     # A subscription past its end_date no longer counts, even if never marked canceled.
     return (
@@ -213,6 +217,7 @@ def create_or_update_tenant_subscription(
         tenant_id=tenant_id,
         plan_id=plan.id,
         billing_cycle=billing_cycle,
+        amount=_period_price(plan, billing_cycle),
         status=SubscriptionStatusEnum.active,
         payment_method=payment_method,
         start_date=now,
@@ -258,6 +263,45 @@ def change_tenant_plan(db: Session, tenant_id: UUID, payload: SubscriptionChange
         db.rollback()
         raise
     return get_tenant_subscription_summary(db, tenant_id)
+
+
+_PAYMENT_METHOD_LABELS = {"simulated_card": "Tarjeta (simulada)", "cash": "Efectivo", "stripe": "Tarjeta (Stripe)"}
+
+
+def list_subscription_history(db: Session, tenant_id: UUID) -> list[dict]:
+    """CU2: every period the company paid, newest first (each plan purchase or change is one payment)."""
+    if not db.get(Tenant, tenant_id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Organización no encontrada.")
+    now = datetime.now(timezone.utc)
+    rows = db.execute(
+        select(TenantSubscription, SubscriptionPlan.name)
+        .join(SubscriptionPlan, SubscriptionPlan.id == TenantSubscription.plan_id)
+        .where(TenantSubscription.tenant_id == tenant_id)
+        .order_by(TenantSubscription.created_at.desc())
+    ).all()
+    history = []
+    for sub, plan_name in rows:
+        if sub.status == SubscriptionStatusEnum.canceled:
+            period_status = "Reemplazado"  # a later plan change started a new period
+        elif sub.end_date and sub.end_date <= now:
+            period_status = "Vencido"
+        else:
+            period_status = "Vigente"
+        method = sub.payment_method.value if hasattr(sub.payment_method, "value") else sub.payment_method
+        history.append({
+            "id": str(sub.id),
+            "paid_at": sub.created_at.isoformat() if sub.created_at else None,
+            "plan_name": plan_name,
+            "billing_cycle": sub.billing_cycle.value if hasattr(sub.billing_cycle, "value") else sub.billing_cycle,
+            "amount": float(sub.amount) if sub.amount is not None else None,
+            "currency": "BOB",  # plans are priced in bolivianos
+            "payment_method": method,
+            "payment_method_label": _PAYMENT_METHOD_LABELS.get(method, method),
+            "start_date": sub.start_date.isoformat() if sub.start_date else None,
+            "end_date": sub.end_date.isoformat() if sub.end_date else None,
+            "status": period_status,
+        })
+    return history
 
 
 def get_tenant_subscription_summary(db: Session, tenant_id: UUID) -> dict:
@@ -397,6 +441,7 @@ def provision_tenant_onboarding(
         tenant_id=tenant.id,
         plan_id=plan.id,
         billing_cycle=payload.billing_cycle,
+        amount=_period_price(plan, payload.billing_cycle),
         status=SubscriptionStatusEnum.active,
         payment_method=SubscriptionPaymentMethodEnum.simulated_card,
         start_date=now,
@@ -492,6 +537,7 @@ def provision_tenant_by_superadmin(
         tenant_id=tenant.id,
         plan_id=plan.id,
         billing_cycle=payload.billing_cycle,
+        amount=_period_price(plan, payload.billing_cycle),
         status=SubscriptionStatusEnum.active,
         payment_method=payload.payment_method,
         start_date=now,

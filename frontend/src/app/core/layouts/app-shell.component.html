@@ -144,6 +144,12 @@
       </div>
     </header>
 
+    @if (session.panelTenantName(); as panelTenant) {
+      <div class="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900 sm:px-6">
+        <span>Estás en el panel de <strong>{{ panelTenant }}</strong> como superadministrador.</span>
+        <button type="button" class="cursor-pointer rounded-md border border-amber-300 bg-white px-3 py-1 font-medium hover:bg-amber-100" (click)="session.leaveTenantPanel()">Volver a mi panel</button>
+      </div>
+    }
     <div class="flex-1 min-w-0 overflow-y-auto p-4 sm:p-6">
       <router-outlet />
     </div>

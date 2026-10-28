@@ -9,6 +9,14 @@ import { UserApiService } from './user-api.service';
 
 const TOKEN_KEY = 'aci_token';
 const USER_KEY = 'aci_user';
+// Superadmin session kept aside while it works inside a company's panel.
+const PANEL_RETURN_KEY = 'aci_panel_return';
+
+interface PanelReturn {
+  token: string;
+  user: UsuarioAuth;
+  tenantName: string;
+}
 
 @Injectable({ providedIn: 'root' })
 export class SessionService {
@@ -24,6 +32,9 @@ export class SessionService {
   readonly user = this.userSignal.asReadonly();
   readonly isLoading = this.loadingSignal.asReadonly();
   readonly isAuthenticated = computed(() => !!this.tokenSignal() && !!this.userSignal());
+  private readonly panelReturnSignal = signal<PanelReturn | null>(this.getStoredPanelReturn());
+  /** Company whose panel the superadmin is using, or null. */
+  readonly panelTenantName = computed(() => this.panelReturnSignal()?.tenantName ?? null);
 
   async bootstrap(): Promise<void> {
     const storedToken = this.tokenSignal();
@@ -98,6 +109,37 @@ export class SessionService {
     this.userSignal.set(user);
   }
 
+  /** The superadmin switches to the company administrator's session; its own session is kept to come back. */
+  async enterTenantPanel(auth: AuthResponse, tenantName: string): Promise<void> {
+    const token = this.tokenSignal();
+    const user = this.userSignal();
+    if (!token || user?.rol !== 'superadministrador') return;
+    const back: PanelReturn = { token, user, tenantName };
+    localStorage.setItem(PANEL_RETURN_KEY, JSON.stringify(back));
+    this.panelReturnSignal.set(back);
+    this.setSession(auth.access_token, this.normalizeUser(auth.user));
+    await this.router.navigate(['/app/admin']);
+  }
+
+  async leaveTenantPanel(): Promise<void> {
+    const back = this.panelReturnSignal();
+    if (!back) return;
+    localStorage.removeItem(PANEL_RETURN_KEY);
+    this.panelReturnSignal.set(null);
+    this.setSession(back.token, back.user);
+    await this.router.navigate(['/app/superadmin/tenants']);
+  }
+
+  private getStoredPanelReturn(): PanelReturn | null {
+    try {
+      const raw = localStorage.getItem(PANEL_RETURN_KEY);
+      return raw ? (JSON.parse(raw) as PanelReturn) : null;
+    } catch {
+      localStorage.removeItem(PANEL_RETURN_KEY);
+      return null;
+    }
+  }
+
   private applyAuthResponse(response: ApiResponse<AuthResponse>): void {
     const auth = response.data;
     if (!auth) {
@@ -110,6 +152,8 @@ export class SessionService {
   clearSession(): void {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(PANEL_RETURN_KEY); // logging out also ends the superadmin's session
+    this.panelReturnSignal.set(null);
     this.tokenSignal.set(null);
     this.userSignal.set(null);
   }

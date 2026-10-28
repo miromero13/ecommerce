@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Optional
 from uuid import UUID
 
@@ -9,9 +10,12 @@ from sqlalchemy.orm import Session
 from app.auth.dependencies import get_current_tenant_id, require_roles
 from app.core.database import get_db
 from app.schemas.enums import RolEnum, TenantStatusEnum
-from app.schemas.tenant_schema import TenantBrandingUpdate, TenantCreate, TenantStatusUpdate, TenantUpdate
+from app.schemas.tenant_schema import TenantAdminCreate, TenantBrandingUpdate, TenantCreate, TenantStatusUpdate, TenantUpdate
 from app.services.tenant_service import (
+    NoTenantAdmin,
     create_tenant,
+    open_tenant_panel,
+    register_tenant_admin,
     get_branding,
     update_branding_color,
     update_tenant_logo,
@@ -23,6 +27,7 @@ from app.services.tenant_service import (
 from app.utils.response import response
 
 router = APIRouter(prefix="/saas/tenants", tags=["SaaS Tenants"])
+logger = logging.getLogger(__name__)
 
 
 @router.get("/")
@@ -114,6 +119,41 @@ async def get_tenant_route(
         message="Empresa obtenida exitosamente",
         data=tenant,
     )
+
+
+@router.post("/{tenant_id}/admin", status_code=status.HTTP_201_CREATED)
+async def register_tenant_admin_route(
+    tenant_id: UUID,
+    payload: TenantAdminCreate,
+    db: Session = Depends(get_db),
+    _: dict = Depends(require_roles(RolEnum.superadministrador)),
+):
+    try:
+        tenant = register_tenant_admin(db, tenant_id, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    if tenant is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Empresa no encontrada")
+    return response(status_code=status.HTTP_201_CREATED, message="Administrador registrado exitosamente", data=tenant)
+
+
+@router.post("/{tenant_id}/panel-session")
+async def open_tenant_panel_route(
+    tenant_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_roles(RolEnum.superadministrador)),
+):
+    """The superadmin enters the company's administrative panel as its administrator."""
+    try:
+        session = open_tenant_panel(db, tenant_id, UUID(current_user["sub"]))
+    except NoTenantAdmin as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    if session is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Empresa no encontrada")
+    logger.info("Superadmin %s entered the panel of tenant %s", current_user["sub"], tenant_id)
+    return response(status_code=status.HTTP_200_OK, message=f"Ingresaste al panel de {session.pop('tenant_name')}", data=session)
 
 
 @router.patch("/{tenant_id}")

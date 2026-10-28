@@ -6,6 +6,7 @@ import { ApiService } from '../../../core/services/api.service';
 import { ApiResponse } from '../../../core/models/api.model';
 import {
   SubscriptionChangePlanPayload,
+  SubscriptionPayment,
   SubscriptionPlan,
   SubscriptionPlanPayload,
   SubscriptionPurchasePayload,
@@ -43,7 +44,12 @@ export class SubscriptionApiService {
     if (tenantId) {
       params = params.set('tenant_id', tenantId);
     }
-    return this.api.get<ApiResponse<SubscriptionSummary>>('/saas/subscriptions/current', params);
+    return this.api.get<ApiResponse<SubscriptionSummary>>('/saas/subscriptions/current', { params });
+  }
+
+  getPaymentHistory(tenantId?: string): Observable<ApiResponse<SubscriptionPayment[]>> {
+    const params = tenantId ? new HttpParams().set('tenant_id', tenantId) : new HttpParams();
+    return this.api.get<ApiResponse<SubscriptionPayment[]>>('/saas/subscriptions/history', { params });
   }
 
   changePlan(payload: SubscriptionChangePlanPayload): Observable<ApiResponse<SubscriptionSummary>> {

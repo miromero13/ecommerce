@@ -10,9 +10,9 @@ from sqlalchemy.orm import Session
 from app.models.branch import Branch
 from app.models.tenant import Tenant
 from app.models.user import User
-from app.schemas.enums import TenantStatusEnum
+from app.schemas.enums import RolEnum, TenantStatusEnum
 from app.core.config import settings
-from app.schemas.tenant_schema import TenantBrandingRead, TenantCreate, TenantUpdate
+from app.schemas.tenant_schema import TenantAdminCreate, TenantBrandingRead, TenantCreate, TenantUpdate
 from app.services.cloudinary_service import delete_image, upload_image
 
 LOGO_CONTENT_TYPES = {"image/png", "image/jpeg", "image/webp"}
@@ -47,7 +47,36 @@ def _serialize_tenant(db: Session, tenant: Tenant) -> dict:
         "updated_at": tenant.updated_at,
         "branches_count": branches_count,
         "users_count": users_count,
+        "has_admin": _active_admin(db, tenant.id) is not None,
+        **_plan_info(db, tenant.id),
     }
+
+
+def _plan_info(db: Session, tenant_id: UUID) -> dict:
+    from app.services.subscription_service import get_active_subscription
+
+    sub = get_active_subscription(db, tenant_id)
+    return {
+        "plan_name": sub.plan.name if sub and sub.plan else None,
+        "subscription_end_date": sub.end_date if sub else None,
+    }
+
+
+def _active_admin(db: Session, tenant_id: UUID) -> User | None:
+    return (db.query(User)
+            .filter(User.tenant_id == tenant_id, User.rol == RolEnum.administrador, User.is_active.is_(True))
+            .order_by(User.email).first())
+
+
+def _add_admin(db: Session, tenant_id: UUID, admin: TenantAdminCreate) -> User:
+    from app.services.user_service import ensure_email_available, normalize_email, pwd_context
+
+    ensure_email_available(db, admin.email)
+    user = User(name=admin.name.strip(), email=normalize_email(admin.email), gender=admin.gender,
+                rol=RolEnum.administrador, hashed_password=pwd_context.hash(admin.password),
+                tenant_id=tenant_id, branch_id=None, is_active=True)
+    db.add(user)
+    return user
 
 
 def list_tenants(
@@ -57,7 +86,10 @@ def list_tenants(
     search: Optional[str] = None,
     status: Optional[TenantStatusEnum] = None,
 ) -> tuple[list[dict], int]:
-    query = db.query(Tenant)
+    from app.models.tenant_subscription import TenantSubscription
+
+    # CU2: only companies that subscribed to a plan (current or past) are platform tenants.
+    query = db.query(Tenant).filter(select(TenantSubscription.id).where(TenantSubscription.tenant_id == Tenant.id).exists())
 
     if search:
         search_term = f"%{search.strip().lower()}%"
@@ -110,6 +142,51 @@ def create_tenant(db: Session, payload: TenantCreate) -> dict:
     except IntegrityError as exc:
         db.rollback()
         raise ValueError("Error de integridad al registrar la empresa") from exc
+
+
+def register_tenant_admin(db: Session, tenant_id: UUID, admin: TenantAdminCreate) -> dict | None:
+    """For companies created before the administrator was required."""
+    tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+    if not tenant:
+        return None
+    if _active_admin(db, tenant_id):
+        raise ValueError("La empresa ya tiene un administrador activo")
+    try:
+        _add_admin(db, tenant_id, admin)
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise ValueError("El correo ya está registrado") from exc
+    return _serialize_tenant(db, tenant)
+
+
+class NoTenantAdmin(Exception):
+    pass
+
+
+def open_tenant_panel(db: Session, tenant_id: UUID, superadmin_id: UUID) -> dict | None:
+    """Session of the company's administrator for the superadmin (full access, like the administrator).
+    The token keeps `impersonated_by` so the action can be traced back to the superadmin."""
+    from app.auth.jwt import create_access_token
+    from app.schemas.user_schema import UserRead
+    from app.services.rbac_service import effective_permissions
+
+    tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+    if not tenant:
+        return None
+    if tenant.status == TenantStatusEnum.suspended:
+        raise ValueError("La empresa está suspendida: actívala para entrar a su panel")
+    admin = _active_admin(db, tenant_id)
+    if not admin:
+        raise NoTenantAdmin("La empresa no tiene un administrador activo. Regístralo desde el detalle de la empresa.")
+    perms = effective_permissions(db, admin)
+    token = create_access_token(data={
+        "sub": str(admin.id), "rol": admin.rol.value, "tenant_id": str(tenant_id), "branch_id": None,
+        "permissions": perms, "impersonated_by": str(superadmin_id),
+    })
+    user_out = UserRead.model_validate(admin).model_dump()
+    user_out["permissions"] = perms
+    return {"access_token": token, "token_type": "bearer", "user": user_out, "tenant_name": tenant.name}
 
 
 def update_tenant(db: Session, tenant_id: UUID, payload: TenantUpdate) -> dict | None:

@@ -109,3 +109,18 @@ export interface TenantWithSubscriptionPayload {
   billing_cycle: 'monthly' | 'yearly';
   payment_method: 'cash' | 'simulated_card';
 }
+
+/** CU2: one paid subscription period (plan purchase or change). */
+export interface SubscriptionPayment {
+  id: string;
+  paid_at: string | null;
+  plan_name: string;
+  billing_cycle: 'monthly' | 'yearly';
+  amount: number | null;
+  currency: string;
+  payment_method: string;
+  payment_method_label: string;
+  start_date: string | null;
+  end_date: string | null;
+  status: 'Vigente' | 'Vencido' | 'Reemplazado';
+}

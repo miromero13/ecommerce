@@ -4,12 +4,14 @@ import { Observable } from 'rxjs';
 
 import { ApiService } from '../../../core/services/api.service';
 import { ApiResponse } from '../../../core/models/api.model';
+import { AuthResponse } from '../models/auth.model';
 import {
   Tenant,
   TenantCreatePayload,
   TenantStatus,
   TenantUpdatePayload,
   TenantBranding,
+  TenantAdminPayload,
 } from '../models/tenant.model';
 
 @Injectable({ providedIn: 'root' })
@@ -73,6 +75,16 @@ export class TenantApiService {
     const body = new FormData();
     body.append('file', file);
     return this.api.post<ApiResponse<TenantBranding>>(`/saas/tenants/${tenantId ?? 'me'}/logo`, body);
+  }
+
+  /** The superadmin enters the company's panel as its administrator. */
+  openPanelSession(tenantId: string): Observable<ApiResponse<AuthResponse>> {
+    return this.api.post<ApiResponse<AuthResponse>>(`/saas/tenants/${tenantId}/panel-session`, {});
+  }
+
+  /** For companies that still have no active administrator. */
+  registerAdmin(tenantId: string, payload: TenantAdminPayload): Observable<ApiResponse<Tenant>> {
+    return this.api.post<ApiResponse<Tenant>>(`/saas/tenants/${tenantId}/admin`, payload);
   }
 
   updateTenantStatus(

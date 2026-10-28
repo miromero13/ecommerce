@@ -79,7 +79,7 @@ type SidebarSection = {
   templateUrl: './app-shell.component.html',
 })
 export class AppShellComponent {
-  private readonly session = inject(SessionService);
+  protected readonly session = inject(SessionService);
   private readonly catalogApi = inject(CatalogApiService);
   protected readonly notifications = inject(NotificationPushService);
   protected readonly branding = inject(BrandingService);
