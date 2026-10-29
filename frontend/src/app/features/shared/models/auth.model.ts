@@ -11,6 +11,7 @@ export interface UsuarioAuth {
   tenant_id?: string | null;
   branch_id: string | null;
   is_active?: boolean;
+  permissions?: string[];
 }
 
 export interface LoginRequest {

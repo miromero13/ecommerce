@@ -1,12 +1,15 @@
 import asyncio
 from contextlib import asynccontextmanager
+from pathlib import Path
 from datetime import datetime, timedelta
 
 from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
-from app.routes import user_routes, auth, branch_routes, provider_routes, catalog_routes, garment_routes, inventory_routes, cart_routes, reservation_routes, order_routes, payment_routes, sales_routes, report_routes, dashboard_routes, promotion_routes, replenishment_routes, recommendation_routes, chatbot_routes, notification_routes, tenant_routes, subscription_routes
+from app.routes import user_routes, auth, branch_routes, provider_routes, catalog_routes, garment_routes, inventory_routes, cart_routes, reservation_routes, order_routes, payment_routes, sales_routes, report_routes, dashboard_routes, promotion_routes, replenishment_routes, recommendation_routes, chatbot_routes, notification_routes, tenant_routes, subscription_routes, payout_routes, delivery_routes, rbac_routes, expert_replenishment_routes, rpa_ingest_routes, wishlist_routes, loyalty_routes, cash_session_routes, receipt_routes
 from app.core.error_handlers import register_error_handlers
+from app.core.tenant_middleware import register_tenant_middleware
 from app.core.database import SessionLocal
 from app.services.expiration_service import run_daily_expiration
 from app.services.order_service import expire_due_orders
@@ -33,20 +36,61 @@ async def _daily_expiration_loop() -> None:
             run_daily_expiration()
         except Exception:
             pass
+        # CU6: retrain the ALS recommendation model with the day's views, favorites, carts and purchases.
+        db = SessionLocal()
+        try:
+            from app.services.recommendation_service import train
+            train(db)
+        except Exception:
+            db.rollback()
+        finally:
+            db.close()
+
+
+async def _expert_replenishment_loop() -> None:
+    while True:
+        await asyncio.sleep(21600)  # Every 6 hours
+        db = SessionLocal()
+        try:
+            from app.services.expert_replenishment_service import run_auto_evaluation_all_tenants
+            run_auto_evaluation_all_tenants(db)
+        except Exception:
+            db.rollback()
+        finally:
+            db.close()
+
+
+async def _receipt_email_loop() -> None:
+    """Payment receipts reach the payer's inbox; a mail failure never undoes a payment."""
+    from app.services.receipt_service import send_pending_receipts
+
+    while True:
+        await asyncio.sleep(60)
+        try:
+            await send_pending_receipts(SessionLocal)
+        except Exception:
+            pass
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     task = asyncio.create_task(_expire_orders_loop())
     daily_task = asyncio.create_task(_daily_expiration_loop())
+    replenishment_task = asyncio.create_task(_expert_replenishment_loop())
+    receipt_task = asyncio.create_task(_receipt_email_loop())
     try:
         yield
     finally:
         task.cancel()
         daily_task.cancel()
-        await asyncio.gather(task, daily_task, return_exceptions=True)
+        replenishment_task.cancel()
+        receipt_task.cancel()
+        await asyncio.gather(task, daily_task, replenishment_task, receipt_task, return_exceptions=True)
 
 app = FastAPI(title="ACI", lifespan=lifespan)
+
+# Registered before CORS so CORS stays the outermost layer.
+register_tenant_middleware(app)
 
 # CORS
 app.add_middleware(
@@ -56,6 +100,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Demo catalog images (scripts/build_demo_catalog.py --storage local); the deployed demo uses Cloudinary URLs.
+DEMO_ASSETS = Path(__file__).parent / "demo_assets"
+if DEMO_ASSETS.is_dir():
+    app.mount("/demo-assets", StaticFiles(directory=DEMO_ASSETS), name="demo-assets")
 
 # Routers
 api_router = APIRouter(prefix="/api")
@@ -80,6 +129,15 @@ api_router.include_router(chatbot_routes.router)
 api_router.include_router(notification_routes.router)
 api_router.include_router(tenant_routes.router)
 api_router.include_router(subscription_routes.router)
+api_router.include_router(payout_routes.router)
+api_router.include_router(delivery_routes.router)
+api_router.include_router(rbac_routes.router)
+api_router.include_router(expert_replenishment_routes.router)
+api_router.include_router(rpa_ingest_routes.router)
+api_router.include_router(wishlist_routes.router)
+api_router.include_router(loyalty_routes.router)
+api_router.include_router(cash_session_routes.router)
+api_router.include_router(receipt_routes.router)
 
 app.include_router(api_router)
 

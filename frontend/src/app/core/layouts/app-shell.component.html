@@ -1,10 +1,15 @@
 <div hlmSidebarWrapper class="text-slate-900">
   <hlm-sidebar collapsible="icon" variant="inset" side="left">
-    <header hlmSidebarHeader class="flex h-16 items-start justify-center border-b border-slate-200 px-4">
+    <!-- CU1: the staff member's company branding (falls back to the platform name). -->
+    <header hlmSidebarHeader class="flex h-16 items-start justify-center border-b border-slate-200 px-4"
+            [style.border-top]="branding.current()?.primary_color ? '4px solid ' + branding.current()!.primary_color : null">
       <div class="flex items-center gap-3 text-primary group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0">
         <button hlmSidebarTrigger type="button" aria-label="Abrir o cerrar navegación"></button>
-        <div class="min-w-0 group-data-[collapsible=icon]:hidden">
-          <p class="truncate text-lg font-semibold">ACI Web</p>
+        <div class="flex min-w-0 items-center gap-2 group-data-[collapsible=icon]:hidden">
+          @if (branding.current()?.logo_url) {
+            <img [src]="branding.current()!.logo_url" alt="" class="size-8 shrink-0 rounded object-contain" />
+          }
+          <p class="truncate text-lg font-semibold" [style.color]="branding.current()?.primary_color">{{ branding.current()?.name ?? 'ACI Web' }}</p>
         </div>
       </div>
     </header>
@@ -139,6 +144,12 @@
       </div>
     </header>
 
+    @if (session.panelTenantName(); as panelTenant) {
+      <div class="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900 sm:px-6">
+        <span>Estás en el panel de <strong>{{ panelTenant }}</strong> como superadministrador.</span>
+        <button type="button" class="cursor-pointer rounded-md border border-amber-300 bg-white px-3 py-1 font-medium hover:bg-amber-100" (click)="session.leaveTenantPanel()">Volver a mi panel</button>
+      </div>
+    }
     <div class="flex-1 min-w-0 overflow-y-auto p-4 sm:p-6">
       <router-outlet />
     </div>

@@ -24,6 +24,40 @@ TABLES = (
 )
 
 
+def fake_stripe(monkeypatch):
+    """Online payments are Stripe only: a local fake stands in for the API (no network)."""
+    import itertools
+    from types import SimpleNamespace
+
+    import stripe
+    from app.core.config import settings
+
+    ids = itertools.count(1)
+    monkeypatch.setattr(settings, "stripe_secret_key", "sk_test_fake")
+    monkeypatch.setattr(stripe.PaymentIntent, "create",
+                        lambda **kwargs: SimpleNamespace(id=f"pi_test_{next(ids)}", client_secret="secret_test"))
+    monkeypatch.setattr(stripe.PaymentIntent, "retrieve",
+                        lambda intent_id, **kwargs: SimpleNamespace(id=intent_id, client_secret="secret_test"))
+    monkeypatch.setattr(stripe.PaymentIntent, "cancel", lambda intent_id, **kwargs: None)
+
+
+def stripe_webhook(api, intent_id, cents, currency, metadata):
+    """What Stripe sends on payment_intent.succeeded, processed by the real handler in a request-like session."""
+    from app.core.database import get_db
+    from app.services.order_service import process_stripe_event
+
+    sessions = api.app.dependency_overrides[get_db]()
+    try:
+        process_stripe_event(next(sessions), {"id": f"evt_{intent_id}", "type": "payment_intent.succeeded", "data": {
+            "object": {"id": intent_id, "amount": cents, "currency": currency, "metadata": metadata}}})
+    finally:
+        sessions.close()
+
+
+def cents(amount):
+    return int((Decimal(str(amount)) * 100).to_integral_value())
+
+
 @pytest.fixture
 def market_api(api, monkeypatch):
     from app.routes import (
@@ -35,6 +69,7 @@ def market_api(api, monkeypatch):
     # Keep notification persistence, deduplication and recipients real. No push
     # token can cause Firebase/network access, even if fixture data later grows.
     monkeypatch.setattr(notification_delivery, "_send_push", lambda *args: None)
+    fake_stripe(monkeypatch)
     for module in (cart_routes, order_routes, payment_routes, promotion_routes,
                    reservation_routes, sales_routes):
         api.app.include_router(module.router, prefix="/api")
@@ -66,6 +101,13 @@ def market(api_db, catalog):
                             branch_id=branch.id, is_active=True)
             api_db.add(employee)
             staff[index, role.value] = employee
+    api_db.flush()
+    # 1P-CU18: till sales need the cashier's open drawer; every cashier starts the day with one.
+    from app.models.cash_session import CashSession
+    for (index, role), employee in staff.items():
+        if role == "cajero":
+            api_db.add(CashSession(tenant_id=employee.tenant_id, branch_id=employee.branch_id,
+                                   cashier_id=employee.id, status="open", opening_amount=100))
     api_db.commit()
     return SimpleNamespace(customer=customer, other=other, staff=staff,
                            own=catalog.own, foreign=catalog.foreign,
@@ -114,10 +156,35 @@ def add(api, market, group=None, branch=None):
 def reserve(api, market, group=None, branch=None):
     group = group or market.own
     branch = branch or market.branches[0]
-    return call(api, market.customer, "POST", "/reservations/", 201, json={
+    reservation = call(api, market.customer, "POST", "/reservations/", 201, json={
         "branch_id": str(branch.id), "visit_date": (date.today() + timedelta(days=2)).isoformat(),
         "items": [{"variant_id": str(group.variant.id), "quantity": 1}],
     })
+    # D1: the reservation holds the visit once its 50 % deposit is paid online (Stripe).
+    pay_deposit(api, market, reservation)
+    return call(api, market.customer, "GET", f"/reservations/{reservation['id']}")
+
+
+def checkout(api, market, branch=None, **extra):
+    """Web order: always paid online with Stripe. Returns the pending order and its PaymentIntent id."""
+    branch = branch or market.branches[0]
+    started = call(api, market.customer, "POST", "/payments/stripe/checkout", 201,
+                   json={"pickup_branch_id": str(branch.id), **extra})
+    order = call(api, market.customer, "GET", f"/orders/{started['order_id']}")
+    return {**order, "payment_intent_id": started["payment_intent_id"]}
+
+
+def pay(api, market, order):
+    """Stripe confirms the card payment (the webhook consumes the stock)."""
+    stripe_webhook(api, order["payment_intent_id"], cents(order["total_amount"]), order["currency"],
+                   {"order_id": order["id"]})
+
+
+def pay_deposit(api, market, reservation):
+    """The 50 % reservation deposit paid by card (Stripe)."""
+    started = call(api, market.customer, "POST", f"/payments/stripe/reservations/{reservation['id']}")
+    stripe_webhook(api, started["payment_intent_id"], cents(reservation["deposit_amount"]), "bob",
+                   {"reservation_id": reservation["id"]})
 
 
 def purchase_pending(api, market, group=None, index=0):
@@ -179,24 +246,24 @@ def test_customer_cannot_update_another_customers_cart_item(market_api, api_db, 
              message="Item de carrito no encontrado", json={"quantity": 2})
 
 
-def test_customer_cash_purchases_both_companies_keep_own_history(market_api, api_db, market):
+def test_customer_online_purchases_both_companies_keep_own_history(market_api, api_db, market):
     ids = set()
     for group, index in ((market.own, 0), (market.foreign, 2)):
         add(market_api, market, group, market.branches[index])
-        order = call(market_api, market.customer, "POST", "/payments/cash/checkout", 201,
-                     json={"pickup_branch_id": str(market.branches[index].id)})
+        order = checkout(market_api, market, market.branches[index])
         ids.add(order["id"])
         assert order["pickup_branch_id"] == str(market.branches[index].id)
         assert order["user_id"] == str(market.customer.id)
-        assert order["payment_method"] == "cash" and order["payment_status"] == "pending"
+        assert order["payment_method"] == "stripe" and order["payment_status"] == "pending"
         assert Decimal(order["total_amount"]) == 25
         assert [item["variant_id"] for item in order["items"]] == [str(group.variant.id)]
         assert_tenant(api_db, "orders", order["id"], group.tenant)
         assert stock(api_db, group.variant, market.branches[index]) == (9, 3)
-        collected = call(market_api, market.staff[index, "cajero"], "POST",
-                         f"/orders/{order['id']}/collect-cash", json={"pickup_code": order["pickup_code"]})
-        assert collected["payment_status"] == "paid" and collected["fulfillment_status"] == "collected"
+        pay(market_api, market, order)
         assert stock(api_db, group.variant, market.branches[index]) == (8, 2)
+        collected = call(market_api, market.staff[index, "cajero"], "POST",
+                         f"/orders/{order['id']}/hand-over", json={"pickup_code": order["pickup_code"]})
+        assert collected["payment_status"] == "paid" and collected["fulfillment_status"] == "collected"
         movements = api_db.execute(text(
             "SELECT tenant_id, branch_id, quantity, movement_type FROM inventory_movements WHERE variant_id = :id"
         ), {"id": group.variant.id}).all()
@@ -208,9 +275,9 @@ def test_customer_cash_purchases_both_companies_keep_own_history(market_api, api
     assert call(market_api, market.other, "GET", "/orders/me") == []
 
 
-def test_cash_checkout_rejects_other_company_pickup_without_reserving_stock(market_api, api_db, market):
+def test_checkout_rejects_other_company_pickup_without_reserving_stock(market_api, api_db, market):
     add(market_api, market)
-    rejected(market_api, api_db, market.customer, "POST", "/payments/cash/checkout",
+    rejected(market_api, api_db, market.customer, "POST", "/payments/stripe/checkout",
              json={"pickup_branch_id": str(market.branches[2].id)})
 
 
@@ -274,15 +341,15 @@ def test_cart_cannot_attach_other_company_reservation_to_own_variant(market_api,
     })
 
 
-def test_reserved_cash_purchase_consumes_hold_once_and_closes_reservation(market_api, api_db, market):
+def test_reserved_online_purchase_consumes_hold_once_and_closes_reservation(market_api, api_db, market):
     reservation = purchase_pending(market_api, market)
     call(market_api, market.customer, "POST", f"/reservations/{reservation['id']}/to-cart")
-    order = call(market_api, market.customer, "POST", "/payments/cash/checkout", 201,
-                 json={"pickup_branch_id": str(market.branches[0].id)})
+    order = checkout(market_api, market)
     # Checkout must reuse the reservation hold, not reserve a second unit.
     assert stock(api_db, market.own.variant, market.branches[0]) == (9, 3)
+    pay(market_api, market, order)
     collected = call(market_api, market.staff[0, "cajero"], "POST",
-                     f"/orders/{order['id']}/collect-cash", json={"pickup_code": order["pickup_code"]})
+                     f"/orders/{order['id']}/hand-over", json={"pickup_code": order["pickup_code"]})
     assert collected["payment_status"] == "paid"
     assert stock(api_db, market.own.variant, market.branches[0]) == (8, 2)
     closed = call(market_api, market.customer, "GET", f"/reservations/{reservation['id']}")
@@ -310,12 +377,12 @@ def test_company_admin_cannot_list_other_company_reservations(market_api, api_db
 
 
 @pytest.mark.parametrize("index", [1, 2])
-def test_cash_collection_retains_company_and_assigned_branch_scope(market_api, api_db, market, index):
+def test_hand_over_retains_company_and_assigned_branch_scope(market_api, api_db, market, index):
     add(market_api, market)
-    order = call(market_api, market.customer, "POST", "/payments/cash/checkout", 201,
-                 json={"pickup_branch_id": str(market.branches[0].id)})
+    order = checkout(market_api, market)
+    pay(market_api, market, order)
     rejected(market_api, api_db, market.staff[index, "cajero"], "POST",
-             f"/orders/{order['id']}/collect-cash", message="Pedido no encontrado",
+             f"/orders/{order['id']}/hand-over", message="Pedido no encontrado",
              json={"pickup_code": order["pickup_code"]})
     assert call(market_api, market.staff[index, "encargado"], "GET", "/orders/branch") == []
     rejected(market_api, api_db, market.staff[index, "encargado"], "POST",
@@ -437,7 +504,7 @@ def test_reserved_lifecycle_clear_allows_other_company_transfer(market_api, api_
     assert lifecycle_ledger(api_db) == before
 
 
-def test_reserved_lifecycle_cash_purchase_reuses_cart_across_companies(market_api, api_db, market, coupons):
+def test_reserved_lifecycle_online_purchase_reuses_cart_across_companies(market_api, api_db, market, coupons):
     orders, reservations, cart_id = set(), set(), None
     for group, index, coupon in ((market.own, 0, coupons[0]), (market.foreign, 2, coupons[1])):
         reservation = purchase_pending(market_api, market, group, index)
@@ -446,17 +513,18 @@ def test_reserved_lifecycle_cash_purchase_reuses_cart_across_companies(market_ap
         cart_id = cart_id or cart["id"]
         assert_lifecycle_cart(api_db, cart, market, group, cart_id)
         call(market_api, market.customer, "POST", "/cart/coupon", json={"code": coupon.code})
-        order = call(market_api, market.customer, "POST", "/payments/cash/checkout", 201,
-                     expected_message="Pago en efectivo procesado exitosamente",
-                     json={"pickup_branch_id": str(market.branches[index].id)})
+        order = checkout(market_api, market, market.branches[index])
         orders.add(order["id"])
         assert_tenant(api_db, "orders", order["id"], group.tenant)
         assert order["pickup_branch_id"] == str(market.branches[index].id)
         assert [item["variant_id"] for item in order["items"]] == [str(group.variant.id)]
-        assert Decimal(order["total_amount"]) == 20
+        # 25 list price - 5 coupon - 12.50 paid reservation deposit (D1).
+        assert Decimal(str(order["deposit_applied"])) == Decimal("12.50")
+        assert Decimal(order["total_amount"]) == Decimal("7.50")
         assert stock(api_db, group.variant, market.branches[index]) == (9, 3)
-        paid = call(market_api, market.staff[index, "cajero"], "POST", f"/orders/{order['id']}/collect-cash",
-                    expected_message="Pedido cobrado y entregado", json={"pickup_code": order["pickup_code"]})
+        pay(market_api, market, order)
+        paid = call(market_api, market.staff[index, "cajero"], "POST", f"/orders/{order['id']}/hand-over",
+                    expected_message="Pedido entregado al cliente", json={"pickup_code": order["pickup_code"]})
         assert paid["status"] == "paid" and paid["fulfillment_status"] == "collected"
         assert stock(api_db, group.variant, market.branches[index]) == (8, 2)
         empty = call(market_api, market.customer, "GET", "/cart/current")
@@ -490,8 +558,7 @@ def test_reserved_lifecycle_cancel_releases_hold_once_and_unlocks_cart(market_ap
     other = reserve(market_api, market, market.foreign, market.branches[2])
     cart = call(market_api, market.customer, "POST", f"/reservations/{reservation['id']}/to-cart")
     call(market_api, market.customer, "POST", "/cart/coupon", json={"code": coupons[0].code})
-    order = call(market_api, market.customer, "POST", "/payments/cash/checkout", 201,
-                 json={"pickup_branch_id": str(market.branches[0].id)})
+    order = checkout(market_api, market)
     assert stock(api_db, market.own.variant, market.branches[0]) == (9, 3)
     # Preserve the existing manual-decision guard: only checkout cancellation
     # may close this purchase and release its hold while an order is pending.
@@ -531,24 +598,23 @@ def test_own_company_coupon_cash_collection_records_one_usage(market_api, api_db
     add(market_api, market)
     cart = call(market_api, market.customer, "POST", "/cart/coupon", json={"code": coupons[0].code})
     assert Decimal(cart["discount_amount"]) == 5 and Decimal(cart["total_amount"]) == 20
-    order = call(market_api, market.customer, "POST", "/payments/cash/checkout", 201,
-                 json={"pickup_branch_id": str(market.branches[0].id)})
+    order = checkout(market_api, market)
     assert Decimal(order["total_amount"]) == 20
+    pay(market_api, market, order)
     cashier = market.staff[0, "cajero"]
-    call(market_api, cashier, "POST", f"/orders/{order['id']}/collect-cash",
+    call(market_api, cashier, "POST", f"/orders/{order['id']}/hand-over",
          json={"pickup_code": order["pickup_code"]})
     usages = api_db.execute(text("SELECT promotion_code_id, user_id FROM promotion_code_usages")).all()
     assert [tuple(row) for row in usages] == [(coupons[0].id, market.customer.id)]
-    rejected(market_api, api_db, cashier, "POST", f"/orders/{order['id']}/collect-cash",
-             message="El pedido no está disponible para cobro", json={"pickup_code": order["pickup_code"]})
+    rejected(market_api, api_db, cashier, "POST", f"/orders/{order['id']}/hand-over",
+             message="El pedido no está disponible para entrega", json={"pickup_code": order["pickup_code"]})
 
 
-def test_pending_cash_order_does_not_block_buying_from_other_company(market_api, api_db, market):
+def test_pending_web_order_does_not_block_buying_from_other_company(market_api, api_db, market):
     reservation = purchase_pending(market_api, market)
     path = f"/reservations/{reservation['id']}/to-cart"
     call(market_api, market.customer, "POST", path)
-    order = call(market_api, market.customer, "POST", "/payments/cash/checkout", 201,
-                 json={"pickup_branch_id": str(market.branches[0].id)})
+    order = checkout(market_api, market)
     empty = call(market_api, market.customer, "GET", "/cart/current")
     assert empty["status"] == "active" and empty["items"] == []
     # A pending pickup order must not lock the cart for other companies.
@@ -559,9 +625,8 @@ def test_pending_cash_order_does_not_block_buying_from_other_company(market_api,
     rejected(market_api, api_db, market.customer, "POST", path,
              message="La reserva ya tiene un pedido pendiente de pago")
     add(market_api, market, market.foreign, market.branches[2])
-    # Collecting the first order must not wipe the new company's cart.
-    call(market_api, market.staff[0, "cajero"], "POST", f"/orders/{order['id']}/collect-cash",
-         json={"pickup_code": order["pickup_code"]})
+    # Paying the first order must not wipe the new company's cart.
+    pay(market_api, market, order)
     cart = call(market_api, market.customer, "GET", "/cart/current")
     assert [item["variant_id"] for item in cart["items"]] == [str(market.foreign.variant.id)]
     assert_tenant(api_db, "carts", cart["id"], market.foreign.tenant)

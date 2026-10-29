@@ -28,6 +28,7 @@ class ProductVariant {
     this.sizeId,
     this.colorId,
     this.imageUrl,
+    this.tryOnImageUrl,
     this.branchQuantity,
   });
 
@@ -40,6 +41,8 @@ class ProductVariant {
   final String? sizeId;
   final String? colorId;
   final String? imageUrl;
+  // CU5: transparent garment cut-out for the virtual try-on (the catalog shows imageUrl).
+  final String? tryOnImageUrl;
   final ProductStatus status;
   final int? branchQuantity;
 
@@ -54,6 +57,7 @@ class ProductVariant {
       sizeId: _optionalString(json, 'size_id'),
       colorId: _optionalString(json, 'color_id'),
       imageUrl: _optionalString(json, 'image_url'),
+      tryOnImageUrl: _optionalString(json, 'try_on_image_url'),
       status: ProductStatus.fromJson(json['status']),
       branchQuantity: _optionalInt(json, 'branch_quantity'),
     );

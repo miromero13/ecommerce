@@ -111,7 +111,7 @@ def test_recommendation_eligibility_accepts_only_optional_branch_context():
     db = SimpleNamespace(query=lambda *args: query)
     assert list(inspect.signature(_eligible_product_ids).parameters) == ["db", "branch_id"]
     assert _eligible_product_ids(db, branch_id=uuid4()) == {product_id}
-    assert query.join_count == 2
+    assert query.join_count == 3  # variant, company (suspended ones excluded) and inventory
     assert query.filter_count == 3
 
 

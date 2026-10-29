@@ -30,7 +30,7 @@ export const PLAN_FEATURES: PlanFeatureInfo[] = [
   { key: 'virtual_try_on_2d', label: 'Vestidor virtual', description: 'Tus clientes se prueban tus prendas con la cámara o una foto antes de comprar.' },
   { key: 'ai_text_reports', label: 'Reportes con IA en lenguaje natural', description: 'Pedí reportes escribiendo, por ejemplo: "ventas de esta semana por sucursal".' },
   { key: 'virtual_try_on_3d_ar', label: 'Vestidor 3D con realidad aumentada', description: 'Seguimiento del cuerpo en vivo con ajuste dinámico de la prenda.', comingSoon: true },
-  { key: 'ai_ml_smart_reports', label: 'Analítica predictiva con Machine Learning', description: 'Predicción de demanda y segmentación de clientes (RFM).', comingSoon: true },
+  { key: 'ai_ml_smart_reports', label: 'Analítica predictiva con Machine Learning', description: 'Predicción de demanda y segmentación de clientes (RFM).' },
 ];
 
 export interface SubscriptionPlanPayload {
@@ -108,4 +108,19 @@ export interface TenantWithSubscriptionPayload {
   plan_id: string;
   billing_cycle: 'monthly' | 'yearly';
   payment_method: 'cash' | 'simulated_card';
+}
+
+/** CU2: one paid subscription period (plan purchase or change). */
+export interface SubscriptionPayment {
+  id: string;
+  paid_at: string | null;
+  plan_name: string;
+  billing_cycle: 'monthly' | 'yearly';
+  amount: number | null;
+  currency: string;
+  payment_method: string;
+  payment_method_label: string;
+  start_date: string | null;
+  end_date: string | null;
+  status: 'Vigente' | 'Vencido' | 'Reemplazado';
 }

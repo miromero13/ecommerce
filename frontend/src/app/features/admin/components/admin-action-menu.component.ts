@@ -1,13 +1,13 @@
 import { CommonModule } from '@angular/common';
 import { Component, ElementRef, EventEmitter, HostListener, Input, Output, ViewChild } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
- import { lucideMoreVertical, lucidePencil, lucidePower, lucideTrash2, lucidePackageSearch, lucideEye, lucideClipboardList } from '@ng-icons/lucide';
+ import { lucideMoreVertical, lucidePencil, lucidePower, lucideTrash2, lucidePackageSearch, lucideEye, lucideClipboardList, lucideLogIn } from '@ng-icons/lucide';
 
 @Component({
   selector: 'app-admin-action-menu',
   standalone: true,
   imports: [CommonModule, NgIcon],
-    providers: [provideIcons({ lucideMoreVertical, lucidePencil, lucidePower, lucideTrash2, lucidePackageSearch, lucideEye, lucideClipboardList })],
+    providers: [provideIcons({ lucideMoreVertical, lucidePencil, lucidePower, lucideTrash2, lucidePackageSearch, lucideEye, lucideClipboardList, lucideLogIn })],
   template: `
     <div class="relative flex w-full items-center justify-center">
       <button
@@ -51,6 +51,12 @@ import { NgIcon, provideIcons } from '@ng-icons/core';
                <span>Ver</span>
              </button>
             }
+            @if (showEnter) {
+              <button type="button" class="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50" (click)="run(enter)">
+                <ng-icon name="lucideLogIn" />
+                <span>Entrar al panel</span>
+              </button>
+            }
             @if (showRequest) {
               <button type="button" class="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50" (click)="run(request)">
                 <ng-icon name="lucideClipboardList" />
@@ -80,6 +86,7 @@ export class AdminActionMenuComponent {
    @Input() showView = false;
     @Input() showDelete = true;
     @Input() showRequest = false;
+    @Input() showEnter = false;
 
   @Output() toggleMenu = new EventEmitter<void>();
   @Output() edit = new EventEmitter<void>();
@@ -88,6 +95,7 @@ export class AdminActionMenuComponent {
    @Output() viewProducts = new EventEmitter<void>();
     @Output() view = new EventEmitter<void>();
     @Output() request = new EventEmitter<void>();
+    @Output() enter = new EventEmitter<void>();
 
   protected menuPosition = { top: 0, left: 0, maxHeight: 0 };
 
@@ -107,7 +115,7 @@ export class AdminActionMenuComponent {
     if (!this.isOpen) {
       const rect = this.triggerButton?.nativeElement.getBoundingClientRect();
       if (rect) {
-         const estimatedHeight = (this.showEdit ? 40 : 0) + (this.showActive ? 40 : 0) + (this.showProducts ? 40 : 0) + (this.showView ? 40 : 0) + (this.showRequest ? 40 : 0) + (this.showDelete ? 40 : 0);
+         const estimatedHeight = (this.showEdit ? 40 : 0) + (this.showActive ? 40 : 0) + (this.showProducts ? 40 : 0) + (this.showView ? 40 : 0) + (this.showRequest ? 40 : 0) + (this.showEnter ? 40 : 0) + (this.showDelete ? 40 : 0);
         const spaceBelow = window.innerHeight - rect.bottom - 8;
         const openAbove = spaceBelow < estimatedHeight && rect.top > estimatedHeight;
         const top = openAbove ? Math.max(8, rect.top - estimatedHeight) : rect.bottom + 8;

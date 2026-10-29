@@ -3,7 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.auth.dependencies import get_current_tenant_id, require_roles
+from app.auth.dependencies import get_current_tenant_id, require_roles, require_permission
 from app.core.database import get_db
 from app.models.user import User
 from app.schemas.enums import RolEnum
@@ -148,7 +148,7 @@ async def transfer_route(
     payload: InventoryTransferCreate,
     db: Session = Depends(get_db),
     tenant_id: UUID = Depends(get_current_tenant_id),
-    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
+    current_user: dict = Depends(require_permission("inventory:transfer")),
 ):
     # A manager only sends stock out of their own branch.
     _require_branch_access(current_user, payload.from_branch_id)

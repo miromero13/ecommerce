@@ -3,7 +3,7 @@ from decimal import Decimal
 from enum import Enum
 from uuid import UUID
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import EmailStr, BaseModel, Field, model_validator
 
 from app.schemas.order_schema import PaymentMethodEnum, PaymentStatusEnum
 
@@ -28,14 +28,20 @@ class SaleCreate(BaseModel):
     reservation_id: UUID | None = None
     payment_method: PaymentMethodEnum = PaymentMethodEnum.cash
     cash_reference: str | None = None
+    qr_reference: str | None = None  # required when payment_method is "qr"
+    promotion_code: str | None = Field(default=None, max_length=40)
+    customer_email: EmailStr | None = None  # registered customer; required with a coupon or points
+    points_to_redeem: int = Field(default=0, ge=0)  # CU17: 10 points = 1 Bs
+    # 1P-CU18 cash drawer: cash handed over by the customer; omitted means the exact amount (no change).
+    cash_received: Decimal | None = Field(default=None, ge=0, max_digits=10, decimal_places=2)
     items: list[SaleItemCreate] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def validate_items_or_reservation(self):
         if self.reservation_id:
             raise ValueError("CU18 no permite ventas asociadas a reservas")
-        if self.payment_method != PaymentMethodEnum.cash:
-            raise ValueError("Las ventas directas solo aceptan efectivo")
+        if self.payment_method not in (PaymentMethodEnum.cash, PaymentMethodEnum.qr):
+            raise ValueError("Las ventas directas aceptan efectivo o QR")
         if not self.items:
             raise ValueError("La venta no tiene items")
         return self
@@ -74,6 +80,8 @@ class SaleRead(BaseModel):
     payment_method: PaymentMethodEnum
     payment_status: PaymentStatusEnum
     cash_reference: str | None = None
+    customer_id: UUID | None = None
+    promotion_code_id: UUID | None = None
     subtotal: Decimal
     discount_amount: Decimal
     total_amount: Decimal

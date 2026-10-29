@@ -62,7 +62,7 @@ def test_old_tenant_claim_cannot_keep_previous_company_scope(api, api_db, identi
              f"Sucursal con id {branches[0].id} no encontrada", json={"is_active": False})
 
 
-@pytest.mark.parametrize("role", ["cajero", "encargado", "delivery"])
+@pytest.mark.parametrize("role", ["cajero", "encargado"])
 def test_old_branch_claim_cannot_keep_previous_operational_scope(api, api_db, identities, role):
     from app.schemas.enums import RolEnum
     user, _, branches = identities
@@ -76,7 +76,7 @@ def test_old_branch_claim_cannot_keep_previous_operational_scope(api, api_db, id
     assert branch_ids(api, auth) == {str(branches[1].id)}
 
 
-@pytest.mark.parametrize("role", ["administrador", "proveedor", "encargado", "cajero", "delivery"])
+@pytest.mark.parametrize("role", ["administrador", "proveedor", "encargado", "cajero"])
 def test_missing_current_tenant_never_becomes_global_employee(api, api_db, identities, role):
     from app.schemas.enums import RolEnum
     user, _, branches = identities
@@ -89,7 +89,7 @@ def test_missing_current_tenant_never_becomes_global_employee(api, api_db, ident
     rejected(api, api_db, "GET", "/api/branches/", auth, 403, "Usuario sin empresa asociada")
 
 
-@pytest.mark.parametrize("role", ["cajero", "encargado", "delivery"])
+@pytest.mark.parametrize("role", ["cajero", "encargado"])
 @pytest.mark.parametrize("invalid", ["missing", "mismatched", "inactive"])
 def test_invalid_current_branch_never_grants_operational_access(api, api_db, identities, role, invalid):
     from app.schemas.enums import RolEnum

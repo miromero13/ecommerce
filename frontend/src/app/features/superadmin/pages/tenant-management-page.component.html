@@ -95,6 +95,7 @@
               <th class="px-4 py-3.5">País y Moneda</th>
               <th class="px-4 py-3.5 text-center">Sucursales</th>
               <th class="px-4 py-3.5 text-center">Personal</th>
+              <th class="px-4 py-3.5">Plan</th>
               <th class="px-4 py-3.5 text-center">Estado</th>
               <th class="px-5 py-3.5 text-right">Acción</th>
             </tr>
@@ -130,6 +131,14 @@
                 <td class="px-4 py-3.5 text-center font-semibold text-slate-900">
                   {{ tenant.users_count || 0 }}
                 </td>
+                <td class="px-4 py-3.5">
+                  @if (tenant.plan_name) {
+                    <p class="font-semibold text-slate-900">{{ tenant.plan_name }}</p>
+                    <p class="text-xs text-slate-500">Vence {{ tenant.subscription_end_date | date: 'dd/MM/yyyy' }}</p>
+                  } @else {
+                    <span hlmBadge variant="destructive">Plan vencido</span>
+                  }
+                </td>
                 <td class="px-4 py-3.5 text-center">
                   @if (tenant.status === 'active') {
                     <span hlmBadge class="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">Activa</span>
@@ -146,9 +155,11 @@
                     [showEdit]="false"
                     [showDelete]="false"
                     [showActive]="true"
+                    [showEnter]="tenant.status !== 'suspended'"
                     [activeLabel]="tenant.status === 'active' ? 'Suspender' : 'Activar'"
                     (toggleMenu)="toggleMenu(tenant.id)"
                     (view)="openDetailModal(tenant)"
+                    (enter)="enterPanel(tenant)"
                     (toggleActive)="toggleTenantStatus(tenant)"
                   />
                 </td>
@@ -426,11 +437,37 @@
             </div>
           </div>
 
+          @if (!tenant.has_admin) {
+            <form class="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4" [formGroup]="adminForm" (ngSubmit)="registerAdmin(tenant)">
+              <div>
+                <h3 class="font-semibold text-foreground">Registrar administrador</h3>
+                <p class="text-xs text-muted-foreground">Esta empresa no tiene un administrador activo. Regístralo para poder entrar a su panel.</p>
+              </div>
+              <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <input hlmInput formControlName="name" placeholder="Nombre completo" />
+                <input hlmInput type="email" formControlName="email" placeholder="Correo del administrador" />
+                <input hlmInput type="password" formControlName="password" placeholder="Contraseña (mín. 8)" autocomplete="new-password" />
+                <select class="h-9 rounded-md border border-input bg-background px-2 text-sm" formControlName="gender">
+                  <option value="femenino">Femenino</option>
+                  <option value="masculino">Masculino</option>
+                </select>
+              </div>
+              <button hlmBtn type="submit" class="cursor-pointer" [disabled]="adminForm.invalid || submitting()">Registrar administrador</button>
+            </form>
+          }
+
+          <app-tenant-branding-editor [tenantId]="tenant.id" />
+
           <div class="flex items-center justify-between border-t border-border pt-4 shrink-0">
             <div class="text-[11px] text-muted-foreground">
               Registrado el: {{ tenant.created_at | date:'dd/MM/yyyy HH:mm' }}
             </div>
-            <button hlmBtn variant="outline" type="button" class="cursor-pointer" (click)="closeDetailModal()">Cerrar</button>
+            <div class="flex gap-2">
+              @if (tenant.has_admin && tenant.status !== 'suspended') {
+                <button hlmBtn type="button" class="cursor-pointer" [disabled]="submitting()" (click)="enterPanel(tenant)">Entrar al panel</button>
+              }
+              <button hlmBtn variant="outline" type="button" class="cursor-pointer" (click)="closeDetailModal()">Cerrar</button>
+            </div>
           </div>
         </div>
       </section>

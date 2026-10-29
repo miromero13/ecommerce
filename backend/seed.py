@@ -392,7 +392,8 @@ def _verify_seed(
     users_frame = frames["users"]
     if users_frame["email"].duplicated().any():
         raise RuntimeError("Existen emails duplicados en users")
-    branch_scoped_roles = {RolEnum.encargado.value, RolEnum.cajero.value, RolEnum.delivery.value}
+    # CU20: delivery drivers are platform-level and have no branch.
+    branch_scoped_roles = {RolEnum.encargado.value, RolEnum.cajero.value}
     internal_users = users_frame[users_frame["rol"].map(_enum_value).isin(branch_scoped_roles)]
     branch_ids = {str(branch.id) for branch in branches}
     if internal_users["branch_id"].isna().any() or not internal_users["branch_id"].map(str).isin(branch_ids).all():
@@ -597,14 +598,19 @@ def _seed_plans_and_subscriptions(session, tenants: list[Tenant]) -> None:
 
 def _seed_branches(session) -> list[Branch]:
     branches_payload = [
-        {"name": "Sucursal Central La Paz", "city": "La Paz", "is_default": True, "tenant_id": TENANT_1_ID},
-        {"name": "Sucursal Norte Santa Cruz", "city": "Santa Cruz", "is_default": False, "tenant_id": TENANT_1_ID},
-        {"name": "Sucursal Centro Cochabamba", "city": "Cochabamba", "is_default": False, "tenant_id": TENANT_1_ID},
+        # Coordinates: each city's main square, origin of CU20 delivery quotes.
+        {"name": "Sucursal Central La Paz", "city": "La Paz", "is_default": True, "tenant_id": TENANT_1_ID,
+         "latitude": -16.495800, "longitude": -68.133400},
+        {"name": "Sucursal Norte Santa Cruz", "city": "Santa Cruz", "is_default": False, "tenant_id": TENANT_1_ID,
+         "latitude": -17.783300, "longitude": -63.182100},
+        {"name": "Sucursal Centro Cochabamba", "city": "Cochabamba", "is_default": False, "tenant_id": TENANT_1_ID,
+         "latitude": -17.393500, "longitude": -66.157000},
     ]
     branches: list[Branch] = []
     for payload in branches_payload:
         branch, _ = _get_or_create(session, Branch, {"name": payload["name"]}, payload)
         branch.tenant_id = payload["tenant_id"]
+        branch.latitude, branch.longitude = payload["latitude"], payload["longitude"]
         branches.append(branch)
     return branches
 
@@ -624,8 +630,8 @@ def _seed_users(session, branches: list[Branch]) -> list[User]:
         {"name": "Cajera La Paz", "email": "cajera.lp@fashionstore.bo", "gender": GenderEnum.femenino, "rol": RolEnum.cajero, "branch_id": branches[0].id},
         {"name": "Cajero Santa Cruz", "email": "cajero.sc@fashionstore.bo", "gender": GenderEnum.masculino, "rol": RolEnum.cajero, "branch_id": branches[1].id},
         {"name": "Cajera Cochabamba", "email": "cajera.cbba@fashionstore.bo", "gender": GenderEnum.femenino, "rol": RolEnum.cajero, "branch_id": branches[2].id},
-        {"name": "Delivery Uno", "email": "delivery1@fashionstore.bo", "gender": GenderEnum.masculino, "rol": RolEnum.delivery, "branch_id": branches[0].id},
-        {"name": "Delivery Dos", "email": "delivery2@fashionstore.bo", "gender": GenderEnum.femenino, "rol": RolEnum.delivery, "branch_id": branches[1].id},
+        {"name": "Delivery Uno", "email": "delivery1@fashionstore.bo", "gender": GenderEnum.masculino, "rol": RolEnum.delivery, "branch_id": None},
+        {"name": "Delivery Dos", "email": "delivery2@fashionstore.bo", "gender": GenderEnum.femenino, "rol": RolEnum.delivery, "branch_id": None},
     ]
 
     for payload in users_payload:
@@ -645,6 +651,9 @@ def _seed_users(session, branches: list[Branch]) -> list[User]:
         user.tenant_id = TENANT_1_ID
         if payload["rol"] == RolEnum.administrador:
             user.branch_id = None
+        if payload["rol"] == RolEnum.delivery:
+            # CU20: drivers serve every company, so they belong to no company or branch.
+            user.tenant_id = user.branch_id = None
         users.append(user)
 
     # Seed administrators for other tenants to test multi-tier subscriptions

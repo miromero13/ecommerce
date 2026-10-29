@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import Column, Date, DateTime, Enum as SQLAlchemyEnum, ForeignKey, Numeric
+from sqlalchemy import Column, Date, DateTime, Enum as SQLAlchemyEnum, ForeignKey, Numeric, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -21,7 +21,15 @@ class Reservation(Base):
     expires_at = Column(Date, nullable=False, index=True)
     status = Column(SQLAlchemyEnum(ReservationStatusEnum, name="reservationstatusenum"), nullable=False, default=ReservationStatusEnum.pending)
     total_amount = Column(Numeric(10, 2), nullable=False, default=0)
+    # D1: 50 % non-refundable deposit, paid online before the reservation holds stock for the visit.
+    deposit_amount = Column(Numeric(10, 2), nullable=False, default=0, server_default="0")
+    deposit_status = Column(String(12), nullable=False, default="none", server_default="none")  # none | pending | paid | applied | forfeited
+    payment_expires_at = Column(DateTime(timezone=True), nullable=True)
+    stripe_payment_intent_id = Column(String, nullable=True, unique=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at = Column(DateTime(timezone=True), nullable=True, onupdate=func.now())
 
     items = relationship("ReservationItem", back_populates="reservation", cascade="all, delete-orphan")
+
+
+from app.models.reservation_item import ReservationItem  # noqa: E402, F401

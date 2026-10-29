@@ -1,5 +1,6 @@
 from collections import defaultdict
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
+from decimal import ROUND_HALF_UP
 from decimal import Decimal
 import logging
 from uuid import UUID
@@ -14,6 +15,7 @@ from app.models.product import Product
 from app.models.product_variant import ProductVariant
 from app.models.reservation import Reservation
 from app.models.reservation_item import ReservationItem
+from app.models.tenant import Tenant
 from app.models.order import Order
 from app.models.order_item import OrderItem
 from app.models.size import Size
@@ -25,11 +27,24 @@ from app.schemas.cart_schema import CartStatusEnum
 from app.schemas.order_schema import PaymentStatusEnum
 from app.services.cart_service import _get_mutable_cart, _serialize_cart, refresh_cart_totals, validate_cart_company
 from app.services.notification_service import notify_reservation_event
+from app.services.pricing_service import discounted_price
 
 
+MAX_VISIT_DAYS_AHEAD = 14
+MAX_RESERVATION_UNITS = 5
+MAX_ACTIVE_RESERVATIONS = 3
+# D1: a 50 % non-refundable deposit, paid online within DEPOSIT_PAYMENT_MINUTES, confirms the reservation.
+DEPOSIT_RATE = Decimal("0.50")
+DEPOSIT_PAYMENT_MINUTES = 30
 ACTIVE_RESERVATION_STATUSES = {ReservationStatusEnum.pending, ReservationStatusEnum.confirmed}
+HOLDING_STATUSES = {ReservationStatusEnum.pending_payment, *ACTIVE_RESERVATION_STATUSES}
 logger = logging.getLogger(__name__)
 VALID_RESERVATION_TRANSITIONS = {
+    ReservationStatusEnum.pending_payment: {
+        ReservationStatusEnum.pending,
+        ReservationStatusEnum.cancelled,
+        ReservationStatusEnum.expired,
+    },
     ReservationStatusEnum.pending: {
         ReservationStatusEnum.confirmed,
         ReservationStatusEnum.cancelled,
@@ -56,6 +71,15 @@ def transition_reservation(reservation: Reservation, target: ReservationStatusEn
     if target not in allowed:
         raise ValueError(f"Transición de reserva no permitida: {reservation.status.value} -> {target.value}")
     reservation.status = target
+    # Every status change passes here, so the deposit rule lives in one place:
+    # a paid deposit is applied when sold and forfeited otherwise (never refunded).
+    deposit = getattr(reservation, "deposit_status", None)
+    if deposit == "paid" and target == ReservationStatusEnum.sold:
+        reservation.deposit_status = "applied"
+    elif deposit == "paid" and target in {ReservationStatusEnum.cancelled, ReservationStatusEnum.expired, ReservationStatusEnum.not_sold}:
+        reservation.deposit_status = "forfeited"
+    elif deposit == "pending" and target in {ReservationStatusEnum.cancelled, ReservationStatusEnum.expired}:
+        reservation.deposit_status = "none"
 
 
 def _get_inventory_for_update(db: Session, variant_id, branch_id) -> Inventory | None:
@@ -136,6 +160,9 @@ def _serialize_reservation(db: Session, reservation: Reservation) -> Reservation
             "expires_at": reservation.expires_at,
             "status": reservation.status,
             "total_amount": total_amount,
+            "deposit_amount": reservation.deposit_amount,
+            "deposit_status": reservation.deposit_status,
+            "payment_expires_at": reservation.payment_expires_at,
             "item_count": item_count,
             "created_at": reservation.created_at,
             "updated_at": reservation.updated_at,
@@ -159,8 +186,11 @@ def expire_due_reservations(db: Session):
         db.query(Reservation)
         .options(joinedload(Reservation.items))
         .filter(
-            Reservation.status.in_((*ACTIVE_RESERVATION_STATUSES, ReservationStatusEnum.attended)),
-            Reservation.expires_at <= today,
+            ((Reservation.status.in_((*ACTIVE_RESERVATION_STATUSES, ReservationStatusEnum.attended)))
+             & (Reservation.expires_at <= today))
+            # Deposit not paid in time: release the held stock.
+            | ((Reservation.status == ReservationStatusEnum.pending_payment)
+               & (Reservation.payment_expires_at <= datetime.now(timezone.utc)))
         )
         .all()
     )
@@ -258,16 +288,31 @@ def get_reservation(db: Session, user_id: UUID, reservation_id: UUID):
 
 def create_reservation(db: Session, user_id: UUID, payload: ReservationCreate):
     expire_due_reservations(db)
+    # A reservation holds stock until the visit, so the window must stay short.
+    if payload.visit_date < date.today():
+        raise ValueError("La fecha de visita no puede ser anterior a hoy")
+    if payload.visit_date > date.today() + timedelta(days=MAX_VISIT_DAYS_AHEAD):
+        raise ValueError(f"La fecha de visita no puede superar los {MAX_VISIT_DAYS_AHEAD} días")
 
     normalized_items: dict[UUID, int] = defaultdict(int)
     for item in payload.items:
         normalized_items[item.variant_id] += item.quantity
+    # Reservations hold stock for free until the visit; cap how much one customer can block.
+    if sum(normalized_items.values()) > MAX_RESERVATION_UNITS:
+        raise ValueError(f"Una reserva no puede superar las {MAX_RESERVATION_UNITS} prendas")
 
     branch = db.query(Branch).filter(Branch.id == payload.branch_id).first()
     if not branch:
         raise ValueError("Sucursal no encontrada")
     if hasattr(branch, "is_active") and not branch.is_active:
         raise ValueError("Sucursal inactiva")
+    active_count = db.query(Reservation).filter(
+        Reservation.user_id == user_id,
+        Reservation.tenant_id == branch.tenant_id,
+        Reservation.status.in_(HOLDING_STATUSES),
+    ).count()
+    if active_count >= MAX_ACTIVE_RESERVATIONS:
+        raise ValueError(f"Ya tienes {MAX_ACTIVE_RESERVATIONS} reservas activas; atiende o cancela una antes de crear otra")
 
     with db.begin_nested():
         reservation = Reservation(
@@ -276,8 +321,10 @@ def create_reservation(db: Session, user_id: UUID, payload: ReservationCreate):
             user_id=user_id,
             visit_date=payload.visit_date,
             expires_at=payload.visit_date + timedelta(days=1),
-            status=ReservationStatusEnum.pending,
+            status=ReservationStatusEnum.pending_payment,
             total_amount=Decimal("0.00"),
+            deposit_status="pending",
+            payment_expires_at=datetime.now(timezone.utc) + timedelta(minutes=DEPOSIT_PAYMENT_MINUTES),
         )
         db.add(reservation)
         db.flush()
@@ -303,17 +350,20 @@ def create_reservation(db: Session, user_id: UUID, payload: ReservationCreate):
                 raise ValueError("Variante no disponible para reserva")
 
             inventory.reserved_quantity = (inventory.reserved_quantity or 0) + quantity
+            # Same price the catalog and cart show (product discount applied).
+            unit_price = discounted_price(variant.price, variant.product.discount_type, variant.product.discount_value)
             db.add(
                 ReservationItem(
                     reservation_id=reservation.id,
                     variant_id=variant_id,
                     quantity=quantity,
-                    unit_price=variant.price,
+                    unit_price=unit_price,
                 )
             )
-            total_amount += Decimal(str(variant.price)) * quantity
+            total_amount += unit_price * quantity
 
         reservation.total_amount = total_amount
+        reservation.deposit_amount = (total_amount * DEPOSIT_RATE).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
     db.commit()
 
@@ -460,7 +510,8 @@ def transfer_reservation_to_cart(db: Session, user_id: UUID, reservation_id: UUI
                 variant_id=item.variant_id,
                 reservation_id=reservation.id,
                 quantity=item.quantity,
-                unit_price=item.unit_price,
+                # Cart lines keep the list price; the cart applies the discount itself.
+                unit_price=variant.price,
             ))
         cart.tenant_id = reservation.tenant_id
         reservation.cart_id = cart.id
@@ -491,6 +542,38 @@ def cancel_branch_reservation(db: Session, reservation_id: UUID, branch_id: UUID
     except Exception:
         db.rollback()
         raise
+
+
+def complete_deposit_payment(db: Session, reservation_id: UUID, method: str, reference: str | None = None) -> Reservation:
+    """Online deposit confirmed by the Stripe webhook: the reservation now holds the visit."""
+    from app.services.payout_service import record_payment
+
+    reservation = db.query(Reservation).filter(Reservation.id == reservation_id).with_for_update().first()
+    if not reservation:
+        raise ValueError("Reserva no encontrada")
+    if reservation.deposit_status == "paid":
+        return reservation
+    if reservation.status != ReservationStatusEnum.pending_payment or reservation.deposit_status != "pending":
+        raise ValueError("La reserva ya no espera el pago del anticipo")
+    reservation.deposit_status = "paid"
+    transition_reservation(reservation, ReservationStatusEnum.pending)
+    currency = db.query(Tenant.currency).filter(Tenant.id == reservation.tenant_id).scalar().lower()
+    # The deposit is collected by the platform and owed to the company even if the customer never comes.
+    record_payment(db, reservation.tenant_id, "reservation_deposit", reservation.id, method,
+                   reservation.deposit_amount, currency, reference)
+    from app.services.receipt_service import issue_deposit_receipt
+    issue_deposit_receipt(db, reservation, currency)
+    return reservation
+
+
+def get_deposit_reservation(db: Session, user_id: UUID, reservation_id: UUID) -> Reservation:
+    expire_due_reservations(db)
+    reservation = _get_reservation_for_user(db, reservation_id, user_id)
+    if not reservation:
+        raise LookupError("Reserva no encontrada")
+    if reservation.status != ReservationStatusEnum.pending_payment or reservation.deposit_status != "pending":
+        raise ValueError("La reserva ya no espera el pago del anticipo")
+    return reservation
 
 
 def list_reservation_statuses():

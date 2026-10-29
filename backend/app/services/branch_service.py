@@ -15,6 +15,8 @@ def create_branch(db: Session, branch: BranchCreate, tenant_id: UUID | None = No
     db_branch = Branch(
         name=branch.name,
         city=branch.city,
+        latitude=branch.latitude,
+        longitude=branch.longitude,
         is_default=branch.is_default,
         is_active=True,
         tenant_id=tenant_id,
@@ -45,6 +47,8 @@ def update_branch(db: Session, branch_id: UUID, update_data, tenant_id: UUID | N
 
     branch.name = update_data.name
     branch.city = update_data.city
+    branch.latitude = update_data.latitude
+    branch.longitude = update_data.longitude
     branch.is_default = update_data.is_default
     branch.is_active = update_data.is_active
     db.commit()

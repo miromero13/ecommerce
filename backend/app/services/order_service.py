@@ -23,6 +23,7 @@ from app.models.reservation import Reservation
 from app.models.size import Size
 from app.models.color import Color
 from app.models.stripe_event import StripeEvent
+from app.models.tenant import Tenant
 from app.schemas.cart_schema import CartStatusEnum
 from app.schemas.inventory_schema import InventoryMovementTypeEnum
 from app.schemas.order_schema import FulfillmentStatusEnum, OrderItemRead, OrderRead, OrderStatusEnum, PaymentMethodEnum, PaymentStatusEnum
@@ -33,10 +34,11 @@ from app.services.promotion_service import add_usage, validate_for_user
 from app.services.reservation_service import transition_reservation
 from app.services.recommendation_service import record_completed_order_interactions
 from app.services.notification_service import notify_low_stock, notify_order_event
+from app.services.payout_service import record_payment
+from app.services import loyalty_service
 
 
 STRIPE_RESERVATION_MINUTES = 30
-CASH_RESERVATION_HOURS = 24
 
 
 def _cart_rows(db: Session, cart_id: UUID):
@@ -63,13 +65,17 @@ def _serialize_order(db: Session, order: Order) -> OrderRead:
         "image_url": row.image_url, "image_public_id": row.image_public_id,
     }).model_dump() for row in order.items]
     return OrderRead.model_validate({
-        "id": order.id, "user_id": order.user_id, "status": order.status, "payment_method": order.payment_method,
+        "id": order.id, "tenant_id": order.tenant_id, "user_id": order.user_id, "status": order.status, "payment_method": order.payment_method,
         "payment_status": order.payment_status, "stripe_payment_intent_id": order.stripe_payment_intent_id,
         "cash_reference": order.cash_reference, "pickup_branch_id": order.pickup_branch_id,
         "pickup_expires_at": order.pickup_expires_at, "pickup_code": order.pickup_code,
         "fulfillment_status": order.fulfillment_status, "subtotal": order.subtotal,
         "discount_amount": order.discount_amount, "promotion_code_id": order.promotion_code_id,
         "total_amount": order.total_amount, "currency": order.currency,
+        "fulfillment_type": order.fulfillment_type, "shipping_cost": order.shipping_cost,
+        "deposit_applied": order.deposit_applied, "loyalty_discount": order.loyalty_discount,
+        "delivery_address": order.delivery_address, "delivery_distance_km": order.delivery_distance_km,
+        "delivered_at": order.delivered_at,
         "created_at": order.created_at, "updated_at": order.updated_at, "items": items,
     })
 
@@ -85,7 +91,8 @@ def list_orders_by_branch(db: Session, branch_id: UUID, tenant_id: UUID | None =
     if tenant_id is not None:
         query = query.filter(Order.tenant_id == tenant_id)
     orders = query.order_by(Order.created_at.desc()).all()
-    return [_serialize_order(db, order).model_dump() for order in orders]
+    # The pickup code proves the customer is present; staff must ask for it, never read it.
+    return [{**_serialize_order(db, order).model_dump(), "pickup_code": None} for order in orders]
 
 
 def get_order(db: Session, user_id: UUID, order_id: UUID):
@@ -143,7 +150,8 @@ def _reserve_inventory(db: Session, rows, branch_id: UUID, user_id: UUID, tenant
             inventory.reserved_quantity += row.quantity
 
 
-def _new_order(db: Session, cart: Cart, user_id: UUID, branch_id: UUID, method: PaymentMethodEnum) -> Order:
+def _new_order(db: Session, cart: Cart, user_id: UUID, branch_id: UUID, method: PaymentMethodEnum, delivery=None,
+               points_to_redeem: int = 0) -> Order:
     rows = _cart_rows(db, cart.id)
     if not rows:
         raise ValueError("El carrito está vacío")
@@ -151,6 +159,7 @@ def _new_order(db: Session, cart: Cart, user_id: UUID, branch_id: UUID, method: 
     if not branch or branch.tenant_id != cart.tenant_id:
         raise ValueError("Sucursal no encontrada")
     tenant_id = branch.tenant_id
+    currency = db.query(Tenant.currency).filter(Tenant.id == tenant_id).scalar().lower()
     validate_cart_company(db, cart, tenant_id)
     if cart.promotion_code_id:
         code = db.query(PromotionCode).filter(PromotionCode.id == cart.promotion_code_id).first()
@@ -158,10 +167,19 @@ def _new_order(db: Session, cart: Cart, user_id: UUID, branch_id: UUID, method: 
             raise ValueError("El código promocional ya no existe")
         validate_for_user(db, code.code, user_id, branch_id, tenant_id=tenant_id)
     refresh_cart_totals(db, cart)
+    quote = None
+    if delivery is not None:
+        from app.services.delivery_service import shipping_quote
+        quote = shipping_quote(db, branch_id, delivery.latitude, delivery.longitude)
     _reserve_inventory(db, rows, branch_id, user_id, tenant_id, cart.id)
     subtotal = sum(Decimal(str(row.original_unit_price)) * row.quantity for row in rows)
     discount = Decimal(str(cart.discount_amount or 0))
-    expires = datetime.now(timezone.utc) + timedelta(minutes=STRIPE_RESERVATION_MINUTES if method == PaymentMethodEnum.stripe else CASH_RESERVATION_HOURS * 60)
+    # D1: deposits already paid for the reserved lines count toward this order.
+    reservation_ids = {row.reservation_id for row in rows if row.reservation_id}
+    deposit_credit = sum((r.deposit_amount for r in db.query(Reservation).filter(
+        Reservation.id.in_(reservation_ids), Reservation.deposit_status == "paid")), Decimal("0.00"))
+    # Web orders are paid online with Stripe and hold the stock only briefly until paid.
+    expires = datetime.now(timezone.utc) + timedelta(minutes=STRIPE_RESERVATION_MINUTES)
     order = Order(
         tenant_id=tenant_id,
         user_id=user_id,
@@ -175,11 +193,23 @@ def _new_order(db: Session, cart: Cart, user_id: UUID, branch_id: UUID, method: 
         fulfillment_status=FulfillmentStatusEnum.pending_pickup,
         subtotal=subtotal,
         discount_amount=discount,
-        total_amount=max(subtotal - discount, Decimal("0.00")),
-        currency=settings.stripe_currency.lower(),
+        total_amount=max(subtotal - discount - deposit_credit, Decimal("0.00")) + (quote["shipping_cost"] if quote else Decimal("0.00")),
+        deposit_applied=min(deposit_credit, max(subtotal - discount, Decimal("0.00"))),
+        currency=currency,
     )
+    if quote:
+        order.fulfillment_type = "delivery"
+        order.delivery_address, order.delivery_reference = delivery.address, delivery.reference
+        order.delivery_latitude, order.delivery_longitude = delivery.latitude, delivery.longitude
+        order.delivery_distance_km, order.shipping_cost = quote["distance_km"], quote["shipping_cost"]
+        order.delivery_pin = f"{secrets.randbelow(10000):04d}"
     db.add(order)
     db.flush()
+    if points_to_redeem:
+        # CU17: points only discount the products, never the shipping.
+        products_due = order.total_amount - (order.shipping_cost or Decimal("0.00"))
+        order.loyalty_discount = loyalty_service.redeem(db, tenant_id, user_id, points_to_redeem, products_due, "order", order.id)
+        order.total_amount -= order.loyalty_discount
     for row in rows:
         unit_price = _row_unit_price(row)
         db.add(OrderItem(order_id=order.id, variant_id=row.variant_id, quantity=row.quantity, unit_price=unit_price,
@@ -195,23 +225,32 @@ def _new_order(db: Session, cart: Cart, user_id: UUID, branch_id: UUID, method: 
     return order
 
 
-def checkout_cash(db: Session, user_id: UUID, pickup_branch_id: UUID):
-    try:
-        expire_due_orders(db)
-        cart = _locked_cart(db, user_id)
-        if cart.status == CartStatusEnum.checkout_pending:
-            raise ValueError("El carrito tiene un checkout pendiente")
-        order = _new_order(db, cart, user_id, pickup_branch_id, PaymentMethodEnum.cash)
+def create_deposit_stripe_payment(db: Session, user_id: UUID, reservation_id: UUID):
+    """Card payment of the D1 reservation deposit, collected by the platform account."""
+    from app.services.reservation_service import get_deposit_reservation
+
+    reservation = get_deposit_reservation(db, user_id, reservation_id)
+    if not settings.stripe_secret_key:
+        raise ValueError("No se pudo iniciar el pago con Stripe: Stripe no está configurado")
+    import stripe
+
+    stripe.api_key = settings.stripe_secret_key
+    if reservation.stripe_payment_intent_id:
+        intent = stripe.PaymentIntent.retrieve(reservation.stripe_payment_intent_id)
+    else:
+        currency = db.query(Tenant.currency).filter(Tenant.id == reservation.tenant_id).scalar().lower()
+        intent = stripe.PaymentIntent.create(
+            amount=int((reservation.deposit_amount * 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP)),
+            currency=currency, metadata={"reservation_id": str(reservation.id)},
+            automatic_payment_methods={"enabled": True, "allow_redirects": "never"},
+            idempotency_key=f"deposit-{reservation.id}",
+        )
+        reservation.stripe_payment_intent_id = intent.id
         db.commit()
-        db.refresh(order)
-        notify_order_event(db, order.id, order.user_id, "pending")
-        return _serialize_order(db, order).model_dump()
-    except Exception:
-        db.rollback()
-        raise
+    return intent.client_secret, intent.id
 
 
-def create_stripe_payment(db: Session, user_id: UUID, pickup_branch_id: UUID):
+def create_stripe_payment(db: Session, user_id: UUID, pickup_branch_id: UUID, delivery=None, points_to_redeem: int = 0):
     try:
         expire_due_orders(db)
         # Fail before emptying the cart; retries of a created order use /stripe/orders/{id}.
@@ -220,7 +259,7 @@ def create_stripe_payment(db: Session, user_id: UUID, pickup_branch_id: UUID):
         cart = _locked_cart(db, user_id)
         if cart.status == CartStatusEnum.checkout_pending:
             raise ValueError("El carrito tiene un checkout pendiente")
-        order = _new_order(db, cart, user_id, pickup_branch_id, PaymentMethodEnum.stripe)
+        order = _new_order(db, cart, user_id, pickup_branch_id, PaymentMethodEnum.stripe, delivery, points_to_redeem)
         attempt = PaymentAttempt(order_id=order.id, cart_id=cart.id, status="pending", idempotency_key=secrets.token_urlsafe(24))
         db.add(attempt)
         db.commit()
@@ -233,7 +272,7 @@ def create_stripe_payment(db: Session, user_id: UUID, pickup_branch_id: UUID):
             raise ValueError("Stripe no está configurado")
         stripe.api_key = settings.stripe_secret_key
         amount = int((order.total_amount * Decimal("100")).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
-        intent = stripe.PaymentIntent.create(amount=amount, currency=settings.stripe_currency.lower(),
+        intent = stripe.PaymentIntent.create(amount=amount, currency=order.currency,
             metadata={"order_id": str(order.id)}, automatic_payment_methods={"enabled": True, "allow_redirects": "never"}, idempotency_key=attempt.idempotency_key)
         attempt.stripe_payment_intent_id = intent.id
         order.stripe_payment_intent_id = intent.id
@@ -345,6 +384,7 @@ def _release_order(db: Session, order: Order, payment_status: PaymentStatusEnum,
     attempt = db.query(PaymentAttempt).filter(PaymentAttempt.order_id == order.id).first()
     if attempt:
         attempt.status = "failed"
+    loyalty_service.refund_redeem(db, "order", order.id)
 
 
 def expire_due_orders(db: Session) -> None:
@@ -397,6 +437,11 @@ def _consume_order(db: Session, order: Order, collected_by: UUID | None = None) 
     order.payment_status = PaymentStatusEnum.paid
     order.status = OrderStatusEnum.paid
     order.fulfillment_status = FulfillmentStatusEnum.collected if collected_by else FulfillmentStatusEnum.pending_pickup
+    # Online money is collected by the platform and owed to the company (daily settlement).
+    record_payment(db, order.tenant_id, "order", order.id, "card",
+                   order.total_amount - (order.shipping_cost or 0), order.currency, order.stripe_payment_intent_id)
+    from app.services.receipt_service import issue_order_receipt
+    issue_order_receipt(db, order)  # every payment issues its receipt (PDF + email)
     for reservation_id in reservation_ids:
         reservation = db.query(Reservation).filter(Reservation.id == reservation_id).with_for_update().first()
         if reservation and reservation.status == ReservationStatusEnum.purchase_pending:
@@ -416,6 +461,9 @@ def _consume_order(db: Session, order: Order, collected_by: UUID | None = None) 
     if order.promotion_code_id:
         add_usage(db, order.promotion_code_id, order.user_id)
     record_completed_order_interactions(db, order)
+    # CU17: points for the money paid for products (this order plus any reservation deposit).
+    loyalty_service.earn(db, order.tenant_id, order.user_id,
+                         order.total_amount - (order.shipping_cost or 0) + (order.deposit_applied or 0), "order", order.id)
 
 
 def cancel_order(db: Session, user_id: UUID, order_id: UUID):
@@ -440,19 +488,25 @@ def cancel_order(db: Session, user_id: UUID, order_id: UUID):
         raise
 
 
-def collect_cash(db: Session, order_id: UUID, pickup_code: str, cashier_branch_id: UUID | None, cashier_id: UUID, tenant_id: UUID | None = None):
+def hand_over_order(db: Session, order_id: UUID, pickup_code: str, staff_branch_id: UUID | None,
+                    tenant_id: UUID | None = None):
+    """Deliver at the counter a web order already paid online; nothing is charged here."""
     try:
         query = db.query(Order).filter(Order.id == order_id)
         if tenant_id is not None:
             query = query.filter(Order.tenant_id == tenant_id)
         order = query.with_for_update().first()
-        if not order or cashier_branch_id != order.pickup_branch_id:
+        if not order or staff_branch_id != order.pickup_branch_id:
             raise ValueError("Pedido no encontrado")
-        if order.payment_method != PaymentMethodEnum.cash or order.pickup_code != pickup_code:
+        if order.fulfillment_type == "delivery":
+            raise ValueError("Este pedido se entrega a domicilio")
+        if order.pickup_code != pickup_code:
             raise ValueError("Código de retiro inválido")
-        if order.payment_status != PaymentStatusEnum.pending or order.pickup_expires_at < datetime.now(timezone.utc):
-            raise ValueError("El pedido no está disponible para cobro")
-        _consume_order(db, order, cashier_id)
+        # Stock was already consumed when the online payment succeeded.
+        if order.payment_status != PaymentStatusEnum.paid or order.fulfillment_status not in (
+                FulfillmentStatusEnum.pending_pickup, FulfillmentStatusEnum.ready_for_pickup):
+            raise ValueError("El pedido no está disponible para entrega")
+        order.fulfillment_status = FulfillmentStatusEnum.collected
         db.commit()
         for item in order.items:
             inventory = db.query(Inventory).filter(Inventory.variant_id == item.variant_id, Inventory.branch_id == order.pickup_branch_id).first()
@@ -474,6 +528,17 @@ def process_stripe_event(db: Session, event) -> None:
     except IntegrityError:
         return
     data = event["data"]["object"]
+    reservation_id = (data.get("metadata") or {}).get("reservation_id")
+    if reservation_id:
+        if event["type"] == "payment_intent.succeeded":
+            from app.services.reservation_service import complete_deposit_payment
+            reservation = db.query(Reservation).filter(Reservation.stripe_payment_intent_id == data.get("id")).first()
+            if not reservation or str(reservation.id) != reservation_id or data.get("amount") != int(
+                    (reservation.deposit_amount * 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP)):
+                raise ValueError("El PaymentIntent no coincide con el anticipo de la reserva")
+            complete_deposit_payment(db, reservation.id, "card", data.get("id"))
+        db.commit()
+        return
     order = db.query(Order).filter(Order.stripe_payment_intent_id == data.get("id")).with_for_update().first()
     if order and order.payment_method == PaymentMethodEnum.stripe and order.payment_status == PaymentStatusEnum.pending:
         if event["type"] == "payment_intent.succeeded":

@@ -397,6 +397,7 @@ def _product_to_read(
                 "color_id": variant.color_id,
                 "image_url": variant.image_url,
                 "image_public_id": variant.image_public_id,
+                "try_on_image_url": variant.try_on_image_url,
                 "garment_points": variant.garment_points,
                 "status": variant.status,
                 "branch_quantity": branch_quantity,

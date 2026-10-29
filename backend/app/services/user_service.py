@@ -66,7 +66,9 @@ def _validate_staff_branch(db: Session, branch_id: UUID, tenant_id: UUID) -> Non
 
 
 def create_admin_user(db: Session, user: AdminUserCreate, tenant_id: UUID | None = None) -> User:
-    scoped_roles = {RolEnum.encargado, RolEnum.cajero, RolEnum.delivery}
+    scoped_roles = {RolEnum.encargado, RolEnum.cajero}
+    if user.rol == RolEnum.delivery:
+        raise ValueError("Los repartidores son de la plataforma; los registra el superadministrador")
     if user.rol == RolEnum.administrador:
         branch_id = None
     elif user.rol in scoped_roles:
@@ -124,9 +126,11 @@ def update_user_rol(db: Session, user_id: UUID, update_data: UserUpdateRol, tena
     if not user:
         return None
 
+    if update_data.rol == RolEnum.delivery:
+        raise ValueError("Los repartidores son de la plataforma; los registra el superadministrador")
     if update_data.rol == RolEnum.administrador:
         user.branch_id = None
-    elif update_data.rol in {RolEnum.encargado, RolEnum.cajero, RolEnum.delivery}:
+    elif update_data.rol in {RolEnum.encargado, RolEnum.cajero}:
         branch_id = update_data.branch_id or user.branch_id
         if branch_id is None:
             raise ValueError("El usuario necesita una sucursal antes de dejar de ser administrador")

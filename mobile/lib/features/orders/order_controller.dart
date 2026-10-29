@@ -20,6 +20,7 @@ class OrderController extends ChangeNotifier {
           );
 
   final OrderApi _api;
+  OrderApi get api => _api;
 
   OrderControllerStatus status = OrderControllerStatus.idle;
   List<Order> orders = const [];
@@ -66,33 +67,17 @@ class OrderController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> checkoutCash({required String pickupBranchId}) async {
-    status = OrderControllerStatus.saving;
-    errorMessage = null;
-    feedbackMessage = null;
-    notifyListeners();
-    try {
-      final result = await _api.checkoutCash(pickupBranchId: pickupBranchId);
-      orders = [result.order, ...orders];
-      selectedOrder = result.order;
-      feedbackMessage = result.message;
-      status = OrderControllerStatus.ready;
-    } catch (error) {
-      status = OrderControllerStatus.error;
-      errorMessage = _messageFor(error);
-    }
-    notifyListeners();
-  }
-
   Future<StripeCheckoutResult?> checkoutStripe({
     required String pickupBranchId,
+    Map<String, dynamic>? delivery,
+    int points = 0,
   }) async {
     status = OrderControllerStatus.saving;
     errorMessage = null;
     feedbackMessage = null;
     notifyListeners();
     try {
-      final result = await _api.checkoutStripe(pickupBranchId: pickupBranchId);
+      final result = await _api.checkoutStripe(pickupBranchId: pickupBranchId, delivery: delivery, points: points);
       feedbackMessage = result.message;
       status = OrderControllerStatus.ready;
       notifyListeners();

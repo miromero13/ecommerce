@@ -18,7 +18,8 @@ enum OrderStatus {
 
 enum PaymentMethod {
   cash('cash'),
-  stripe('stripe');
+  stripe('stripe'),
+  qr('qr');
 
   const PaymentMethod(this.value);
 
@@ -53,6 +54,8 @@ enum FulfillmentStatus {
   pendingPickup('pending_pickup'),
   readyForPickup('ready_for_pickup'),
   collected('collected'),
+  inTransit('in_transit'),
+  delivered('delivered'),
   expired('expired'),
   cancelled('cancelled');
 
@@ -134,6 +137,9 @@ class Order {
     this.pickupBranchId,
     this.pickupExpiresAt,
     this.pickupCode,
+    this.fulfillmentType = 'pickup',
+    this.shippingCost = 0,
+    this.deliveryAddress,
     this.updatedAt,
   });
 
@@ -154,6 +160,10 @@ class Order {
   final String? pickupBranchId;
   final DateTime? pickupExpiresAt;
   final String? pickupCode;
+  // CU20 delivery: shipped from the branch by a platform driver.
+  final String fulfillmentType;
+  final double shippingCost;
+  final String? deliveryAddress;
   final List<OrderItem> items;
 
   factory Order.fromJson(Map<String, dynamic> json) {
@@ -180,6 +190,9 @@ class Order {
       pickupBranchId: _optionalString(json, 'pickup_branch_id'),
       pickupExpiresAt: _optionalDateTime(json, 'pickup_expires_at'),
       pickupCode: _optionalString(json, 'pickup_code'),
+      fulfillmentType: _optionalString(json, 'fulfillment_type') ?? 'pickup',
+      shippingCost: double.tryParse('${json['shipping_cost'] ?? 0}') ?? 0,
+      deliveryAddress: _optionalString(json, 'delivery_address'),
       items: rawItems
           .map((item) {
             if (item is! Map) {

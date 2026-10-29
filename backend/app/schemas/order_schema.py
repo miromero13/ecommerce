@@ -16,6 +16,7 @@ class OrderStatusEnum(str, Enum):
 class PaymentMethodEnum(str, Enum):
     cash = "cash"
     stripe = "stripe"
+    qr = "qr"
 
 
 class PaymentStatusEnum(str, Enum):
@@ -28,6 +29,8 @@ class FulfillmentStatusEnum(str, Enum):
     pending_pickup = "pending_pickup"
     ready_for_pickup = "ready_for_pickup"
     collected = "collected"
+    in_transit = "in_transit"
+    delivered = "delivered"
     expired = "expired"
     cancelled = "cancelled"
 
@@ -65,6 +68,7 @@ class OrderItemRead(BaseModel):
 
 class OrderRead(BaseModel):
     id: UUID
+    tenant_id: UUID | None = None
     user_id: UUID
     status: OrderStatusEnum
     payment_method: PaymentMethodEnum
@@ -80,6 +84,13 @@ class OrderRead(BaseModel):
     promotion_code_id: UUID | None = None
     total_amount: Decimal
     currency: str
+    fulfillment_type: str = "pickup"
+    shipping_cost: Decimal = Decimal("0")
+    deposit_applied: Decimal = Decimal("0")
+    loyalty_discount: Decimal = Decimal("0")
+    delivery_address: str | None = None
+    delivery_distance_km: Decimal | None = None
+    delivered_at: datetime | None = None
     created_at: datetime
     updated_at: datetime | None = None
     items: list[OrderItemRead] = Field(default_factory=list)

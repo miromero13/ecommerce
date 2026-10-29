@@ -3,9 +3,11 @@ from __future__ import annotations
 import asyncio
 import base64
 import ipaddress
+import mimetypes
 import socket
 import ssl
 from http.client import HTTPConnection, HTTPSConnection
+from pathlib import Path
 from urllib.parse import urlsplit
 
 import certifi
@@ -15,6 +17,8 @@ from app.core.config import settings
 MAX_SOURCE_BYTES = 8 * 1024 * 1024
 MAX_URL_LENGTH = 2048
 IMAGE_MIME_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+# Local demo catalog served by this backend at /demo-assets (scripts/build_demo_catalog.py --storage local).
+DEMO_ASSETS = Path(__file__).resolve().parents[2] / "demo_assets"
 
 
 class CatalogGarmentError(Exception):
@@ -76,7 +80,25 @@ def _resolve_public_address(source_url: str) -> tuple[object, str]:
     return parsed, addresses[0][4][0]
 
 
+def _local_demo_asset(source_url: str) -> tuple[bytes, str] | None:
+    """Images of the local demo catalog are read from disk: no network request, so the public-server
+    (anti-SSRF) rule below still applies to every other URL. Only image files inside demo_assets qualify."""
+    path = urlsplit(source_url).path
+    if not path.startswith("/demo-assets/"):
+        return None
+    file = (DEMO_ASSETS / path.removeprefix("/demo-assets/")).resolve()
+    mime_type = mimetypes.guess_type(file.name)[0]
+    if DEMO_ASSETS not in file.parents or not file.is_file() or mime_type not in IMAGE_MIME_TYPES:
+        return None
+    if file.stat().st_size > MAX_SOURCE_BYTES:
+        raise CatalogGarmentError(422, "La imagen supera el tamaño máximo permitido")
+    return file.read_bytes(), mime_type
+
+
 def _read_source_image(source_url: str) -> tuple[bytes, str]:
+    local = _local_demo_asset(source_url)
+    if local:
+        return local
     source_url = _validate_source_url(source_url)
     try:
         parsed, resolved_ip = _resolve_public_address(source_url)

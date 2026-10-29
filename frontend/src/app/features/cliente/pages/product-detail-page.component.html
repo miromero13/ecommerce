@@ -71,9 +71,12 @@
                 </span>
               </div>
             }
-            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
-              {{ product.name }}
-            </h1>
+            <div class="flex items-start justify-between gap-3">
+              <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
+                {{ product.name }}
+              </h1>
+              <app-wishlist-toggle-button [productId]="product.id" />
+            </div>
 
             <p class="text-sm text-slate-600 leading-relaxed">
               {{ product.description ?? 'Prenda confeccionada con materiales de alta calidad.' }}
@@ -174,8 +177,8 @@
             @if (product.try_on_enabled) {
               <div class="flex flex-row gap-4 justify-center items-center">
                 <app-photo-try-on [productName]="product.name" [variants]="tryOnOptions()" [initialVariantId]="variant.id" />
-                <app-detector-ropa [variantId]="variant.id" [garmentPoints]="variant.garment_points" [garmentImageUrl]="variant.image_url ?? product.image_url ?? null" />
-                <app-detector-mediapipe [variantId]="variant.id" [garmentPoints]="variant.garment_points" [garmentImageUrl]="variant.image_url ?? product.image_url ?? null" />
+                <app-detector-ropa [variantId]="variant.id" [garmentPoints]="variant.garment_points" [garmentImageUrl]="variant.try_on_image_url ?? variant.image_url ?? product.image_url ?? null" />
+                <app-detector-mediapipe [variantId]="variant.id" [garmentPoints]="variant.garment_points" [garmentImageUrl]="variant.try_on_image_url ?? variant.image_url ?? product.image_url ?? null" />
               </div>
             }
           }

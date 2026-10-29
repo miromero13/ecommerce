@@ -90,6 +90,7 @@ class ProductVariantRead(BaseModel):
     color_id: UUID | None = None
     image_url: str | None = None
     image_public_id: str | None = None
+    try_on_image_url: str | None = None
     garment_points: list[Point] | None = None
     status: ProductStatusEnum
     branch_quantity: int | None = None

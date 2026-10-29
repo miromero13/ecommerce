@@ -27,9 +27,11 @@ class User(Base):
     tenant = relationship("Tenant", back_populates="users")
     body_profile = relationship("UserBodyProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
     conversation = relationship("Conversation", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    custom_roles = relationship("Role", secondary="user_roles", back_populates="users")
 
 
 # Register the related mapper whenever the existing User model is imported.
 from app.models.tenant import Tenant  # noqa: E402, F401
 from app.models.user_profile import UserBodyProfile  # noqa: E402, F401
 from app.models.conversation import Conversation  # noqa: E402, F401
+from app.models.rbac import Role  # noqa: E402, F401

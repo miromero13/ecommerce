@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session, selectinload
 from uuid import UUID
 
-from app.auth.dependencies import get_current_tenant_id, require_roles
+from app.auth.dependencies import get_current_tenant_id, get_request_tenant_id, require_roles
 from app.core.config import settings
 from app.core.database import get_db
 from app.models.user import User
@@ -308,8 +308,9 @@ async def list_products(
     color_id: UUID | None = None,
     season_id: UUID | None = None,
     collection_id: UUID | None = None,
+    request_tenant_id: UUID | None = Depends(get_request_tenant_id),
 ):
-    rows = list_public_products(db, branch_id, category_id, size_id, color_id, season_id, collection_id, q, tenant_id)
+    rows = list_public_products(db, branch_id, category_id, size_id, color_id, season_id, collection_id, q, tenant_id or request_tenant_id)
     return response(status_code=200, message="Productos obtenidos exitosamente", data=rows)
 
 
@@ -344,7 +345,7 @@ async def record_product_view_route(
 ):
     if not record_product_view(db, UUID(current_user["sub"]), product_id, payload.variant_id if payload else None, payload.branch_id if payload else None):
         raise HTTPException(status_code=404, detail=f"Producto con id {product_id} no encontrado")
-    return response(status_code=201, message="Product view recorded", data={"product_id": str(product_id)})
+    return response(status_code=201, message="Vista de producto registrada", data={"product_id": str(product_id)})
 
 
 @router.post("/products", status_code=status.HTTP_201_CREATED)

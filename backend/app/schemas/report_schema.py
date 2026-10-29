@@ -84,6 +84,7 @@ AllowedReportColumn = Literal[
     "quantity",
     "reserved_quantity",
     "available_quantity",
+    "minimum_stock",
     "movement_type",
     "movements_count",
 ]
@@ -120,12 +121,73 @@ DEFAULT_MOVEMENT_REPORT_COLUMNS = [
 ]
 
 
+SmartReportType = Literal["sales", "inventory", "movements", "top_products", "branch_comparison", "critical_inventory"]
+
+
+class DemandForecastRequest(BaseModel):
+    branch_id: UUID | None = None
+    target_period_weeks: int = Field(default=4, ge=1, le=12)
+    use_synthetic_data: bool = False
+
+
+class CustomerClustersRequest(BaseModel):
+    use_synthetic_data: bool = False
+
+
+class ModelDataSource(BaseModel):
+    mode: Literal["real", "mixed", "synthetic"]
+    real_samples: int
+    synthetic_samples: int
+    notice: str
+
+
+class ForecastPoint(BaseModel):
+    week: str
+    predicted_units: float
+    confidence_lower: float
+    confidence_upper: float
+
+
+class ForecastMetrics(BaseModel):
+    r2_score: float
+    mse: float
+    test_samples: int
+
+
+class DemandForecast(BaseModel):
+    model_type: str
+    evaluation_metrics: ForecastMetrics
+    forecast: list[ForecastPoint]
+    data_source: ModelDataSource
+
+
+class CustomerSegment(BaseModel):
+    cluster_id: int
+    name: str
+    size: int
+    avg_spend: float
+    real_customers: int
+    synthetic_customers: int
+
+
+class ClusterMetrics(BaseModel):
+    silhouette_score: float
+
+
+class CustomerClusters(BaseModel):
+    model_type: str
+    clusters_count: int
+    evaluation_metrics: ClusterMetrics
+    segments: list[CustomerSegment]
+    data_source: ModelDataSource
+
+
 class NaturalReportRequest(BaseModel):
     query: str = Field(min_length=1, max_length=500)
 
 
 class NaturalReportInterpretation(BaseModel):
-    report_type: Literal["sales", "inventory", "movements"]
+    report_type: SmartReportType
     format: Literal["pdf", "html", "csv"] = "pdf"
     branch_id: UUID | None = None
     product_id: UUID | None = None

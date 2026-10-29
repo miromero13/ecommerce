@@ -25,29 +25,52 @@ class OrderApi {
     return _orderResult(response.data, response.message);
   }
 
+  /// Branches of the company that owns the current cart (one cart per company).
   Future<List<PickupBranch>> getPublicBranches() async {
+    final cart = await _client.get<Map<String, dynamic>>(
+      'cart/current',
+      parser: (value) => Map<String, dynamic>.from(value as Map),
+    );
+    final tenantId = cart.data?['tenant_id'];
+    if (tenantId == null) return const [];
     final response = await _client.get<List<PickupBranch>>(
       'branches/public',
+      queryParameters: {'tenant_id': tenantId},
       parser: (value) => _parseList(value, PickupBranch.fromJson),
     );
     return response.data ?? const [];
   }
 
-  Future<OrderResult> checkoutCash({required String pickupBranchId}) async {
-    final response = await _client.post<Order>(
-      'payments/cash/checkout',
-      data: {'pickup_branch_id': pickupBranchId},
-      parser: _parseOrder,
+  Future<Map<String, dynamic>> quoteDelivery({
+    required String branchId,
+    required double latitude,
+    required double longitude,
+  }) async {
+    final response = await _client.post<Map<String, dynamic>>(
+      'delivery/quotes',
+      data: {'branch_id': branchId, 'latitude': latitude, 'longitude': longitude},
+      parser: (value) => Map<String, dynamic>.from(value as Map),
     );
-    return _orderResult(response.data, response.message);
+    return {...?response.data, 'message': response.message};
+  }
+
+  /// Delivery orders of the customer, including the PIN shown to the driver.
+  Future<Map<String, String>> deliveryPins() async {
+    final response = await _client.get<List<dynamic>>('delivery/my-orders', parser: (value) => value as List);
+    return {
+      for (final row in response.data ?? const [])
+        (row as Map)['order_id'].toString(): (row['delivery_pin'] ?? '').toString(),
+    };
   }
 
   Future<StripeCheckoutResult> checkoutStripe({
     required String pickupBranchId,
+    Map<String, dynamic>? delivery,
+    int points = 0,
   }) async {
     final response = await _client.post<StripeCheckout>(
       'payments/stripe/checkout',
-      data: {'pickup_branch_id': pickupBranchId},
+      data: {'pickup_branch_id': pickupBranchId, 'delivery': ?delivery, 'points_to_redeem': points},
       parser: _parseStripeCheckout,
     );
     final checkout = response.data;

@@ -1,0 +1,172 @@
+"""Phase 0 regressions: paid-order hand-over, visit date window, stock constraints."""
+from datetime import date, timedelta
+
+import pytest
+from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
+
+from test_catalog_tenant_isolation import catalog  # noqa: F401 (shared fixture)
+from test_employee_authorization import headers
+from test_marketplace_transactions import add, call, checkout, market, market_api, pay, rejected, stock  # noqa: F401
+
+
+def _stripe_paid_order(api, db, market):
+    add(api, market)
+    created = checkout(api, market)
+    pay(api, market, created)  # Stripe webhook: payment_intent.succeeded
+    return created
+
+
+def test_stripe_paid_order_is_handed_over_with_pickup_code(market_api, api_db, market):
+    order = _stripe_paid_order(market_api, api_db, market)
+    call(market_api, market.staff[0, "encargado"], "POST", f"/orders/{order['id']}/ready")
+    before = stock(api_db, market.own.variant, market.branches[0])
+
+    rejected(market_api, api_db, market.staff[0, "cajero"], "POST", f"/orders/{order['id']}/hand-over",
+             400, "Código de retiro inválido", json={"pickup_code": "wrong"})
+    handed = call(market_api, market.staff[0, "cajero"], "POST", f"/orders/{order['id']}/hand-over",
+                  expected_message="Pedido entregado al cliente", json={"pickup_code": order["pickup_code"]})
+
+    assert handed["fulfillment_status"] == "collected"
+    assert stock(api_db, market.own.variant, market.branches[0]) == before  # consumed once, at payment
+    rejected(market_api, api_db, market.staff[0, "cajero"], "POST", f"/orders/{order['id']}/hand-over",
+             400, "El pedido no está disponible para entrega", json={"pickup_code": order["pickup_code"]})
+
+
+def test_unpaid_web_order_is_never_handed_over_or_charged_at_the_counter(market_api, api_db, market):
+    # Rule: web orders are paid online only; the counter never takes cash for them.
+    add(market_api, market)
+    gone = market_api.post("/api/payments/cash/checkout", headers=headers(market.customer),
+                           json={"pickup_branch_id": str(market.branches[0].id)})
+    assert gone.status_code == 404  # the web cash checkout no longer exists
+    order = checkout(market_api, market)
+    rejected(market_api, api_db, market.staff[0, "cajero"], "POST", f"/orders/{order['id']}/hand-over",
+             400, "El pedido no está disponible para entrega", json={"pickup_code": order["pickup_code"]})
+
+
+@pytest.mark.parametrize("days, message", [
+    (-1, "La fecha de visita no puede ser anterior a hoy"),
+    (15, "La fecha de visita no puede superar los 14 días"),
+])
+def test_reservation_visit_date_window(market_api, api_db, market, days, message):
+    rejected(market_api, api_db, market.customer, "POST", "/reservations/", 400, message, json={
+        "branch_id": str(market.branches[0].id),
+        "visit_date": (date.today() + timedelta(days=days)).isoformat(),
+        "items": [{"variant_id": str(market.own.variant.id), "quantity": 1}],
+    })
+
+
+@pytest.mark.parametrize("assignment", [
+    "quantity = -1", "reserved_quantity = -1", "reserved_quantity = quantity + 1",
+])
+def test_inventory_rejects_impossible_stock(api_db, market, assignment):
+    with pytest.raises(IntegrityError):
+        api_db.execute(text(f"UPDATE inventory SET {assignment} WHERE variant_id = :variant"),
+                       {"variant": market.own.variant.id})
+        api_db.flush()
+    api_db.rollback()
+
+
+def test_branch_staff_never_see_customer_pickup_code(market_api, api_db, market):
+    add(market_api, market)
+    checkout(market_api, market)
+    for role in ("encargado", "cajero"):
+        orders = call(market_api, market.staff[0, role], "GET", "/orders/branch")
+        assert len(orders) == 1 and orders[0]["pickup_code"] is None
+
+
+def _visit(days=2):
+    return (date.today() + timedelta(days=days)).isoformat()
+
+
+def test_orders_and_sales_use_the_company_currency(market_api, api_db, market):
+    add(market_api, market)
+    order = checkout(market_api, market)
+    sale = call(market_api, market.staff[0, "cajero"], "POST", "/sales/", 201,
+                json={"items": [{"variant_id": str(market.own.variant.id), "quantity": 1}]})
+    assert order["currency"] == sale["currency"] == "bob"  # identities() companies default to BOB
+
+
+def test_reservation_price_applies_product_discount(market_api, api_db, market):
+    market.own.variant.product.discount_type = "fixed"
+    market.own.variant.product.discount_value = 5
+    api_db.commit()
+    reservation = call(market_api, market.customer, "POST", "/reservations/", 201, json={
+        "branch_id": str(market.branches[0].id), "visit_date": _visit(),
+        "items": [{"variant_id": str(market.own.variant.id), "quantity": 1}],
+    })
+    assert float(reservation["items"][0]["unit_price"]) == 20
+    assert float(reservation["total_amount"]) == 20
+
+
+def test_reservation_rejects_too_many_units(market_api, api_db, market):
+    rejected(market_api, api_db, market.customer, "POST", "/reservations/", 400,
+             "Una reserva no puede superar las 5 prendas", json={
+                 "branch_id": str(market.branches[0].id), "visit_date": _visit(),
+                 "items": [{"variant_id": str(market.own.variant.id), "quantity": 6}],
+             })
+
+
+def test_customer_active_reservations_are_capped(market_api, api_db, market):
+    from app.models.inventory import Inventory
+
+    api_db.query(Inventory).filter(Inventory.variant_id == market.own.variant.id).update({"quantity": 50})
+    api_db.commit()
+    body = {"branch_id": str(market.branches[0].id), "visit_date": _visit(),
+            "items": [{"variant_id": str(market.own.variant.id), "quantity": 1}]}
+    for _ in range(3):
+        call(market_api, market.customer, "POST", "/reservations/", 201, json=body)
+    rejected(market_api, api_db, market.customer, "POST", "/reservations/", 400,
+             "Ya tienes 3 reservas activas; atiende o cancela una antes de crear otra", json=body)
+
+
+def _production_session(api_db):
+    from sqlalchemy.orm import Session
+
+    # Same flags as app.core.database.SessionLocal (autoflush=False).
+    return Session(bind=api_db.bind, join_transaction_mode="create_savepoint", autoflush=False)
+
+
+def test_cart_keeps_its_company_after_the_first_item(api_db, market):
+    from app.models.cart import Cart
+    from app.models.inventory import Inventory
+    from app.models.product_variant import ProductVariant
+    from app.schemas.cart_schema import CartItemCreate
+    from app.services.cart_service import add_cart_item
+
+    second = ProductVariant(tenant_id=market.own.tenant.id, product_id=market.own.variant.product_id,
+                            sku="SKU-0-second", price=30, status=market.own.variant.status)
+    api_db.add(second)
+    api_db.flush()
+    api_db.add(Inventory(tenant_id=market.own.tenant.id, variant_id=second.id,
+                         branch_id=market.branches[0].id, quantity=5, reserved_quantity=0))
+    api_db.commit()
+
+    with _production_session(api_db) as db:
+        add_cart_item(db, market.customer.id, CartItemCreate(variant_id=market.own.variant.id, quantity=1))
+    with _production_session(api_db) as db:
+        assert db.query(Cart.tenant_id).filter(Cart.user_id == market.customer.id).scalar() == market.own.tenant.id
+        cart = add_cart_item(db, market.customer.id, CartItemCreate(variant_id=second.id, quantity=1))
+    assert cart.item_count == 2
+
+
+def test_other_company_item_asks_to_pay_the_pending_cart_first(market_api, api_db, market):
+    add(market_api, market)
+    rejected(market_api, api_db, market.customer, "POST", "/cart/items", 400,
+             f"Ya tienes un carrito pendiente en {market.own.tenant.name}. "
+             "Págalo o vacíalo antes de comprar en otra empresa.",
+             json={"variant_id": str(market.foreign.variant.id), "branch_id": str(market.branches[2].id), "quantity": 1})
+
+
+def test_cart_exposes_its_company_for_pickup_branches(market_api, api_db, market):
+    cart = add(market_api, market)
+    assert (cart["tenant_id"], cart["tenant_name"]) == (str(market.own.tenant.id), market.own.tenant.name)
+
+
+def test_recommendations_answer_in_spanish(market_api, api_db, market):
+    # Convention 1.1: user-facing messages are always in Spanish (CU6).
+    from app.routes import recommendation_routes
+
+    market_api.app.include_router(recommendation_routes.router, prefix="/api")
+    call(market_api, market.customer, "GET", f"/recommendations/collaborative/user/{market.customer.id}",
+         expected_message="Recomendaciones obtenidas exitosamente")

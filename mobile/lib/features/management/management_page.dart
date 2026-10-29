@@ -43,6 +43,20 @@ class ManagementPage extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         _ManagementCard(
+          icon: Icons.favorite_border,
+          title: 'Lista de deseos',
+          subtitle: 'Tus prendas favoritas, listas para mover al carrito.',
+          onTap: () => Navigator.of(context).pushNamed(AppRoutes.wishlist),
+        ),
+        const SizedBox(height: 12),
+        _ManagementCard(
+          icon: Icons.loyalty_outlined,
+          title: 'Mis puntos',
+          subtitle: 'Puntos y nivel en cada empresa para canjear al pagar.',
+          onTap: () => Navigator.of(context).pushNamed(AppRoutes.loyalty),
+        ),
+        const SizedBox(height: 12),
+        _ManagementCard(
           icon: Icons.notifications_none,
           title: 'Notificaciones',
           subtitle: 'Consulta novedades y cambios de estado.',

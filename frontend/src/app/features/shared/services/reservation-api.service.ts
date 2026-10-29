@@ -22,6 +22,13 @@ export class ReservationApiService {
     return this.api.post<ReservationResponse>('/reservations', payload);
   }
 
+  /** D1: card payment of the 50 % deposit (PaymentIntent confirmed by the Stripe webhook). */
+  payDepositByCard(reservationId: string) {
+    return this.api.post<ApiResponse<{ client_secret: string; payment_intent_id: string }>>(
+      `/payments/stripe/reservations/${reservationId}`, {},
+    );
+  }
+
   cancelReservation(reservationId: string) {
     return this.api.patch<ReservationResponse>(`/reservations/${reservationId}/cancel`, {});
   }

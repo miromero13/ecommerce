@@ -1,0 +1,262 @@
+<div class="space-y-6">
+  <!-- Header with Actions -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight text-foreground">
+        Reabastecimiento Automático (Sistema Experto)
+      </h1>
+      <p class="text-sm text-muted-foreground mt-1">
+        Motor de inferencia hacia adelante (R1-R4) para balancear inventario entre sucursales según velocidad de ventas y stock crítico.
+      </p>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <button
+        type="button"
+        hlmBtn
+        variant="outline"
+        [disabled]="isEvaluating()"
+        (click)="evaluateReplenishment()"
+        class="flex items-center gap-2"
+      >
+        <span *ngIf="isEvaluating()" class="animate-spin text-sm">⏳</span>
+        <span>{{ isEvaluating() ? 'Evaluando...' : 'Evaluar Reabastecimiento' }}</span>
+      </button>
+
+      <button
+        type="button"
+        hlmBtn
+        [disabled]="isApplying() || selectedCount() === 0"
+        (click)="applySelectedTransfers()"
+        class="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+      >
+        <span *ngIf="isApplying()" class="animate-spin text-sm">⏳</span>
+        <span>Aplicar Traspasos ({{ selectedCount() }})</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Rules Configuration Card -->
+  <div hlmCard class="p-6">
+    <div class="mb-4">
+      <h3 class="text-base font-semibold text-foreground">Reglas de Inferencia del Motor</h3>
+      <p class="text-xs text-muted-foreground mt-0.5">
+        Parámetros cuantitativos para las reglas de velocidad de venta, cobertura temporal y automatización.
+      </p>
+    </div>
+
+    <form [formGroup]="rulesForm" (ngSubmit)="saveRules()" class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-4 items-end">
+      <div>
+        <label class="block text-xs font-medium text-foreground mb-1">
+          Días de Historial (Lookback)
+        </label>
+        <input
+          hlmInput
+          type="number"
+          min="1"
+          max="90"
+          formControlName="lookback_days"
+          class="w-full text-sm"
+          placeholder="7"
+        />
+        <p class="text-[11px] text-muted-foreground mt-1">Ventana para cálculo de velocidad.</p>
+      </div>
+
+      <div>
+        <label class="block text-xs font-medium text-foreground mb-1">
+          Días de Cobertura Deseada
+        </label>
+        <input
+          hlmInput
+          type="number"
+          min="1"
+          max="90"
+          formControlName="coverage_days"
+          class="w-full text-sm"
+          placeholder="14"
+        />
+        <p class="text-[11px] text-muted-foreground mt-1">Días de stock proyectado.</p>
+      </div>
+
+      <div class="flex items-center gap-2 pb-2">
+        <input
+          type="checkbox"
+          id="is_auto_enabled"
+          formControlName="is_auto_enabled"
+          class="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+        />
+        <label for="is_auto_enabled" class="text-xs font-medium text-foreground cursor-pointer select-none">
+          Evaluación automática periódica
+        </label>
+      </div>
+
+      <div>
+        <button
+          type="submit"
+          hlmBtn
+          variant="secondary"
+          [disabled]="isSavingRules() || rulesForm.invalid"
+          class="w-full text-sm"
+        >
+          {{ isSavingRules() ? 'Guardando...' : 'Guardar Parámetros' }}
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Filters & Counter Bar -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div class="flex items-center gap-2">
+      <button
+        type="button"
+        (click)="setStatusFilter('pending')"
+        class="px-3 py-1.5 text-xs font-medium rounded-full transition-colors"
+        [ngClass]="statusFilter() === 'pending' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'"
+      >
+        Pendientes ({{ pendingCount() }})
+      </button>
+
+      <button
+        type="button"
+        (click)="setStatusFilter('applied')"
+        class="px-3 py-1.5 text-xs font-medium rounded-full transition-colors"
+        [ngClass]="statusFilter() === 'applied' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'"
+      >
+        Aplicados
+      </button>
+
+      <button
+        type="button"
+        (click)="setStatusFilter('discarded')"
+        class="px-3 py-1.5 text-xs font-medium rounded-full transition-colors"
+        [ngClass]="statusFilter() === 'discarded' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'"
+      >
+        Descartados
+      </button>
+
+      <button
+        type="button"
+        (click)="setStatusFilter('all')"
+        class="px-3 py-1.5 text-xs font-medium rounded-full transition-colors"
+        [ngClass]="statusFilter() === 'all' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'"
+      >
+        Todos ({{ suggestions().length }})
+      </button>
+    </div>
+
+    <div *ngIf="statusFilter() === 'pending' && pendingCount() > 0" class="text-xs text-muted-foreground">
+      {{ selectedCount() }} de {{ pendingCount() }} traspasos seleccionados
+    </div>
+  </div>
+
+  <!-- Suggestions Table -->
+  <div hlmCard class="overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm border-collapse">
+        <thead>
+          <tr class="border-b border-border bg-muted/40 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <th class="py-3 px-4 w-10 text-center">
+              <input
+                *ngIf="statusFilter() === 'pending' && pendingCount() > 0"
+                type="checkbox"
+                [checked]="allPendingSelected()"
+                (change)="toggleSelectAll()"
+                class="h-4 w-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
+                title="Seleccionar todos los pendientes"
+              />
+            </th>
+            <th class="py-3 px-4">Producto & SKU</th>
+            <th class="py-3 px-4">Sucursal Origen (Excedente)</th>
+            <th class="py-3 px-4">Sucursal Destino (Crítico)</th>
+            <th class="py-3 px-4 text-center">Cant. Sugerida</th>
+            <th class="py-3 px-4">Justificación del Sistema Experto</th>
+            <th class="py-3 px-4 text-center">Estado</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-border">
+          <tr
+            *ngFor="let s of filteredSuggestions()"
+            class="hover:bg-muted/30 transition-colors"
+            [class.bg-primary/5]="selectedSuggestionIds().has(s.id)"
+          >
+            <!-- Checkbox -->
+            <td class="py-3 px-4 text-center">
+              <input
+                *ngIf="s.status === 'pending'"
+                type="checkbox"
+                [checked]="selectedSuggestionIds().has(s.id)"
+                (change)="toggleSelectRow(s)"
+                class="h-4 w-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
+              />
+            </td>
+
+            <!-- Product & SKU -->
+            <td class="py-3 px-4">
+              <div class="font-medium text-foreground">{{ s.product_name || 'Sin nombre' }}</div>
+              <div class="text-xs font-mono text-muted-foreground">{{ s.variant_sku }}</div>
+            </td>
+
+            <!-- Source Branch -->
+            <td class="py-3 px-4">
+              <div class="font-medium text-foreground">{{ s.source_branch_name || 'Sucursal origen' }}</div>
+              <span class="inline-flex items-center text-[11px] text-emerald-700 dark:text-emerald-400 font-medium">
+                Con excedente
+              </span>
+            </td>
+
+            <!-- Target Branch -->
+            <td class="py-3 px-4">
+              <div class="font-medium text-foreground">{{ s.target_branch_name || 'Sucursal destino' }}</div>
+              <span class="inline-flex items-center text-[11px] text-destructive font-medium">
+                Stock crítico
+              </span>
+            </td>
+
+            <!-- Quantity -->
+            <td class="py-3 px-4 text-center">
+              <span class="inline-block px-2.5 py-1 text-sm font-bold bg-primary/10 text-primary rounded-md">
+                +{{ s.suggested_quantity }}
+              </span>
+            </td>
+
+            <!-- Reason -->
+            <td class="py-3 px-4 max-w-md">
+              <p class="text-xs text-foreground/90 leading-relaxed font-sans">
+                {{ s.reason }}
+              </p>
+              <div class="text-[10px] text-muted-foreground mt-1">
+                Generado: {{ s.created_at | date:'dd/MM/yyyy HH:mm' }}
+                <span *ngIf="s.applied_at"> | Aplicado: {{ s.applied_at | date:'dd/MM/yyyy HH:mm' }}</span>
+              </div>
+            </td>
+
+            <!-- Status -->
+            <td class="py-3 px-4 text-center">
+              <span
+                class="inline-block px-2.5 py-0.5 text-xs font-semibold rounded-full border"
+                [ngClass]="getStatusBadgeClass(s.status)"
+              >
+                {{ getStatusLabel(s.status) }}
+              </span>
+            </td>
+          </tr>
+
+          <!-- Empty state -->
+          <tr *ngIf="filteredSuggestions().length === 0">
+            <td colspan="7" class="py-12 text-center">
+              <div class="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center text-xl mb-3">
+                📦
+              </div>
+              <p class="text-sm font-medium text-foreground">
+                No hay sugerencias en esta vista
+              </p>
+              <p class="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+                Hacé clic en "Evaluar Reabastecimiento" para ejecutar las reglas de inferencia sobre el inventario actual.
+              </p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

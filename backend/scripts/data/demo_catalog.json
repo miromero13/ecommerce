@@ -1,0 +1,2739 @@
+{
+ "source": "primer_parcial.1.0/PAQUETE_CATALOGO_Y_VESTIDOR_IA",
+ "storage": "local",
+ "colors": [
+  {
+   "name": "Blanco",
+   "hex": "#FFFFFF"
+  },
+  {
+   "name": "Negro",
+   "hex": "#1A1A1A"
+  },
+  {
+   "name": "Beige / Nude",
+   "hex": "#E8D8C8"
+  },
+  {
+   "name": "Azul Marino",
+   "hex": "#1A2B4C"
+  },
+  {
+   "name": "Rojo Vino",
+   "hex": "#800020"
+  },
+  {
+   "name": "Rosa Pastel",
+   "hex": "#F4C2C2"
+  },
+  {
+   "name": "Verde Oliva",
+   "hex": "#556B2F"
+  },
+  {
+   "name": "Mostaza",
+   "hex": "#D4AF37"
+  },
+  {
+   "name": "Gris Jaspe",
+   "hex": "#8E8E93"
+  },
+  {
+   "name": "Café Chocolate",
+   "hex": "#4A2E18"
+  },
+  {
+   "name": "Beige",
+   "hex": "#D4C5A9"
+  },
+  {
+   "name": "Camel",
+   "hex": "#A67B5B"
+  },
+  {
+   "name": "Chocolate",
+   "hex": "#3E2723"
+  }
+ ],
+ "sizes": [
+  "XS",
+  "S",
+  "M",
+  "L",
+  "XL",
+  "36",
+  "38",
+  "40"
+ ],
+ "seasons": [
+  "Primavera 2026",
+  "Verano 2026 / 2027",
+  "Otoño 2026",
+  "Invierno 2026",
+  "Atemporal / Esenciales"
+ ],
+ "categories": [
+  "Blazers",
+  "Blusas",
+  "Camisas",
+  "Camisetas / T-Shirts",
+  "Chaquetas / Chamarras",
+  "Enterizos / Monos",
+  "Jeans / Mezclilla",
+  "Pantalones",
+  "Ropa de dormir / Pijamas",
+  "Suéteres y Tejidos",
+  "Tops / Crop Tops",
+  "Vestidos"
+ ],
+ "products": [
+  {
+   "key": 1,
+   "name": "Blusa Peplum Plisada Escote V con Botones de Carey",
+   "description": "Blusa femenina plisada con corte peplum y escote en V pronunciado. Botones de carey centrales. Manga corta cap sleeve. Lino texturizado ligero.",
+   "price": 189.0,
+   "compare_at_price": 249.0,
+   "category": "Blusas",
+   "season": "Verano 2026 / 2027",
+   "material": "Lino texturizado",
+   "tags": [
+    "peplum",
+    "plisada",
+    "botones carey",
+    "escote V",
+    "lino",
+    "blanco",
+    "elegante",
+    "peplum_v_neck"
+   ],
+   "image_url": "catalog/blusa_peplum_blanca.png",
+   "image_public_id": null,
+   "try_on_image_url": "try-on/rig_p1_0a5f248d555647fc.png",
+   "variants": [
+    {
+     "color": "Blanco",
+     "size": "XS",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "L",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "XL",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 2,
+   "name": "Top Sastre Off-Shoulder Cruzado Estilo Haute Couture",
+   "description": "Top sastre haute couture con escote barco off-shoulder. Doble hilera de botones forrados. Corte peplum. Crepe grueso acabado mate premium.",
+   "price": 320.0,
+   "compare_at_price": 450.0,
+   "category": "Tops / Crop Tops",
+   "season": "Otoño 2026",
+   "material": "Crepe grueso acabado mate",
+   "tags": [
+    "off-shoulder",
+    "cruzado",
+    "haute couture",
+    "beige",
+    "sastre",
+    "botones",
+    "peplum",
+    "off_shoulder_double_breasted"
+   ],
+   "image_url": "catalog/top_dior_beige.png",
+   "image_public_id": null,
+   "try_on_image_url": "try-on/rig_p2_51b8b72f48fe68a2.png",
+   "variants": [
+    {
+     "color": "Beige",
+     "size": "XS",
+     "price": null
+    },
+    {
+     "color": "Beige",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Beige",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Beige",
+     "size": "L",
+     "price": null
+    },
+    {
+     "color": "Beige",
+     "size": "XL",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 3,
+   "name": "Blusa Estructurada Cuello Redondo con Botones Dorados",
+   "description": "Blusa entallada cuello redondo caja cerrado. Botones dorados de relieve. Manga corta sobre el codo. Lino estructurado acabado gamuza. Color camel.",
+   "price": 210.0,
+   "compare_at_price": 285.0,
+   "category": "Blusas",
+   "season": "Verano 2026 / 2027",
+   "material": "Lino estructurado acabado gamuza",
+   "tags": [
+    "estructurada",
+    "cuello redondo",
+    "botones dorados",
+    "camel",
+    "bolsillos",
+    "entallada",
+    "crew_neck_structured"
+   ],
+   "image_url": "catalog/blusa_camel_botones.png",
+   "image_public_id": null,
+   "try_on_image_url": "try-on/rig_p3_0135952bb337aa0c.png",
+   "variants": [
+    {
+     "color": "Camel",
+     "size": "XS",
+     "price": null
+    },
+    {
+     "color": "Camel",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Camel",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Camel",
+     "size": "L",
+     "price": null
+    },
+    {
+     "color": "Camel",
+     "size": "XL",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 4,
+   "name": "Blazer Peplum Manga Corta con Solapa Clasica y Botones Dorados",
+   "description": "Blazer femenino manga corta con solapa de muesca clasica y corte peplum acampanado. Tres botones dorados. Pano mezcla aterciopelado. Chocolate oscuro.",
+   "price": 350.0,
+   "compare_at_price": 480.0,
+   "category": "Blazers",
+   "season": "Otoño 2026",
+   "material": "Pano mezcla acabado aterciopelado",
+   "tags": [
+    "blazer",
+    "peplum",
+    "manga corta",
+    "solapa",
+    "botones dorados",
+    "chocolate",
+    "sastre",
+    "formal",
+    "blazer_notch_lapel_peplum"
+   ],
+   "image_url": "catalog/blazer_chocolate.png",
+   "image_public_id": null,
+   "try_on_image_url": "try-on/rig_p4_88d4a25bc859ac0e.png",
+   "variants": [
+    {
+     "color": "Chocolate",
+     "size": "XS",
+     "price": null
+    },
+    {
+     "color": "Chocolate",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Chocolate",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Chocolate",
+     "size": "L",
+     "price": null
+    },
+    {
+     "color": "Chocolate",
+     "size": "XL",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 5,
+   "name": "Top Peplum Negro Escote Cuadrado con Cinturón",
+   "description": "Prenda exclusiva de diseño: Top Peplum Negro Escote Cuadrado con Cinturón. Confección en tejido de alta calidad con acabado premium. Estilo Minimalista / Elegante.",
+   "price": 109.0,
+   "compare_at_price": 141.7,
+   "category": "Tops / Crop Tops",
+   "season": "Atemporal / Esenciales",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "tops - crop tops",
+    "negro",
+    "minimalista / elegante",
+    "top_peplum_negro_cinturon_cider"
+   ],
+   "image_url": "catalog/top_peplum_negro_cinturon_cider.jpg",
+   "image_public_id": null,
+   "try_on_image_url": "try-on/rig_p5_1dd7ecb4c5bc8c8b.png",
+   "variants": [
+    {
+     "color": "Negro",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Negro",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Negro",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 6,
+   "name": "Vestido Mini Negro con Estampado Floral Naranja",
+   "description": "Prenda exclusiva de diseño: Vestido Mini Negro con Estampado Floral Naranja. Confección en tejido de alta calidad con acabado premium. Estilo Casual / Coctel de Día.",
+   "price": 239.0,
+   "compare_at_price": 310.7,
+   "category": "Vestidos",
+   "season": "Primavera 2026",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "vestidos",
+    "negro",
+    "casual / coctel de día",
+    "vestido_mini_floral_negro_sin_mangas"
+   ],
+   "image_url": "catalog/vestido_mini_floral_negro_sin_mangas.jpg",
+   "image_public_id": null,
+   "try_on_image_url": "try-on/rig_p6_3b8ad3c51ff47908.png",
+   "variants": [
+    {
+     "color": "Negro",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Negro",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Negro",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 7,
+   "name": "Conjunto de Pijama Satinado Color Vino con Encaje",
+   "description": "Prenda exclusiva de diseño: Conjunto de Pijama Satinado Color Vino con Encaje. Confección en tejido de alta calidad con acabado premium. Estilo Descanso / Lencería Satén.",
+   "price": 189.0,
+   "compare_at_price": 245.7,
+   "category": "Ropa de dormir / Pijamas",
+   "season": "Atemporal / Esenciales",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "ropa de dormir - pijamas",
+    "vino / borgoña",
+    "descanso / lencería satén",
+    "pijama_saten_lencero_vino_tiras"
+   ],
+   "image_url": "catalog/pijama_saten_lencero_vino_tiras.jpg",
+   "image_public_id": null,
+   "try_on_image_url": "try-on/rig_p7_459406c4f20835c6.png",
+   "variants": [
+    {
+     "color": "Rojo Vino",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Rojo Vino",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Rojo Vino",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 8,
+   "name": "Blusa Blanca Bordado Inglés con Corte Peplum",
+   "description": "Prenda exclusiva de diseño: Blusa Blanca Bordado Inglés con Corte Peplum. Confección en tejido de alta calidad con acabado premium. Estilo Romántico / Casual Elegante.",
+   "price": 219.0,
+   "compare_at_price": 284.7,
+   "category": "Blusas",
+   "season": "Atemporal / Esenciales",
+   "material": "Algodón Pima y Fibras Seleccionadas",
+   "tags": [
+    "blusas",
+    "blanco",
+    "romántico / casual elegante",
+    "blusa_blanca_bordado_ingles_peplum"
+   ],
+   "image_url": "catalog/blusa_blanca_bordado_ingles_peplum.jpg",
+   "image_public_id": null,
+   "try_on_image_url": "try-on/rig_p8_4e80165ced00255f.png",
+   "variants": [
+    {
+     "color": "Blanco",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 9,
+   "name": "Conjunto Enterizo Dos Piezas Top Estampado y Pantalón Palazzo Blanco",
+   "description": "Prenda exclusiva de diseño: Conjunto Enterizo Dos Piezas Top Estampado y Pantalón Palazzo Blanco. Confección en tejido de alta calidad con acabado premium. Estilo Resort / Verano Sofisticado.",
+   "price": 189.0,
+   "compare_at_price": 245.7,
+   "category": "Enterizos / Monos",
+   "season": "Verano 2026 / 2027",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "enterizos - monos",
+    "blanco / azul",
+    "resort / verano sofisticado",
+    "conjunto_enterizo_top_estampado_palazzo_blanco"
+   ],
+   "image_url": "catalog/conjunto_enterizo_top_estampado_palazzo_blanco.jpg",
+   "image_public_id": null,
+   "try_on_image_url": "try-on/rig_p9_378a5654f4e738f5.png",
+   "variants": [
+    {
+     "color": "Blanco",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 10,
+   "name": "Vestido Mini en Denim Azul con Lazos en Tirantes y Falda Ruffle",
+   "description": "Prenda exclusiva de diseño: Vestido Mini en Denim Azul con Lazos en Tirantes y Falda Ruffle. Confección en tejido de alta calidad con acabado premium. Estilo Casual / Juvenil.",
+   "price": 219.0,
+   "compare_at_price": 284.7,
+   "category": "Vestidos",
+   "season": "Verano 2026 / 2027",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "vestidos",
+    "azul denim",
+    "casual / juvenil",
+    "vestido_mini_denim_tirantes_lazo"
+   ],
+   "image_url": "catalog/vestido_mini_denim_tirantes_lazo.jpg",
+   "image_public_id": null,
+   "try_on_image_url": "try-on/rig_p10_a22aebdc75bf6268.png",
+   "variants": [
+    {
+     "color": "Azul Marino",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Azul Marino",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Azul Marino",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 11,
+   "name": "Vestido Mini Cruzado Estilo Wrap Floral Verde Salvia",
+   "description": "Prenda exclusiva de diseño: Vestido Mini Cruzado Estilo Wrap Floral Verde Salvia. Confección en tejido de alta calidad con acabado premium. Estilo Romántico / Verano.",
+   "price": 239.0,
+   "compare_at_price": 310.7,
+   "category": "Vestidos",
+   "season": "Verano 2026 / 2027",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "vestidos",
+    "verde salvia",
+    "romántico / verano",
+    "vestido_mini_cruzado_floral_verde_salvia"
+   ],
+   "image_url": "catalog/vestido_mini_cruzado_floral_verde_salvia.jpg",
+   "image_public_id": null,
+   "try_on_image_url": "try-on/rig_p11_6420328dc0072d6d.png",
+   "variants": [
+    {
+     "color": "Verde Oliva",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Verde Oliva",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Verde Oliva",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 12,
+   "name": "Top Canalé Negro de Punto con Lazo Lateral al Cuello",
+   "description": "Prenda exclusiva de diseño: Top Canalé Negro de Punto con Lazo Lateral al Cuello. Confección en tejido de alta calidad con acabado premium. Estilo Chic / Ejecutivo Moderno.",
+   "price": 149.0,
+   "compare_at_price": 193.7,
+   "category": "Tops / Crop Tops",
+   "season": "Atemporal / Esenciales",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "tops - crop tops",
+    "negro",
+    "chic / ejecutivo moderno",
+    "top_canale_negro_cuello_lazo"
+   ],
+   "image_url": "catalog/top_canale_negro_cuello_lazo.jpg",
+   "image_public_id": null,
+   "try_on_image_url": "try-on/rig_p12_669542dcafd22ce5.png",
+   "variants": [
+    {
+     "color": "Negro",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Negro",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Negro",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 13,
+   "name": "Jeans Wide Leg Tiro Alto en Denim Gris Deslavado",
+   "description": "Prenda exclusiva de diseño: Jeans Wide Leg Tiro Alto en Denim Gris Deslavado. Confección en tejido de alta calidad con acabado premium. Estilo Streetwear / Denim Urbano.",
+   "price": 259.0,
+   "compare_at_price": 336.7,
+   "category": "Jeans / Mezclilla",
+   "season": "Atemporal / Esenciales",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "jeans - mezclilla",
+    "gris / charcoal",
+    "streetwear / denim urbano",
+    "jeans_wide_leg_tiro_alto_gris_deslavado"
+   ],
+   "image_url": "catalog/jeans_wide_leg_tiro_alto_gris_deslavado.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Gris Jaspe",
+     "size": "36",
+     "price": null
+    },
+    {
+     "color": "Gris Jaspe",
+     "size": "38",
+     "price": null
+    },
+    {
+     "color": "Gris Jaspe",
+     "size": "40",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 14,
+   "name": "Top Drapeado Fruncido Asimétrico Un Hombro Marrón Chocolate",
+   "description": "Prenda exclusiva de diseño: Top Drapeado Fruncido Asimétrico Un Hombro Marrón Chocolate. Confección en tejido de alta calidad con acabado premium. Estilo Noche / Fiesta Minimalista.",
+   "price": 89.0,
+   "compare_at_price": 115.7,
+   "category": "Tops / Crop Tops",
+   "season": "Otoño 2026",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "tops - crop tops",
+    "marrón chocolate",
+    "noche / fiesta minimalista",
+    "top_drapeado_asimetrico_marron_chocolate"
+   ],
+   "image_url": "catalog/top_drapeado_asimetrico_marron_chocolate.jpg",
+   "image_public_id": null,
+   "try_on_image_url": "try-on/rig_p14_a32443cf0425ef92.png",
+   "variants": [
+    {
+     "color": "Café Chocolate",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Café Chocolate",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Café Chocolate",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 15,
+   "name": "Top Asimétrico Estampado Lunares con Caída Lateral Azul Marino",
+   "description": "Prenda exclusiva de diseño: Top Asimétrico Estampado Lunares con Caída Lateral Azul Marino. Confección en tejido de alta calidad con acabado premium. Estilo Elegante Casual.",
+   "price": 109.0,
+   "compare_at_price": 141.7,
+   "category": "Tops / Crop Tops",
+   "season": "Atemporal / Esenciales",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "tops - crop tops",
+    "azul marino / blanco",
+    "elegante casual",
+    "top_asimetrico_lunares_azul_marino"
+   ],
+   "image_url": "catalog/top_asimetrico_lunares_azul_marino.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Blanco",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 16,
+   "name": "Twin-set Cárdigan Tejido Cropped Rosa Pastel con Top Blanco",
+   "description": "Prenda exclusiva de diseño: Twin-set Cárdigan Tejido Cropped Rosa Pastel con Top Blanco. Confección en tejido de alta calidad con acabado premium. Estilo Preppy / Suave Tejido.",
+   "price": 199.0,
+   "compare_at_price": 258.7,
+   "category": "Suéteres y Tejidos",
+   "season": "Invierno 2026",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "suéteres y tejidos",
+    "rosa pastel / blanco",
+    "preppy / suave tejido",
+    "set_cardigan_tejido_crop_rosa_pastel"
+   ],
+   "image_url": "catalog/set_cardigan_tejido_crop_rosa_pastel.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Blanco",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 17,
+   "name": "Suéter de Punto Grueso Marinero a Rayas con Cuello Polo y Cierre",
+   "description": "Prenda exclusiva de diseño: Suéter de Punto Grueso Marinero a Rayas con Cuello Polo y Cierre. Confección en tejido de alta calidad con acabado premium. Estilo Navy / Clásico Náutico.",
+   "price": 219.0,
+   "compare_at_price": 284.7,
+   "category": "Suéteres y Tejidos",
+   "season": "Invierno 2026",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "suéteres y tejidos",
+    "blanco crudo / azul marino",
+    "navy / clásico náutico",
+    "sueter_marinero_rayas_cuello_zipper"
+   ],
+   "image_url": "catalog/sueter_marinero_rayas_cuello_zipper.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Blanco",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 18,
+   "name": "Suéter Crop Textura Suave Cuello Barco Rosa Suave",
+   "description": "Prenda exclusiva de diseño: Suéter Crop Textura Suave Cuello Barco Rosa Suave. Confección en tejido de alta calidad con acabado premium. Estilo Comfy Chic / Invierno.",
+   "price": 239.0,
+   "compare_at_price": 310.7,
+   "category": "Suéteres y Tejidos",
+   "season": "Invierno 2026",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "suéteres y tejidos",
+    "rosa pastel",
+    "comfy chic / invierno",
+    "sueter_fluffy_crop_cuello_barco_rosa"
+   ],
+   "image_url": "catalog/sueter_fluffy_crop_cuello_barco_rosa.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Rosa Pastel",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Rosa Pastel",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Rosa Pastel",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 19,
+   "name": "Suéter de Punto Fino Cuello Redondo Entallado Borgoña",
+   "description": "Prenda exclusiva de diseño: Suéter de Punto Fino Cuello Redondo Entallado Borgoña. Confección en tejido de alta calidad con acabado premium. Estilo Clásico / Otoño Invierno.",
+   "price": 159.0,
+   "compare_at_price": 206.7,
+   "category": "Suéteres y Tejidos",
+   "season": "Invierno 2026",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "suéteres y tejidos",
+    "burdeos / vino",
+    "clásico / otoño invierno",
+    "sueter_punto_cuello_redondo_burdeos"
+   ],
+   "image_url": "catalog/sueter_punto_cuello_redondo_burdeos.jpg",
+   "image_public_id": null,
+   "try_on_image_url": "try-on/rig_p19_becd01f87c032d9b.png",
+   "variants": [
+    {
+     "color": "Rojo Vino",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Rojo Vino",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Rojo Vino",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 20,
+   "name": "Chaqueta Bomber Biker de Cuero Sintético Granate con Cinturón",
+   "description": "Prenda exclusiva de diseño: Chaqueta Bomber Biker de Cuero Sintético Granate con Cinturón. Confección en tejido de alta calidad con acabado premium. Estilo Biker / Edgy Urbano.",
+   "price": 319.0,
+   "compare_at_price": 414.7,
+   "category": "Chaquetas / Chamarras",
+   "season": "Primavera 2026",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "chaquetas - chamarras",
+    "granate / borgoña",
+    "biker / edgy urbano",
+    "chaqueta_bomber_cuero_vino_cinturon"
+   ],
+   "image_url": "catalog/chaqueta_bomber_cuero_vino_cinturon.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Rojo Vino",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Rojo Vino",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Rojo Vino",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 21,
+   "name": "Chaqueta Bomber Oversize en Cuero Marrón Oscuro",
+   "description": "Prenda exclusiva de diseño: Chaqueta Bomber Oversize en Cuero Marrón Oscuro. Confección en tejido de alta calidad con acabado premium. Estilo Vintage 90s / Cuero.",
+   "price": 339.0,
+   "compare_at_price": 440.7,
+   "category": "Chaquetas / Chamarras",
+   "season": "Verano 2026 / 2027",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "chaquetas - chamarras",
+    "marrón oscuro",
+    "vintage 90s / cuero",
+    "chaqueta_bomber_cuero_marron_vintage"
+   ],
+   "image_url": "catalog/chaqueta_bomber_cuero_marron_vintage.jpg",
+   "image_public_id": null,
+   "try_on_image_url": "try-on/rig_p21_5bd66d37b0ecca8f.png",
+   "variants": [
+    {
+     "color": "Café Chocolate",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Café Chocolate",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Café Chocolate",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 22,
+   "name": "Jersey Tejido Rayas Bretonas con Solapa y Cremallera Frontal",
+   "description": "Prenda exclusiva de diseño: Jersey Tejido Rayas Bretonas con Solapa y Cremallera Frontal. Confección en tejido de alta calidad con acabado premium. Estilo Náutico Francés.",
+   "price": 219.0,
+   "compare_at_price": 284.7,
+   "category": "Suéteres y Tejidos",
+   "season": "Invierno 2026",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "suéteres y tejidos",
+    "crema / azul marino",
+    "náutico francés",
+    "sueter_rayas_cremallera_cuello_amplio"
+   ],
+   "image_url": "catalog/sueter_rayas_cremallera_cuello_amplio.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Blanco",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 23,
+   "name": "Top Tipo Chaleco Sastre Gris con Escote Cuadrado y Vuelo Peplum",
+   "description": "Prenda exclusiva de diseño: Top Tipo Chaleco Sastre Gris con Escote Cuadrado y Vuelo Peplum. Confección en tejido de alta calidad con acabado premium. Estilo Sastrería Femenina / Tailoring.",
+   "price": 169.0,
+   "compare_at_price": 219.7,
+   "category": "Tops / Crop Tops",
+   "season": "Atemporal / Esenciales",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "tops - crop tops",
+    "gris marengo",
+    "sastrería femenina / tailoring",
+    "chaleco_top_sastre_peplum_gris"
+   ],
+   "image_url": "catalog/chaleco_top_sastre_peplum_gris.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Gris Jaspe",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Gris Jaspe",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Gris Jaspe",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 24,
+   "name": "Camisa Clásica Popelín a Rayas Azules y Blancas de Botones",
+   "description": "Prenda exclusiva de diseño: Camisa Clásica Popelín a Rayas Azules y Blancas de Botones. Confección en tejido de alta calidad con acabado premium. Estilo Ejecutiva / Fondo de Armario.",
+   "price": 149.0,
+   "compare_at_price": 193.7,
+   "category": "Camisas",
+   "season": "Atemporal / Esenciales",
+   "material": "Algodón Pima y Fibras Seleccionadas",
+   "tags": [
+    "camisas",
+    "azul celeste / blanco",
+    "ejecutiva / fondo de armario",
+    "camisa_clasica_rayas_azules_algodon"
+   ],
+   "image_url": "catalog/camisa_clasica_rayas_azules_algodon.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Blanco",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 25,
+   "name": "Camiseta Básica Slim Fit de Algodón Azul Marino",
+   "description": "Prenda exclusiva de diseño: Camiseta Básica Slim Fit de Algodón Azul Marino. Confección en tejido de alta calidad con acabado premium. Estilo Básico Cotidiano.",
+   "price": 99.0,
+   "compare_at_price": 128.7,
+   "category": "Camisetas / T-Shirts",
+   "season": "Atemporal / Esenciales",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "camisetas - t-shirts",
+    "azul marino",
+    "básico cotidiano",
+    "camiseta_basica_ajustada_azul_marino"
+   ],
+   "image_url": "catalog/camiseta_basica_ajustada_azul_marino.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Azul Marino",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Azul Marino",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Azul Marino",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 26,
+   "name": "Camiseta Básica Slim Fit Cuello Redondo Burdeos",
+   "description": "Prenda exclusiva de diseño: Camiseta Básica Slim Fit Cuello Redondo Burdeos. Confección en tejido de alta calidad con acabado premium. Estilo Básico Cotidiano.",
+   "price": 119.0,
+   "compare_at_price": 154.7,
+   "category": "Camisetas / T-Shirts",
+   "season": "Atemporal / Esenciales",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "camisetas - t-shirts",
+    "burdeos",
+    "básico cotidiano",
+    "camiseta_basica_slim_burdeos"
+   ],
+   "image_url": "catalog/camiseta_basica_slim_burdeos.jpg",
+   "image_public_id": null,
+   "try_on_image_url": "try-on/rig_p26_f1b1b05f3aba6461.png",
+   "variants": [
+    {
+     "color": "Rojo Vino",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Rojo Vino",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Rojo Vino",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 27,
+   "name": "Camiseta Fruncida Entallada Marrón Espresso",
+   "description": "Prenda exclusiva de diseño: Camiseta Fruncida Entallada Marrón Espresso. Confección en tejido de alta calidad con acabado premium. Estilo Casual Moderno.",
+   "price": 139.0,
+   "compare_at_price": 180.7,
+   "category": "Camisetas / T-Shirts",
+   "season": "Atemporal / Esenciales",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "camisetas - t-shirts",
+    "marrón espresso",
+    "casual moderno",
+    "camiseta_fruncida_lateral_marron"
+   ],
+   "image_url": "catalog/camiseta_fruncida_lateral_marron.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Café Chocolate",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Café Chocolate",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Café Chocolate",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 28,
+   "name": "Top de Punto Estilo Polo con Cuello Contraste Crema Marrón",
+   "description": "Prenda exclusiva de diseño: Top de Punto Estilo Polo con Cuello Contraste Crema Marrón. Confección en tejido de alta calidad con acabado premium. Estilo Old Money / Tennis Club.",
+   "price": 169.0,
+   "compare_at_price": 219.7,
+   "category": "Tops / Crop Tops",
+   "season": "Primavera 2026",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "tops - crop tops",
+    "marrón / crema",
+    "old money / tennis club",
+    "top_polo_contraste_marron_crema"
+   ],
+   "image_url": "catalog/top_polo_contraste_marron_crema.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Blanco",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 29,
+   "name": "Camiseta Cropped a Rayas Marineras Blanco y Negro",
+   "description": "Prenda exclusiva de diseño: Camiseta Cropped a Rayas Marineras Blanco y Negro. Confección en tejido de alta calidad con acabado premium. Estilo Casual / Streetwear.",
+   "price": 79.0,
+   "compare_at_price": 102.7,
+   "category": "Camisetas / T-Shirts",
+   "season": "Atemporal / Esenciales",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "camisetas - t-shirts",
+    "blanco / negro",
+    "casual / streetwear",
+    "camiseta_crop_rayas_marineras"
+   ],
+   "image_url": "catalog/camiseta_crop_rayas_marineras.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Blanco",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 30,
+   "name": "Camiseta Estilo Béisbol Raglán Manga Negra con Botones y Microestampado",
+   "description": "Prenda exclusiva de diseño: Camiseta Estilo Béisbol Raglán Manga Negra con Botones y Microestampado. Confección en tejido de alta calidad con acabado premium. Estilo Y2K / Casual Juvenil.",
+   "price": 99.0,
+   "compare_at_price": 128.7,
+   "category": "Camisetas / T-Shirts",
+   "season": "Atemporal / Esenciales",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "camisetas - t-shirts",
+    "blanco / negro",
+    "y2k / casual juvenil",
+    "camiseta_raglan_botones_manga_negra"
+   ],
+   "image_url": "catalog/camiseta_raglan_botones_manga_negra.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Blanco",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 31,
+   "name": "Top Estilo Corset Escote Cuadrado Manga Abullonada Marrón",
+   "description": "Prenda exclusiva de diseño: Top Estilo Corset Escote Cuadrado Manga Abullonada Marrón. Confección en tejido de alta calidad con acabado premium. Estilo Cottagecore / Romántico.",
+   "price": 129.0,
+   "compare_at_price": 167.7,
+   "category": "Tops / Crop Tops",
+   "season": "Atemporal / Esenciales",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "tops - crop tops",
+    "marrón chocolate",
+    "cottagecore / romántico",
+    "top_corset_manga_abullonada_marron"
+   ],
+   "image_url": "catalog/top_corset_manga_abullonada_marron.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Café Chocolate",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Café Chocolate",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Café Chocolate",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 32,
+   "name": "Vestido Mini Drop-Waist Blanco a Lunares con Falda Plisada",
+   "description": "Prenda exclusiva de diseño: Vestido Mini Drop-Waist Blanco a Lunares con Falda Plisada. Confección en tejido de alta calidad con acabado premium. Estilo Retro 60s / Coquette.",
+   "price": 259.0,
+   "compare_at_price": 336.7,
+   "category": "Vestidos",
+   "season": "Atemporal / Esenciales",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "vestidos",
+    "blanco / negro",
+    "retro 60s / coquette",
+    "vestido_mini_drop_waist_lunares_blanco"
+   ],
+   "image_url": "catalog/vestido_mini_drop_waist_lunares_blanco.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Blanco",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 33,
+   "name": "Vestido Chaleco Sastre Marrón con Botones Dorados y Falda Plisada",
+   "description": "Prenda exclusiva de diseño: Vestido Chaleco Sastre Marrón con Botones Dorados y Falda Plisada. Confección en tejido de alta calidad con acabado premium. Estilo Dark Academia / Tailored Dress.",
+   "price": 279.0,
+   "compare_at_price": 362.7,
+   "category": "Vestidos",
+   "season": "Verano 2026 / 2027",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "vestidos",
+    "marrón canela",
+    "dark academia / tailored dress",
+    "vestido_chaleco_sastre_plisado_marron"
+   ],
+   "image_url": "catalog/vestido_chaleco_sastre_plisado_marron.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Café Chocolate",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Café Chocolate",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Café Chocolate",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 34,
+   "name": "Pantalón Sastre Wide Leg Raya Diplomática Gris con Detalle de Cintura",
+   "description": "Prenda exclusiva de diseño: Pantalón Sastre Wide Leg Raya Diplomática Gris con Detalle de Cintura. Confección en tejido de alta calidad con acabado premium. Estilo Sartorial / Oficina Ejecutiva.",
+   "price": 169.0,
+   "compare_at_price": 219.7,
+   "category": "Pantalones",
+   "season": "Otoño 2026",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "pantalones",
+    "gris marengo",
+    "sartorial / oficina ejecutiva",
+    "pantalon_sastre_raya_diplomatica_gris"
+   ],
+   "image_url": "catalog/pantalon_sastre_raya_diplomatica_gris.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Gris Jaspe",
+     "size": "36",
+     "price": null
+    },
+    {
+     "color": "Gris Jaspe",
+     "size": "38",
+     "price": null
+    },
+    {
+     "color": "Gris Jaspe",
+     "size": "40",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 35,
+   "name": "Enterizo Romper Bicolor Top Negro y Shorts Blancos con Cinturón",
+   "description": "Prenda exclusiva de diseño: Enterizo Romper Bicolor Top Negro y Shorts Blancos con Cinturón. Confección en tejido de alta calidad con acabado premium. Estilo Monocromático Sofisticado.",
+   "price": 209.0,
+   "compare_at_price": 271.7,
+   "category": "Enterizos / Monos",
+   "season": "Verano 2026 / 2027",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "enterizos - monos",
+    "negro / blanco",
+    "monocromático sofisticado",
+    "romper_bicolor_top_negro_short_blanco"
+   ],
+   "image_url": "catalog/romper_bicolor_top_negro_short_blanco.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Blanco",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 36,
+   "name": "Vestido Camisero en Denim Ligero Celeste con Botones y Lazo Frontal",
+   "description": "Prenda exclusiva de diseño: Vestido Camisero en Denim Ligero Celeste con Botones y Lazo Frontal. Confección en tejido de alta calidad con acabado premium. Estilo Casual Chic.",
+   "price": 239.0,
+   "compare_at_price": 310.7,
+   "category": "Vestidos",
+   "season": "Atemporal / Esenciales",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "vestidos",
+    "azul celeste",
+    "casual chic",
+    "vestido_camisero_denim_celeste_lazo"
+   ],
+   "image_url": "catalog/vestido_camisero_denim_celeste_lazo.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Azul Marino",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Azul Marino",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Azul Marino",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 37,
+   "name": "Vestido Mini en Mezclilla Azul Marino con Tirantes Anudados",
+   "description": "Prenda exclusiva de diseño: Vestido Mini en Mezclilla Azul Marino con Tirantes Anudados. Confección en tejido de alta calidad con acabado premium. Estilo Denim Casual.",
+   "price": 259.0,
+   "compare_at_price": 336.7,
+   "category": "Vestidos",
+   "season": "Verano 2026 / 2027",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "vestidos",
+    "azul índigo",
+    "denim casual",
+    "vestido_denim_mini_tirantes_lazo_indigo"
+   ],
+   "image_url": "catalog/vestido_denim_mini_tirantes_lazo_indigo.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Azul Marino",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Azul Marino",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Azul Marino",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 38,
+   "name": "Vestido Wrap Cruzado Negro a Lunares Blancos con Volantes",
+   "description": "Prenda exclusiva de diseño: Vestido Wrap Cruzado Negro a Lunares Blancos con Volantes. Confección en tejido de alta calidad con acabado premium. Estilo Flamenco Chic / Romántico.",
+   "price": 279.0,
+   "compare_at_price": 362.7,
+   "category": "Vestidos",
+   "season": "Atemporal / Esenciales",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "vestidos",
+    "negro / blanco",
+    "flamenco chic / romántico",
+    "vestido_wrap_lunares_negro_volantes"
+   ],
+   "image_url": "catalog/vestido_wrap_lunares_negro_volantes.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Blanco",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 39,
+   "name": "Vestido Tipo Overol Pinafore Denim Marino con Camiseta de Rayas",
+   "description": "Prenda exclusiva de diseño: Vestido Tipo Overol Pinafore Denim Marino con Camiseta de Rayas. Confección en tejido de alta calidad con acabado premium. Estilo Preppy Casual.",
+   "price": 199.0,
+   "compare_at_price": 258.7,
+   "category": "Vestidos",
+   "season": "Atemporal / Esenciales",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "vestidos",
+    "azul marino / blanco",
+    "preppy casual",
+    "vestido_pinafore_overol_denim_negro"
+   ],
+   "image_url": "catalog/vestido_pinafore_overol_denim_negro.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Blanco",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 40,
+   "name": "Vestido Midi Azul Marino con Bordado Floral Étnico en Falda y Pecho",
+   "description": "Prenda exclusiva de diseño: Vestido Midi Azul Marino con Bordado Floral Étnico en Falda y Pecho. Confección en tejido de alta calidad con acabado premium. Estilo Bohemio / Folk Chic.",
+   "price": 219.0,
+   "compare_at_price": 284.7,
+   "category": "Vestidos",
+   "season": "Atemporal / Esenciales",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "vestidos",
+    "azul marino / blanco",
+    "bohemio / folk chic",
+    "vestido_midi_bordado_etnico_azul_marino"
+   ],
+   "image_url": "catalog/vestido_midi_bordado_etnico_azul_marino.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Blanco",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 41,
+   "name": "Vestido Midi en Tejido Crema con Bordado Floral Azul y Falda Escalonada",
+   "description": "Prenda exclusiva de diseño: Vestido Midi en Tejido Crema con Bordado Floral Azul y Falda Escalonada. Confección en tejido de alta calidad con acabado premium. Estilo Mediterráneo / Rústico Elegante.",
+   "price": 239.0,
+   "compare_at_price": 310.7,
+   "category": "Vestidos",
+   "season": "Verano 2026 / 2027",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "vestidos",
+    "crema / azul",
+    "mediterráneo / rústico elegante",
+    "vestido_midi_lino_crema_bordado_azul"
+   ],
+   "image_url": "catalog/vestido_midi_lino_crema_bordado_azul.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Blanco",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 42,
+   "name": "Vestido Camisero Midi en Lino Blanco de Botones y Falda Evasé",
+   "description": "Prenda exclusiva de diseño: Vestido Camisero Midi en Lino Blanco de Botones y Falda Evasé. Confección en tejido de alta calidad con acabado premium. Estilo Minimalista / Verano.",
+   "price": 259.0,
+   "compare_at_price": 336.7,
+   "category": "Vestidos",
+   "season": "Verano 2026 / 2027",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "vestidos",
+    "blanco puro",
+    "minimalista / verano",
+    "vestido_camisero_midi_lino_blanco"
+   ],
+   "image_url": "catalog/vestido_camisero_midi_lino_blanco.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Blanco",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 43,
+   "name": "Vestido Midi en Gasa Negra con Estampado Botánico Dorado y Manga Mariposa",
+   "description": "Prenda exclusiva de diseño: Vestido Midi en Gasa Negra con Estampado Botánico Dorado y Manga Mariposa. Confección en tejido de alta calidad con acabado premium. Estilo Boho Chic / Coctel Noche.",
+   "price": 279.0,
+   "compare_at_price": 362.7,
+   "category": "Vestidos",
+   "season": "Atemporal / Esenciales",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "vestidos",
+    "negro / dorado olivo",
+    "boho chic / coctel noche",
+    "vestido_midi_botanico_negro_manga_mariposa"
+   ],
+   "image_url": "catalog/vestido_midi_botanico_negro_manga_mariposa.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Negro",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Negro",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Negro",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 44,
+   "name": "Vestido Midi en Chifón Floral Rosa con Mangas Globo y Falda Escalonada",
+   "description": "Prenda exclusiva de diseño: Vestido Midi en Chifón Floral Rosa con Mangas Globo y Falda Escalonada. Confección en tejido de alta calidad con acabado premium. Estilo Romántico / Coquette.",
+   "price": 199.0,
+   "compare_at_price": 258.7,
+   "category": "Vestidos",
+   "season": "Primavera 2026",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "vestidos",
+    "rosa floral / pastel",
+    "romántico / coquette",
+    "vestido_midi_chifon_floral_rosa_abullonado"
+   ],
+   "image_url": "catalog/vestido_midi_chifon_floral_rosa_abullonado.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Rosa Pastel",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Rosa Pastel",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Rosa Pastel",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 45,
+   "name": "Pantalón Sastre Tiro Alto de Pierna Recta / Flare Blanco",
+   "description": "Prenda exclusiva de diseño: Pantalón Sastre Tiro Alto de Pierna Recta / Flare Blanco. Confección en tejido de alta calidad con acabado premium. Estilo Ejecutivo / Alta Costura.",
+   "price": 189.0,
+   "compare_at_price": 245.7,
+   "category": "Pantalones",
+   "season": "Otoño 2026",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "pantalones",
+    "blanco óptico",
+    "ejecutivo / alta costura",
+    "pantalon_sastre_blanco_tiro_alto"
+   ],
+   "image_url": "catalog/pantalon_sastre_blanco_tiro_alto.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Blanco",
+     "size": "36",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "38",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "40",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 46,
+   "name": "Vestido Midi Verde Oliva Estampado Floral con Escote Corazón y Volantes",
+   "description": "Prenda exclusiva de diseño: Vestido Midi Verde Oliva Estampado Floral con Escote Corazón y Volantes. Confección en tejido de alta calidad con acabado premium. Estilo Cottagecore / Naturaleza.",
+   "price": 239.0,
+   "compare_at_price": 310.7,
+   "category": "Vestidos",
+   "season": "Primavera 2026",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "vestidos",
+    "verde oliva",
+    "cottagecore / naturaleza",
+    "vestido_midi_verde_oliva_mangas_fruncidas"
+   ],
+   "image_url": "catalog/vestido_midi_verde_oliva_mangas_fruncidas.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Verde Oliva",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Verde Oliva",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Verde Oliva",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 47,
+   "name": "Enterizo Corto Romper Camisero con Botones y Lazo Ajustable Ciruela",
+   "description": "Prenda exclusiva de diseño: Enterizo Corto Romper Camisero con Botones y Lazo Ajustable Ciruela. Confección en tejido de alta calidad con acabado premium. Estilo Casual Urbano / Safari Urbano.",
+   "price": 249.0,
+   "compare_at_price": 323.7,
+   "category": "Enterizos / Monos",
+   "season": "Atemporal / Esenciales",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "enterizos - monos",
+    "ciruela / burdeos",
+    "casual urbano / safari urbano",
+    "mono_corto_romper_camisero_ciruela"
+   ],
+   "image_url": "catalog/mono_corto_romper_camisero_ciruela.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Rojo Vino",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Rojo Vino",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Rojo Vino",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 48,
+   "name": "Enterizo Corto Romper Estilo Utilitario con Cintura Ceñida Verde Oliva",
+   "description": "Prenda exclusiva de diseño: Enterizo Corto Romper Estilo Utilitario con Cintura Ceñida Verde Oliva. Confección en tejido de alta calidad con acabado premium. Estilo Safari / Utilitario Chic.",
+   "price": 269.0,
+   "compare_at_price": 349.7,
+   "category": "Enterizos / Monos",
+   "season": "Primavera 2026",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "enterizos - monos",
+    "verde militar / oliva",
+    "safari / utilitario chic",
+    "mono_corto_romper_militar_verde_oliva"
+   ],
+   "image_url": "catalog/mono_corto_romper_militar_verde_oliva.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Verde Oliva",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Verde Oliva",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Verde Oliva",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 49,
+   "name": "Enterizo Largo Elegante con Escote Cruzado y Pantalón Palazzo Verde",
+   "description": "Prenda exclusiva de diseño: Enterizo Largo Elegante con Escote Cruzado y Pantalón Palazzo Verde. Confección en tejido de alta calidad con acabado premium. Estilo Elegante / Coctel Fiesta.",
+   "price": 189.0,
+   "compare_at_price": 245.7,
+   "category": "Enterizos / Monos",
+   "season": "Otoño 2026",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "enterizos - monos",
+    "verde bosque / oliva",
+    "elegante / coctel fiesta",
+    "enterizo_largo_palazzo_cruzado_verde"
+   ],
+   "image_url": "catalog/enterizo_largo_palazzo_cruzado_verde.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Verde Oliva",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Verde Oliva",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Verde Oliva",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 50,
+   "name": "Vestido Mini Blanco con Microflores Azules y Falda Volantes Escalonada",
+   "description": "Prenda exclusiva de diseño: Vestido Mini Blanco con Microflores Azules y Falda Volantes Escalonada. Confección en tejido de alta calidad con acabado premium. Estilo Romántico / Coquette.",
+   "price": 219.0,
+   "compare_at_price": 284.7,
+   "category": "Vestidos",
+   "season": "Atemporal / Esenciales",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "vestidos",
+    "blanco / azul aciano",
+    "romántico / coquette",
+    "vestido_mini_flores_azules_volantes_lazos"
+   ],
+   "image_url": "catalog/vestido_mini_flores_azules_volantes_lazos.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Blanco",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 51,
+   "name": "Conjunto de Pijama Corto Camisero a Rayas Rosa Pastel y Blanco",
+   "description": "Prenda exclusiva de diseño: Conjunto de Pijama Corto Camisero a Rayas Rosa Pastel y Blanco. Confección en tejido de alta calidad con acabado premium. Estilo Homewear / Descanso Clásico.",
+   "price": 169.0,
+   "compare_at_price": 219.7,
+   "category": "Ropa de dormir / Pijamas",
+   "season": "Primavera 2026",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "ropa de dormir - pijamas",
+    "rosa pastel / blanco",
+    "homewear / descanso clásico",
+    "pijama_dos_piezas_rayas_rosa_blanco"
+   ],
+   "image_url": "catalog/pijama_dos_piezas_rayas_rosa_blanco.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Blanco",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 52,
+   "name": "Conjunto de Pijama Corto Satinado Rosa Palo con Vivos Negros",
+   "description": "Prenda exclusiva de diseño: Conjunto de Pijama Corto Satinado Rosa Palo con Vivos Negros. Confección en tejido de alta calidad con acabado premium. Estilo Descanso Satinado / Lujo.",
+   "price": 189.0,
+   "compare_at_price": 245.7,
+   "category": "Ropa de dormir / Pijamas",
+   "season": "Atemporal / Esenciales",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "ropa de dormir - pijamas",
+    "rosa palo / negro",
+    "descanso satinado / lujo",
+    "pijama_saten_camisero_rosa_vivo_negro"
+   ],
+   "image_url": "catalog/pijama_saten_camisero_rosa_vivo_negro.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Negro",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Negro",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Negro",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 53,
+   "name": "Conjunto Pijama Camisola y Short Satén Rayas Rosadas",
+   "description": "Prenda exclusiva de diseño: Conjunto Pijama Camisola y Short Satén Rayas Rosadas. Confección en tejido de alta calidad con acabado premium. Estilo Descanso / Lencería Satén.",
+   "price": 209.0,
+   "compare_at_price": 271.7,
+   "category": "Ropa de dormir / Pijamas",
+   "season": "Verano 2026 / 2027",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "ropa de dormir - pijamas",
+    "rosa / blanco",
+    "descanso / lencería satén",
+    "pijama_top_tirantes_short_rayas_rosa"
+   ],
+   "image_url": "catalog/pijama_top_tirantes_short_rayas_rosa.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Blanco",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 54,
+   "name": "Conjunto Pijama Top Negro Escote Encaje y Short Cuadros Vichy",
+   "description": "Prenda exclusiva de diseño: Conjunto Pijama Top Negro Escote Encaje y Short Cuadros Vichy. Confección en tejido de alta calidad con acabado premium. Estilo Casual Homewear.",
+   "price": 129.0,
+   "compare_at_price": 167.7,
+   "category": "Ropa de dormir / Pijamas",
+   "season": "Verano 2026 / 2027",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "ropa de dormir - pijamas",
+    "negro / blanco",
+    "casual homewear",
+    "pijama_top_negro_short_vichy_negro"
+   ],
+   "image_url": "catalog/pijama_top_negro_short_vichy_negro.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Blanco",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 55,
+   "name": "Conjunto Pijama de Satén con Encaje Azul Noche",
+   "description": "Prenda exclusiva de diseño: Conjunto Pijama de Satén con Encaje Azul Noche. Confección en tejido de alta calidad con acabado premium. Estilo Lencería Fina / Satén.",
+   "price": 149.0,
+   "compare_at_price": 193.7,
+   "category": "Ropa de dormir / Pijamas",
+   "season": "Verano 2026 / 2027",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "ropa de dormir - pijamas",
+    "azul noche / marino",
+    "lencería fina / satén",
+    "pijama_saten_camisola_short_azul_noche"
+   ],
+   "image_url": "catalog/pijama_saten_camisola_short_azul_noche.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Azul Marino",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Azul Marino",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Azul Marino",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 56,
+   "name": "Jeans Wide Leg Tiro Alto en Mezclilla Azul Índigo Profundo",
+   "description": "Prenda exclusiva de diseño: Jeans Wide Leg Tiro Alto en Mezclilla Azul Índigo Profundo. Confección en tejido de alta calidad con acabado premium. Estilo Denim Clásico / 70s Flare.",
+   "price": 219.0,
+   "compare_at_price": 284.7,
+   "category": "Jeans / Mezclilla",
+   "season": "Atemporal / Esenciales",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "jeans - mezclilla",
+    "azul índigo",
+    "denim clásico / 70s flare",
+    "jeans_wide_leg_azul_indigo_profundo"
+   ],
+   "image_url": "catalog/jeans_wide_leg_azul_indigo_profundo.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Azul Marino",
+     "size": "36",
+     "price": null
+    },
+    {
+     "color": "Azul Marino",
+     "size": "38",
+     "price": null
+    },
+    {
+     "color": "Azul Marino",
+     "size": "40",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 57,
+   "name": "Conjunto de Pijama Largo de Satén Color Ciruela con Ribetes Blancos",
+   "description": "Prenda exclusiva de diseño: Conjunto de Pijama Largo de Satén Color Ciruela con Ribetes Blancos. Confección en tejido de alta calidad con acabado premium. Estilo Elegancia Descanso / Lujo.",
+   "price": 189.0,
+   "compare_at_price": 245.7,
+   "category": "Ropa de dormir / Pijamas",
+   "season": "Atemporal / Esenciales",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "ropa de dormir - pijamas",
+    "ciruela / púrpura",
+    "elegancia descanso / lujo",
+    "pijama_largo_saten_ciruela_vivos_blancos"
+   ],
+   "image_url": "catalog/pijama_largo_saten_ciruela_vivos_blancos.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Rojo Vino",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Rojo Vino",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Rojo Vino",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 58,
+   "name": "Conjunto de Pijama Largo de Satén Azul Marino Clásico con Ribetes",
+   "description": "Prenda exclusiva de diseño: Conjunto de Pijama Largo de Satén Azul Marino Clásico con Ribetes. Confección en tejido de alta calidad con acabado premium. Estilo Lujo Clásico / Descanso.",
+   "price": 209.0,
+   "compare_at_price": 271.7,
+   "category": "Ropa de dormir / Pijamas",
+   "season": "Otoño 2026",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "ropa de dormir - pijamas",
+    "azul marino",
+    "lujo clásico / descanso",
+    "pijama_largo_saten_azul_marino_clasico"
+   ],
+   "image_url": "catalog/pijama_largo_saten_azul_marino_clasico.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Azul Marino",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Azul Marino",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Azul Marino",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 59,
+   "name": "Vestido Mini Babydoll Marrón con Escote Corazón Fruncido y Manga Globo",
+   "description": "Prenda exclusiva de diseño: Vestido Mini Babydoll Marrón con Escote Corazón Fruncido y Manga Globo. Confección en tejido de alta calidad con acabado premium. Estilo Cottagecore / Babydoll.",
+   "price": 199.0,
+   "compare_at_price": 258.7,
+   "category": "Vestidos",
+   "season": "Atemporal / Esenciales",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "vestidos",
+    "marrón canela",
+    "cottagecore / babydoll",
+    "vestido_mini_babydoll_manga_globo_marron"
+   ],
+   "image_url": "catalog/vestido_mini_babydoll_manga_globo_marron.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Café Chocolate",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Café Chocolate",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Café Chocolate",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 60,
+   "name": "Vestido Midi Elegante Azul Marino con Escote en V Drapeado",
+   "description": "Prenda exclusiva de diseño: Vestido Midi Elegante Azul Marino con Escote en V Drapeado. Confección en tejido de alta calidad con acabado premium. Estilo Coctel / Formal Sofisticado.",
+   "price": 219.0,
+   "compare_at_price": 284.7,
+   "category": "Vestidos",
+   "season": "Primavera 2026",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "vestidos",
+    "azul marino",
+    "coctel / formal sofisticado",
+    "vestido_midi_drapeado_azul_marino_escote_v"
+   ],
+   "image_url": "catalog/vestido_midi_drapeado_azul_marino_escote_v.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Azul Marino",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Azul Marino",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Azul Marino",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 61,
+   "name": "Vestido Midi Entallado Negro Escote Cuadrado y Abertura Frontal",
+   "description": "Prenda exclusiva de diseño: Vestido Midi Entallado Negro Escote Cuadrado y Abertura Frontal. Confección en tejido de alta calidad con acabado premium. Estilo Little Black Dress / Sofisticado.",
+   "price": 239.0,
+   "compare_at_price": 310.7,
+   "category": "Vestidos",
+   "season": "Atemporal / Esenciales",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "vestidos",
+    "negro",
+    "little black dress / sofisticado",
+    "vestido_midi_negro_escote_cuadrado_abertura"
+   ],
+   "image_url": "catalog/vestido_midi_negro_escote_cuadrado_abertura.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Negro",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Negro",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Negro",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 62,
+   "name": "Vestido Midi Blanco Marfil sin Mangas con Vuelo Asimétrico Escalonado",
+   "description": "Prenda exclusiva de diseño: Vestido Midi Blanco Marfil sin Mangas con Vuelo Asimétrico Escalonado. Confección en tejido de alta calidad con acabado premium. Estilo Haute Couture / Coctel Gala.",
+   "price": 259.0,
+   "compare_at_price": 336.7,
+   "category": "Vestidos",
+   "season": "Verano 2026 / 2027",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "vestidos",
+    "blanco marfil",
+    "haute couture / coctel gala",
+    "vestido_midi_blanco_marfil_volantes_escalonados"
+   ],
+   "image_url": "catalog/vestido_midi_blanco_marfil_volantes_escalonados.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Blanco",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 63,
+   "name": "Vestido Mini en Encaje Blanco Marfil con Escote Asimétrico Un Hombro y Drapeado",
+   "description": "Prenda exclusiva de diseño: Vestido Mini en Encaje Blanco Marfil con Escote Asimétrico Un Hombro y Drapeado. Confección en tejido de alta calidad con acabado premium. Estilo Gala / Fiesta Noche.",
+   "price": 279.0,
+   "compare_at_price": 362.7,
+   "category": "Vestidos",
+   "season": "Atemporal / Esenciales",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "vestidos",
+    "blanco marfil",
+    "gala / fiesta noche",
+    "vestido_mini_encaje_drapeado_un_hombro_marfil"
+   ],
+   "image_url": "catalog/vestido_mini_encaje_drapeado_un_hombro_marfil.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Blanco",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Blanco",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 64,
+   "name": "Vestido Largo de Noche Amarillo Mantequilla con Corpiño Drapeado Asimétrico",
+   "description": "Prenda exclusiva de diseño: Vestido Largo de Noche Amarillo Mantequilla con Corpiño Drapeado Asimétrico. Confección en tejido de alta calidad con acabado premium. Estilo Gala / Fiesta Alta Costura.",
+   "price": 199.0,
+   "compare_at_price": 258.7,
+   "category": "Vestidos",
+   "season": "Primavera 2026",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "vestidos",
+    "amarillo mantequilla",
+    "gala / fiesta alta costura",
+    "vestido_largo_drapeado_asimetrico_amarillo_mantequilla"
+   ],
+   "image_url": "catalog/vestido_largo_drapeado_asimetrico_amarillo_mantequilla.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Mostaza",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Mostaza",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Mostaza",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 65,
+   "name": "Vestido Largo Escote Asimétrico Drapeado Rojo Vino / Borgoña",
+   "description": "Prenda exclusiva de diseño: Vestido Largo Escote Asimétrico Drapeado Rojo Vino / Borgoña. Confección en tejido de alta calidad con acabado premium. Estilo Gala / Noche Elegante.",
+   "price": 219.0,
+   "compare_at_price": 284.7,
+   "category": "Vestidos",
+   "season": "Verano 2026 / 2027",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "vestidos",
+    "rojo vino / borgoña",
+    "gala / noche elegante",
+    "vestido_largo_drapeado_asimetrico_rojo_vino"
+   ],
+   "image_url": "catalog/vestido_largo_drapeado_asimetrico_rojo_vino.jpg",
+   "image_public_id": null,
+   "try_on_image_url": "try-on/rig_p65_79c6621f6df6e846.png",
+   "variants": [
+    {
+     "color": "Rojo Vino",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Rojo Vino",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Rojo Vino",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 66,
+   "name": "Vestido Midi Silueta Princesa Azul Noche con Escote Corazón y Manga Farol",
+   "description": "Prenda exclusiva de diseño: Vestido Midi Silueta Princesa Azul Noche con Escote Corazón y Manga Farol. Confección en tejido de alta calidad con acabado premium. Estilo Princesa / Fiesta Coctel.",
+   "price": 239.0,
+   "compare_at_price": 310.7,
+   "category": "Vestidos",
+   "season": "Otoño 2026",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "vestidos",
+    "azul noche",
+    "princesa / fiesta coctel",
+    "vestido_midi_princesa_azul_noche_manga_farol"
+   ],
+   "image_url": "catalog/vestido_midi_princesa_azul_noche_manga_farol.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Azul Marino",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Azul Marino",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Azul Marino",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 67,
+   "name": "Jeans de Pierna Recta y Tiro Alto Azul Índigo Oscuro",
+   "description": "Prenda exclusiva de diseño: Jeans de Pierna Recta y Tiro Alto Azul Índigo Oscuro. Confección en tejido de alta calidad con acabado premium. Estilo Denim Clásico.",
+   "price": 239.0,
+   "compare_at_price": 310.7,
+   "category": "Jeans / Mezclilla",
+   "season": "Atemporal / Esenciales",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "jeans - mezclilla",
+    "azul índigo oscuro",
+    "denim clásico",
+    "jeans_rectos_tiro_alto_azul_marino"
+   ],
+   "image_url": "catalog/jeans_rectos_tiro_alto_azul_marino.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Azul Marino",
+     "size": "36",
+     "price": null
+    },
+    {
+     "color": "Azul Marino",
+     "size": "38",
+     "price": null
+    },
+    {
+     "color": "Azul Marino",
+     "size": "40",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 68,
+   "name": "Vestido Mini Marrón Terracota con Detalle Crochet en Cintura y Tirantes Finos",
+   "description": "Prenda exclusiva de diseño: Vestido Mini Marrón Terracota con Detalle Crochet en Cintura y Tirantes Finos. Confección en tejido de alta calidad con acabado premium. Estilo Boho / Verano Casual.",
+   "price": 279.0,
+   "compare_at_price": 362.7,
+   "category": "Vestidos",
+   "season": "Verano 2026 / 2027",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "vestidos",
+    "marrón terracota",
+    "boho / verano casual",
+    "vestido_mini_tirantes_crochet_marron_terracota"
+   ],
+   "image_url": "catalog/vestido_mini_tirantes_crochet_marron_terracota.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Café Chocolate",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Café Chocolate",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Café Chocolate",
+     "size": "L",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 69,
+   "name": "Jeans Acampanados Flare Tiro Alto en Azul Denim Medio",
+   "description": "Prenda exclusiva de diseño: Jeans Acampanados Flare Tiro Alto en Azul Denim Medio. Confección en tejido de alta calidad con acabado premium. Estilo 70s Flare / Casual.",
+   "price": 179.0,
+   "compare_at_price": 232.7,
+   "category": "Jeans / Mezclilla",
+   "season": "Atemporal / Esenciales",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "jeans - mezclilla",
+    "azul denim medio",
+    "70s flare / casual",
+    "jeans_bootcut_flare_azul_medio"
+   ],
+   "image_url": "catalog/jeans_bootcut_flare_azul_medio.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Azul Marino",
+     "size": "36",
+     "price": null
+    },
+    {
+     "color": "Azul Marino",
+     "size": "38",
+     "price": null
+    },
+    {
+     "color": "Azul Marino",
+     "size": "40",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 70,
+   "name": "Pantalón de Vestir Sastre Wide Leg Beige Arena",
+   "description": "Prenda exclusiva de diseño: Pantalón de Vestir Sastre Wide Leg Beige Arena. Confección en tejido de alta calidad con acabado premium. Estilo Old Money / Minimalista Elegante.",
+   "price": 189.0,
+   "compare_at_price": 245.7,
+   "category": "Pantalones",
+   "season": "Otoño 2026",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "pantalones",
+    "beige arena",
+    "old money / minimalista elegante",
+    "pantalon_sastre_wide_leg_beige_crema"
+   ],
+   "image_url": "catalog/pantalon_sastre_wide_leg_beige_crema.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Beige / Nude",
+     "size": "36",
+     "price": null
+    },
+    {
+     "color": "Beige / Nude",
+     "size": "38",
+     "price": null
+    },
+    {
+     "color": "Beige / Nude",
+     "size": "40",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 71,
+   "name": "Jeans Wide Leg Denim Celeste Claro Lavado Vintage",
+   "description": "Prenda exclusiva de diseño: Jeans Wide Leg Denim Celeste Claro Lavado Vintage. Confección en tejido de alta calidad con acabado premium. Estilo Vintage / Casual Urbano.",
+   "price": 219.0,
+   "compare_at_price": 284.7,
+   "category": "Jeans / Mezclilla",
+   "season": "Atemporal / Esenciales",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "jeans - mezclilla",
+    "celeste claro",
+    "vintage / casual urbano",
+    "jeans_wide_leg_celeste_wash_deslavado"
+   ],
+   "image_url": "catalog/jeans_wide_leg_celeste_wash_deslavado.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Azul Marino",
+     "size": "36",
+     "price": null
+    },
+    {
+     "color": "Azul Marino",
+     "size": "38",
+     "price": null
+    },
+    {
+     "color": "Azul Marino",
+     "size": "40",
+     "price": null
+    }
+   ]
+  },
+  {
+   "key": 72,
+   "name": "Conjunto Dos Piezas Top Peplum de Lunares y Pantalón Palazzo en Lino",
+   "description": "Prenda exclusiva de diseño: Conjunto Dos Piezas Top Peplum de Lunares y Pantalón Palazzo en Lino. Confección en tejido de alta calidad con acabado premium. Estilo Resort Chic / Lino Elegante.",
+   "price": 249.0,
+   "compare_at_price": 323.7,
+   "category": "Enterizos / Monos",
+   "season": "Verano 2026 / 2027",
+   "material": "Tejido Estructurado Premium",
+   "tags": [
+    "enterizos - monos",
+    "beige / negro",
+    "resort chic / lino elegante",
+    "conjunto_top_lunares_pantalon_palazzo_lino"
+   ],
+   "image_url": "catalog/conjunto_top_lunares_pantalon_palazzo_lino.jpg",
+   "image_public_id": null,
+   "try_on_image_url": null,
+   "variants": [
+    {
+     "color": "Negro",
+     "size": "S",
+     "price": null
+    },
+    {
+     "color": "Negro",
+     "size": "M",
+     "price": null
+    },
+    {
+     "color": "Negro",
+     "size": "L",
+     "price": null
+    }
+   ]
+  }
+ ]
+}

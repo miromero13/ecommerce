@@ -29,6 +29,7 @@ export class ClienteHomePageComponent {
   protected readonly orders = signal<Order[]>([]);
   protected readonly cart = signal<Cart | null>(null);
   private readonly statusInfo: Record<Reservation['status'], { name: string; color: string }> = {
+    pending_payment: { name: 'Esperando anticipo', color: '#f97316' },
     pending: { name: 'Pendientes', color: '#f59e0b' }, confirmed: { name: 'Confirmadas', color: '#0ea5e9' },
     attended: { name: 'Atendidas', color: '#10b981' }, purchase_pending: { name: 'Compra pendiente', color: '#8b5cf6' },
     sold: { name: 'Vendidas', color: '#14b8a6' }, not_sold: { name: 'No compradas', color: '#64748b' },

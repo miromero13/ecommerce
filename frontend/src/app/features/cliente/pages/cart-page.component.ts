@@ -14,14 +14,18 @@ import { HlmTable } from '../../../components/table/src';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
 import { requestWithToast } from '../../../core/utils/request-toast.util';
 import { downloadSimplePdf } from '../../../core/utils/simple-pdf.util';
+import { BrandingService } from '../../../core/services/branding.service';
 import { Cart } from '../../shared/models/cart.model';
 import { CatalogBranch } from '../../shared/models/catalog.model';
 import { CartApiService } from '../../shared/services/cart-api.service';
+import { LoyaltyApiService } from '../../shared/services/loyalty-api.service';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideMapPin, lucideStore } from '@ng-icons/lucide';
 import { CatalogApiService } from '../../shared/services/catalog-api.service';
 import { Order } from '../../shared/models/order.model';
 import { CheckoutApiService } from '../../shared/services/checkout-api.service';
+import { DeliveryApiService } from '../../shared/services/delivery-api.service';
+import { DeliveryAddress, DeliveryQuote } from '../../shared/models/delivery.model';
 import { environment } from '../../../../environments/environment';
 
 type StripeCheckout = {
@@ -46,6 +50,7 @@ type StripeCheckout = {
   templateUrl: './cart-page.component.html',
 })
 export class CartPageComponent {
+  private readonly branding = inject(BrandingService);
   private readonly cartApi = inject(CartApiService);
   private readonly catalogApi = inject(CatalogApiService);
   private readonly checkoutApi = inject(CheckoutApiService);
@@ -68,14 +73,27 @@ export class CartPageComponent {
   protected readonly stripePaymentStatus = signal<string | null>(null);
   protected readonly loading = signal(false);
   protected readonly updatingItemId = signal<string | null>(null);
-  protected readonly checkoutMethod = signal<'cash' | 'stripe'>('cash');
+  // Web orders are always paid online by card (Stripe); QR and cash only exist at the till.
   protected readonly pickupBranchId = signal(this.getCartBranchId());
   protected readonly checkingOut = signal(false);
   protected readonly couponCode = signal('');
+  // CU17: points of the cart's company; 10 points = 1 Bs off the products.
+  private readonly loyaltyApi = inject(LoyaltyApiService);
+  protected readonly availablePoints = signal(0);
+  protected readonly pointsToRedeem = signal(0);
+  // CU20: in-store pickup or home delivery shipped from the selected branch.
+  private readonly deliveryApi = inject(DeliveryApiService);
+  protected readonly fulfillment = signal<'pickup' | 'delivery'>('pickup');
+  protected readonly deliveryAddress = signal('');
+  protected readonly deliveryReference = signal('');
+  protected readonly latitude = signal('');
+  protected readonly longitude = signal('');
+  protected readonly quote = signal<DeliveryQuote | null>(null);
+  protected readonly quoting = signal(false);
 
   constructor() {
-    void this.loadCart();
-    void this.loadBranches();
+    // Pickup branches belong to the cart's company, so they load after the cart.
+    void this.loadCart().then(() => this.loadBranches());
   }
 
   protected get itemCount(): number {
@@ -170,26 +188,21 @@ export class CartPageComponent {
     }
     const pickupBranchId = this.pickupBranchId();
     if (!pickupBranchId) {
-      toast.warning('Selecciona una sucursal para el retiro.');
+      toast.warning(this.fulfillment() === 'delivery' ? 'Selecciona la sucursal desde donde se enviará el pedido.' : 'Selecciona una sucursal para el retiro.');
+      return;
+    }
+    const delivery = this.deliveryPayload();
+    if (this.fulfillment() === 'delivery' && !delivery) {
+      toast.warning('Ingresa la dirección y calcula el costo de envío antes de confirmar.');
       return;
     }
 
     this.checkingOut.set(true);
     try {
-      if (this.checkoutMethod() === 'cash') {
-        const response = await requestWithToast(
-          this.checkoutApi.checkoutCash({ pickup_branch_id: pickupBranchId }),
-          { loading: 'Creando pedido...', success: 'Pedido para retiro creado.', error: 'No se pudo crear el pedido.' },
-        );
-        this.lastOrder.set(response.data ?? null);
-        this.clearStripeCheckout();
-        this.clearCartBranch();
-      } else {
-        await this.startStripeCheckout(pickupBranchId);
-      }
+      await this.startStripeCheckout(pickupBranchId, delivery);
       await this.loadCart();
     } catch {
-      // toast handled by requestWithToast
+      // requestWithToast already showed the error.
     } finally {
       this.checkingOut.set(false);
     }
@@ -203,8 +216,9 @@ export class CartPageComponent {
     return this.lastOrder() ? `Pedido #${this.lastOrder()!.id}` : 'Sin pedido todavía';
   }
 
-  protected downloadSalesNote(order: Order): void {
+  protected async downloadSalesNote(order: Order): Promise<void> {
     downloadSimplePdf({
+      brand: await this.branding.pdfBrand(order.tenant_id),
       filename: `nota-venta-${order.id}.pdf`,
       title: 'Nota de venta',
       generatedAt: new Date().toLocaleString('es-BO'),
@@ -212,7 +226,7 @@ export class CartPageComponent {
         ['Pedido', order.id],
         ['Fecha', new Date(order.created_at).toLocaleString('es-BO')],
         ['Pago', ({ pending: 'Pendiente', paid: 'Pagado', failed: 'Fallido' } satisfies Record<Order['payment_status'], string>)[order.payment_status]],
-        ['Método', order.payment_method === 'stripe' ? 'Tarjeta' : 'Efectivo'],
+        ['Método', order.payment_method === 'stripe' ? 'Tarjeta' : 'QR'],
         ...(order.pickup_code ? [['Código de retiro', order.pickup_code]] : []),
         ['Subtotal', `${order.subtotal} ${order.currency}`],
         ['Descuento', `${order.discount_amount} ${order.currency}`],
@@ -229,8 +243,64 @@ export class CartPageComponent {
     });
   }
 
-  protected selectCheckoutMethod(method: 'cash' | 'stripe'): void {
-    this.checkoutMethod.set(method);
+  protected selectFulfillment(type: 'pickup' | 'delivery'): void {
+    this.fulfillment.set(type);
+    this.quote.set(null);
+  }
+
+  protected setCoordinate(target: 'latitude' | 'longitude', event: Event): void {
+    this[target].set((event.target as HTMLInputElement).value);
+    this.quote.set(null);
+  }
+
+  protected useMyLocation(): void {
+    if (!navigator.geolocation) {
+      toast.error('Tu navegador no permite obtener la ubicación.');
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        this.latitude.set(position.coords.latitude.toFixed(6));
+        this.longitude.set(position.coords.longitude.toFixed(6));
+        void this.quoteDelivery();
+      },
+      () => toast.error('No se pudo obtener tu ubicación. Ingrésala manualmente.'),
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  }
+
+  protected async quoteDelivery(): Promise<void> {
+    const latitude = Number(this.latitude());
+    const longitude = Number(this.longitude());
+    if (!this.pickupBranchId() || !this.latitude() || !this.longitude() || Number.isNaN(latitude) || Number.isNaN(longitude)) {
+      toast.warning('Selecciona la sucursal e indica tu ubicación.');
+      return;
+    }
+    this.quoting.set(true);
+    try {
+      const response = await firstValueFrom(this.deliveryApi.quote({ branch_id: this.pickupBranchId(), latitude, longitude }));
+      this.quote.set(response.data ?? null);
+      toast.success(response.message);
+    } catch (error) {
+      this.quote.set(null);
+      toast.error(getErrorMessage(error, 'No se pudo calcular el envío.'));
+    } finally {
+      this.quoting.set(false);
+    }
+  }
+
+  protected totalWithShipping(): number {
+    return Number(this.total) + (this.fulfillment() === 'delivery' ? this.quote()?.shipping_cost ?? 0 : 0);
+  }
+
+  private deliveryPayload(): DeliveryAddress | undefined {
+    if (this.fulfillment() !== 'delivery' || !this.quote() || this.deliveryAddress().trim().length < 5) return undefined;
+    return {
+      address: this.deliveryAddress().trim(),
+      reference: this.deliveryReference().trim() || null,
+      latitude: Number(this.latitude()),
+      longitude: Number(this.longitude()),
+    };
   }
 
   protected branchLabel(branchId: string | null | undefined): string {
@@ -287,6 +357,7 @@ export class CartPageComponent {
     try {
       const response = await firstValueFrom(this.cartApi.getCurrentCart());
       this.cart.set(response.data ?? null);
+      void this.loadPoints();
     } catch (error) {
       toast.error(getErrorMessage(error, 'No se pudo cargar el carrito.'));
       this.cart.set(null);
@@ -295,14 +366,33 @@ export class CartPageComponent {
     }
   }
 
+  protected setPoints(value: string): void {
+    this.pointsToRedeem.set(Math.max(0, Math.floor(Number(value) || 0)));
+  }
+
+  private async loadPoints(): Promise<void> {
+    this.pointsToRedeem.set(0);
+    const tenantId = this.cart()?.tenant_id;
+    try {
+      const balances = tenantId ? (await firstValueFrom(this.loyaltyApi.balances())).data ?? [] : [];
+      this.availablePoints.set(balances.find((row) => row.tenant_id === tenantId)?.points_balance ?? 0);
+    } catch {
+      this.availablePoints.set(0); // checkout still works without points
+    }
+  }
+
   private async loadBranches(): Promise<void> {
     try {
-      const response = await firstValueFrom(this.catalogApi.listPublicBranches());
+      const tenantId = this.cart()?.tenant_id;
+      if (!tenantId) {
+        this.branches.set([]);
+        return;
+      }
+      const response = await firstValueFrom(this.catalogApi.listPublicBranches(tenantId));
       const branchList = response.data ?? [];
       this.branches.set(branchList);
-      if (this.cartBranchId() && branchList.some((b) => b.id === this.cartBranchId())) {
-        this.pickupBranchId.set(this.cartBranchId());
-      }
+      const preferred = branchList.some((b) => b.id === this.cartBranchId()) ? this.cartBranchId() : '';
+      this.pickupBranchId.set(preferred || (branchList.length === 1 ? branchList[0].id : ''));
     } catch (error) {
       toast.error(getErrorMessage(error, 'No se pudieron cargar las sucursales.'));
     }
@@ -334,7 +424,7 @@ export class CartPageComponent {
     this.pickupBranchId.set('');
   }
 
-  private async startStripeCheckout(pickupBranchId: string): Promise<void> {
+  private async startStripeCheckout(pickupBranchId: string, delivery?: DeliveryAddress): Promise<void> {
     if (!environment.stripePublishableKey) {
       toast.error('Stripe no está configurado para esta aplicación.');
       return;
@@ -350,7 +440,7 @@ export class CartPageComponent {
       return;
     }
     const response = await requestWithToast(
-      this.checkoutApi.checkoutStripe({ pickup_branch_id: pickupBranchId }),
+      this.checkoutApi.checkoutStripe({ pickup_branch_id: pickupBranchId, delivery, points_to_redeem: this.pointsToRedeem() }),
       { loading: 'Iniciando Stripe...', success: 'Completa los datos de tu tarjeta.', error: 'No se pudo iniciar Stripe.' },
     );
     const checkout = response.data;

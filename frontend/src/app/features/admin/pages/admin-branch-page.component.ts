@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
 import { toast } from '@spartan-ng/brain/sonner';
@@ -25,6 +26,7 @@ import { requestWithToast } from '../../../core/utils/request-toast.util';
 export class AdminBranchPageComponent {
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(AdminBranchService);
+  private readonly router = inject(Router);
 
   protected readonly branches = signal<AdminBranch[]>([]);
   protected readonly loading = signal(false);
@@ -44,6 +46,9 @@ export class AdminBranchPageComponent {
     city: ['', [Validators.required]],
     is_default: [false],
     is_active: [true],
+    // CU20: origin point for distance-based delivery quotes.
+    latitude: [null as number | null, [Validators.min(-90), Validators.max(90)]],
+    longitude: [null as number | null, [Validators.min(-180), Validators.max(180)]],
   });
 
   constructor() {
@@ -54,15 +59,21 @@ export class AdminBranchPageComponent {
     this.closeMenu();
     this.modalMode.set('create');
     this.editingBranchId.set(null);
-    this.form.reset({ name: '', city: '', is_default: false, is_active: true });
+    this.form.reset({ name: '', city: '', is_default: false, is_active: true, latitude: null, longitude: null });
     this.modalOpen.set(true);
+  }
+
+  /** Opens the panel of this branch only: its stock, sales, orders, staff and cash drawers. */
+  protected enterBranch(branch: AdminBranch): void {
+    this.openMenuId.set(null);
+    void this.router.navigate(['/app/admin/branch', branch.id]);
   }
 
   protected editBranch(branch: AdminBranch): void {
     this.closeMenu();
     this.modalMode.set('edit');
     this.editingBranchId.set(branch.id);
-    this.form.reset({ name: branch.name, city: branch.city, is_default: branch.is_default, is_active: branch.is_active });
+    this.form.reset({ name: branch.name, city: branch.city, is_default: branch.is_default, is_active: branch.is_active, latitude: branch.latitude ?? null, longitude: branch.longitude ?? null });
     this.modalOpen.set(true);
   }
 
@@ -139,7 +150,7 @@ export class AdminBranchPageComponent {
           { loading: 'Guardando sucursal...', success: 'Sucursal creada correctamente.', error: 'No se pudo guardar la sucursal.' },
         );
       }
-      this.form.reset({ name: '', city: '', is_default: false, is_active: true });
+      this.form.reset({ name: '', city: '', is_default: false, is_active: true, latitude: null, longitude: null });
       await this.loadBranches();
       this.closeModal();
     } catch {

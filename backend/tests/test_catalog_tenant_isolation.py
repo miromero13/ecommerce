@@ -527,3 +527,23 @@ def test_supplier_profile_must_belong_to_current_user_company(api, api_db, catal
              f"Proveedor con id {catalog.own.provider.id} no encontrado",
              json=product_payload(catalog, category_id=str(catalog.foreign.category.id),
                                   collection_id=str(catalog.foreign.collection.id)))
+
+
+def test_two_companies_can_use_the_same_category_season_and_collection_names(api_db, identities):
+    from sqlalchemy.exc import IntegrityError
+
+    from app.models.category import Category
+    from app.models.collection import Collection
+    from app.models.season import Season
+
+    _, tenants, _ = identities
+    for tenant in tenants:  # CU1: names are unique per company, not platform-wide
+        season = Season(tenant_id=tenant.id, name="Invierno 2026")
+        api_db.add_all([Category(tenant_id=tenant.id, name="Vestidos"), season])
+        api_db.flush()
+        api_db.add(Collection(tenant_id=tenant.id, name="Colección Invierno", season_id=season.id))
+    api_db.flush()
+    api_db.add(Category(tenant_id=tenants[0].id, name="Vestidos"))
+    with pytest.raises(IntegrityError):
+        api_db.flush()  # but one company cannot repeat its own name
+    api_db.rollback()

@@ -10,8 +10,12 @@ from test_catalog_tenant_isolation import TABLES, catalog
 from test_employee_authorization import DENIED, headers
 
 ROOT = "/api/inventory"
-TENANT_DENIED = "No tenés permisos para acceder a los datos de esta empresa"
+TENANT_DENIED = "No tienes permisos para acceder a los datos de esta empresa"
 BRANCH_DENIED = "No tienes permisos para esta sucursal"
+
+
+# Transfers are guarded by the CU3 permission "inventory:transfer" (message from the CU3 spec).
+PERMISSION_DENIED = "No tienes permisos suficientes para realizar esta acción"
 
 
 def snapshot(db):
@@ -141,7 +145,7 @@ def test_existing_readonly_and_adminonly_roles_do_not_expand(inventory_api, api_
         payload["minimum_stock"] = 2
     rejected(inventory_api, api_db, "PATCH" if operation == "threshold" else "POST",
              ROOT + ("/threshold" if operation == "threshold" else "/movements/" + operation),
-             headers(stock.user), DENIED, json=payload)
+             headers(stock.user), PERMISSION_DENIED if operation == "transfer" else DENIED, json=payload)
 
 
 def test_manager_uses_persisted_branch_for_movement_reads_and_writes(inventory_api, api_db, stock):

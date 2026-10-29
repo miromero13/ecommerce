@@ -29,7 +29,9 @@
               <app-admin-action-menu
                 [isOpen]="openMenuId() === branch.id"
                 [activeLabel]="branch.is_active ? 'Desactivar' : 'Activar'"
+                [showEnter]="true"
                 (toggleMenu)="toggleMenu(branch.id)"
+                (enter)="enterBranch(branch)"
                 (edit)="editBranch(branch)"
                 (toggleActive)="toggleActive(branch)"
                 (delete)="askDelete(branch)"
@@ -56,6 +58,14 @@
           <div hlmField>
             <label hlmFieldLabel for="branch-city">Ciudad</label>
             <input id="branch-city" hlmInput placeholder="Ciudad" formControlName="city" />
+          </div>
+          <div hlmField>
+            <label hlmFieldLabel for="branch-latitude">Latitud (envíos)</label>
+            <input id="branch-latitude" hlmInput type="number" step="0.000001" placeholder="-17.783300" formControlName="latitude" />
+          </div>
+          <div hlmField>
+            <label hlmFieldLabel for="branch-longitude">Longitud (envíos)</label>
+            <input id="branch-longitude" hlmInput type="number" step="0.000001" placeholder="-63.182100" formControlName="longitude" />
           </div>
           <div hlmField>
             <label hlmFieldLabel for="branch-default">Default</label>

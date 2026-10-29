@@ -11,17 +11,41 @@ import { getErrorMessage } from '../../../core/utils/http-error.util';
 import { requestWithToast } from '../../../core/utils/request-toast.util';
 import { Reservation } from '../../shared/models/reservation.model';
 import { ReservationApiService } from '../../shared/services/reservation-api.service';
+import { StripeCardPaymentComponent } from '../../shared/components/stripe-card-payment.component';
+import { ReceiptActionsComponent } from '../../shared/components/receipt-actions.component';
 
 @Component({
   selector: 'app-my-reservations-page',
   standalone: true,
-  imports: [CommonModule, HlmButton, ...HlmBadgeImports, ...HlmCardImports],
+  imports: [CommonModule, HlmButton, StripeCardPaymentComponent, ReceiptActionsComponent, ...HlmBadgeImports, ...HlmCardImports],
   templateUrl: './my-reservations-page.component.html',
 })
 export class MyReservationsPageComponent {
   private readonly reservationApi = inject(ReservationApiService);
 
   protected readonly reservations = signal<Reservation[]>([]);
+  protected readonly depositCard = signal<Partial<Record<string, string>>>({}); // reservation id -> client secret
+
+  protected async payDepositByCard(reservationId: string): Promise<void> {
+    try {
+      const response = await firstValueFrom(this.reservationApi.payDepositByCard(reservationId));
+      toast.success(response.message);
+      if (response.data) this.depositCard.update((cards) => ({ ...cards, [reservationId]: response.data!.client_secret }));
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'No se pudo iniciar el pago con tarjeta.'));
+    }
+  }
+
+  /** The Stripe webhook confirms the deposit asynchronously: poll briefly until it lands. */
+  protected async onDepositCardPaid(reservationId: string): Promise<void> {
+    this.depositCard.update(({ [reservationId]: _, ...rest }) => rest);
+    for (let attempt = 0; attempt < 5; attempt++) {
+      await this.loadReservations();
+      if (this.reservations().find((r) => r.id === reservationId)?.deposit_status === 'paid') return;
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+    toast.info('Tu pago está en proceso. Actualiza en unos segundos.');
+  }
 
   constructor() {
     void this.loadReservations();
@@ -29,6 +53,7 @@ export class MyReservationsPageComponent {
 
   protected reservationStatusLabel(status: Reservation['status']): string {
     switch (status) {
+      case 'pending_payment': return 'Falta pagar anticipo';
       case 'pending': return 'Pendiente';
       case 'confirmed': return 'Confirmada';
       case 'attended': return 'Atendida';
@@ -43,6 +68,7 @@ export class MyReservationsPageComponent {
 
   protected reservationStatusClass(status: Reservation['status']): string {
     switch (status) {
+      case 'pending_payment': return 'bg-orange-100 text-orange-700';
       case 'pending': return 'bg-amber-100 text-amber-700';
       case 'confirmed': return 'bg-sky-100 text-sky-700';
       case 'attended': return 'bg-emerald-100 text-emerald-700';

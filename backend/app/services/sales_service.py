@@ -13,6 +13,9 @@ from app.models.product_variant import ProductVariant
 from app.models.reservation import Reservation
 from app.models.reservation_item import ReservationItem
 from app.models.sale import Sale
+from app.models.tenant import Tenant
+from app.models.user import User
+from app.schemas.enums import RolEnum
 from app.models.sale_item import SaleItem
 from app.models.size import Size
 from app.models.color import Color
@@ -23,6 +26,7 @@ from app.schemas.inventory_schema import InventoryMovementTypeEnum
 from app.schemas.reservation_schema import ReservationStatusEnum
 from app.services.reservation_service import transition_reservation
 from app.services.pricing_service import discounted_price, discount_amount
+from app.services.promotion_service import add_usage, calculate_discount, validate_for_user
 from app.services.notification_service import notify_low_stock, notify_reservation_event
 
 
@@ -111,6 +115,8 @@ def _serialize_sale(db: Session, sale: Sale) -> SaleRead:
             "payment_method": sale.payment_method,
             "payment_status": sale.payment_status,
             "cash_reference": sale.cash_reference,
+            "customer_id": sale.customer_id,
+            "promotion_code_id": sale.promotion_code_id,
             "subtotal": sale.subtotal,
             "discount_amount": sale.discount_amount,
             "total_amount": sale.total_amount,
@@ -144,6 +150,48 @@ def _resolve_items(db: Session, payload: SaleCreate, branch_id: UUID):
     return normalized_items
 
 
+def _registered_customer(db: Session, email: str) -> User:
+    customer = db.query(User).filter(User.email == email.strip().lower(), User.rol == RolEnum.cliente,
+                                     User.is_active.is_(True)).first()
+    if not customer:
+        raise ValueError("No existe un cliente registrado con ese correo")
+    return customer
+
+
+def _apply_cashier_coupon(db: Session, sale: Sale, payload: SaleCreate, branch_id: UUID, tenant_id: UUID | None) -> None:
+    """CU15 in store: same rules as the web cart (one use per customer, not combined with
+    products on sale), so the customer must be identified by a registered email."""
+    if payload.customer_email:
+        sale.customer_id = _registered_customer(db, payload.customer_email).id
+    if not payload.promotion_code:
+        return
+    if not sale.customer_id:
+        raise ValueError("Ingresa el correo del cliente registrado para aplicar el cupón")
+    if sale.discount_amount > 0:
+        raise ValueError("El cupón no se puede combinar con productos en oferta")
+    code = validate_for_user(db, payload.promotion_code.strip().upper(), sale.customer_id, branch_id, tenant_id=tenant_id)
+    coupon_discount = calculate_discount(code, sale.subtotal)
+    sale.promotion_code_id = code.id
+    sale.discount_amount = coupon_discount
+    sale.total_amount = max(sale.subtotal - coupon_discount, Decimal("0.00"))
+    add_usage(db, code.id, sale.customer_id)
+
+
+def _apply_loyalty(db: Session, sale: Sale, payload: SaleCreate, tenant_id: UUID | None) -> None:
+    """CU17 at the till: redeem points of the identified customer, then earn on what is paid."""
+    from app.services import loyalty_service
+
+    if payload.points_to_redeem:
+        if not sale.customer_id:
+            raise ValueError("Ingresa el correo del cliente registrado para canjear puntos")
+        points_discount = loyalty_service.redeem(db, tenant_id, sale.customer_id, payload.points_to_redeem,
+                                                 sale.total_amount, "sale", sale.id)
+        sale.discount_amount += points_discount
+        sale.total_amount -= points_discount
+    if sale.customer_id:
+        loyalty_service.earn(db, tenant_id, sale.customer_id, sale.total_amount, "sale", sale.id)
+
+
 def _create_sale_from_items(
     db: Session,
     branch_id: UUID,
@@ -172,7 +220,7 @@ def _create_sale_from_items(
         subtotal=Decimal("0.00"),
         discount_amount=Decimal("0.00"),
         total_amount=Decimal("0.00"),
-        currency="usd",
+        currency=db.query(Tenant.currency).filter(Tenant.id == tenant_id).scalar().lower(),
     )
     db.add(sale)
     db.flush()
@@ -244,6 +292,8 @@ def _create_sale_from_items(
     sale.subtotal = subtotal
     sale.discount_amount = discount_total
     sale.total_amount = max(subtotal - discount_total, Decimal("0.00"))
+    _apply_cashier_coupon(db, sale, payload, branch_id, tenant_id)
+    _apply_loyalty(db, sale, payload, tenant_id)
 
     if reservation:
         if reservation.status in {ReservationStatusEnum.pending, ReservationStatusEnum.confirmed}:
@@ -252,11 +302,41 @@ def _create_sale_from_items(
     return sale
 
 
-def create_sale(db: Session, user_id: UUID, payload: SaleCreate, branch_id: UUID, tenant_id: UUID | None = None):
+def quote_sale_total(db: Session, user_id: UUID, payload: SaleCreate, branch_id: UUID, tenant_id: UUID) -> Decimal:
+    """Exact total of a would-be sale (same rules as create_sale), computed and rolled back."""
+    normalized_items = _resolve_items(db, payload, branch_id)
+    savepoint = db.begin_nested()
     try:
+        return _create_sale_from_items(db, branch_id, user_id, payload, normalized_items, tenant_id=tenant_id).total_amount
+    finally:
+        savepoint.rollback()
+
+
+def create_sale(db: Session, user_id: UUID, payload: SaleCreate, branch_id: UUID, tenant_id: UUID | None = None):
+    from app.services.payout_service import record_payment
+    from app.services.qr_payment_service import consume_sale_qr
+
+    from app.services import cash_session_service
+
+    if payload.payment_method == PaymentMethodEnum.qr and not payload.qr_reference:
+        raise ValueError("Genera y cobra el código QR antes de registrar la venta")
+    try:
+        # 1P-CU18: every till sale belongs to the cashier's open drawer of this branch.
+        drawer = cash_session_service.require_open_session(db, user_id, branch_id, tenant_id)
         normalized_items = _resolve_items(db, payload, branch_id)
         with db.begin_nested():
             sale = _create_sale_from_items(db, branch_id, user_id, payload, normalized_items, tenant_id=tenant_id)
+            cash = cash_session_service.record_sale(db, drawer, sale, payload.cash_received)
+            if payload.payment_method == PaymentMethodEnum.qr:
+                # QR money lands in the platform account and reaches the company in the settlement.
+                consume_sale_qr(db, payload.qr_reference, tenant_id=tenant_id, branch_id=branch_id,
+                                amount=sale.total_amount, sale_id=sale.id)
+                record_payment(db, tenant_id, "sale", sale.id, "qr", sale.total_amount, sale.currency, payload.qr_reference)
+            from app.services.receipt_service import issue_sale_receipt
+            sold = _serialize_sale(db, sale).model_dump()
+            receipt = issue_sale_receipt(db, sale, sold["items"], cash)
+            from app.services.recommendation_service import record_sale_interactions
+            record_sale_interactions(db, sale, sold["items"])  # CU6: in-store purchases also teach the model
         db.commit()
         db.refresh(sale)
         for variant_id in normalized_items:
@@ -267,7 +347,9 @@ def create_sale(db: Session, user_id: UUID, payload: SaleCreate, branch_id: UUID
             reservation = db.query(Reservation).filter(Reservation.id == payload.reservation_id).first()
             if reservation and reservation.status == ReservationStatusEnum.attended:
                 notify_reservation_event(db, reservation.id, reservation.user_id, reservation.status.value)
-        return _serialize_sale(db, sale).model_dump()
+        # The receipt shows what the customer paid and the change returned.
+        return {**_serialize_sale(db, sale).model_dump(), "cash_received": cash.cash_received,
+                "change_given": cash.change_given, "receipt_id": receipt.id}
     except Exception:
         db.rollback()
         raise

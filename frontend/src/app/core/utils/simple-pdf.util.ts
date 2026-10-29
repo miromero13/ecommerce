@@ -1,9 +1,17 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
+/** CU1 company branding printed on receipts: name, color band and logo. */
+export type PdfBrand = {
+  name: string;
+  color?: string | null;
+  logoDataUrl?: string | null;
+};
+
 type SimplePdfReport = {
   filename: string;
   title: string;
+  brand?: PdfBrand;
   generatedAt: string;
   filters: string[][];
   columns: string[];
@@ -13,6 +21,8 @@ type SimplePdfReport = {
 export function downloadSimplePdf(report: SimplePdfReport): void {
   const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape' });
   const pageWidth = doc.internal.pageSize.getWidth();
+
+  if (report.brand) drawBrand(doc, report.brand, pageWidth);
 
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
@@ -69,4 +79,23 @@ export function downloadSimplePdf(report: SimplePdfReport): void {
   }
 
   doc.save(report.filename);
+}
+
+function drawBrand(doc: jsPDF, brand: PdfBrand, pageWidth: number): void {
+  if (brand.color) {
+    doc.setFillColor(brand.color);
+    doc.rect(0, 0, pageWidth, 4, 'F');
+  }
+  if (brand.logoDataUrl) {
+    try {
+      const format = brand.logoDataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+      doc.addImage(brand.logoDataUrl, format, pageWidth - 44, 7, 30, 15, undefined, 'FAST');
+    } catch {
+      // Unsupported image format (e.g. WEBP in some browsers): keep the receipt without the logo.
+    }
+  }
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text(brand.name, pageWidth - 14, 26, { align: 'right' });
+  doc.setFont('helvetica', 'normal');
 }

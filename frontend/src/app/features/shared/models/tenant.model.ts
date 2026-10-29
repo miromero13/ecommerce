@@ -12,6 +12,20 @@ export interface Tenant {
   updated_at: string;
   branches_count: number;
   users_count: number;
+  plan_name?: string | null; // current plan; null when the subscription expired
+  subscription_end_date?: string | null;
+  has_admin?: boolean; // the superadmin can only enter the panel of a company with an administrator
+  logo_url?: string | null;
+  primary_color?: string | null;
+}
+
+/** CU1 company branding shown in the staff panel and on receipts. */
+export interface TenantBranding {
+  tenant_id: string;
+  name: string;
+  logo_url: string | null;
+  primary_color: string | null;
+  currency: string;
 }
 
 export interface TenantCreatePayload {
@@ -30,4 +44,13 @@ export interface TenantUpdatePayload {
   currency?: string;
   country?: string;
   status?: TenantStatus;
+  primary_color?: string;
+}
+
+/** Administrator registered by the superadmin for a company that has none. */
+export interface TenantAdminPayload {
+  name: string;
+  email: string;
+  password: string;
+  gender: 'masculino' | 'femenino';
 }

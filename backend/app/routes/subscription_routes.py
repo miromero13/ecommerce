@@ -24,6 +24,7 @@ from app.services.subscription_service import (
     create_plan,
     get_tenant_subscription_summary,
     list_plans,
+    list_subscription_history,
     provision_tenant_by_superadmin,
     provision_tenant_onboarding,
     update_plan,
@@ -123,30 +124,40 @@ async def purchase_simulated_subscription_route(
     )
 
 
+def _target_tenant(current_user: User, tenant_id: Optional[UUID]) -> UUID:
+    """The superadmin names the company; everyone else always sees their own."""
+    if current_user.rol == RolEnum.superadministrador:
+        target = tenant_id or current_user.tenant_id
+        if not target:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail="El superadministrador debe especificar un tenant_id.")
+        return target
+    if not current_user.tenant_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="El usuario no pertenece a ninguna empresa.")
+    return UUID(str(current_user.tenant_id))
+
+
+@router.get("/subscriptions/history")
+async def get_subscription_history_route(
+    tenant_id: Optional[UUID] = Query(None, description="Solo superadmin"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    _: dict = Depends(require_roles(RolEnum.administrador, RolEnum.superadministrador)),
+):
+    return response(
+        status_code=status.HTTP_200_OK,
+        message="Historial de pagos obtenido exitosamente",
+        data=list_subscription_history(db, _target_tenant(current_user, tenant_id)),
+    )
+
+
 @router.get("/subscriptions/current")
 async def get_current_subscription_route(
     tenant_id: Optional[UUID] = Query(None, description="Solo superadmin"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    user_rol = current_user.rol
-    user_tenant_id = current_user.tenant_id
-
-    if user_rol == RolEnum.superadministrador:
-        target_tenant_id = tenant_id or user_tenant_id
-        if not target_tenant_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="El superadministrador debe especificar un tenant_id.",
-            )
-    else:
-        if not user_tenant_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="El usuario no pertenece a ninguna empresa.",
-            )
-        target_tenant_id = UUID(str(user_tenant_id))
-
+    target_tenant_id = _target_tenant(current_user, tenant_id)
     summary = get_tenant_subscription_summary(db, target_tenant_id)
     return response(
         status_code=status.HTTP_200_OK,

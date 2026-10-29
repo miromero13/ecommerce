@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, field_validator
 
 
 class ReservationStatusEnum(str, Enum):
+    pending_payment = "pending_payment"
     pending = "pending"
     confirmed = "confirmed"
     attended = "attended"
@@ -76,6 +77,9 @@ class ReservationRead(BaseModel):
     expires_at: date
     status: ReservationStatusEnum
     total_amount: Decimal
+    deposit_amount: Decimal = Decimal("0")
+    deposit_status: str = "none"
+    payment_expires_at: datetime | None = None
     item_count: int
     created_at: datetime
     updated_at: datetime | None = None

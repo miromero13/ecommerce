@@ -1,4 +1,5 @@
 enum ReservationStatus {
+  pendingPayment('pending_payment'),
   pending('pending'),
   confirmed('confirmed'),
   attended('attended'),
@@ -88,6 +89,8 @@ class Reservation {
     required this.items,
     this.updatedAt,
     this.cartId,
+    this.depositAmount = 0,
+    this.depositStatus = 'none',
   });
 
   final String id;
@@ -102,9 +105,13 @@ class Reservation {
   final DateTime createdAt;
   final DateTime? updatedAt;
   final String? cartId;
+  // D1: 50 % non-refundable deposit, paid online before the reservation holds the visit.
+  final double depositAmount;
+  final String depositStatus;
   final List<ReservationItem> items;
 
   bool get canCancel =>
+      status == ReservationStatus.pendingPayment ||
       status == ReservationStatus.pending ||
       status == ReservationStatus.confirmed;
 
@@ -127,6 +134,8 @@ class Reservation {
       createdAt: _requiredDateTime(json, 'created_at'),
       updatedAt: _optionalDateTime(json, 'updated_at'),
       cartId: _optionalString(json, 'cart_id'),
+      depositAmount: double.tryParse('${json['deposit_amount'] ?? 0}') ?? 0,
+      depositStatus: _optionalString(json, 'deposit_status') ?? 'none',
       items: rawItems
           .map((item) {
             if (item is! Map) {

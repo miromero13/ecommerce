@@ -42,6 +42,48 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
 En Flutter usa `http://10.0.2.2:8000` como `BACKEND_URL`; `10.0.2.2` apunta al host desde el emulador Android.
 
+## CU8: reportes inteligentes
+
+Instalá `requirements.txt` actualizado: incluye Scikit-Learn, openpyxl y ReportLab.
+No se necesita migración ni guardar modelos o datos sintéticos en la base.
+
+- Web: `/app/admin/reports` → lenguaje natural/voz, reportes descriptivos, demanda y segmentos.
+- NLP compatible: `POST /api/reports/query` con `{ "query": "top 10 productos" }`.
+- ML (administrador con `ai_ml_smart_reports`, también en demostración):
+  `POST /api/reports/ml/predict-demand` con `{ "target_period_weeks": 4, "use_synthetic_data": true }`;
+  `POST /api/reports/ml/customer-clusters` con `{ "use_synthetic_data": true }`.
+  La página usa por defecto los datos reales de la empresa (completados con sintéticos si faltan
+  muestras) y ofrece un interruptor "Modo demostración" que envía `use_synthetic_data: true`
+  (solo datos simulados reproducibles en memoria). Nunca escribe en la base.
+  Scikit-Learn entrena regresión y K-Means reales y calcula las métricas; no son salidas prefijadas
+  ni un pronóstico del negocio. La demo de demanda no selecciona sucursal.
+  La API conserva el modo automático si se omite el indicador o es `false`:
+  demanda admite `{ "target_period_weeks": 4 }` y `branch_id` UUID opcional;
+  segmentación admite `{}` o ninguna carga JSON.
+- Reportes nuevos: `GET /api/reports/top-products`, `/branch-comparison`, `/critical-inventory`.
+- Exportar: `GET /api/reports/export/excel?type=top_products` o `/export/pdf?type=top_products`.
+  También acepta `sales`, `inventory`, `movements`, `branch_comparison`, `critical_inventory`;
+  filtros `branch_id`, `product_id`, `variant_id`, `from_date`, `to_date`, `q`.
+  Son exportaciones descriptivas con columnas estándar por tipo, no exportaciones de modelos ML
+  ni de la selección de columnas NLP. Los CSV anteriores se conservan.
+
+Los descriptivos, NLP y exportaciones siguen consultando datos reales. Los modelos identifican
+reales/mixtos/sintéticos mediante `data_source` y no inventan ventas persistidas. En la demo ML,
+`mode` es `synthetic`, `real_samples` es 0 y `synthetic_samples` es positivo. En modo automático,
+la API usa datos del tenant y completa con sintéticos solo si faltan muestras. La regresión evalúa cronológicamente y muestra R²/MSE, no precisión
+prometida. Los intervalos son aproximados. RFM usa clientes de pedidos pagados, no cajeros.
+
+Pruebas CU8 sin PostgreSQL ni credenciales reales (HTTP con SQLite temporal):
+
+```bash
+python -m pytest tests/test_ml_reports.py tests/test_smart_report_exports.py tests/test_cu8_api.py tests/test_natural_report_contract.py -q
+```
+
+Prueba de comportamiento de la página, desde `frontend/`:
+`node --test scripts/test-smart-reports.cjs`. `npm test` verifica la compilación Angular.
+La demo de voz necesita navegador compatible, permiso de micrófono y Gemini configurado;
+las pruebas usan un intérprete simulado, no llamadas externas.
+
 ## Swagger / Docs
 
 Sí, hay Swagger por defecto.
@@ -135,7 +177,7 @@ su alcance de sucursal y sus permisos existentes: el cajero solo consulta stock;
 traspasos y mínimos siguen reservados al administrador. Los ingresos, salidas,
 mínimos y ambos extremos de un traspaso validan sucursal, variante y producto
 antes de escribir. Una referencia de otra empresa responde 403
-`No tenés permisos para acceder a los datos de esta empresa`.
+`No tienes permisos para acceder a los datos de esta empresa`.
 
 Inventarios y movimientos nuevos reciben empresa. Se conservan los bloqueos de
 filas, reservas, mínimos y el cálculo disponible `max(quantity-reserved, 0)`;
@@ -278,16 +320,70 @@ previos: requieren la base de desarrollo sembrada, no el contenedor desechable.
 ## Migraciones y seeders
 
 - `alembic/versions/` contiene el historial canónico de migraciones.
-- `seed.py` carga datos de demostración; no ejecutarlo sobre datos reales.
-- El esquema no se crea automáticamente al arrancar la app.
-- Seeder demo:
+- El esquema no se crea automáticamente al arrancar la app: siempre `python -m alembic upgrade head`.
+- Los datos de demostración vigentes son los de **«Datos de demostración»** (más abajo). `seed.py` es el seeder antiguo
+  (catálogo Myntra) y queda solo como referencia; no ejecutarlo sobre datos reales.
+
+## Datos de demostración
+
+4 empresas (una por plan), 11 sucursales con su encargado y dos cajeros, proveedores, repartidores, 66 clientes, el
+catálogo real de 72 prendas del primer parcial (con recortes para el vestidor) y unos 200 días de historial generados
+con los servicios reales: cajas con vuelto, ventas en caja, pedidos web pagados con Stripe (retiro y envío), reservas
+con anticipo, comprobantes, puntos, favoritos, solicitudes a proveedores, suscripciones y liquidaciones.
+Las cuentas están en `docs/TEST_CREDENTIALS.md` (personal `Fashion2026!`, clientes `Cliente2026!`,
+superadmin `superadmin@fashionstore.com` / `SuperAdmin2026!`). Detalle en `docs/SECOND_PARTIAL_IMPLEMENTATION_PLAN.md`, sección 12.
+
+> ⚠️ Cargar la demo **borra todas las empresas y datos** de la base destino. Nunca sobre una base con datos reales.
+
+### Opción A — Base desplegada: restaurar el volcado (recomendada, ~1 minuto)
+
+No se ejecuta ningún script contra la base desplegada: solo migraciones y `psql`. El volcado
+`scripts/data/demo_data.sql.gz` tiene **solo datos**; las tablas las crean las migraciones.
+
+1. **Desplegar el backend** de esta rama, incluida la carpeta `backend/demo_assets/` (las imágenes del catálogo;
+   el backend las sirve en `/demo-assets`).
+2. **Crear las tablas** con la `DATABASE_URL` de la base desplegada:
+   ```bash
+   DATABASE_URL="postgresql://usuario:clave@host:5432/base" python -m alembic upgrade head
+   ```
+   Debe quedar en la migración **0051** (`python -m alembic current`). El volcado se niega a cargar en otra versión.
+3. **Descomprimir** el volcado (Linux/macOS: `gunzip -k scripts/data/demo_data.sql.gz`; Windows o cualquier SO):
+   ```bash
+   python -c "import gzip,shutil;shutil.copyfileobj(gzip.open('scripts/data/demo_data.sql.gz','rb'),open('demo_data.sql','wb'))"
+   ```
+4. **Cargar los datos** (una sola transacción: si algo falla no queda nada a medias):
+   ```bash
+   psql "postgresql://usuario:clave@host:5432/base" -v ON_ERROR_STOP=1 -f demo_data.sql
+   ```
+5. **Apuntar las imágenes al backend desplegado** (el volcado trae `http://localhost:8000`):
+   ```bash
+   psql "postgresql://usuario:clave@host:5432/base" -v ON_ERROR_STOP=1 -v backend_url=https://TU-BACKEND -f scripts/data/demo_set_backend_url.sql
+   ```
+   `TU-BACKEND` es la URL pública del backend, sin `/` final (p. ej. `https://fashionstore-api.onrender.com`).
+6. Comprobar: entrar con `superadmin@fashionstore.com` y ver las 4 empresas en «Gestión de Tenants».
+
+`psql` viene con PostgreSQL (en Windows: `C:\Program Files\PostgreSQL\<versión>\bin\psql.exe`). Si el proveedor
+pide SSL, agregar `?sslmode=require` al final de la URL. Las fechas del historial quedan como se generaron
+(hasta el 28/10/2026); para tener «hoy» con fechas actuales, usar la opción B.
+
+### Opción B — Generar la demo desde cero (local, ~25 minutos)
+
+Desde `backend/`, con la base destino en `DATABASE_URL` (o `--database-url`):
 
 ```bash
-./.venv/bin/python -m alembic upgrade head
-./.venv/bin/python seed.py
+python -m alembic upgrade head
+python -m scripts.build_demo_catalog --package "<ruta>/PAQUETE_CATALOGO_Y_VESTIDOR_IA"   # solo si cambia el catálogo
+python -m scripts.seed_demo --reset [--assets-base-url https://TU-BACKEND] [--days 200]
+python -m scripts.demo_documents        # credenciales y remito de prueba (CU10)
+python -m scripts.export_demo_data      # regenera scripts/data/demo_data.sql.gz para la opción A
 ```
 
-Contraseña de demo para todas las cuentas seed: `Fashion123!`
+`seed_demo` hace miles de operaciones: contra una base remota tarda mucho; conviene generarla localmente y llevarla
+con la opción A. Termina con 12 verificaciones de coherencia (stock, comprobantes, cajas, sucursales...).
+
+**Imágenes:** hoy se sirven desde el backend (`/demo-assets`). Con credenciales reales de Cloudinary en `.env`,
+`python -m scripts.build_demo_catalog --package ... --storage cloudinary` las sube y el catálogo usa esas URLs
+(necesario para el vestidor del móvil, que usa un servicio externo y no alcanza `localhost`).
 
 Nota: si `which alembic` apunta a `/opt/homebrew/bin/alembic`, usa `python -m alembic` para evitar el binario global roto. `python` sí puede salir del `venv`, así que `seed.py` funciona con ese intérprete.
 
@@ -303,7 +399,7 @@ python -m alembic downgrade -1
 
 `python -m alembic downgrade -1` revierte la última migración aplicada. El `-1` significa "retrocede un paso".
 
-Para cualquier clon o instalación nueva, ejecuta `python -m alembic upgrade head` antes de levantar la API. Esto aplicará todas las migraciones en orden (0001 a 0040) y creará la estructura completa de tablas, tipos enum, restricciones e índices en PostgreSQL. Luego ejecuta `python seed.py` para cargar los datos de prueba.
+Para cualquier clon o instalación nueva, ejecuta `python -m alembic upgrade head` antes de levantar la API. Esto aplicará todas las migraciones en orden (0001 a 0051) y creará la estructura completa de tablas, tipos enum, restricciones e índices en PostgreSQL. Luego carga los datos de demostración (sección «Datos de demostración»).
 
 ### Pruebas del snapshot (PostgreSQL desechable)
 

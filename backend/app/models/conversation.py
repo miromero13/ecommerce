@@ -18,3 +18,6 @@ class Conversation(Base):
 
     user = relationship("User", back_populates="conversation")
     messages = relationship("ConversationMessage", back_populates="conversation", cascade="all, delete-orphan", order_by="ConversationMessage.created_at")
+
+
+from app.models.conversation_message import ConversationMessage  # noqa: E402, F401

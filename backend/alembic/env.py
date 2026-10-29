@@ -8,6 +8,16 @@ from app.models.conversation_message import ConversationMessage  # noqa: F401
 from app.models.notification import DeviceToken, Notification  # noqa: F401
 from app.models.subscription_plan import SubscriptionPlan  # noqa: F401
 from app.models.tenant_subscription import TenantSubscription  # noqa: F401
+from app.models.rbac import Permission, Role  # noqa: F401
+from app.models.rpa_ingest_job import RpaIngestJob  # noqa: F401
+from app.models.wishlist_item import WishlistItem  # noqa: F401
+from app.models.loyalty import LoyaltyAccount, LoyaltyLedger  # noqa: F401
+from app.models.cash_session import CashMovement, CashSession  # noqa: F401
+from app.models.payment_receipt import PaymentReceipt  # noqa: F401
+from app.models.expert_replenishment import (  # noqa: F401
+    ExpertReplenishmentRule,
+    ExpertTransferSuggestion,
+)
 from app.core.config import settings
 
 from alembic import context

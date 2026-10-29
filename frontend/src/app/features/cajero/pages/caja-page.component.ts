@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
 import { toast } from '@spartan-ng/brain/sonner';
@@ -15,6 +15,15 @@ import { CreateSaleRequest, Sale } from '../../shared/models/sale.model';
 import { CatalogApiService } from '../../shared/services/catalog-api.service';
 import { SalesApiService } from '../../shared/services/sales-api.service';
 import { SessionService } from '../../shared/services/session.service';
+import { QrPaymentPanelComponent } from '../../shared/components/qr-payment-panel.component';
+import { QrPayment } from '../../shared/models/qr-payment.model';
+import { QrPaymentApiService } from '../../shared/services/qr-payment-api.service';
+import { BrandingService } from '../../../core/services/branding.service';
+import { CashDrawerPanelComponent } from '../components/cash-drawer-panel.component';
+import { ReceiptActionsComponent } from '../../shared/components/receipt-actions.component';
+import { CashSessionApiService } from '../../shared/services/cash-session-api.service';
+import { LoyaltyBalance } from '../../shared/models/loyalty.model';
+import { LoyaltyApiService } from '../../shared/services/loyalty-api.service';
 
 type SelectedSaleItem = {
   variant_id: string;
@@ -32,10 +41,31 @@ type SelectedSaleItem = {
 @Component({
   selector: 'app-cajero-caja-page',
   standalone: true,
-  imports: [CommonModule, HlmButton, ...HlmBadgeImports, ...HlmCardImports, ...HlmInputImports],
+  imports: [CommonModule, HlmButton, QrPaymentPanelComponent, CashDrawerPanelComponent, ReceiptActionsComponent, ...HlmBadgeImports, ...HlmCardImports, ...HlmInputImports],
   templateUrl: './caja-page.component.html',
 })
 export class CajaPageComponent {
+  // QR sales: money lands in the platform account and reaches the company in the daily settlement.
+  private readonly qrApi = inject(QrPaymentApiService);
+  protected readonly branding = inject(BrandingService); // loaded by the app shell for staff
+  protected readonly paymentMethod = signal<'cash' | 'qr'>('cash');
+  protected readonly saleQr = signal<QrPayment | null>(null);
+  // CU15 in store: a coupon needs the registered customer's email (one use per customer).
+  protected readonly couponCode = signal('');
+  protected readonly customerEmail = signal('');
+  // CU17: the identified customer can redeem points of this company (10 points = 1 Bs).
+  private readonly loyaltyApi = inject(LoyaltyApiService);
+  protected readonly pointsToRedeem = signal(0);
+  protected readonly customerPoints = signal<LoyaltyBalance | null>(null);
+  // A QR is issued for an exact total: any change to the items invalidates it.
+  private readonly resetQrOnItemsChange = effect(() => {
+    this.selectedItems();
+    this.couponCode();
+    this.customerEmail();
+    this.pointsToRedeem();
+    untracked(() => this.saleQr.set(null));
+  });
+
   private readonly catalogApi = inject(CatalogApiService);
   private readonly salesApi = inject(SalesApiService);
   private readonly session = inject(SessionService);
@@ -47,12 +77,18 @@ export class CajaPageComponent {
   protected readonly loadingProducts = signal(false);
   protected readonly submitting = signal(false);
   protected readonly cashReference = signal('');
+  // 1P-CU18: the open drawer (loaded by the panel) and the cash handed over by the customer.
+  protected readonly cash = inject(CashSessionApiService);
+  protected readonly cashReceived = signal('');
+  // Whether the last sale identified a registered customer (its receipt can be emailed).
+  protected readonly customerEmailUsed = signal(false);
 
   protected readonly branchId = computed(() => this.session.user()?.branch_id ?? null);
 
   protected readonly subtotal = computed(() => this.selectedItems().reduce((sum, item) => sum + Number(item.original_unit_price) * item.quantity, 0).toFixed(2));
   protected readonly discount = computed(() => this.selectedItems().reduce((sum, item) => sum + (Number(item.original_unit_price) - Number(item.unit_price)) * item.quantity, 0).toFixed(2));
   protected readonly total = computed(() => (Number(this.subtotal()) - Number(this.discount())).toFixed(2));
+  protected readonly estimatedChange = computed(() => Number(this.cashReceived()) - Number(this.total()));
 
   constructor() {
     void this.searchProducts();
@@ -149,12 +185,26 @@ export class CajaPageComponent {
       return;
     }
 
+    if (!this.cash.current()) {
+      toast.warning('Abre tu caja para registrar ventas.');
+      return;
+    }
+
+    if (this.paymentMethod() === 'qr' && !this.saleQr()) {
+      await this.generateSaleQr();
+      return;
+    }
+
     this.submitting.set(true);
     try {
       const payload: CreateSaleRequest = {
         branch_id: branchId,
-        payment_method: 'cash',
-        cash_reference: this.cashReference() || null,
+        payment_method: this.paymentMethod(),
+        cash_reference: this.paymentMethod() === 'cash' ? this.cashReference() || null : null,
+        // Empty means the customer paid the exact amount.
+        cash_received: this.paymentMethod() === 'cash' && this.cashReceived() !== '' ? Number(this.cashReceived()) : null,
+        qr_reference: this.paymentMethod() === 'qr' ? this.saleQr()!.reference : null,
+        ...this.couponFields(),
         items: this.selectedItems().map((item) => ({ variant_id: item.variant_id, quantity: item.quantity })),
       };
 
@@ -163,11 +213,64 @@ export class CajaPageComponent {
         { loading: 'Registrando venta...', success: 'Venta registrada.', error: 'No se pudo registrar la venta.' },
       );
       this.lastSale.set(response.data ?? null);
+      this.customerEmailUsed.set(!!payload.customer_email);
       this.selectedItems.set([]);
       this.cashReference.set('');
+      this.cashReceived.set('');
+      await this.cash.loadCurrent(); // refresh the drawer totals
+      this.couponCode.set('');
+      this.customerEmail.set('');
+      this.pointsToRedeem.set(0);
+      this.customerPoints.set(null);
+      this.saleQr.set(null);
       await this.searchProducts();
     } catch {
       // toast handled by requestWithToast
+    } finally {
+      this.submitting.set(false);
+    }
+  }
+
+  private couponFields(): { promotion_code: string | null; customer_email: string | null; points_to_redeem: number } {
+    return {
+      promotion_code: this.couponCode().trim() || null,
+      customer_email: this.customerEmail().trim() || null,
+      points_to_redeem: this.pointsToRedeem(),
+    };
+  }
+
+  protected setPoints(value: string): void {
+    this.pointsToRedeem.set(Math.max(0, Math.floor(Number(value) || 0)));
+  }
+
+  protected async lookupPoints(): Promise<void> {
+    const email = this.customerEmail().trim();
+    if (!email) {
+      toast.warning('Ingresa el correo del cliente registrado.');
+      return;
+    }
+    try {
+      this.customerPoints.set((await firstValueFrom(this.loyaltyApi.customer(email))).data ?? null);
+    } catch (error) {
+      this.customerPoints.set(null);
+      toast.error(getErrorMessage(error, 'No se pudieron consultar los puntos del cliente.'));
+    }
+  }
+
+  protected selectPaymentMethod(method: 'cash' | 'qr'): void {
+    this.paymentMethod.set(method);
+    this.saleQr.set(null);
+  }
+
+  private async generateSaleQr(): Promise<void> {
+    this.submitting.set(true);
+    try {
+      const items = this.selectedItems().map((item) => ({ variant_id: item.variant_id, quantity: item.quantity }));
+      const response = await firstValueFrom(this.qrApi.saleIntent({ items, ...this.couponFields() }));
+      toast.success(response.message);
+      this.saleQr.set(response.data ?? null);
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'No se pudo generar el código QR.'));
     } finally {
       this.submitting.set(false);
     }

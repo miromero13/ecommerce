@@ -14,6 +14,14 @@ class Settings(BaseSettings):
     stripe_webhook_secret: str | None = None
     stripe_publishable_key: str | None = None
     stripe_currency: str = "usd"
+    tenant_base_domain: str | None = None
+    # CU20 platform delivery tariff (Bs): base + per km, within a coverage radius.
+    delivery_base_fee: float = 8.0
+    delivery_fee_per_km: float = 2.5
+    delivery_max_km: float = 15.0
+    # Simulated QR: sandbox lets the payer confirm from the UI; a real bank uses the secret webhook.
+    qr_sandbox: bool = True
+    qr_webhook_secret: str | None = None
     gemini_api_key: str | None = None
     gemini_model: str = "gemini-3.6-flash"
     gemini_garment_model: str | None = None

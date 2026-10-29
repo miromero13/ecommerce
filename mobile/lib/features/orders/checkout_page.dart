@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../core/network/api_exception.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:flutter_stripe/flutter_stripe.dart' hide PaymentMethod;
 
 import '../../core/config/app_config.dart';
@@ -38,9 +40,20 @@ class _CheckoutPageState extends State<CheckoutPage> {
   late final bool _ownsController;
   String? _loadedToken;
   String? _pickupBranchId;
-  PaymentMethod _paymentMethod = PaymentMethod.cash;
+  // Web and mobile orders are paid online by card (Stripe) only; QR and cash only exist at the store's till.
+  // CU20: in-store pickup or home delivery shipped from the selected branch.
+  String _fulfillment = 'pickup';
+  final _address = TextEditingController();
+  final _reference = TextEditingController();
+  final _latitude = TextEditingController();
+  final _longitude = TextEditingController();
+  final _points = TextEditingController(); // CU17: 10 points = 1 Bs
+  Map<String, dynamic>? _quote;
+  bool _quoting = false;
 
   bool get _isOrderPayment => widget.orderId != null;
+
+  int get _pointsToRedeem => int.tryParse(_points.text.trim()) ?? 0;
 
   @override
   void initState() {
@@ -57,6 +70,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
   void dispose() {
     widget.authController.removeListener(_handleAuthChanged);
     if (_ownsController) _controller.dispose();
+    for (final c in [_address, _reference, _latitude, _longitude, _points]) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -192,35 +208,79 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   : (value) => setState(() => _pickupBranchId = value),
             ),
             const SizedBox(height: 12),
-            DropdownButtonFormField<PaymentMethod>(
-              isExpanded: true,
-              initialValue: _paymentMethod,
-              decoration: const InputDecoration(labelText: 'Método de pago'),
-              items: const [
-                DropdownMenuItem(
-                  value: PaymentMethod.cash,
-                  child: Text('Efectivo al retirar'),
-                ),
-                DropdownMenuItem(
-                  value: PaymentMethod.stripe,
-                  child: Text('Tarjeta'),
-                ),
-              ],
-              onChanged: isSaving
-                  ? null
-                  : (value) => setState(() => _paymentMethod = value!),
+            TextField(
+              controller: _points,
+              enabled: !isSaving,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Puntos a canjear (opcional)',
+                helperText: '10 puntos = 1 Bs de descuento. Consulta tu saldo en Mis puntos.',
+              ),
             ),
+            const SizedBox(height: 12),
+            SegmentedButton<String>(
+              segments: const [
+                ButtonSegment(value: 'pickup', label: Text('Retiro en tienda')),
+                ButtonSegment(value: 'delivery', label: Text('Envío a domicilio')),
+              ],
+              selected: {_fulfillment},
+              onSelectionChanged: isSaving
+                  ? null
+                  : (value) => setState(() {
+                      _fulfillment = value.first;
+                      _quote = null;
+                    }),
+            ),
+            if (_fulfillment == 'delivery') ...[
+              const SizedBox(height: 12),
+              TextField(controller: _address, decoration: const InputDecoration(labelText: 'Dirección de entrega')),
+              TextField(controller: _reference, decoration: const InputDecoration(labelText: 'Referencia (opcional)')),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _latitude,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                      decoration: const InputDecoration(labelText: 'Latitud'),
+                      onChanged: (_) => setState(() => _quote = null),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: _longitude,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                      decoration: const InputDecoration(labelText: 'Longitud'),
+                      onChanged: (_) => setState(() => _quote = null),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: _quoting || pickupBranchId == null ? null : () => _useMyLocation(pickupBranchId),
+                    icon: const Icon(Icons.my_location_outlined),
+                    label: const Text('Usar mi ubicación'),
+                  ),
+                  OutlinedButton(
+                    onPressed: _quoting || pickupBranchId == null ? null : () => _quoteDelivery(pickupBranchId),
+                    child: Text(_quoting ? 'Calculando...' : 'Calcular envío'),
+                  ),
+                ],
+              ),
+              if (_quote != null)
+                Text(
+                  'Distancia ${_quote!['distance_km']} km · Envío ${_quote!['shipping_cost']} BOB · ~${_quote!['estimated_minutes']} min',
+                ),
+            ],
             const SizedBox(height: 12),
           ],
           AppButton(
-            label: _isOrderPayment || _paymentMethod == PaymentMethod.stripe
-                ? 'Pagar con tarjeta'
-                : 'Comprar con efectivo',
-            icon: Icon(
-              _isOrderPayment || _paymentMethod == PaymentMethod.stripe
-                  ? Icons.credit_card_outlined
-                  : Icons.payments_outlined,
-            ),
+            label: 'Pagar con tarjeta',
+            icon: const Icon(Icons.credit_card_outlined),
             onPressed: isSaving || (!_isOrderPayment && pickupBranchId == null)
                 ? null
                 : () => _submit(pickupBranchId),
@@ -247,44 +307,86 @@ class _CheckoutPageState extends State<CheckoutPage> {
       return;
     }
     if (pickupBranchId == null) return;
-    if (_paymentMethod == PaymentMethod.stripe) {
-      await _checkoutStripe(pickupBranchId: pickupBranchId);
+    final delivery = _deliveryPayload();
+    if (_fulfillment == 'delivery' && delivery == null) {
+      AppSnackBar.show(context, 'Ingresa la dirección y calcula el costo de envío.', tone: AppSnackBarTone.warning);
       return;
     }
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirmar compra'),
-        content: const Text(
-          'Se creará un pedido con los productos del carrito.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Volver'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Confirmar'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    await _controller.checkoutCash(pickupBranchId: pickupBranchId);
-    if (!mounted) return;
-    _showControllerFeedback();
-    if (_controller.status == OrderControllerStatus.error ||
-        _controller.selectedOrder == null) {
-      return;
-    }
-    Navigator.of(context).pushReplacementNamed(
-      AppRoutes.orders,
-      arguments: _controller.selectedOrder!.id,
-    );
+    await _checkoutStripe(pickupBranchId: pickupBranchId, delivery: delivery);
   }
 
-  Future<void> _checkoutStripe({String? pickupBranchId}) async {
+  Map<String, dynamic>? _deliveryPayload() {
+    if (_fulfillment != 'delivery' || _quote == null || _address.text.trim().length < 5) return null;
+    return {
+      'address': _address.text.trim(),
+      'reference': _reference.text.trim().isEmpty ? null : _reference.text.trim(),
+      'latitude': double.parse(_latitude.text.trim()),
+      'longitude': double.parse(_longitude.text.trim()),
+    };
+  }
+
+  /// CU20: fill the delivery coordinates from the device GPS, then quote.
+  Future<void> _useMyLocation(String branchId) async {
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        _warn('Activa la ubicación del dispositivo para usar esta opción.');
+        return;
+      }
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied) {
+        _warn('Necesitamos permiso de ubicación; también puedes escribir la latitud y longitud.');
+        return;
+      }
+      if (permission == LocationPermission.deniedForever) {
+        _warn('El permiso de ubicación está bloqueado. Habilítalo en los ajustes del teléfono.');
+        await Geolocator.openAppSettings();
+        return;
+      }
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, timeLimit: Duration(seconds: 15)),
+      );
+      if (!mounted) return;
+      setState(() {
+        _latitude.text = position.latitude.toStringAsFixed(6);
+        _longitude.text = position.longitude.toStringAsFixed(6);
+      });
+      await _quoteDelivery(branchId);
+    } catch (_) {
+      _warn('No se pudo obtener tu ubicación. Ingrésala manualmente.');
+    }
+  }
+
+  void _warn(String message) {
+    if (mounted) AppSnackBar.show(context, message, tone: AppSnackBarTone.warning);
+  }
+
+  Future<void> _quoteDelivery(String branchId) async {
+    final latitude = double.tryParse(_latitude.text.trim());
+    final longitude = double.tryParse(_longitude.text.trim());
+    if (latitude == null || longitude == null) {
+      AppSnackBar.show(context, 'Ingresa latitud y longitud válidas.', tone: AppSnackBarTone.warning);
+      return;
+    }
+    setState(() => _quoting = true);
+    try {
+      final quote = await _controller.api.quoteDelivery(branchId: branchId, latitude: latitude, longitude: longitude);
+      if (!mounted) return;
+      setState(() => _quote = quote);
+      AppSnackBar.show(context, quote['message'].toString(), tone: AppSnackBarTone.success);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _quote = null);
+      AppSnackBar.show(context, error is ApiException ? error.message : 'No se pudo calcular el envío.',
+          tone: AppSnackBarTone.error);
+    } finally {
+      if (mounted) setState(() => _quoting = false);
+    }
+  }
+
+  Future<void> _checkoutStripe({String? pickupBranchId, Map<String, dynamic>? delivery}) async {
     if (AppConfig.stripePublishableKey.isEmpty) {
       AppSnackBar.show(
         context,
@@ -296,7 +398,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
     final result = _isOrderPayment
         ? await _controller.payOrder(orderId: widget.orderId!)
-        : await _controller.checkoutStripe(pickupBranchId: pickupBranchId!);
+        : await _controller.checkoutStripe(pickupBranchId: pickupBranchId!, delivery: delivery, points: _pointsToRedeem);
     if (!mounted) return;
     if (result == null) {
       AppSnackBar.show(
@@ -333,20 +435,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
         context,
         'No se pudo completar el pago.',
         tone: AppSnackBarTone.error,
-      );
-    }
-  }
-
-  void _showControllerFeedback() {
-    final isError = _controller.status == OrderControllerStatus.error;
-    final message = isError
-        ? _controller.errorMessage
-        : _controller.feedbackMessage;
-    if (message != null) {
-      AppSnackBar.show(
-        context,
-        message,
-        tone: isError ? AppSnackBarTone.error : AppSnackBarTone.success,
       );
     }
   }

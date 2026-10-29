@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from typing import Callable
@@ -12,7 +12,25 @@ from app.schemas.enums import RolEnum, TenantStatusEnum
 
 security = HTTPBearer()  # Simple Bearer auth
 
+def resolve_tenant_ref(db: Session, ref: str) -> UUID:
+    try:
+        condition = Tenant.id == UUID(ref)
+    except ValueError:
+        condition = Tenant.slug == ref.lower()
+    tenant_id = db.query(Tenant.id).filter(condition).scalar()
+    if tenant_id is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Empresa no encontrada")
+    return tenant_id
+
+
+def get_request_tenant_id(request: Request, db: Session = Depends(get_db)) -> UUID | None:
+    """Company selected by X-Tenant-ID or subdomain (see app.core.tenant_middleware)."""
+    ref = getattr(request.state, "tenant_ref", None)
+    return resolve_tenant_ref(db, ref) if ref else None
+
+
 def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
 ) -> User:
@@ -47,7 +65,7 @@ def get_current_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Usuario inactivo",
         )
-    if user.rol not in [RolEnum.cliente, RolEnum.superadministrador]:
+    if user.rol not in [RolEnum.cliente, RolEnum.superadministrador, RolEnum.delivery]:
         if user.tenant_id is None:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -59,7 +77,7 @@ def get_current_user(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="La empresa está suspendida. Contactá al administrador de la plataforma.",
             )
-        if user.rol in [RolEnum.encargado, RolEnum.cajero, RolEnum.delivery]:
+        if user.rol in [RolEnum.encargado, RolEnum.cajero]:
             if user.branch_id is None:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
@@ -75,6 +93,13 @@ def get_current_user(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="La sucursal no existe o está inactiva en esta empresa",
                 )
+    # The JWT decides the company; a client-sent tenant may only confirm it.
+    tenant_ref = getattr(request.state, "tenant_ref", None)
+    if user.tenant_id is not None and tenant_ref and resolve_tenant_ref(db, tenant_ref) != user.tenant_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="El encabezado X-Tenant-ID no corresponde a tu empresa",
+        )
     return user
 
 
@@ -113,6 +138,24 @@ def require_roles(*allowed_roles: RolEnum) -> Callable:
     return role_dependency
 
 
+def require_permission(permission_name: str) -> Callable:
+    def permission_dependency(
+        payload: dict = Depends(get_current_payload),
+        user: User = Depends(get_current_user),
+        db: Session = Depends(get_db),
+    ) -> dict:
+        from app.services.rbac_service import effective_permissions
+        perms = effective_permissions(db, user)
+        if permission_name not in perms:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tienes permisos suficientes para realizar esta acción",
+            )
+        return payload
+
+    return permission_dependency
+
+
 def get_current_branch_id(payload: dict = Depends(get_current_payload)) -> UUID | None:
     if payload.get("rol") in [RolEnum.administrador.value, RolEnum.superadministrador.value, RolEnum.cliente.value]:
         return None
@@ -127,7 +170,7 @@ def get_current_branch_id(payload: dict = Depends(get_current_payload)) -> UUID 
 def get_current_tenant_id(payload: dict = Depends(get_current_payload)) -> UUID | None:
     rol = payload.get("rol")
     tenant_id_str = payload.get("tenant_id")
-    if rol in [RolEnum.superadministrador.value, RolEnum.cliente.value]:
+    if rol in [RolEnum.superadministrador.value, RolEnum.cliente.value, RolEnum.delivery.value]:
         return UUID(tenant_id_str) if tenant_id_str else None
 
     if not tenant_id_str:
@@ -143,7 +186,7 @@ def get_tenant_and_branch_scope(
 ) -> tuple[UUID | None, UUID | None]:
     """
     Retorna (tenant_id, branch_id) para consultas jerárquicas:
-    1. Si el usuario tiene branch_id (cajero, encargado, delivery):
+    1. Si el usuario tiene branch_id (cajero, encargado):
        retorna (tenant_id, branch_id) -> filtra estrictamente por ambos.
     2. Si solo tiene tenant_id (administrador, proveedor):
        retorna (tenant_id, None) -> filtra por empresa completa (consolidado).
@@ -156,7 +199,7 @@ def get_tenant_and_branch_scope(
     tenant_id = UUID(tenant_id_str) if tenant_id_str else None
     branch_id = UUID(branch_id_str) if branch_id_str else None
 
-    if rol in [RolEnum.superadministrador.value, RolEnum.cliente.value]:
+    if rol in [RolEnum.superadministrador.value, RolEnum.cliente.value, RolEnum.delivery.value]:
         return (None, None)
 
     if not tenant_id:
@@ -165,7 +208,7 @@ def get_tenant_and_branch_scope(
             detail="Usuario sin empresa asociada",
         )
 
-    if rol in [RolEnum.cajero.value, RolEnum.encargado.value, RolEnum.delivery.value]:
+    if rol in [RolEnum.cajero.value, RolEnum.encargado.value]:
         if not branch_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -185,5 +228,5 @@ def validate_tenant_access(
     if current_tenant_id is not None and resource_tenant_id != current_tenant_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="No tenés permisos para acceder a los datos de esta empresa",
+            detail="No tienes permisos para acceder a los datos de esta empresa",
         )

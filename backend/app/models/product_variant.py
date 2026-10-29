@@ -19,6 +19,8 @@ class ProductVariant(Base):
     color_id = Column(UUID(as_uuid=True), ForeignKey("colors.id"), nullable=True, index=True)
     image_url = Column(String, nullable=True)
     image_public_id = Column(String, nullable=True)
+    # CU5: transparent cut-out of the garment for the fitting rooms; the catalog shows image_url.
+    try_on_image_url = Column(String, nullable=True)
     garment_points = Column(JSON, nullable=True)
     status = Column(SQLAlchemyEnum(ProductStatusEnum), nullable=False, default=ProductStatusEnum.pending)
 

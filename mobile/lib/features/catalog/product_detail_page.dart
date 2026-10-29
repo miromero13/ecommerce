@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/network/api_client.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/storage/session_storage.dart';
 import '../auth/auth_controller.dart';
@@ -14,6 +15,7 @@ import '../../shared/widgets/product_image.dart';
 import '../../shared/widgets/product_price.dart';
 import '../../shared/widgets/quantity_selector.dart';
 import '../../shared/widgets/variant_selector.dart';
+import '../wishlist/wishlist_api.dart';
 import 'catalog_models.dart';
 import 'virtual_try_on_page.dart';
 
@@ -59,6 +61,51 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   int _selectedVariantIndex = 0;
   int _quantity = 1;
   bool _addingToCart = false;
+  bool? _saved; // CU16: null until the wishlist is known (or no session)
+  bool _savingWish = false;
+
+  WishlistApi? get _wishlistApi {
+    final auth = widget.authController;
+    if (auth == null || !auth.isAuthenticated) return null;
+    return WishlistApi(
+      client: ApiClient(tokenProvider: () => auth.accessToken, onUnauthorized: auth.handleUnauthorized),
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSaved();
+  }
+
+  Future<void> _loadSaved() async {
+    final api = _wishlistApi;
+    final productId = _product?.id;
+    if (api == null || productId == null) return;
+    try {
+      final items = await api.list();
+      if (mounted) setState(() => _saved = items.any((row) => row['product_id'].toString() == productId));
+    } catch (_) {
+      // No heart if the wishlist cannot be read (e.g. staff account).
+    }
+  }
+
+  Future<void> _toggleSaved() async {
+    final api = _wishlistApi;
+    final productId = _product?.id;
+    if (api == null || productId == null || _saved == null) return;
+    setState(() => _savingWish = true);
+    try {
+      final message = _saved! ? await api.remove(productId) : await api.add(productId);
+      if (!mounted) return;
+      setState(() => _saved = !_saved!);
+      AppSnackBar.show(context, message, tone: AppSnackBarTone.success);
+    } on ApiException catch (error) {
+      if (mounted) AppSnackBar.show(context, error.message, tone: AppSnackBarTone.error);
+    } finally {
+      if (mounted) setState(() => _savingWish = false);
+    }
+  }
 
   Product? get _product => widget.arguments?.product;
 
@@ -110,6 +157,13 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           AppSectionTitle(
             title: product.name,
             subtitle: product.sku ?? 'Producto FashionStore',
+            action: _saved == null
+                ? null
+                : IconButton(
+                    tooltip: _saved! ? 'Quitar de mi lista de deseos' : 'Añadir a mi lista de deseos',
+                    onPressed: _savingWish ? null : _toggleSaved,
+                    icon: Icon(_saved! ? Icons.favorite : Icons.favorite_border, color: Colors.pink),
+                  ),
           ),
           const SizedBox(height: 12),
           ProductPrice(price: price, originalPrice: variant?.originalPrice),
@@ -190,7 +244,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   MaterialPageRoute<void>(
                     builder: (_) => VirtualTryOnPage(
                       productName: product.name,
-                      garmentImageUrl: imageUrl,
+                      garmentImageUrl: variant?.tryOnImageUrl ?? imageUrl,
                     ),
                   ),
                 );
@@ -455,9 +509,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
       final sessionStorage = const SessionStorage();
       final cartContext = await sessionStorage.readCartContext();
-      final cartBranchId = cartContext?['branch_id'];
-      final cartBranchName = cartContext?['branch_name'];
-      final cartTenantName = cartContext?['tenant_name'];
 
       final api =
           widget.cartApi ??
@@ -466,54 +517,16 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             onUnauthorized: authController.handleUnauthorized,
           );
 
-      final currentCartResult = await api.getCurrent();
-      final currentCart = currentCartResult.cart;
-
       if (!mounted) return;
-
-      if (currentCart.items.isNotEmpty &&
-          cartBranchId != null &&
-          targetBranchId != null &&
-          cartBranchId != targetBranchId) {
-        final currentFullName =
-            cartTenantName != null && cartTenantName.isNotEmpty
-                ? '$cartTenantName — $cartBranchName'
-                : (cartBranchName ?? 'otra sucursal');
-
-        final confirm = await showDialog<bool>(
-          context: context,
-          builder: (dialogCtx) => AlertDialog(
-            title: const Text('¿Cambiar de sucursal?'),
-            content: Text(
-              'Tenés productos de $currentFullName en tu carrito.\n\n'
-              'Si continuás, se vaciará el carrito actual para comprar en $tenantName — $targetBranchName.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(dialogCtx).pop(false),
-                child: const Text('Cancelar'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(dialogCtx).pop(true),
-                child: const Text('Vaciar y agregar'),
-              ),
-            ],
-          ),
-        );
-
-        if (!mounted || confirm != true) {
-          return;
-        }
-
-        await api.clear();
-      }
+      // One cart per company: the backend rejects another company's item with a clear message.
 
       final result = await api.addItem(
         variantId: variant.id,
         quantity: _quantity,
       );
 
-      if (targetBranchId != null) {
+      if (targetBranchId != null && cartContext == null) {
+        // Remember the first branch only, to preselect pickup at checkout.
         await sessionStorage.saveCartContext(
           branchId: targetBranchId,
           branchName: targetBranchName,

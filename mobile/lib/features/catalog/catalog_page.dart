@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../app/routes.dart';
+import '../../core/network/api_exception.dart';
 import '../../core/storage/session_storage.dart';
 import '../../shared/widgets/app_empty_view.dart';
 import '../../shared/widgets/app_error_view.dart';
@@ -1316,9 +1317,6 @@ class _CatalogPageState extends State<CatalogPage> {
 
     final sessionStorage = const SessionStorage();
     final cartContext = await sessionStorage.readCartContext();
-    final cartBranchId = cartContext?['branch_id'];
-    final cartBranchName = cartContext?['branch_name'];
-    final cartTenantName = cartContext?['tenant_name'];
 
     final api = CartApi(
       tokenProvider: () => widget.authController?.accessToken,
@@ -1326,50 +1324,16 @@ class _CatalogPageState extends State<CatalogPage> {
     );
 
     try {
-      final currentCartResult = await api.getCurrent();
-      final currentCart = currentCartResult.cart;
       if (!mounted) return;
-
-      if (currentCart.items.isNotEmpty &&
-          cartBranchId != null &&
-          targetBranchId != null &&
-          cartBranchId != targetBranchId) {
-        final currentFullName =
-            cartTenantName != null && cartTenantName.isNotEmpty
-                ? '$cartTenantName — $cartBranchName'
-                : (cartBranchName ?? 'otra sucursal');
-
-        final confirm = await showDialog<bool>(
-          context: context,
-          builder: (dialogCtx) => AlertDialog(
-            title: const Text('¿Cambiar de sucursal?'),
-            content: Text(
-              'Tenés productos de $currentFullName en tu carrito.\n\n'
-              'Si continuás, se vaciará el carrito actual para comprar en $tenantName — $targetBranchName.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(dialogCtx).pop(false),
-                child: const Text('Cancelar'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(dialogCtx).pop(true),
-                child: const Text('Vaciar y agregar'),
-              ),
-            ],
-          ),
-        );
-
-        if (!mounted || confirm != true) return;
-        await api.clear();
-      }
+      // One cart per company: the backend rejects another company's item with a clear message.
 
       setState(() => _addingProductIds.add(product.id));
       final res = await api.addItem(
         variantId: primaryVariant.id,
         quantity: 1,
       );
-      if (targetBranchId != null) {
+      if (targetBranchId != null && cartContext == null) {
+        // Remember the first branch only, to preselect pickup at checkout.
         await sessionStorage.saveCartContext(
           branchId: targetBranchId,
           branchName: targetBranchName,
@@ -1387,7 +1351,7 @@ class _CatalogPageState extends State<CatalogPage> {
       if (mounted) {
         AppSnackBar.show(
           context,
-          'No se pudo agregar al carrito.',
+          e is ApiException ? e.message : 'No se pudo agregar al carrito.',
           tone: AppSnackBarTone.error,
         );
       }

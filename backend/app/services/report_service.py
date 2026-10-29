@@ -159,6 +159,50 @@ def get_sales_report(db: Session, filters: ReportQuery, tenant_id: UUID):
     }
 
 
+def _completed_sales_rows(db: Session, filters: ReportQuery, tenant_id: UUID) -> list[dict]:
+    return [row for row in get_sales_report(db, filters, tenant_id)["rows"]
+            if row["sale_status"] == "completed" and row["payment_status"] == "paid"]
+
+
+def get_top_products_report(db: Session, filters: ReportQuery, tenant_id: UUID):
+    products = {}
+    for row in _completed_sales_rows(db, filters, tenant_id):
+        product = products.setdefault(row["product_id"], {
+            "product_id": row["product_id"], "product_name": row["product_name"],
+            "quantity_sold": 0, "gross_sales": Decimal("0"),
+        })
+        product["quantity_sold"] += row["quantity_sold"]
+        product["gross_sales"] += row["gross_sales"]
+    rows = sorted(products.values(), key=lambda item: (-item["quantity_sold"], item["product_name"]))[:10]
+    return {"summary": {"total_products": len(rows)}, "rows": rows}
+
+
+def get_branch_comparison_report(db: Session, filters: ReportQuery, tenant_id: UUID):
+    branches = {}
+    for row in _completed_sales_rows(db, filters, tenant_id):
+        branch = branches.setdefault(row["branch_id"], {
+            "branch_id": row["branch_id"], "branch_name": row["branch_name"],
+            "quantity_sold": 0, "gross_sales": Decimal("0"),
+        })
+        branch["quantity_sold"] += row["quantity_sold"]
+        branch["gross_sales"] += row["gross_sales"]
+    rows = sorted(branches.values(), key=lambda item: (-item["gross_sales"], item["branch_name"]))
+    return {"summary": {"total_branches": len(rows), "total_sales": sum(row["gross_sales"] for row in rows)}, "rows": rows}
+
+
+def get_critical_inventory_report(db: Session, filters: ReportQuery, tenant_id: UUID):
+    minimums = {(branch_id, variant_id): minimum for branch_id, variant_id, minimum in db.query(
+        Inventory.branch_id, Inventory.variant_id, Inventory.minimum_stock,
+    ).filter(Inventory.tenant_id == tenant_id).all()}
+    rows = []
+    for row in get_inventory_report(db, filters, tenant_id)["rows"]:
+        minimum = minimums.get((row["branch_id"], row["variant_id"]), 0)
+        if row["available_quantity"] <= minimum:
+            rows.append({**row, "minimum_stock": minimum})
+    rows.sort(key=lambda item: (item["available_quantity"], item["product_name"]))
+    return {"summary": {"critical_items": len(rows)}, "rows": rows}
+
+
 def get_inventory_report(db: Session, filters: ReportQuery, tenant_id: UUID):
     query = (
         db.query(

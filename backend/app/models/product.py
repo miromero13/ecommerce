@@ -19,3 +19,9 @@ class Product(Base):
     discount_type = Column(String(20), nullable=True)
     discount_value = Column(Numeric(10, 2), nullable=True)
     variants = relationship("ProductVariant", back_populates="product", cascade="all, delete-orphan")
+
+
+from app.models.provider import Provider  # noqa: E402, F401
+from app.models.category import Category  # noqa: E402, F401
+from app.models.collection import Collection  # noqa: E402, F401
+from app.models.season import Season  # noqa: E402, F401

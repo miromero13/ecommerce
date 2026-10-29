@@ -30,7 +30,7 @@ def upgrade() -> None:
     op.execute("""
     DO $$
     BEGIN
-        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'tenantstatusenum') THEN
+        IF to_regtype('tenantstatusenum') IS NULL THEN  -- only the current schema (search_path), not other schemas
             CREATE TYPE tenantstatusenum AS ENUM ('active', 'trial', 'suspended');
         END IF;
     END$$;

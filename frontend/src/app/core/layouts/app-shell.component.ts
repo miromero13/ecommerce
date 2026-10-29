@@ -1,9 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideBell, lucideBuilding2, lucideCalendarDays, lucideClipboardList, lucideLayoutDashboard, lucideLogOut, lucideMail, lucidePackageSearch, lucideShield, lucideShoppingCart, lucideTicket, lucideUser, lucideUserRound, lucideUsers } from '@ng-icons/lucide';
+import { lucideBell, lucideBrainCircuit, lucideBuilding2, lucideCalendarDays, lucideClipboardList, lucideLayoutDashboard, lucideLogOut, lucideMail, lucidePackageSearch, lucideShield, lucideShoppingCart, lucideTicket, lucideUser, lucideUserRound, lucideUsers } from '@ng-icons/lucide';
 
 import {
   HlmSidebar,
@@ -22,6 +22,7 @@ import { CatalogApiService } from '../../features/shared/services/catalog-api.se
 import { SessionService } from '../../features/shared/services/session.service';
 import { ChatbotComponent } from '../../features/shared/components/chatbot.component';
 import { NotificationPushService } from '../../features/shared/services/notification-push.service';
+import { BrandingService } from '../services/branding.service';
 
 type SidebarItem = {
   label: string;
@@ -59,6 +60,7 @@ type SidebarSection = {
   providers: [
     provideIcons({
       lucideBell,
+      lucideBrainCircuit,
       lucideBuilding2,
       lucideLayoutDashboard,
       lucideLogOut,
@@ -77,9 +79,15 @@ type SidebarSection = {
   templateUrl: './app-shell.component.html',
 })
 export class AppShellComponent {
-  private readonly session = inject(SessionService);
+  protected readonly session = inject(SessionService);
   private readonly catalogApi = inject(CatalogApiService);
   protected readonly notifications = inject(NotificationPushService);
+  protected readonly branding = inject(BrandingService);
+  // CU1: staff see their company's logo, name and color; reloads when the session changes.
+  private readonly loadBranding = effect(() => {
+    const tenantId = this.session.user()?.tenant_id;
+    untracked(() => void this.branding.loadCurrent(tenantId));
+  });
 
   protected readonly branches = signal<CatalogBranch[]>([]);
 
@@ -189,6 +197,8 @@ export class AppShellComponent {
               { label: 'Dashboard', route: '/app/superadmin/dashboard', icon: 'lucideLayoutDashboard', exact: true },
               { label: 'Gestión de Tenants', route: '/app/superadmin/tenants', icon: 'lucideBuilding2', exact: true },
               { label: 'Planes de Suscripción', route: '/app/superadmin/plans', icon: 'lucideShield', exact: true },
+              { label: 'Repartidores', route: '/app/superadmin/drivers', icon: 'lucideUsers', exact: true },
+              { label: 'Liquidaciones', route: '/app/superadmin/settlements', icon: 'lucideShoppingCart', exact: true },
             ],
           },
         ];
@@ -202,16 +212,22 @@ export class AppShellComponent {
               { label: 'Promociones', route: '/app/admin/promotions', icon: 'lucideTicket' },
               { label: 'Inventario', route: '/app/admin/inventory', icon: 'lucidePackageSearch' },
               { label: 'Ventas', route: '/app/admin/sales', icon: 'lucideShoppingCart' },
+              { label: 'Reportes IA', route: '/app/admin/reports', icon: 'lucideClipboardList' },
               { label: 'Usuarios', route: '/app/admin/user', icon: 'lucideUsers' },
+              { label: 'Roles y Permisos', route: '/app/admin/roles', icon: 'lucideShield' },
               { label: 'Sucursales', route: '/app/admin/branch', icon: 'lucideLayoutDashboard' },
                { label: 'Proveedores', route: '/app/admin/provider', icon: 'lucideUsers' },
                { label: 'Solicitudes', route: '/app/admin/replenishment', icon: 'lucideClipboardList' },
+               { label: 'Ingesta RPA', route: '/app/admin/rpa-ingest', icon: 'lucidePackageSearch' },
+               { label: 'Reabastecimiento IA', route: '/app/admin/expert-replenishment', icon: 'lucideBrainCircuit' },
                { label: 'Suscripción y Plan', route: '/app/admin/subscription', icon: 'lucideShield' },
+               { label: 'Comprobantes', route: '/app/admin/receipts', icon: 'lucideClipboardList' },
+               { label: 'Cobros y Liquidaciones', route: '/app/admin/payouts', icon: 'lucideShoppingCart' },
             ],
           },
         ];
       case 'proveedor':
-         return [{ title: 'Operación', items: [this.homeItem(), { label: 'Productos', route: '/app/proveedor/products', icon: 'lucidePackageSearch' }, { label: 'Solicitudes', route: '/app/proveedor/replenishment', icon: 'lucideClipboardList' }] }];
+         return [{ title: 'Operación', items: [this.homeItem(), { label: 'Productos', route: '/app/proveedor/products', icon: 'lucidePackageSearch' }, { label: 'Solicitudes', route: '/app/proveedor/replenishment', icon: 'lucideClipboardList' }, { label: 'Ingesta RPA', route: '/app/proveedor/rpa-ingest', icon: 'lucidePackageSearch' }] }];
       case 'cliente':
         return [
           {
@@ -220,6 +236,8 @@ export class AppShellComponent {
               { label: 'Catálogo', route: '/app/cliente/catalog', icon: 'lucideLayoutDashboard', exact: true },
               { label: 'Reservas', route: '/app/cliente/reservations', icon: 'lucideTicket' },
               { label: 'Mis reservas', route: '/app/cliente/my-reservations', icon: 'lucideCalendarDays' },
+              { label: 'Lista de deseos', route: '/app/cliente/wishlist', icon: 'lucideTicket' },
+              { label: 'Mis puntos', route: '/app/cliente/loyalty', icon: 'lucideTicket' },
               { label: 'Carrito', route: '/app/cliente/cart', icon: 'lucideShoppingCart' },
               { label: 'Pedidos', route: '/app/cliente/orders', icon: 'lucideClipboardList' },
             ],
@@ -236,6 +254,7 @@ export class AppShellComponent {
                { label: 'Pedidos', route: '/app/encargado/orders', icon: 'lucideClipboardList' },
                { label: 'Proveedores', route: '/app/encargado/providers', icon: 'lucideUsers' },
                { label: 'Solicitudes', route: '/app/encargado/replenishment', icon: 'lucideClipboardList' },
+               { label: 'Ingesta RPA', route: '/app/encargado/rpa-ingest', icon: 'lucidePackageSearch' },
               { label: 'Promociones', route: '/app/encargado/promotions', icon: 'lucideTicket' },
               { label: 'Ventas', route: '/app/encargado/sales', icon: 'lucideShoppingCart' },
             ],
@@ -248,6 +267,8 @@ export class AppShellComponent {
             items: [
               this.homeItem(),
               { label: 'Caja', route: '/app/cajero/caja', icon: 'lucideShoppingCart' },
+              { label: 'Comprobantes', route: '/app/cajero/receipts', icon: 'lucideClipboardList' },
+              { label: 'Pedidos web', route: '/app/cajero/orders', icon: 'lucideClipboardList' },
               { label: 'Ventas', route: '/app/cajero/sales', icon: 'lucideShoppingCart' },
             ],
           },

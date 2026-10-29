@@ -2,18 +2,23 @@ from datetime import date
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_tenant_id, require_roles
 from app.core.database import get_db
 from app.schemas.enums import RolEnum
-from app.schemas.report_schema import NaturalReportRequest, ReportQuery
+from app.schemas.report_schema import (
+    CustomerClusters, CustomerClustersRequest, DemandForecast, DemandForecastRequest, NaturalReportRequest, ReportQuery, SmartReportType,
+)
 from app.services.report_service import (
     export_rows_to_csv,
     get_inventory_report,
     get_movements_report,
     get_sales_report,
+    get_top_products_report,
+    get_branch_comparison_report,
+    get_critical_inventory_report,
 )
 from app.services.natural_report_service import NaturalReportError, generate_natural_report
 from app.services.subscription_service import tenant_has_feature
@@ -21,6 +26,59 @@ from app.utils.response import response
 
 
 router = APIRouter(prefix="/reports", tags=["Reports"])
+
+SMART_REPORTS = {
+    "sales": (get_sales_report, "Reporte de ventas", ["branch_name", "product_name", "variant_sku", "quantity_sold", "gross_sales"]),
+    "inventory": (get_inventory_report, "Reporte de inventario", ["branch_name", "product_name", "variant_sku", "quantity", "reserved_quantity", "available_quantity"]),
+    "movements": (get_movements_report, "Reporte de movimientos", ["branch_name", "product_name", "variant_sku", "movement_type", "quantity", "movements_count"]),
+    "top_products": (get_top_products_report, "Top 10 productos", ["product_name", "quantity_sold", "gross_sales"]),
+    "branch_comparison": (get_branch_comparison_report, "Comparativa de sucursales", ["branch_name", "quantity_sold", "gross_sales"]),
+    "critical_inventory": (get_critical_inventory_report, "Inventario crítico", ["branch_name", "product_name", "variant_sku", "available_quantity", "minimum_stock"]),
+}
+
+
+def _ml_tenant(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_roles(RolEnum.administrador)),
+) -> UUID:
+    tenant = current_user.get("tenant_id")
+    if not tenant:
+        raise HTTPException(status_code=403, detail="Usuario sin empresa asociada")
+    tenant_id = UUID(tenant)
+    if not tenant_has_feature(db, tenant_id, "ai_ml_smart_reports"):
+        raise HTTPException(status_code=403, detail="Tu plan actual no incluye reportes inteligentes con Machine Learning. Actualizá tu suscripción al plan Enterprise.")
+    return tenant_id
+
+
+@router.post("/ml/predict-demand")
+def predict_demand_route(
+    request: DemandForecastRequest,
+    db: Session = Depends(get_db),
+    tenant_id: UUID = Depends(_ml_tenant),
+):
+    from app.models.branch import Branch
+    from app.services.ml.demand_forecast_service import predict_demand
+
+    if request.branch_id and not db.query(Branch.id).filter(
+        Branch.id == request.branch_id, Branch.tenant_id == tenant_id,
+    ).first():
+        raise HTTPException(status_code=404, detail="Sucursal no encontrada")
+    data = DemandForecast.model_validate(predict_demand(db, tenant_id, request)).model_dump()
+    return response(status_code=200, message="Predicción de demanda con modelo supervisado generada exitosamente", data=data)
+
+
+@router.post("/ml/customer-clusters")
+def customer_clusters_route(
+    request: CustomerClustersRequest | None = None,
+    db: Session = Depends(get_db),
+    tenant_id: UUID = Depends(_ml_tenant),
+):
+    from app.services.ml.customer_segmentation_service import customer_clusters
+
+    data = CustomerClusters.model_validate(customer_clusters(
+        db, tenant_id, use_synthetic_data=request.use_synthetic_data if request else False,
+    )).model_dump()
+    return response(status_code=200, message="Segmentación de clientes con modelo no supervisado generada", data=data)
 
 
 @router.post("/query")
@@ -85,6 +143,69 @@ def _scoped_filters(db: Session, filters: ReportQuery, current_user: dict) -> Re
     except (TypeError, ValueError):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="La sucursal asignada no es válida")
     return filters.model_copy(update={"branch_id": manager_branch_id})
+
+
+def _smart_report(db: Session, filters: ReportQuery, current_user: dict, report_type: str):
+    filters = _scoped_filters(db, filters, current_user)
+    if filters.from_date and filters.to_date and filters.from_date > filters.to_date:
+        raise HTTPException(status_code=422, detail="El rango de fechas no es válido")
+    function, _, _ = SMART_REPORTS[report_type]
+    return function(db, filters, UUID(current_user["tenant_id"]))
+
+
+@router.get("/top-products")
+def top_products_route(
+    db: Session = Depends(get_db), filters: ReportQuery = Depends(_filters),
+    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
+):
+    return response(status_code=200, message="Ranking de productos obtenido exitosamente", data=_smart_report(db, filters, current_user, "top_products"))
+
+
+@router.get("/branch-comparison")
+def branch_comparison_route(
+    db: Session = Depends(get_db), filters: ReportQuery = Depends(_filters),
+    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
+):
+    return response(status_code=200, message="Comparativa de sucursales obtenida exitosamente", data=_smart_report(db, filters, current_user, "branch_comparison"))
+
+
+@router.get("/critical-inventory")
+def critical_inventory_route(
+    db: Session = Depends(get_db), filters: ReportQuery = Depends(_filters),
+    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
+):
+    return response(status_code=200, message="Inventario crítico obtenido exitosamente", data=_smart_report(db, filters, current_user, "critical_inventory"))
+
+
+def _export_file(db: Session, filters: ReportQuery, current_user: dict, report_type: str, format: str):
+    from app.services.report_export_service import to_excel, to_pdf
+
+    report = _smart_report(db, filters, current_user, report_type)
+    _, title, headers = SMART_REPORTS[report_type]
+    if format == "excel":
+        content, extension, media_type = to_excel(report["rows"], headers), "xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    else:
+        content, extension, media_type = to_pdf(title, report["rows"], headers), "pdf", "application/pdf"
+    return Response(content=content, media_type=media_type,
+                    headers={"Content-Disposition": f'attachment; filename="{report_type}-report.{extension}"'})
+
+
+@router.get("/export/excel")
+def excel_export_route(
+    type: SmartReportType = Query(default="sales"),
+    db: Session = Depends(get_db), filters: ReportQuery = Depends(_filters),
+    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
+):
+    return _export_file(db, filters, current_user, type, "excel")
+
+
+@router.get("/export/pdf")
+def pdf_export_route(
+    type: SmartReportType = Query(default="sales"),
+    db: Session = Depends(get_db), filters: ReportQuery = Depends(_filters),
+    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
+):
+    return _export_file(db, filters, current_user, type, "pdf")
 
 
 @router.get("/sales")

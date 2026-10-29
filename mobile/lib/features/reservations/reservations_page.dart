@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
 
 import '../../app/theme.dart';
+import '../../core/config/app_config.dart';
+import '../../core/network/api_client.dart';
+import '../../core/network/api_exception.dart';
 import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/app_empty_view.dart';
 import '../../shared/widgets/app_error_view.dart';
@@ -9,6 +13,7 @@ import '../../shared/widgets/app_section_title.dart';
 import '../../shared/widgets/app_snack_bar.dart';
 import '../../shared/widgets/product_image.dart';
 import '../../shared/widgets/product_price.dart';
+import '../../shared/widgets/receipt_email_button.dart';
 import '../auth/auth_controller.dart';
 import '../auth/login_dialog.dart';
 import 'reservation_controller.dart';
@@ -31,6 +36,42 @@ class ReservationsPage extends StatefulWidget {
 }
 
 class _ReservationsPageState extends State<ReservationsPage> {
+  /// D1 deposit by card: Stripe PaymentSheet; the backend webhook confirms it.
+  Future<void> _payDepositByCard(Reservation reservation) async {
+    if (AppConfig.stripePublishableKey.isEmpty) {
+      AppSnackBar.show(context, 'Configura STRIPE_PUBLISHABLE_KEY para pagar con tarjeta.', tone: AppSnackBarTone.error);
+      return;
+    }
+    final client = ApiClient(
+      tokenProvider: () => widget.authController.accessToken,
+      onUnauthorized: widget.authController.handleUnauthorized,
+    );
+    try {
+      final response = await client.post<Map<String, dynamic>>(
+        'payments/stripe/reservations/${reservation.id}',
+        parser: (value) => Map<String, dynamic>.from(value as Map),
+      );
+      await Stripe.instance.initPaymentSheet(
+        paymentSheetParameters: SetupPaymentSheetParameters(
+          merchantDisplayName: 'FashionStore',
+          paymentIntentClientSecret: response.data!['client_secret'].toString(),
+        ),
+      );
+      await Stripe.instance.presentPaymentSheet();
+      if (!mounted) return;
+      AppSnackBar.show(context, 'Pago recibido. Lo confirmaremos en unos segundos.', tone: AppSnackBarTone.success);
+      await Future<void>.delayed(const Duration(seconds: 2));
+      if (mounted) await _controller.load();
+    } on StripeException catch (error) {
+      if (!mounted) return;
+      AppSnackBar.show(context, error.error.localizedMessage ?? 'No se pudo completar el pago.', tone: AppSnackBarTone.error);
+    } catch (error) {
+      if (!mounted) return;
+      AppSnackBar.show(context, error is ApiException ? error.message : 'No se pudo completar el pago.',
+          tone: AppSnackBarTone.error);
+    }
+  }
+
   late final ReservationController _controller;
   late final bool _ownsController;
   String? _loadedToken;
@@ -149,6 +190,26 @@ class _ReservationsPageState extends State<ReservationsPage> {
             )
           else ...[
             for (final reservation in _controller.reservations) ...[
+              if (reservation.status == ReservationStatus.pendingPayment) ...[
+                AppCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Paga el anticipo de ${reservation.depositAmount.toStringAsFixed(2)} BOB (50 %) para confirmar tu reserva en ${reservation.branchName}.'),
+                      const SizedBox(height: 4),
+                      Text('El anticipo no es reembolsable si cancelas o no te presentas.',
+                          style: Theme.of(context).textTheme.bodySmall),
+                      const SizedBox(height: 8),
+                      // Online deposits are paid by card (Stripe) only.
+                      FilledButton(
+                        onPressed: () => _payDepositByCard(reservation),
+                        child: const Text('Pagar anticipo con tarjeta'),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
               _ReservationCard(
                 reservation: reservation,
                 onTap: () => _showDetails(reservation.id),
@@ -167,6 +228,10 @@ class _ReservationsPageState extends State<ReservationsPage> {
                     ? () => _transfer(reservation)
                     : null,
               ),
+              if (reservation.depositStatus == 'paid') ...[
+                const SizedBox(height: 4),
+                ReceiptEmailButton(authController: widget.authController, kind: 'reservation_deposit', sourceId: reservation.id),
+              ],
               const SizedBox(height: 12),
             ],
           ],
@@ -378,6 +443,7 @@ class _ReservationCard extends StatelessWidget {
 
   static String _statusLabel(ReservationStatus status) {
     return switch (status) {
+      ReservationStatus.pendingPayment => 'Falta pagar anticipo',
       ReservationStatus.pending => 'Pendiente',
       ReservationStatus.confirmed => 'Confirmada',
       ReservationStatus.attended => 'Atendida',
@@ -391,6 +457,7 @@ class _ReservationCard extends StatelessWidget {
 
   static Color _statusColor(BuildContext context, ReservationStatus status) {
     return switch (status) {
+      ReservationStatus.pendingPayment => const Color(0xFFFFE4CC),
       ReservationStatus.pending => AppColors.coralSoft,
       ReservationStatus.confirmed => const Color(0xFFDDF3E6),
       ReservationStatus.attended => Theme.of(

@@ -1,6 +1,6 @@
-export type PaymentMethodEnum = 'cash' | 'stripe';
+export type PaymentMethodEnum = 'cash' | 'stripe' | 'qr';
 export type PaymentStatusEnum = 'pending' | 'paid' | 'failed';
-export type FulfillmentStatusEnum = 'pending_pickup' | 'ready_for_pickup' | 'collected' | 'expired' | 'cancelled';
+export type FulfillmentStatusEnum = 'pending_pickup' | 'ready_for_pickup' | 'collected' | 'in_transit' | 'delivered' | 'expired' | 'cancelled';
 
 export interface OrderItem {
   id: string;
@@ -23,6 +23,7 @@ export interface OrderItem {
 
 export interface Order {
   id: string;
+  tenant_id?: string | null;
   user_id: string;
   status: 'pending' | 'paid' | 'failed' | 'cancelled';
   payment_method: PaymentMethodEnum;
@@ -38,6 +39,12 @@ export interface Order {
   promotion_code_id?: string | null;
   total_amount: string;
   currency: string;
+  fulfillment_type: 'pickup' | 'delivery';
+  shipping_cost: string;
+  loyalty_discount?: string; // CU17 points redeemed
+  delivery_address: string | null;
+  delivery_distance_km: string | null;
+  delivered_at: string | null;
   created_at: string;
   updated_at: string | null;
   items: OrderItem[];

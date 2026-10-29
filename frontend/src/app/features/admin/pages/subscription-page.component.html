@@ -32,6 +32,9 @@
     </div>
   </div>
 
+  <!-- CU1 branding: logo and color of the company -->
+  <app-tenant-branding-editor [currentTenantId]="tenantId" />
+
   <!-- Error State -->
   <div *ngIf="!loading() && error()" class="p-6 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive">
     <div class="flex items-center gap-3">
@@ -231,6 +234,38 @@
           Has cargado <strong class="text-foreground">{{ summary()?.usage?.garments_count }}</strong> prendas de las <strong class="text-foreground">{{ summary()?.usage?.garments_max | number }}</strong> disponibles.
         </p>
       </div>
+    </div>
+
+    <!-- CU2 payment history: one row per paid period (plan purchase or change) -->
+    <div class="bg-card text-card-foreground rounded-3xl p-8 border border-border shadow-xs space-y-4">
+      <div class="flex flex-col gap-1 pb-4 border-b border-border">
+        <h3 class="text-lg font-extrabold text-foreground">Historial de pagos</h3>
+        <p class="text-xs text-muted-foreground">Cada compra o cambio de plan es un pago que inicia un nuevo período. Para cambiar de plan usa el botón «{{ summary()?.has_active_subscription ? 'Cambiar plan' : 'Elegir plan' }}».</p>
+      </div>
+      <div class="overflow-x-auto" *ngIf="payments().length; else noPayments">
+        <table class="w-full text-sm">
+          <thead class="text-left text-xs uppercase text-muted-foreground">
+            <tr><th class="py-2 pr-4">Fecha</th><th class="py-2 pr-4">Plan</th><th class="py-2 pr-4">Facturación</th><th class="py-2 pr-4">Período</th><th class="py-2 pr-4">Medio de pago</th><th class="py-2 pr-4 text-right">Monto</th><th class="py-2 pr-4">Estado</th><th class="py-2">Comprobante</th></tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let payment of payments()" class="border-t border-border">
+              <td class="py-2 pr-4">{{ payment.paid_at | date: 'dd/MM/yyyy HH:mm' }}</td>
+              <td class="py-2 pr-4 font-semibold text-foreground">{{ payment.plan_name }}</td>
+              <td class="py-2 pr-4">{{ payment.billing_cycle === 'yearly' ? 'Anual' : 'Mensual' }}</td>
+              <td class="py-2 pr-4">{{ payment.start_date | date: 'dd/MM/yyyy' }} – {{ payment.end_date | date: 'dd/MM/yyyy' }}</td>
+              <td class="py-2 pr-4">{{ payment.payment_method_label }}</td>
+              <td class="py-2 pr-4 text-right font-semibold">{{ payment.amount === null ? '—' : (payment.amount | number: '1.2-2') + ' Bs.' }}</td>
+              <td class="py-2">
+                <span class="rounded-full px-2 py-0.5 text-xs font-medium"
+                  [class.bg-emerald-100]="payment.status === 'Vigente'" [class.text-emerald-800]="payment.status === 'Vigente'"
+                  [class.bg-muted]="payment.status !== 'Vigente'" [class.text-muted-foreground]="payment.status !== 'Vigente'">{{ payment.status }}</span>
+              </td>
+              <td class="py-2"><app-receipt-actions kind="subscription" [sourceId]="payment.id" /></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ng-template #noPayments><p class="text-sm text-muted-foreground">Aún no hay pagos registrados.</p></ng-template>
     </div>
 
     <!-- Active Capabilities Details -->
