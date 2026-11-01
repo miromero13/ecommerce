@@ -86,6 +86,7 @@ export class AdminCatalogPageComponent {
   protected readonly products = signal<CatalogProduct[]>([]);
   protected readonly providers = signal<AdminProvider[]>([]);
   protected readonly loading = signal(false);
+  protected readonly initialLoading = signal(true);
   protected readonly activeTab = signal<CatalogTab>('products');
   protected readonly modalOpen = signal(false);
   protected readonly modalMode = signal<'create' | 'edit' | 'view'>('create');
@@ -815,6 +816,7 @@ export class AdminCatalogPageComponent {
   }
 
   private async loadData(): Promise<void> {
+    this.initialLoading.set(true);
     try {
       const [categories, sizes, colors, seasons, collections, products, providers] = await Promise.all([
         firstValueFrom(this.api.listCategories()),
@@ -835,6 +837,8 @@ export class AdminCatalogPageComponent {
       this.providers.set(providers.data ?? []);
     } catch (error) {
       toast.error(getErrorMessage(error, 'No se pudo cargar el catálogo.'));
+    } finally {
+      this.initialLoading.set(false);
     }
   }
 }

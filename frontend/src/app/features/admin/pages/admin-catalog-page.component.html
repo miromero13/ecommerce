@@ -187,29 +187,40 @@
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-200 text-black">
-          @for (product of products(); track product.id) {
+          @if (initialLoading()) {
             <tr>
-              <td class="px-4 py-3 font-medium">{{ product.name }}</td>
-              <td class="px-4 py-3 text-sm">{{ categoryName(product.category_id) }}</td>
-              <td class="px-4 py-3 text-sm">{{ product.description }}</td>
-              <td class="px-4 py-3 text-sm">{{ providerLabel(product.provider_id) }}</td>
-              <td class="px-4 py-3 text-sm">{{ statusLabel(product.status) }}</td>
-              <td class="px-4 py-3 text-right">
-                <app-admin-action-menu
-                  [isOpen]="openMenuId() === product.id"
-                  [showActive]="false"
-                  [showView]="true"
-                  (toggleMenu)="toggleMenu(product.id)"
-                  (edit)="openEditProduct(product)"
-                  (view)="openViewProduct(product)"
-                  (delete)="askDelete('products', product.id, 'Producto')"
-                />
+              <td class="px-4 py-12 text-center text-sm text-slate-500" colspan="6">
+                <div class="inline-flex items-center gap-2">
+                  <div class="size-4 animate-spin rounded-full border-2 border-slate-300 border-t-slate-800"></div>
+                  <span>Cargando productos del catálogo...</span>
+                </div>
               </td>
             </tr>
-          } @empty {
-            <tr>
-              <td class="px-4 py-8 text-center text-sm text-slate-500" colspan="6">No hay productos registrados.</td>
-            </tr>
+          } @else {
+            @for (product of products(); track product.id) {
+              <tr>
+                <td class="px-4 py-3 font-medium">{{ product.name }}</td>
+                <td class="px-4 py-3 text-sm">{{ categoryName(product.category_id) }}</td>
+                <td class="px-4 py-3 text-sm">{{ product.description }}</td>
+                <td class="px-4 py-3 text-sm">{{ providerLabel(product.provider_id) }}</td>
+                <td class="px-4 py-3 text-sm">{{ statusLabel(product.status) }}</td>
+                <td class="px-4 py-3 text-right">
+                  <app-admin-action-menu
+                    [isOpen]="openMenuId() === product.id"
+                    [showActive]="false"
+                    [showView]="true"
+                    (toggleMenu)="toggleMenu(product.id)"
+                    (edit)="openEditProduct(product)"
+                    (view)="openViewProduct(product)"
+                    (delete)="askDelete('products', product.id, 'Producto')"
+                  />
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td class="px-4 py-8 text-center text-sm text-slate-500" colspan="6">No hay productos registrados.</td>
+              </tr>
+            }
           }
         </tbody>
       </table>
