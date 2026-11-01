@@ -131,7 +131,7 @@ Para mantener la cohesión y respetar **estrictamente la estructura existente de
 
 ---
 
-## 3. Matriz General de Casos de Uso (CU1 al CU23)
+## 3. Matriz General de Casos de Uso (CU1 al CU25)
 
 | **ID** | **Caso de uso** | **Módulo** | **Estado en Código** | **Actor(es) principal** | **Plataforma** |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -158,6 +158,8 @@ Para mantener la cohesión y respetar **estrictamente la estructura existente de
 | **CU21** | **Solicitar y procesar cambios y devoluciones (RMA)** | M6: Logística y Posventa | **Pendiente** | Cliente, Encargado, Admin | Ambas |
 | **CU22** | **Progressive Web App (PWA) e Instalabilidad** | M6: Logística y Posventa | **Pendiente** | Cliente, Todos | Web |
 | **CU23** | **Modo Offline y Sincronización Diferida (Offline-First)** | M6: Logística y Posventa | **Pendiente** | Cajero, Cliente, Delivery | Ambas |
+| **CU24** | **Restablecimiento y control de inventario por devoluciones y mermas** | M6: Logística y Posventa | **Pendiente** | Encargado, Administrador | Web |
+| **CU25** | **Resolución de conflictos de inventario y notificación en ventas offline** | M6: Logística y Posventa | **Pendiente** | Cajero, Cliente, Sistema | Ambas |
 
 ---
 
@@ -1849,6 +1851,108 @@ Response 400 Bad Request:
 
 ---
 
+#### CU24 – Restablecimiento y control de inventario por devoluciones y mermas
+* **Módulo:** M6: Logística y Posventa
+* **Actor Principal:** Encargado de sucursal, Administrador
+* **Estado:** Pendiente | **Plataforma:** Web
+* **Descripción Funcional:** Gestión física y contable del inventario resultante de procesos de devolución (RMA). Cuando una prenda es recibida en sucursal física tras la aprobación administrativa de un cambio o devolución (CU21), el encargado efectúa la inspección técnica de calidad. Si la prenda se encuentra apta para la venta (sin uso, limpia y con etiquetas de origen), el sistema registra un reingreso de existencias (`rma_restock`), incrementando atómicamente el stock comercializable en la sucursal receptora. Si la prenda presenta signos de uso, daños atribuibles al cliente o fallas de confección irreparables, el sistema rechaza su reintegro al catálogo comercial y genera un movimiento hacia inventario de **merma / baja técnica / cuarentena** con su respectiva justificación fotográfica y documental, previniendo la comercialización accidental de prendas defectuosas.
+
+##### Endpoints Backend
+```http
+POST /api/rma/inspections/{rma_id}/restock
+Headers: Authorization: Bearer <encargado_jwt>
+Request Body:
+{
+  "item_condition": "intact",
+  "inspection_notes": "Prenda en perfecto estado, etiquetas y precintos originales intactos",
+  "action": "restock_available",
+  "branch_id": "branch_central",
+  "quantity": 1
+}
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Prenda reintegrada exitosamente al inventario comercializable",
+  "data": {
+    "rma_id": "rma_9901",
+    "movement_id": "mov_88210",
+    "status": "restocked",
+    "new_available_stock": 14
+  }
+}
+
+Response 200 OK (Descarte a merma):
+Request Body:
+{
+  "item_condition": "damaged",
+  "inspection_notes": "Desgarro en costura lateral. No apto para reventa.",
+  "action": "scrap_quarantine",
+  "branch_id": "branch_central",
+  "quantity": 1
+}
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Prenda registrada en inventario de merma y baja técnica",
+  "data": {
+    "rma_id": "rma_9901",
+    "movement_id": "mov_88211",
+    "status": "scrapped",
+    "quarantine_record": "QR-2026-0044"
+  }
+}
+```
+
+##### Ubicación en Frontend (Angular)
+* **Página y Vista:** `frontend/src/app/features/encargado/pages/rma-inspection-page.component.ts` (`rma-inspection-page.component.html`)
+* **Servicio API:** `frontend/src/app/features/shared/services/rma-api.service.ts`
+* **Ruta Angular:** `/app/encargado/rma/inspection` (`canActivate: [roleGuard(['encargado', 'administrador'])]`)
+* **Mensajes en UI:** Toast: `"Stock actualizado. La prenda fue devuelta al catálogo disponible de la sucursal."` o `"Baja registrada. Ítem derivado a cuarentena/merma."`.
+
+---
+
+#### CU25 – Resolución de conflictos de inventario y notificación en ventas offline
+* **Módulo:** M6: Logística y Posventa
+* **Actor Principal:** Cajero, Cliente, Administrador, Sistema
+* **Estado:** Pendiente | **Plataforma:** Ambas
+* **Descripción Funcional:** Circuito transaccional de contingencia y compensación ante quiebres de inventario durante sincronizaciones diferidas. Cuando una venta de contado o reserva en efectivo se emite localmente sin conexión (CU23) y, al recuperar la conectividad, el backend detecta que el stock fue consumido en paralelo por otro canal o sucursal (colisión transaccional), el servidor rechaza la transacción con código `conflict_rejected` / `inventory_collision`. El sistema activa automáticamente el protocolo de resolución:
+  1. **Rollback de Orden:** Si la orden corresponde a una reserva o despacho pendiente, se cancela automáticamente en base de datos.
+  2. **Compensación Económica:** Se instruye al cajero la devolución física del efectivo en caja o se acredita de forma inmediata el importe equivalente en la billetera virtual (`Store Wallet`) del cliente con un bono de cortesía.
+  3. **Rotura de Stock en Mostrador:** Si la prenda ya fue entregada físicamente en mostrador durante la caída de red, se genera una alerta prioritaria de auditoría para forzar el ajuste manual de inventario negativo controlado por el Administrador.
+  4. **Notificación Multicanal:** Se despacha una notificación push a la aplicación móvil del cliente y un correo electrónico formal informando la causa del quiebre y las opciones de reembolso o sustitución; simultáneamente, la pantalla del cajero resalta la transacción en rojo con el detalle del conflicto para su atención inmediata.
+
+##### Endpoints Backend
+```http
+POST /api/offline/conflicts/{operation_id}/resolve
+Headers: Authorization: Bearer <cajero_jwt>
+Request Body:
+{
+  "resolution_type": "store_credit",
+  "refund_amount": 180.00,
+  "client_id": "usr_9912",
+  "reason": "inventory_collision_out_of_stock",
+  "notes": "Cliente aceptó acreditación en billetera virtual con 10% adicional"
+}
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Conflicto resuelto. Saldo compensatorio acreditado y notificación enviada al cliente.",
+  "data": {
+    "operation_id": "op_98124",
+    "status": "resolved_compensated",
+    "wallet_credited": 198.00
+  }
+}
+```
+
+##### Ubicación en Frontend (Angular & Móvil)
+* **Página y Vista:** `frontend/src/app/features/cajero/pages/offline-conflicts-page.component.ts`
+* **Móvil Flutter:** `mobile/lib/features/cajero/offline_conflicts_page.dart`
+* **Servicio API:** `frontend/src/app/core/services/offline-sync.service.ts`
+* **Mensajes en UI:** Modal: `"Conflicto de sincronización: El producto ya no contaba con existencias al reconectar. Seleccioná el mecanismo de compensación para el cliente."` Toast: `"Rollback ejecutado exitosamente."`.
+
+---
+
 ## 5. Cuadro Resumen de Entregables para el Segundo Parcial
 
 | Módulo | Casos de Uso Implementados (Base) | Casos de Uso Nuevos a Desarrollar | Total |
@@ -1858,5 +1962,5 @@ Response 400 Bad Request:
 | **M3: Inventario y Operaciones** | 2 (`CU11`, `CU12`) | 0 | 2 |
 | **M4: Business Intelligence** | 2 (`CU13`, `CU14`) | 0 | 2 |
 | **M5: Promociones y Fidelización** | 1 (`CU15`) | 4 (`CU16`, `CU17`, `CU18`, `CU19`) | 5 |
-| **M6: Logística y Posventa** | 0 | 4 (`CU20`, `CU21`, `CU22`, `CU23`) | 4 |
-| **TOTALES** | **8 HECHOS** | **15 PENDIENTES** | **23** |
+| **M6: Logística y Posventa** | 0 | 6 (`CU20`, `CU21`, `CU22`, `CU23`, `CU24`, `CU25`) | 6 |
+| **TOTALES** | **8 HECHOS** | **17 PENDIENTES** | **25** |

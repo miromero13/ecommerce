@@ -146,7 +146,7 @@ El desarrollo del segundo parcial atiende a cuatro problemáticas operativas y d
 
 ---
 
-## 7. Actores y Mapa Consolidado de Casos de Uso (CU1 al CU23)
+## 7. Actores y Mapa Consolidado de Casos de Uso (CU1 al CU25)
 
 ### Actores del Sistema
 * **Superadministrador:** Administra la plataforma SaaS, crea planes y gestiona tenants.
@@ -184,8 +184,10 @@ El desarrollo del segundo parcial atiende a cuatro problemáticas operativas y d
 | **CU21** | **Solicitar y Procesar Cambios y Devoluciones (RMA)** | M6: Logística y Posventa | Pendiente | Cliente, Encargado | Ambas |
 | **CU22** | **Progressive Web App (PWA) e Instalabilidad** | M6: Logística y Posventa | Pendiente | Cliente, Todos | Web |
 | **CU23** | **Modo Offline y Sincronización Diferida (Offline-First)** | M6: Logística y Posventa | Pendiente | Cajero, Cliente, Delivery | Ambas |
+| **CU24** | **Restablecimiento y Control de Inventario por Devolución/Merma** | M6: Logística y Posventa | Pendiente | Encargado, Admin Tenant | Web |
+| **CU25** | **Resolución de Conflictos de Inventario y Notificación Offline** | M6: Logística y Posventa | Pendiente | Cajero, Cliente, Sistema | Ambas |
 
-* **Total de Casos de Uso:** 23 (8 Implementados en Base + 15 Pendientes de Evolución Segundo Parcial).
+* **Total de Casos de Uso:** 25 (8 Implementados en Base + 17 Pendientes de Evolución Segundo Parcial).
 
 ---
 
