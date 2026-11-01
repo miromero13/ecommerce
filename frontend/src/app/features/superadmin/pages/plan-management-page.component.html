@@ -36,6 +36,7 @@
               <th class="px-4 py-3.5 text-right">Anual</th>
               <th class="px-4 py-3.5 text-center">Sucursales</th>
               <th class="px-4 py-3.5 text-center">Prendas</th>
+              <th class="px-4 py-3.5 text-center">Prueba Gratis</th>
               <th class="px-4 py-3.5">Módulos</th>
               <th class="px-4 py-3.5 text-center">Estado</th>
               <th class="px-5 py-3.5 text-right">Acciones</th>
@@ -52,6 +53,17 @@
                 <td class="px-4 py-3.5 text-right font-semibold text-slate-900">{{ plan.price_yearly }} Bs.</td>
                 <td class="px-4 py-3.5 text-center font-semibold text-slate-900">{{ plan.max_branches }}</td>
                 <td class="px-4 py-3.5 text-center font-semibold text-slate-900">{{ plan.max_garments | number }}</td>
+                <td class="px-4 py-3.5 text-center">
+                  @if (plan.trial_days && plan.trial_days > 0) {
+                    <span class="inline-block rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 px-2.5 py-0.5 text-xs font-bold">
+                      {{ plan.trial_days }} días ({{ (plan.trial_days / 30).toFixed(0) }} meses)
+                    </span>
+                  } @else {
+                    <span class="inline-block rounded-full bg-slate-100 text-slate-500 px-2.5 py-0.5 text-xs font-medium">
+                      Sin prueba
+                    </span>
+                  }
+                </td>
                 <td class="px-4 py-3.5">
                   <div class="flex max-w-xs flex-wrap gap-1">
                     @for (key of plan.features; track key) {
@@ -145,7 +157,7 @@
                 class="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"></textarea>
             </div>
 
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-4">
               <div hlmField class="space-y-1">
                 <label hlmFieldLabel for="plan-monthly" class="text-xs font-bold text-foreground">Precio mensual *</label>
                 <input id="plan-monthly" hlmInput type="number" min="0" step="0.01" formControlName="price_monthly" class="w-full" />
@@ -162,7 +174,14 @@
                 <label hlmFieldLabel for="plan-garments" class="text-xs font-bold text-foreground">Prendas *</label>
                 <input id="plan-garments" hlmInput type="number" min="1" step="1" formControlName="max_garments" class="w-full" />
               </div>
+              <div hlmField class="space-y-1">
+                <label hlmFieldLabel for="plan-trial" class="text-xs font-bold text-foreground">Prueba (días) *</label>
+                <input id="plan-trial" hlmInput type="number" min="0" step="1" formControlName="trial_days" class="w-full" />
+              </div>
             </div>
+            <p class="text-[11px] text-muted-foreground -mt-2">
+              Prueba gratuita: <strong>90</strong> = 3 meses gratis sin cobro hoy; <strong>0</strong> = cobra inmediatamente sin período de prueba.
+            </p>
 
             <fieldset class="space-y-2">
               <legend class="text-xs font-bold text-foreground mb-1">Módulos incluidos</legend>

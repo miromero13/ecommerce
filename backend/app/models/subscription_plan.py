@@ -20,6 +20,7 @@ class SubscriptionPlan(Base):
     max_branches = Column(Integer, nullable=False, default=2)
     max_garments = Column(Integer, nullable=False, default=500)
     features = Column(JSON, nullable=False, default=list)
+    trial_days = Column(Integer, nullable=False, default=90)
     is_active = Column(Boolean, nullable=False, default=True)
 
     created_at = Column(

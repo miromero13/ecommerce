@@ -82,6 +82,7 @@ export class OnboardingPageComponent implements OnInit {
   adminEmail = '';
   selectedPlanId = 'plan_pro';
   billingCycle: 'monthly' | 'yearly' = 'monthly';
+  startTrial = true;
 
   // Simulated Payment
   cardNumber = '4242 4242 4242 4242';
@@ -124,6 +125,15 @@ export class OnboardingPageComponent implements OnInit {
 
   get selectedPlan(): SubscriptionPlan | undefined {
     return this.plans().find((p) => p.id === this.selectedPlanId);
+  }
+
+  get isTrialEligible(): boolean {
+    const plan = this.selectedPlan;
+    return !!(plan && (plan.trial_days ?? 0) > 0);
+  }
+
+  get isTrialActive(): boolean {
+    return this.startTrial && this.isTrialEligible;
   }
 
   get planPrice(): number {
@@ -188,6 +198,7 @@ export class OnboardingPageComponent implements OnInit {
         admin_email: this.adminEmail.trim().toLowerCase(),
         plan_id: this.selectedPlanId,
         billing_cycle: this.billingCycle,
+        start_trial: this.isTrialActive,
         card_number: this.cardNumber.replace(/\s/g, ''),
         card_holder: this.cardHolder.trim(),
         card_exp: this.cardExp.trim(),

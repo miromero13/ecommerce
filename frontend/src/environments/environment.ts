@@ -32,8 +32,16 @@ const defaultFirebaseConfig: FirebaseConfig = {
   appId: '1:652934622748:web:4e1c1d3da90245010ef9d9',
 };
 
+const isLocal =
+  typeof window !== 'undefined' &&
+  (window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    /^(192\.168|10\.|172\.(1[6-9]|2\d|3[01]))\./.test(window.location.hostname));
+
 export const environment = {
-  apiBaseUrl: runtimeConfig.apiBaseUrl || 'https://api-ecommerce.devhooh.com/api',
+  apiBaseUrl:
+    runtimeConfig.apiBaseUrl ||
+    (isLocal ? `http://${window.location.hostname}:8000/api` : 'https://api-ecommerce.devhooh.com/api'),
   // Only the mobile WebView uses Decart; its key comes from runtime config, never from source.
   decartApiKey: runtimeConfig.decartApiKey || '',
   stripePublishableKey: runtimeConfig.stripePublishableKey || 'pk_test_51PwuiM08hp2qIPTJ9P4c108993LSovebHw9lQQeABXF3zkN71Upef4jMuPMgLPjJDWOpL5N2I94cMtze0nOxg9IP00Jo5RqrJ7',

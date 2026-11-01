@@ -69,6 +69,14 @@
 
         <p class="text-xs sm:text-sm text-muted-foreground mb-4 min-h-[36px]">{{ plan.description }}</p>
 
+        <!-- Trial Badge -->
+        <div *ngIf="plan.trial_days && plan.trial_days > 0" class="mb-4">
+          <span class="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
+            <ng-icon name="lucideSparkles" class="w-3.5 h-3.5 text-emerald-500"></ng-icon>
+            {{ plan.trial_days }} días (3 meses) de prueba gratis
+          </span>
+        </div>
+
         <!-- Price -->
         <div class="mb-5 pb-4 border-b border-border">
           <div class="flex items-baseline gap-1">

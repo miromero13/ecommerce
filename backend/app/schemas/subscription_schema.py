@@ -22,6 +22,7 @@ class SubscriptionPlanRead(BaseModel):
     max_branches: int
     max_garments: int
     features: List[str]
+    trial_days: int = 90
     is_active: bool
 
     model_config = {"from_attributes": True}
@@ -37,6 +38,7 @@ class SubscriptionPlanCreate(BaseModel):
     max_branches: int = Field(..., ge=1)
     max_garments: int = Field(..., ge=1)
     features: List[str] = Field(default_factory=list)
+    trial_days: int = Field(default=90, ge=0)
     is_active: bool = True
 
 
@@ -48,6 +50,7 @@ class SubscriptionPlanUpdate(BaseModel):
     max_branches: Optional[int] = Field(None, ge=1)
     max_garments: Optional[int] = Field(None, ge=1)
     features: Optional[List[str]] = None
+    trial_days: Optional[int] = Field(None, ge=0)
     is_active: Optional[bool] = None
 
 
@@ -65,6 +68,7 @@ class SubscriptionPurchaseSimulated(BaseModel):
     # Subscription choice
     plan_id: str = Field(...)
     billing_cycle: BillingCycleEnum = Field(default=BillingCycleEnum.monthly)
+    start_trial: bool = Field(default=True, description="Si el plan tiene trial_days > 0, inicia en período de prueba gratuito")
 
     # Simulated card payment details
     card_number: Optional[str] = Field(default="4242424242424242")
@@ -92,6 +96,7 @@ class TenantWithSubscriptionCreate(BaseModel):
     admin_name: str = Field(..., min_length=2, max_length=120)
     plan_id: str = Field(...)
     billing_cycle: BillingCycleEnum = Field(default=BillingCycleEnum.monthly)
+    start_trial: bool = Field(default=True, description="Si el plan tiene trial_days > 0, inicia en período de prueba gratuito")
     payment_method: SubscriptionPaymentMethodEnum = Field(
         default=SubscriptionPaymentMethodEnum.cash
     )

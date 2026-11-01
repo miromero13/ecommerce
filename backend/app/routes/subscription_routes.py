@@ -112,6 +112,7 @@ async def purchase_simulated_subscription_route(
     tenant = result["tenant"]
     admin_user = result["admin_user"]
     plan = result["plan"]
+    subscription = result["subscription"]
     raw_password = result["raw_password"]
 
     # Queue or trigger email delivery
@@ -124,6 +125,7 @@ async def purchase_simulated_subscription_route(
         password=raw_password,
     )
 
+    sub_status = subscription.status.value if hasattr(subscription.status, "value") else str(subscription.status)
     return response(
         status_code=status.HTTP_201_CREATED,
         message="Suscripción activada con éxito. Te enviamos un correo con los datos de acceso.",
@@ -133,7 +135,8 @@ async def purchase_simulated_subscription_route(
             "tenant_slug": tenant.slug,
             "admin_email": admin_user.email,
             "plan_name": plan.name,
-            "subscription_status": "active",
+            "subscription_status": sub_status,
+            "is_trial": sub_status == "trialing",
         },
     )
 
@@ -214,6 +217,7 @@ async def create_tenant_with_subscription_route(
     tenant = result["tenant"]
     admin_user = result["admin_user"]
     plan = result["plan"]
+    subscription = result["subscription"]
     raw_password = result["raw_password"]
 
     background_tasks.add_task(
@@ -225,6 +229,7 @@ async def create_tenant_with_subscription_route(
         password=raw_password,
     )
 
+    sub_status = subscription.status.value if hasattr(subscription.status, "value") else str(subscription.status)
     return response(
         status_code=status.HTTP_201_CREATED,
         message="Empresa y suscripción creadas exitosamente. Credenciales despachadas por correo.",
@@ -234,6 +239,7 @@ async def create_tenant_with_subscription_route(
             "tenant_slug": tenant.slug,
             "admin_email": admin_user.email,
             "plan_name": plan.name,
-            "subscription_status": "active",
+            "subscription_status": sub_status,
+            "is_trial": sub_status == "trialing",
         },
     )

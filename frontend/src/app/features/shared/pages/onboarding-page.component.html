@@ -54,7 +54,9 @@
           </div>
           <div class="flex items-center justify-between text-xs">
             <span class="text-muted-foreground font-medium">Estado del servicio:</span>
-            <span class="font-bold text-primary">Activo (Facturación confirmada)</span>
+            <span class="font-bold text-primary">
+              {{ createdInfo()?.is_trial ? 'Prueba Gratuita Activa (3 meses bonificados)' : 'Activo (Facturación confirmada)' }}
+            </span>
           </div>
         </div>
 
@@ -143,6 +145,26 @@
               </div>
             </button>
           </div>
+
+          <!-- Trial Offer Banner & Switch -->
+          <div *ngIf="isTrialEligible" class="mt-4 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                <ng-icon name="lucideSparkles" class="w-5 h-5"></ng-icon>
+              </div>
+              <div>
+                <div class="text-xs sm:text-sm font-bold text-foreground flex items-center gap-2">
+                  <span>3 Meses de Prueba Gratuita (90 días)</span>
+                  <span class="text-[10px] uppercase font-extrabold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full">Sin cargo hoy</span>
+                </div>
+                <p class="text-[11px] sm:text-xs text-muted-foreground mt-0.5">Acceso completo e ilimitado al plan seleccionado sin costo durante los primeros 90 días.</p>
+              </div>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer shrink-0">
+              <input type="checkbox" [(ngModel)]="startTrial" class="sr-only peer" />
+              <div class="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+            </label>
+          </div>
         </div>
 
         <!-- Section 2: Company Data -->
@@ -230,10 +252,15 @@
         <!-- Section 4: Simulated Payment Gateway -->
         <div class="bg-card text-card-foreground rounded-2xl p-6 border border-border shadow-xs space-y-4">
           <div class="flex items-center justify-between">
-            <h2 class="text-base font-bold text-foreground flex items-center gap-2">
-              <ng-icon name="lucideCreditCard" class="w-4 h-4 text-primary"></ng-icon>
-              <span>4. Pasarela de Pago Simulada (Sandbox)</span>
-            </h2>
+            <div>
+              <h2 class="text-base font-bold text-foreground flex items-center gap-2">
+                <ng-icon name="lucideCreditCard" class="w-4 h-4 text-primary"></ng-icon>
+                <span>4. Pasarela de Pago Simulada (Sandbox)</span>
+              </h2>
+              <p *ngIf="isTrialActive" class="text-xs text-muted-foreground mt-0.5">
+                No se debitará ningún importe hoy (0 Bs.). Se solicita tarjeta para validar la identidad y renovar automáticamente al término del período de prueba.
+              </p>
+            </div>
             <button
               type="button"
               (click)="useTestCard()"
@@ -336,7 +363,24 @@
 
           <!-- Total Calculation -->
           <div class="pt-2 mb-6">
-            <div class="flex items-baseline justify-between">
+            <div *ngIf="isTrialActive" class="space-y-1.5">
+              <div class="flex items-baseline justify-between text-xs text-muted-foreground">
+                <span>Precio de lista:</span>
+                <span class="line-through">{{ planPrice }} Bs.</span>
+              </div>
+              <div class="flex items-baseline justify-between">
+                <span class="text-base font-bold text-foreground">Total a Pagar Hoy:</span>
+                <div class="text-right">
+                  <span class="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">0 Bs.</span>
+                  <span class="text-xs text-emerald-600 dark:text-emerald-400 font-bold block">3 meses gratis (90 días)</span>
+                </div>
+              </div>
+              <p class="text-[11px] text-muted-foreground text-right mt-1">
+                A partir del día 91: {{ planPrice }} Bs. / {{ billingCycle === 'yearly' ? 'año' : 'mes' }}
+              </p>
+            </div>
+
+            <div *ngIf="!isTrialActive" class="flex items-baseline justify-between">
               <span class="text-base font-bold text-foreground">Total a Pagar:</span>
               <div class="text-right">
                 <span class="text-3xl font-extrabold text-foreground">{{ planPrice }} Bs.</span>
@@ -354,7 +398,7 @@
           >
             <ng-container *ngIf="!submitting()">
               <ng-icon name="lucideLock" class="w-4 h-4"></ng-icon>
-              <span>Confirmar y Activar Suscripción</span>
+              <span>{{ isTrialActive ? 'Comenzar 3 meses de prueba gratuita' : 'Confirmar y Activar Suscripción' }}</span>
             </ng-container>
             <ng-container *ngIf="submitting()">
               <div class="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin"></div>

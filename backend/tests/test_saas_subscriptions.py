@@ -301,3 +301,79 @@ def test_plan_admin_routes_reject_unknown_plan_and_company_admin(saas_api, api_d
     body = call(saas_api, "PATCH", "/saas/plans/plan_gold", superadmin, 404, json={"price_monthly": 1})
     assert body["message"] == "Plan no encontrado."
     call(saas_api, "GET", "/saas/plans/admin", catalog.user, 403)
+
+
+def test_onboarding_with_three_months_free_trial(saas_api, catalog):
+    body = call(saas_api, "POST", "/saas/subscriptions/purchase-simulated", code=201, json={
+        "company_name": "Marca Trial", "admin_name": "Clara", "admin_email": "clara@trial.com",
+        "plan_id": "plan_pro", "billing_cycle": "monthly", "start_trial": True,
+    })
+    data = body["data"]
+    assert data["subscription_status"] == "trialing"
+    assert data["is_trial"] is True
+
+    [mail] = [m for m in saas_api.sent if m["to_email"] == "clara@trial.com"]
+    login = call(saas_api, "POST", "/auth/login", json={"email": "clara@trial.com", "password": mail["password"]})
+    token = {"Authorization": "Bearer " + login["data"]["access_token"]}
+
+    current = saas_api.get("/api/saas/subscriptions/current", headers=token).json()["data"]
+    assert current["has_active_subscription"] is True
+    assert current["is_trial"] is True
+    assert current["subscription"]["status"] == "trialing"
+    assert current["trial_days_remaining"] >= 88
+    assert current["plan"]["trial_days"] == 90
+    assert current["usage"]["branches_max"] == 5
+
+    # Can create branches within quota during trial
+    res = saas_api.post("/api/branches/", headers=token, json={"name": "Sucursal Trial 1", "city": "Cochabamba"})
+    assert res.status_code == 201
+    assert res.json()["data"]["name"] == "Sucursal Trial 1"
+
+
+def test_superadmin_creates_company_with_free_trial(saas_api, api_db, catalog):
+    from app.schemas.enums import RolEnum
+
+    superadmin = make_user(api_db, RolEnum.superadministrador)
+    body = call(saas_api, "POST", "/saas/tenants/with-subscription", superadmin, 201, json={
+        "name": "Marca Superadmin Trial", "contact_email": "admin@super-trial.com", "admin_name": "Mario",
+        "plan_id": "plan_basic", "billing_cycle": "yearly", "payment_method": "cash", "start_trial": True,
+    })
+    assert body["data"]["subscription_status"] == "trialing"
+    assert body["data"]["is_trial"] is True
+
+    current = call(saas_api, "GET", "/saas/subscriptions/current", superadmin,
+                   params={"tenant_id": body["data"]["tenant_id"]})["data"]
+    assert current["is_trial"] is True
+    assert current["subscription"]["status"] == "trialing"
+    assert current["trial_days_remaining"] >= 88
+
+
+def test_trial_subscription_expires_and_blocks_access(saas_api, api_db, catalog):
+    from datetime import datetime, timedelta, timezone
+    from app.models.tenant_subscription import TenantSubscription
+    from app.schemas.enums import SubscriptionStatusEnum
+
+    own = catalog.own.tenant
+    # Put own company in expired trial
+    api_db.execute(
+        text("UPDATE tenant_subscriptions SET status = 'canceled' WHERE tenant_id = :id"),
+        {"id": own.id},
+    )
+    now = datetime.now(timezone.utc)
+    expired_trial = TenantSubscription(
+        tenant_id=own.id,
+        plan_id="plan_pro",
+        status=SubscriptionStatusEnum.trialing,
+        start_date=now - timedelta(days=91),
+        end_date=now - timedelta(days=1),
+    )
+    api_db.add(expired_trial)
+    api_db.commit()
+
+    current = call(saas_api, "GET", "/saas/subscriptions/current", catalog.user)["data"]
+    assert current["has_active_subscription"] is False
+
+    # Blocked with 403
+    body = call(saas_api, "POST", "/branches/", catalog.user, 403, json={"name": "Bloqueada", "city": "La Paz"})
+    assert body["message"] == NO_PLAN
+

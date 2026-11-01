@@ -11,6 +11,7 @@ import {
   lucidePlus,
   lucideSearch,
   lucideShieldAlert,
+  lucideSparkles,
   lucideStore,
   lucideUsers,
 } from '@ng-icons/lucide';
@@ -61,6 +62,7 @@ import { TenantBrandingEditorComponent } from '../../shared/components/tenant-br
       lucideShieldAlert,
       lucideCheckCircle2,
       lucideStore,
+      lucideSparkles,
       lucideUsers,
       lucideGlobe,
     }),
@@ -119,6 +121,7 @@ export class TenantManagementPageComponent {
     admin_name: ['', [Validators.required, Validators.minLength(2)]],
     plan_id: ['plan_basic', [Validators.required]],
     billing_cycle: ['monthly', [Validators.required]],
+    start_trial: [true],
   });
 
   protected readonly adminForm = this.fb.nonNullable.group({
@@ -215,6 +218,7 @@ export class TenantManagementPageComponent {
       admin_name: '',
       plan_id: this.plans()[0]?.id ?? '',
       billing_cycle: 'monthly',
+      start_trial: true,
     });
     this.modalOpen.set(true);
   }
@@ -323,6 +327,7 @@ export class TenantManagementPageComponent {
           admin_name: val.admin_name,
           plan_id: val.plan_id,
           billing_cycle: val.billing_cycle as 'monthly' | 'yearly',
+          start_trial: val.start_trial,
           payment_method: 'cash',
         }),
       );

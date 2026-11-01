@@ -53,6 +53,7 @@ export class PlanManagementPageComponent {
     price_yearly: [0, [Validators.required, Validators.min(0)]],
     max_branches: [1, [Validators.required, Validators.min(1)]],
     max_garments: [1, [Validators.required, Validators.min(1)]],
+    trial_days: [90, [Validators.required, Validators.min(0)]],
     is_active: [true],
   });
 
@@ -78,7 +79,7 @@ export class PlanManagementPageComponent {
     this.errorMessage.set(null);
     this.form.reset({
       name: '', slug: '', description: '', price_monthly: 0, price_yearly: 0,
-      max_branches: 1, max_garments: 100, is_active: true,
+      max_branches: 1, max_garments: 100, trial_days: 90, is_active: true,
     });
     this.form.controls.slug.enable();
     this.selectedFeatures.set(['catalog', 'pos', 'inventory', 'reservations', 'standard_reports']);
@@ -91,7 +92,8 @@ export class PlanManagementPageComponent {
     this.form.reset({
       name: plan.name, slug: plan.slug, description: plan.description ?? '',
       price_monthly: plan.price_monthly, price_yearly: plan.price_yearly,
-      max_branches: plan.max_branches, max_garments: plan.max_garments, is_active: plan.is_active,
+      max_branches: plan.max_branches, max_garments: plan.max_garments,
+      trial_days: plan.trial_days ?? 0, is_active: plan.is_active,
     });
     // The slug defines the plan id, so it cannot change after creation.
     this.form.controls.slug.disable();
@@ -129,6 +131,7 @@ export class PlanManagementPageComponent {
       price_yearly: Number(value.price_yearly),
       max_branches: Number(value.max_branches),
       max_garments: Number(value.max_garments),
+      trial_days: Number(value.trial_days),
       // Keep the catalog order so every screen lists modules the same way.
       features: this.features.map((feature) => feature.key).filter((key) => this.hasFeature(key)),
       is_active: value.is_active,

@@ -368,9 +368,8 @@ class Seeder:
         from app.services.sales_service import create_sale, quote_sale_total
 
         weekend = day.weekday() >= 5
-        sales_today = RNG.randint(1, 4) + (2 if weekend else 0) - (1 if RNG.random() < 0.25 else 0)
-        if sales_today <= 0:
-            return
+        # Reducido para modo liviano: 1 o 2 ventas por sucursal activa
+        sales_today = 1 if RNG.random() < 0.8 else 2
         cashier = entry["cashiers"][day.toordinal() % 2]
         cashier = self.db.query(User).filter(User.id == cashier.id).one()
         branch, tenant_id = entry["branch"], company["tenant"].id
@@ -561,7 +560,7 @@ class Seeder:
         from app.services.wishlist_service import AlreadySaved, add_item
 
         since = self.clock()
-        for _ in range(RNG.randint(2, 6)):
+        for _ in range(RNG.randint(1, 2)):
             customer = RNG.choice(self.customers)
             variant = RNG.choice(company["variants"])
             record_product_view(self.db, customer.id, variant.product_id, variant.id, None)
@@ -582,8 +581,10 @@ class Seeder:
         supplier = RNG.choice(company["suppliers"])
         from app.models.product import Product
 
-        variants = [v for v in company["variants"]
-                    if self.db.query(Product.provider_id).filter(Product.id == v.product_id).scalar() == supplier["provider"].id]
+        provider_product_ids = {
+            pid for (pid,) in self.db.query(Product.id).filter(Product.provider_id == supplier["provider"].id).all()
+        }
+        variants = [v for v in company["variants"] if v.product_id in provider_product_ids]
         if not variants:
             return
         since = self.clock()
@@ -622,18 +623,23 @@ class Seeder:
         total = (self.today - self.start).days
         while day < self.today:
             for company in self.companies:
-                for entry in company["branches"]:
+                # 1 sucursal activa por empresa por día (en lugar de saturar las 11 sucursales)
+                if company["branches"]:
+                    entry = RNG.choice(company["branches"])
                     self.till_day(company, entry, day)
-                for _ in range(RNG.choice([0, 1, 1, 2, 2, 3])):
+                # Pedidos web moderados (aprox 1 cada 2-3 días por empresa)
+                if RNG.random() < 0.3:
                     self.web_order(company, day, delivery=RNG.random() < 0.3)
-                if RNG.random() < 0.35:
-                    self.reservation(company, day, RNG.choice(["sold", "sold", "sold", "not_sold", "cancelled", "expired"]))
-                self.browsing(company, day)
-                if day.day in (5, 20):
+                if RNG.random() < 0.15:
+                    self.reservation(company, day, RNG.choice(["sold", "sold", "not_sold", "cancelled"]))
+                if RNG.random() < 0.25:
+                    self.browsing(company, day)
+                if day.day == 15:
                     self.replenishment(company, day, "delivered")
             self.settle(day)
-            if (day - self.start).days % 15 == 0:
-                print(f"  {day:%d/%m/%Y}  ({(day - self.start).days}/{total} días)")
+            step_day = (day - self.start).days + 1
+            if step_day % 5 == 0 or step_day == total:
+                print(f"  {day:%d/%m/%Y}  ({step_day}/{total} días)")
             day += timedelta(days=1)
 
     # --- 5. today's state ----------------------------------------------------------------------------------
@@ -734,11 +740,19 @@ class Seeder:
             raise SystemExit("La verificación encontró inconsistencias.")
 
 
-def run_seed(database_url: str | None = None, reset: bool = True, days: int = 200, assets_base_url: str = "http://localhost:8000") -> Seeder:
+def run_seed(database_url: str | None = None, reset: bool = True, days: int = 60, assets_base_url: str = "http://localhost:8000") -> Seeder:
     from app.core.config import settings
 
     target_url = database_url or settings.database_url
-    engine = create_engine(target_url)
+    connect_args = {
+        "connect_timeout": 30,
+        "keepalives": 1,
+        "keepalives_idle": 30,
+        "keepalives_interval": 10,
+        "keepalives_count": 5,
+        "options": "-c lock_timeout=15000",
+    }
+    engine = create_engine(target_url, connect_args=connect_args)
     db = sessionmaker(bind=engine, autoflush=False)()
     seeder = Seeder(db, assets_base_url, days)
     try:
@@ -765,10 +779,15 @@ def run_seed(database_url: str | None = None, reset: bool = True, days: int = 20
         print("6/6 Verificación")
         seeder.verify()
     finally:
-        for table, key, _ in EVENT_COLUMNS:
-            db.execute(text(f"DROP INDEX IF EXISTS seed_tmp_{table}_{key}"))
-        db.commit()
-        db.close()
+        try:
+            db.rollback()
+            for table, key, _ in EVENT_COLUMNS:
+                db.execute(text(f"DROP INDEX IF EXISTS seed_tmp_{table}_{key}"))
+            db.commit()
+        except Exception:
+            pass
+        finally:
+            db.close()
     return seeder
 
 
@@ -777,7 +796,7 @@ def main() -> None:
     parser.add_argument("--reset", action="store_true", help="Borrar las empresas actuales y sus datos")
     parser.add_argument("--database-url", help="Base destino (por defecto, DATABASE_URL del .env)")
     parser.add_argument("--assets-base-url", default="http://localhost:8000", help="Dónde sirve el backend /demo-assets")
-    parser.add_argument("--days", type=int, default=200, help="Días de historial a simular")
+    parser.add_argument("--days", type=int, default=60, help="Días de historial a simular (por defecto 60)")
     args = parser.parse_args()
 
     seeder = run_seed(database_url=args.database_url, reset=args.reset, days=args.days, assets_base_url=args.assets_base_url)

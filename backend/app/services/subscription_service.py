@@ -139,7 +139,7 @@ def _period_price(plan: SubscriptionPlan, billing_cycle: BillingCycleEnum):
 def _is_current() -> tuple:
     # A subscription past its end_date no longer counts, even if never marked canceled.
     return (
-        TenantSubscription.status == SubscriptionStatusEnum.active,
+        TenantSubscription.status.in_([SubscriptionStatusEnum.active, SubscriptionStatusEnum.trialing]),
         or_(TenantSubscription.end_date.is_(None), TenantSubscription.end_date > datetime.now(timezone.utc)),
     )
 
@@ -231,11 +231,11 @@ def create_or_update_tenant_subscription(
         duration_days = 365 if billing_cycle == BillingCycleEnum.yearly else 30
     end_date = now + timedelta(days=duration_days)
 
-    # Cancel previous active subscriptions for this tenant
+    # Cancel previous active or trialing subscriptions for this tenant
     existing_subs = db.execute(
         select(TenantSubscription).where(
             TenantSubscription.tenant_id == tenant_id,
-            TenantSubscription.status == SubscriptionStatusEnum.active,
+            TenantSubscription.status.in_([SubscriptionStatusEnum.active, SubscriptionStatusEnum.trialing]),
         )
     ).scalars().all()
     for sub in existing_subs:
@@ -367,10 +367,19 @@ def get_tenant_subscription_summary(db: Session, tenant_id: UUID) -> dict:
         }
 
     plan = subscription.plan
+    status_val = subscription.status.value if hasattr(subscription.status, "value") else str(subscription.status)
+    is_trial = status_val == "trialing"
+    trial_days_remaining = None
+    if is_trial and subscription.end_date:
+        now = datetime.now(timezone.utc)
+        trial_days_remaining = max(0, (subscription.end_date - now).days)
+
     return {
         "tenant_id": str(tenant.id),
         "tenant_name": tenant.name,
         "has_active_subscription": True,
+        "is_trial": is_trial,
+        "trial_days_remaining": trial_days_remaining,
         "plan": {
             "id": plan.id,
             "name": plan.name,
@@ -381,14 +390,17 @@ def get_tenant_subscription_summary(db: Session, tenant_id: UUID) -> dict:
             "max_branches": plan.max_branches,
             "max_garments": plan.max_garments,
             "features": plan.features or [],
+            "trial_days": getattr(plan, "trial_days", 90),
         },
         "subscription": {
             "id": str(subscription.id),
-            "status": subscription.status.value if hasattr(subscription.status, "value") else subscription.status,
+            "status": status_val,
             "billing_cycle": subscription.billing_cycle.value if hasattr(subscription.billing_cycle, "value") else subscription.billing_cycle,
             "payment_method": subscription.payment_method.value if hasattr(subscription.payment_method, "value") else subscription.payment_method,
             "start_date": subscription.start_date.isoformat() if subscription.start_date else None,
             "end_date": subscription.end_date.isoformat() if subscription.end_date else None,
+            "is_trial": is_trial,
+            "trial_days_remaining": trial_days_remaining,
         },
         "usage": {
             "branches_count": branches_count,
@@ -449,6 +461,19 @@ def provision_tenant_onboarding(
             detail="El plan de suscripción seleccionado no se encuentra disponible.",
         )
 
+    is_trial = bool(payload.start_trial and getattr(plan, "trial_days", 0) > 0)
+    now = datetime.now(timezone.utc)
+    if is_trial:
+        duration_days = plan.trial_days
+        amount = 0.0
+        sub_status = SubscriptionStatusEnum.trialing
+        tenant_status = TenantStatusEnum.trial
+    else:
+        duration_days = 365 if payload.billing_cycle == BillingCycleEnum.yearly else 30
+        amount = _period_price(plan, payload.billing_cycle)
+        sub_status = SubscriptionStatusEnum.active
+        tenant_status = TenantStatusEnum.active
+
     # 2. Atomic Provisioning
     tenant = Tenant(
         name=company_name,
@@ -456,7 +481,7 @@ def provision_tenant_onboarding(
         contact_email=admin_email,
         currency=(payload.currency or "BOB").strip().upper(),
         country=(payload.country or "Bolivia").strip(),
-        status=TenantStatusEnum.active,
+        status=tenant_status,
     )
     db.add(tenant)
     db.flush()
@@ -475,14 +500,12 @@ def provision_tenant_onboarding(
     db.add(admin_user)
     db.flush()
 
-    duration_days = 365 if payload.billing_cycle == BillingCycleEnum.yearly else 30
-    now = datetime.now(timezone.utc)
     subscription = TenantSubscription(
         tenant_id=tenant.id,
         plan_id=plan.id,
         billing_cycle=payload.billing_cycle,
-        amount=_period_price(plan, payload.billing_cycle),
-        status=SubscriptionStatusEnum.active,
+        amount=amount,
+        status=sub_status,
         payment_method=SubscriptionPaymentMethodEnum.simulated_card,
         start_date=now,
         end_date=now + timedelta(days=duration_days),
@@ -554,6 +577,19 @@ def provision_tenant_by_superadmin(
             detail="El plan de suscripción seleccionado no existe o no está activo.",
         )
 
+    is_trial = bool(payload.start_trial and getattr(plan, "trial_days", 0) > 0)
+    now = datetime.now(timezone.utc)
+    if is_trial:
+        duration_days = plan.trial_days
+        amount = 0.0
+        sub_status = SubscriptionStatusEnum.trialing
+        tenant_status = TenantStatusEnum.trial
+    else:
+        duration_days = 365 if payload.billing_cycle == BillingCycleEnum.yearly else 30
+        amount = _period_price(plan, payload.billing_cycle)
+        sub_status = SubscriptionStatusEnum.active
+        tenant_status = TenantStatusEnum.active
+
     # 2. Atomic Provisioning
     tenant = Tenant(
         name=company_name,
@@ -561,7 +597,7 @@ def provision_tenant_by_superadmin(
         contact_email=admin_email,
         currency=(payload.currency or "BOB").strip().upper(),
         country=(payload.country or "Bolivia").strip(),
-        status=TenantStatusEnum.active,
+        status=tenant_status,
     )
     db.add(tenant)
     db.flush()
@@ -580,14 +616,12 @@ def provision_tenant_by_superadmin(
     db.add(admin_user)
     db.flush()
 
-    duration_days = 365 if payload.billing_cycle == BillingCycleEnum.yearly else 30
-    now = datetime.now(timezone.utc)
     subscription = TenantSubscription(
         tenant_id=tenant.id,
         plan_id=plan.id,
         billing_cycle=payload.billing_cycle,
-        amount=_period_price(plan, payload.billing_cycle),
-        status=SubscriptionStatusEnum.active,
+        amount=amount,
+        status=sub_status,
         payment_method=payload.payment_method,
         start_date=now,
         end_date=now + timedelta(days=duration_days),

@@ -8,6 +8,7 @@ export interface SubscriptionPlan {
   max_branches: number;
   max_garments: number;
   features: string[];
+  trial_days?: number;
   is_active: boolean;
 }
 
@@ -43,6 +44,7 @@ export interface SubscriptionPlanPayload {
   max_branches: number;
   max_garments: number;
   features: string[];
+  trial_days?: number;
   is_active: boolean;
 }
 
@@ -64,6 +66,8 @@ export interface TenantSubscription {
   payment_method: 'simulated_card' | 'cash' | 'stripe';
   start_date: string;
   end_date?: string;
+  is_trial?: boolean;
+  trial_days_remaining?: number | null;
 }
 
 export interface SubscriptionUsage {
@@ -77,6 +81,8 @@ export interface SubscriptionSummary {
   tenant_id: string;
   tenant_name: string;
   has_active_subscription: boolean;
+  is_trial?: boolean;
+  trial_days_remaining?: number | null;
   plan: SubscriptionPlan | null;
   subscription: TenantSubscription | null;
   usage: SubscriptionUsage;
@@ -92,6 +98,7 @@ export interface SubscriptionPurchasePayload {
   admin_email: string;
   plan_id: string;
   billing_cycle: 'monthly' | 'yearly';
+  start_trial?: boolean;
   card_number?: string;
   card_holder?: string;
   card_exp?: string;
@@ -107,6 +114,7 @@ export interface TenantWithSubscriptionPayload {
   admin_name: string;
   plan_id: string;
   billing_cycle: 'monthly' | 'yearly';
+  start_trial?: boolean;
   payment_method: 'cash' | 'simulated_card';
 }
 

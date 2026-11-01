@@ -122,12 +122,16 @@ def issue_subscription_receipt(db: Session, subscription, plan) -> PaymentReceip
     tenant = db.query(Tenant).filter(Tenant.id == subscription.tenant_id).one()
     cycle = getattr(subscription.billing_cycle, "value", subscription.billing_cycle)
     method = getattr(subscription.payment_method, "value", subscription.payment_method)
+    status_val = getattr(subscription.status, "value", subscription.status)
+    is_trial = status_val == "trialing"
     period = f"{subscription.start_date:%d/%m/%Y} – {subscription.end_date:%d/%m/%Y}" if subscription.end_date else ""
-    lines = [_line(f"Plan {plan.name} · facturación {'anual' if cycle == 'yearly' else 'mensual'} · {period}", 1,
-                   subscription.amount, subscription.amount)]
+    amount = subscription.amount if subscription.amount is not None else 0.0
+    label = f"Plan {plan.name} · Prueba gratuita (3 meses) · {period}" if is_trial else f"Plan {plan.name} · facturación {'anual' if cycle == 'yearly' else 'mensual'} · {period}"
+    lines = [_line(label, 1, amount, amount)]
+    summary_label = "Período de prueba bonificado" if is_trial else "Período del plan"
     return _issue(db, tenant_id=tenant.id, issuer="platform", kind="subscription", source_id=subscription.id,
                   method="cash" if method == "cash" else "card", currency="BOB", lines=lines,
-                  summary=[_row("Período del plan", subscription.amount)], total=subscription.amount,
+                  summary=[_row(summary_label, amount)], total=amount,
                   customer_name=tenant.name, customer_email=tenant.contact_email)
 
 
