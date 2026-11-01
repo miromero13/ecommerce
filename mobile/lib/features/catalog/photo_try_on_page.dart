@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../core/config/app_config.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_exception.dart';
 import '../../shared/widgets/app_button.dart';
@@ -102,7 +103,7 @@ class _PhotoTryOnPageState extends State<PhotoTryOnPage> {
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: Image.network(
-                  widget.garmentImageUrl,
+                  AppConfig.resolveAssetUrl(widget.garmentImageUrl) ?? widget.garmentImageUrl,
                   width: 56,
                   height: 56,
                   fit: BoxFit.cover,

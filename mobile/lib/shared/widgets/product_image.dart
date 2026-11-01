@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/config/app_config.dart';
+
 class ProductImage extends StatelessWidget {
   const ProductImage({
     super.key,
@@ -15,10 +17,12 @@ class ProductImage extends StatelessWidget {
   final BorderRadius borderRadius;
 
   List<String> get _urls {
-    final primary = imageUrl?.trim();
+    final primary = AppConfig.resolveAssetUrl(imageUrl);
     return [
       if (primary != null && primary.isNotEmpty) primary,
-      ...imageUrls.map((url) => url.trim()).where((url) => url.isNotEmpty),
+      for (final raw in imageUrls)
+        if (AppConfig.resolveAssetUrl(raw) case final resolved? when resolved.isNotEmpty)
+          resolved,
     ];
   }
 

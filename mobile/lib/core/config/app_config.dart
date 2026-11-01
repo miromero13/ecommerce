@@ -33,4 +33,20 @@ class AppConfig {
   static const connectTimeout = Duration(seconds: 15);
   static const receiveTimeout = Duration(seconds: 15);
   static const sendTimeout = Duration(seconds: 15);
+
+  /// Resolves an asset or garment image URL:
+  /// - If null or empty, returns null.
+  /// - If it is an external absolute URL (Cloudinary, etc.), returns it directly.
+  /// - If it is a relative path (e.g. /demo-assets/catalog/...), prepends [backendUrl].
+  static String? resolveAssetUrl(String? url) {
+    if (url == null) return null;
+    final trimmed = url.trim();
+    if (trimmed.isEmpty) return null;
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return trimmed;
+    }
+    final base = backendUrl.replaceAll(RegExp(r'/+$'), '');
+    final path = trimmed.startsWith('/') ? trimmed : '/$trimmed';
+    return '$base$path';
+  }
 }
