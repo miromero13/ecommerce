@@ -464,9 +464,14 @@ def decide_reservation(db: Session, user_id: UUID, reservation_id: UUID, purchas
 
 
 # [CU25 - Secuencia: Paso 2.11] cart_routes invoca transfer_reservation_to_cart(user_id, reservation_id) sobre la entidad DetalleCarrito
+# [CU25 - Secuencia: Paso 2.12] DetalleCarrito retorna transfer_reservation_to_cart(user_id, reservation_id): None | _serialize_cart(db, cart) a cart_routes
 # [CU30 - Secuencia: Paso 3.8] cart_routes invoca transfer_reservation_to_cart(user_id, reservation_id) sobre la entidad DetalleCarrito
+# [CU30 - Secuencia: Paso 3.9] DetalleCarrito retorna transfer_reservation_to_cart(user_id, reservation_id): None | _serialize_cart(db, cart) a cart_routes
 def transfer_reservation_to_cart(db: Session, user_id: UUID, reservation_id: UUID):
+    from app.services.order_service import expire_due_orders
+
     expire_due_reservations(db)
+    expire_due_orders(db)  # it may commit: run it before locking the reservation
     reservation = (
         db.query(Reservation)
         .options(joinedload(Reservation.items))
@@ -478,7 +483,7 @@ def transfer_reservation_to_cart(db: Session, user_id: UUID, reservation_id: UUI
         return None
     if reservation.status != ReservationStatusEnum.purchase_pending:
         raise ValueError("Solo una reserva pendiente de compra puede pasar al carrito")
-    # Checkout empties the cart, so the pending order is what holds this reservation.
+    # The cart keeps its items until the order is paid or 40 minutes pass; the pending order holds this reservation.
     if db.query(OrderItem.id).join(Order, Order.id == OrderItem.order_id).filter(
         OrderItem.reservation_id == reservation.id, Order.payment_status == PaymentStatusEnum.pending,
     ).first():

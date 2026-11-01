@@ -42,9 +42,13 @@ def slugify(text: str) -> str:
 
 
 # [CU01 - Secuencia: Paso 2.2] subscription_routes invoca list_plans(only_active) sobre la entidad PlanSuscripcion
+# [CU01 - Secuencia: Paso 2.3] PlanSuscripcion retorna list_plans(only_active): list[SubscriptionPlan] a subscription_routes
 # [CU02 - Secuencia: Pasos 1.2, 2.12, 3.8] subscription_routes invoca list_plans(only_active) sobre la entidad PlanSuscripcion
+# [CU02 - Secuencia: Pasos 1.3, 2.13, 3.9] PlanSuscripcion retorna list_plans(only_active): list[SubscriptionPlan] a subscription_routes
 # [CU04 - Secuencia: Paso 1.2] subscription_routes invoca list_plans(only_active) sobre la entidad PlanSuscripcion
+# [CU04 - Secuencia: Paso 1.3] PlanSuscripcion retorna list_plans(only_active): list[SubscriptionPlan] a subscription_routes
 # [CU27 - Secuencia: Paso 1.2] subscription_routes invoca list_plans(only_active) sobre la entidad PlanSuscripcion
+# [CU27 - Secuencia: Paso 1.3] PlanSuscripcion retorna list_plans(only_active): list[SubscriptionPlan] a subscription_routes
 def list_plans(db: Session, only_active: bool = True) -> list[SubscriptionPlan]:
     query = select(SubscriptionPlan)
     if only_active:
@@ -54,9 +58,13 @@ def list_plans(db: Session, only_active: bool = True) -> list[SubscriptionPlan]:
 
 
 # [CU01 - Secuencia: Paso 3.8] subscription_routes invoca get_plan_by_id(plan_id) sobre la entidad PlanSuscripcion
+# [CU01 - Secuencia: Paso 3.9] PlanSuscripcion retorna get_plan_by_id(plan_id): SubscriptionPlan | None a subscription_routes
 # [CU02 - Secuencia: Pasos 2.4, 3.4] subscription_routes invoca get_plan_by_id(plan_id) sobre la entidad PlanSuscripcion
+# [CU02 - Secuencia: Pasos 2.5, 3.5] PlanSuscripcion retorna get_plan_by_id(plan_id): SubscriptionPlan | None a subscription_routes
 # [CU27 - Secuencia: Paso 2.8] subscription_routes invoca get_plan_by_id(plan_id) sobre la entidad PlanSuscripcion
+# [CU27 - Secuencia: Paso 2.9] PlanSuscripcion retorna get_plan_by_id(plan_id): SubscriptionPlan | None a subscription_routes
 # [CU28 - Secuencia: Paso 2.2] subscription_routes invoca get_plan_by_id(plan_id) sobre la entidad PlanSuscripcion
+# [CU28 - Secuencia: Paso 2.3] PlanSuscripcion retorna get_plan_by_id(plan_id): SubscriptionPlan | None a subscription_routes
 def get_plan_by_id(db: Session, plan_id: str) -> SubscriptionPlan | None:
     return db.execute(
         select(SubscriptionPlan).where(SubscriptionPlan.id == plan_id)
@@ -81,6 +89,7 @@ def _valid_features(features: list[str]) -> list[str]:
 
 
 # [CU02 - Secuencia: Paso 2.8] subscription_routes invoca create_plan(payload) sobre la entidad PlanSuscripcion
+# [CU02 - Secuencia: Paso 2.9] PlanSuscripcion retorna create_plan(payload): SubscriptionPlan a subscription_routes
 def create_plan(db: Session, payload: SubscriptionPlanCreate) -> SubscriptionPlan:
     plan_id = "plan_" + payload.slug.replace("-", "_")
     exists = db.execute(select(SubscriptionPlan.id).where(
@@ -99,6 +108,7 @@ def create_plan(db: Session, payload: SubscriptionPlanCreate) -> SubscriptionPla
 
 
 # [CU02 - Secuencia: Pasos 2.2, 3.2] subscription_routes invoca update_plan(plan_id, payload) sobre la entidad PlanSuscripcion
+# [CU02 - Secuencia: Pasos 2.3, 3.3] PlanSuscripcion retorna update_plan(plan_id, payload): SubscriptionPlan a subscription_routes
 def update_plan(db: Session, plan_id: str, payload: SubscriptionPlanUpdate) -> SubscriptionPlan:
     """Changes apply to current subscribers too; deactivating only hides the plan from new purchases."""
     plan = get_plan_by_id(db, plan_id)
@@ -119,7 +129,9 @@ NO_ACTIVE_SUBSCRIPTION ="Tu empresa no tiene una suscripción activa. Renová o 
 
 
 # [CU01 - Secuencia: Paso 3.10] subscription_routes invoca _period_price(plan, billing_cycle) sobre la entidad PlanSuscripcion
+# [CU01 - Secuencia: Paso 3.11] PlanSuscripcion retorna _period_price(plan, billing_cycle): plan.price_yearly if billing_cycle == BillingCycleEnum.ye... a subscription_routes
 # [CU27 - Secuencia: Paso 2.10] subscription_routes invoca _period_price(plan, billing_cycle) sobre la entidad PlanSuscripcion
+# [CU27 - Secuencia: Paso 2.11] PlanSuscripcion retorna _period_price(plan, billing_cycle): plan.price_yearly if billing_cycle == BillingCycleEnum.ye... a subscription_routes
 def _period_price(plan: SubscriptionPlan, billing_cycle: BillingCycleEnum):
     return plan.price_yearly if billing_cycle == BillingCycleEnum.yearly else plan.price_monthly
 
@@ -133,6 +145,7 @@ def _is_current() -> tuple:
 
 
 # [CU28 - Secuencia: Pasos 1.4, 2.4] subscription_routes invoca get_active_subscription(tenant_id) sobre la entidad SuscripcionEmpresa
+# [CU28 - Secuencia: Pasos 1.5, 2.5] SuscripcionEmpresa retorna get_active_subscription(tenant_id): TenantSubscription | None a subscription_routes
 def get_active_subscription(db: Session, tenant_id: UUID) -> TenantSubscription | None:
     return db.execute(
         select(TenantSubscription)
@@ -176,7 +189,6 @@ def check_tenant_garment_quota(db: Session, tenant_id: UUID) -> None:
         )
 
 
-# [CU08 - Secuencia: Paso 1.2] report_routes invoca tenant_features(tenant_ids) sobre la entidad SuscripcionEmpresa
 def tenant_features(db: Session, tenant_ids=None) -> dict[UUID, set[str]]:
     """Features of each tenant's current plan; tenants without one are absent."""
     query = select(TenantSubscription.tenant_id, SubscriptionPlan.features).join(
@@ -196,6 +208,7 @@ def tenant_has_feature(db: Session, tenant_id: UUID, feature_key: str) -> bool:
 
 
 # [CU28 - Secuencia: Paso 2.6] subscription_routes invoca create_or_update_tenant_subscription(tenant_id, plan_id, billing_cycle, payment_method, duration_days) sobre la entidad SuscripcionEmpresa
+# [CU28 - Secuencia: Paso 2.7] SuscripcionEmpresa retorna create_or_update_tenant_subscription(tenant_id, plan_id, billing_cycle, payment_method, duration_days): TenantSubscription a subscription_routes
 def create_or_update_tenant_subscription(
     db: Session,
     tenant_id: UUID,
@@ -286,6 +299,7 @@ _PAYMENT_METHOD_LABELS = {"simulated_card": "Tarjeta (simulada)", "cash": "Efect
 
 
 # [CU28 - Secuencia: Pasos 1.8, 2.12] subscription_routes invoca list_subscription_history(tenant_id) sobre la entidad Empresa
+# [CU28 - Secuencia: Pasos 1.9, 2.13] Empresa retorna list_subscription_history(tenant_id): list[dict] a subscription_routes
 def list_subscription_history(db: Session, tenant_id: UUID) -> list[dict]:
     """CU2: every period the company paid, newest first (each plan purchase or change is one payment)."""
     if not db.get(Tenant, tenant_id):
@@ -323,6 +337,7 @@ def list_subscription_history(db: Session, tenant_id: UUID) -> list[dict]:
 
 
 # [CU28 - Secuencia: Pasos 1.2, 2.8] subscription_routes invoca get_tenant_subscription_summary(tenant_id) sobre la entidad Empresa
+# [CU28 - Secuencia: Pasos 1.3, 2.9] Empresa retorna get_tenant_subscription_summary(tenant_id): dict a subscription_routes
 def get_tenant_subscription_summary(db: Session, tenant_id: UUID) -> dict:
     tenant = db.get(Tenant, tenant_id)
     if not tenant:
@@ -386,8 +401,11 @@ def get_tenant_subscription_summary(db: Session, tenant_id: UUID) -> dict:
 
 
 # [CU27 - Secuencia: Paso 2.2] subscription_routes invoca provision_tenant_onboarding(payload) sobre la entidad Empresa
+# [CU27 - Secuencia: Paso 2.3] Empresa retorna provision_tenant_onboarding(payload): dict a subscription_routes
 # [CU27 - Secuencia: Paso 2.4] subscription_routes invoca provision_tenant_onboarding(payload) sobre la entidad SuscripcionEmpresa
+# [CU27 - Secuencia: Paso 2.5] SuscripcionEmpresa retorna provision_tenant_onboarding(payload): dict a subscription_routes
 # [CU27 - Secuencia: Paso 2.6] subscription_routes invoca provision_tenant_onboarding(payload) sobre la entidad Usuario
+# [CU27 - Secuencia: Paso 2.7] Usuario retorna provision_tenant_onboarding(payload): dict a subscription_routes
 def provision_tenant_onboarding(
     db: Session,
     payload: SubscriptionPurchaseSimulated,
@@ -488,8 +506,11 @@ def provision_tenant_onboarding(
 
 
 # [CU01 - Secuencia: Paso 3.2] subscription_routes invoca provision_tenant_by_superadmin(payload) sobre la entidad Empresa
+# [CU01 - Secuencia: Paso 3.3] Empresa retorna provision_tenant_by_superadmin(payload): dict a subscription_routes
 # [CU01 - Secuencia: Paso 3.4] subscription_routes invoca provision_tenant_by_superadmin(payload) sobre la entidad SuscripcionEmpresa
+# [CU01 - Secuencia: Paso 3.5] SuscripcionEmpresa retorna provision_tenant_by_superadmin(payload): dict a subscription_routes
 # [CU01 - Secuencia: Paso 3.6] subscription_routes invoca provision_tenant_by_superadmin(payload) sobre la entidad Usuario
+# [CU01 - Secuencia: Paso 3.7] Usuario retorna provision_tenant_by_superadmin(payload): dict a subscription_routes
 def provision_tenant_by_superadmin(
     db: Session,
     payload: TenantWithSubscriptionCreate,

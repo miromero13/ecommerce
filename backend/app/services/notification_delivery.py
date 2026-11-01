@@ -12,6 +12,7 @@ from app.models.order import Order
 from app.models.product import Product
 from app.models.product_variant import ProductVariant
 from app.models.reservation import Reservation
+from app.models.rma import RmaRequest
 from app.models.user import User
 from app.schemas.enums import RolEnum
 
@@ -48,10 +49,15 @@ def _firebase_app():
         return None
 
 
-def _send_push(token: str, title: str, body: str, data: dict[str, str]) -> None:
+# Same channel the mobile app creates; Android shows high-importance channels as heads-up banners.
+ANDROID_CHANNEL_ID = "foreground_notifications"
+
+
+def _send_push(token: str, title: str, body: str, data: dict[str, str]) -> bool:
+    """Returns False when Firebase is not configured; raises when FCM rejects the message."""
     app = _firebase_app()
     if app is None:
-        return
+        return False
 
     from firebase_admin import messaging
 
@@ -60,9 +66,14 @@ def _send_push(token: str, title: str, body: str, data: dict[str, str]) -> None:
             token=token,
             notification=messaging.Notification(title=title, body=body),
             data=data,
+            android=messaging.AndroidConfig(
+                priority="high",
+                notification=messaging.AndroidNotification(channel_id=ANDROID_CHANNEL_ID),
+            ),
         ),
         app=app,
     )
+    return True
 
 
 def deliver_notification(db: Session, notification: Notification) -> None:
@@ -71,12 +82,25 @@ def deliver_notification(db: Session, notification: Notification) -> None:
         .filter(DeviceToken.user_id == notification.user_id, DeviceToken.is_active.is_(True))
         .all()
     )
+    if not tokens:
+        logger.warning(
+            "Push skipped for notification %s: user %s has no registered device "
+            "(open the mobile app or enable push on the web while logged in)",
+            notification.id, notification.user_id,
+        )
+        return
     data = {key: str(value) for key, value in (notification.data or {}).items()}
     for device in tokens:
         try:
             _send_push(device.token, notification.title, notification.body, data)
-        except Exception:
-            logger.exception("FCM delivery failed for notification %s", notification.id)
+        except Exception as error:
+            # Uninstalled app / expired token: stop retrying it on every notification.
+            if type(error).__name__ in ("UnregisteredError", "SenderIdMismatchError"):
+                device.is_active = False
+                db.commit()
+                logger.warning("Deactivated invalid %s token for user %s: %s", device.platform, device.user_id, error)
+            else:
+                logger.exception("FCM delivery failed for notification %s", notification.id)
 
 
 def notify_reservation_event(db: Session, reservation_id: UUID, user_id: UUID, status: str) -> None:
@@ -114,16 +138,21 @@ def notify_reservation_event(db: Session, reservation_id: UUID, user_id: UUID, s
 
 
 def notify_order_event(db: Session, order_id: UUID, user_id: UUID, status: str) -> None:
+    order = db.query(Order.total_amount, Order.currency).filter(Order.id == order_id).first()
+    # Short, human reference so the customer knows which purchase the notice is about.
+    ref = f"#{str(order_id)[:8].upper()}"
+    amount = f"{order.total_amount} {(order.currency or '').upper()}" if order else ""
+    total = f" por {amount}" if amount else ""
     labels = {
-        "pending": ("Pedido creado", "Tu pedido fue creado y está pendiente de pago."),
-        "paid": ("Pago confirmado", "El pago de tu pedido fue confirmado."),
-        "ready_for_pickup": ("Pedido listo", "Tu pedido está listo para recoger en la sucursal."),
-        "collected": ("Pedido entregado", "Tu pedido fue entregado."),
-        "failed": ("Pago fallido", "No se pudo completar el pago de tu pedido."),
-        "cancelled": ("Pedido cancelado", "Tu pedido fue cancelado."),
-        "expired": ("Pedido expirado", "El tiempo de pago o retiro de tu pedido terminó."),
+        "pending": (f"Pedido {ref} creado", f"Recibimos tu pedido{total}. Completa el pago para reservarlo."),
+        "paid": (f"¡Compra confirmada! {ref}", f"Pagaste {amount or 'tu pedido'}. Te avisaremos cuando esté listo para retirar."),
+        "ready_for_pickup": (f"Pedido {ref} listo", "Ya puedes recogerlo en la sucursal. Muestra tu código de retiro."),
+        "collected": (f"Pedido {ref} entregado", "Gracias por tu compra."),
+        "failed": (f"Pago rechazado {ref}", f"No se pudo cobrar{total}. No se te cobró nada; vuelve a intentar la compra."),
+        "cancelled": (f"Pedido {ref} cancelado", "Tu pedido fue cancelado y las prendas se liberaron."),
+        "expired": (f"Pedido {ref} vencido", "Se terminó el tiempo de pago o retiro y el pedido se cerró."),
     }
-    title, body = labels.get(status, ("Actualización de pedido", "Tu pedido fue actualizado."))
+    title, body = labels.get(status, (f"Pedido {ref} actualizado", "Revisa el estado en Mis pedidos."))
     from app.services.notification_service import create_notification
 
     create_notification(
@@ -143,6 +172,38 @@ def notify_order_event(db: Session, order_id: UUID, user_id: UUID, status: str) 
             "Se creó un nuevo pedido para tu sucursal.",
             {"destination": "orders", "order_id": str(order_id), "status": status},
             f"order:{order_id}:{status}",
+        )
+
+
+def _notify_rma_event(db: Session, rma_id: UUID, status: str, item_id: UUID | None = None) -> None:
+    """Return requests (CU21): tells the customer each step and the store staff about new requests."""
+    rma = db.query(RmaRequest).filter(RmaRequest.id == rma_id).first()
+    if rma is None:
+        return
+    from app.services.notification_service import create_notification
+
+    data = {"destination": "rma", "rma_id": str(rma.id), "rma_number": rma.rma_number}
+    if status == "requested":
+        create_notification(
+            db, rma.user_id, f"Solicitud de devolución {rma.rma_number} recibida",
+            "La tienda revisará las prendas y te avisaremos el resultado.",
+            data, f"rma:{rma.id}:requested",
+        )
+        staff = db.query(User.id).filter(
+            User.rol.in_([RolEnum.administrador, RolEnum.encargado]), User.tenant_id == rma.tenant_id,
+            User.is_active.is_(True),
+        ).all()
+        for (staff_id,) in staff:
+            create_notification(
+                db, staff_id, f"Nueva devolución {rma.rma_number}",
+                "Un cliente solicitó una devolución. Revísala en Devoluciones.",
+                data, f"rma:{rma.id}:requested:staff:{staff_id}",
+            )
+    elif status == "rejected":
+        create_notification(
+            db, rma.user_id, f"Devolución {rma.rma_number} rechazada",
+            "Una prenda no cumplió las condiciones de devolución. Revisa el detalle en Mis devoluciones.",
+            data, f"rma:{rma.id}:item:{item_id}:rejected",
         )
 
 

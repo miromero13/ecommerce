@@ -63,8 +63,8 @@ export class OfflineCatalogService {
 
     window.addEventListener('online', () => {
       this.isOffline.set(false);
-      // Al recuperar conexión, refrescar automáticamente el catálogo local
-      this.syncCatalog().catch(() => {});
+      // Al recuperar conexión, refrescar automáticamente el catálogo local de la misma sucursal
+      this.syncCatalog(this.lastBranchId).catch(() => {});
     });
 
     window.addEventListener('offline', () => {
@@ -87,7 +87,10 @@ export class OfflineCatalogService {
    * CU23: Descarga y sincroniza el catálogo de la sucursal en IndexedDB
    */
   // [CU23 - Secuencia: Paso 1.1] CajaPageComponent invoca syncCatalog(branchId) en OfflineCatalogService
+  private lastBranchId?: string;
+
   async syncCatalog(branchId?: string): Promise<number> {
+    if (branchId) this.lastBranchId = branchId;
     if (this.isOffline()) {
       return this.cachedCount();
     }
@@ -159,6 +162,22 @@ export class OfflineCatalogService {
       console.error('Error buscando en catálogo offline IndexedDB:', err);
       return [];
     }
+  }
+
+  /**
+   * Descuenta del catálogo local las unidades vendidas offline, para que esta misma caja
+   * no vuelva a vender la última unidad antes de sincronizar.
+   */
+  async decrementStock(items: Array<{ variant_id: string; quantity: number }>): Promise<void> {
+    const sold = new Map(items.map((it) => [it.variant_id, it.quantity]));
+    const all = await this.idb.getAll<OfflineCatalogProduct>(STORES.CACHED_CATALOG);
+    const changed = all.filter((p) => p.variants.some((v) => sold.has(v.id)));
+    for (const product of changed) {
+      for (const v of product.variants) {
+        if (sold.has(v.id)) v.available_stock = Math.max(0, v.available_stock - sold.get(v.id)!);
+      }
+    }
+    if (changed.length) await this.idb.putItems(STORES.CACHED_CATALOG, changed);
   }
 
   /**

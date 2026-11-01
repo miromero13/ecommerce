@@ -193,6 +193,14 @@
           </div>
 
           <div class="space-y-3 rounded-xl border border-slate-200 p-4">
+            @if (offlineCatalog.isOffline()) {
+              <div class="space-y-2 rounded-xl border border-amber-300 bg-amber-50 p-3">
+                <label class="text-xs font-medium uppercase tracking-wide text-amber-800">Datos del cliente (obligatorio sin conexión)</label>
+                <input hlmInput type="text" placeholder="Nombre del cliente" [value]="customerName()" (input)="customerName.set($any($event.target).value)" />
+                <input hlmInput type="tel" placeholder="Teléfono" [value]="customerPhone()" (input)="customerPhone.set($any($event.target).value)" />
+                <p class="text-[11px] text-amber-800">Ingresa el teléfono o el correo (abajo) para contactarlo si no hubiera stock al sincronizar. Sin conexión solo se cobra en efectivo.</p>
+              </div>
+            }
             <div class="space-y-2">
               <label class="text-xs font-medium uppercase tracking-wide text-slate-500">Cupón promocional (opcional)</label>
               <input hlmInput type="text" placeholder="Ej. VERANO10" [value]="couponCode()" (input)="couponCode.set($any($event.target).value)" />
@@ -245,10 +253,10 @@
             @if (paymentMethod() === 'qr' && saleQr()) {
               <app-qr-payment-panel title="Pide al cliente que escanee el código" [qr]="saleQr()" (paid)="submitSale()" />
             } @else {
-              @if (!cash.current()) {
+              @if (!cash.current() && !offlineCatalog.isOffline()) {
                 <p class="text-sm font-medium text-rose-700">Abre tu caja para registrar ventas.</p>
               }
-              <button hlmBtn type="button" class="w-full" (click)="submitSale()" [disabled]="submitting() || !selectedItems().length || !cash.current()">
+              <button hlmBtn type="button" class="w-full" (click)="submitSale()" [disabled]="submitting() || !selectedItems().length || (!cash.current() && !offlineCatalog.isOffline())">
                 {{ submitting() ? 'Procesando...' : (paymentMethod() === 'qr' ? 'Cobrar con QR' : 'Confirmar venta') }}
               </button>
             }

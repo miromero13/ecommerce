@@ -35,8 +35,11 @@ router = APIRouter(prefix="/saas", tags=["SaaS Subscriptions"])
 
 
 # [CU01 - Secuencia: Paso 2.1] TenantManagementPageComponent llama a get_plans_route() de subscription_routes (GET /api/saas/public/plans)
+# [CU01 - Secuencia: Paso 2.4] subscription_routes retorna get_plans_route(): 200 Planes de suscripción recuperados exitosamente a TenantManagementPageComponent
 # [CU04 - Secuencia: Paso 1.1] PricingTableComponent llama a get_plans_route() de subscription_routes (GET /api/saas/public/plans)
+# [CU04 - Secuencia: Paso 1.4] subscription_routes retorna get_plans_route(): 200 Planes de suscripción recuperados exitosamente a PricingTableComponent
 # [CU27 - Secuencia: Paso 1.1] OnboardingPageComponent llama a get_plans_route() de subscription_routes (GET /api/saas/public/plans)
+# [CU27 - Secuencia: Paso 1.4] subscription_routes retorna get_plans_route(): 200 Planes de suscripción recuperados exitosamente a OnboardingPageComponent
 @router.get("/plans")
 @router.get("/public/plans")
 async def get_plans_route(db: Session = Depends(get_db)):
@@ -57,6 +60,7 @@ def _plan_data(plan) -> dict:
 
 
 # [CU02 - Secuencia: Pasos 1.1, 2.11, 3.7] PlanManagementPageComponent llama a list_all_plans_route() de subscription_routes (GET /api/saas/plans/admin)
+# [CU02 - Secuencia: Pasos 1.4, 2.14, 3.10] subscription_routes retorna list_all_plans_route(): 200 Planes de suscripción recuperados exitosamente a PlanManagementPageComponent
 @router.get("/plans/admin")
 async def list_all_plans_route(
     db: Session = Depends(get_db),
@@ -72,6 +76,7 @@ async def list_all_plans_route(
 
 
 # [CU02 - Secuencia: Paso 2.7] PlanManagementPageComponent llama a create_plan_route(payload) de subscription_routes (POST /api/saas/plans)
+# [CU02 - Secuencia: Paso 2.10] subscription_routes retorna create_plan_route(payload): 201 Plan creado exitosamente a PlanManagementPageComponent
 @router.post("/plans", status_code=status.HTTP_201_CREATED)
 async def create_plan_route(
     payload: SubscriptionPlanCreate,
@@ -83,6 +88,7 @@ async def create_plan_route(
 
 
 # [CU02 - Secuencia: Pasos 2.1, 3.1] PlanManagementPageComponent llama a update_plan_route(plan_id, payload) de subscription_routes (PATCH /api/saas/plans/{plan_id})
+# [CU02 - Secuencia: Pasos 2.6, 3.6] subscription_routes retorna update_plan_route(plan_id, payload): 200 Plan actualizado exitosamente a PlanManagementPageComponent
 @router.patch("/plans/{plan_id}")
 async def update_plan_route(
     plan_id: str,
@@ -95,6 +101,7 @@ async def update_plan_route(
 
 
 # [CU27 - Secuencia: Paso 2.1] OnboardingPageComponent llama a purchase_simulated_subscription_route(payload) de subscription_routes (POST /api/saas/subscriptions/purchase-simulated)
+# [CU27 - Secuencia: Paso 2.14] subscription_routes retorna purchase_simulated_subscription_route(payload): 201 Suscripción activada con éxito. Te enviamos un correo con los datos de acceso. a OnboardingPageComponent
 @router.post("/subscriptions/purchase-simulated", status_code=status.HTTP_201_CREATED)
 async def purchase_simulated_subscription_route(
     payload: SubscriptionPurchaseSimulated,
@@ -145,6 +152,7 @@ def _target_tenant(current_user: User, tenant_id: Optional[UUID]) -> UUID:
 
 
 # [CU28 - Secuencia: Pasos 1.7, 2.11] SubscriptionPageComponent llama a get_subscription_history_route(tenant_id) de subscription_routes (GET /api/saas/subscriptions/history)
+# [CU28 - Secuencia: Pasos 1.10, 2.14] subscription_routes retorna get_subscription_history_route(tenant_id): 200 Historial de pagos obtenido exitosamente a SubscriptionPageComponent
 @router.get("/subscriptions/history")
 async def get_subscription_history_route(
     tenant_id: Optional[UUID] = Query(None, description="Solo superadmin"),
@@ -160,6 +168,7 @@ async def get_subscription_history_route(
 
 
 # [CU28 - Secuencia: Paso 1.1] SubscriptionPageComponent llama a get_current_subscription_route(tenant_id) de subscription_routes (GET /api/saas/subscriptions/current)
+# [CU28 - Secuencia: Paso 1.6] subscription_routes retorna get_current_subscription_route(tenant_id): 200 Suscripción obtenida exitosamente a SubscriptionPageComponent
 @router.get("/subscriptions/current")
 async def get_current_subscription_route(
     tenant_id: Optional[UUID] = Query(None, description="Solo superadmin"),
@@ -176,6 +185,7 @@ async def get_current_subscription_route(
 
 
 # [CU28 - Secuencia: Paso 2.1] SubscriptionPageComponent llama a change_plan_route(payload) de subscription_routes (POST /api/saas/subscriptions/change-plan)
+# [CU28 - Secuencia: Paso 2.10] subscription_routes retorna change_plan_route(payload): 200 Plan actualizado con éxito. Tu empresa ahora tiene el plan .... a SubscriptionPageComponent
 @router.post("/subscriptions/change-plan")
 async def change_plan_route(
     payload: SubscriptionChangePlan,
@@ -192,6 +202,7 @@ async def change_plan_route(
 
 
 # [CU01 - Secuencia: Paso 3.1] TenantManagementPageComponent llama a create_tenant_with_subscription_route(payload) de subscription_routes (POST /api/saas/tenants/with-subscription)
+# [CU01 - Secuencia: Paso 3.14] subscription_routes retorna create_tenant_with_subscription_route(payload): 201 Empresa y suscripción creadas exitosamente. Credenciales despachadas por correo. a TenantManagementPageComponent
 @router.post("/tenants/with-subscription", status_code=status.HTTP_201_CREATED)
 async def create_tenant_with_subscription_route(
     payload: TenantWithSubscriptionCreate,

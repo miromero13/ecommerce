@@ -229,7 +229,7 @@ Rutas reales verificadas. "Brecha" = lo que falta para cerrar el CU según el ex
 | I2 | No hay tipo `adjustment` con motivo (merma, daño, conteo físico); hoy se usa `outcome` genérico. Lo necesitan CU21 (merma) y CU23 (conflictos). | Media | `backend/app/schemas/inventory_schema.py` [EDIT] (`adjustment` + `reason`), `inventory_service.py` [EDIT] |
 
 ### Pasarela de pago
-**Cómo funciona:** **Stripe** (PaymentIntent + webhook `POST /api/payments/stripe/webhook`, idempotencia con `payment_attempts.idempotency_key` y `stripe_events`) **únicamente**: ni QR ni efectivo (regla RN-22: el QR y el efectivo solo existen en la caja de la tienda). El pedido aparta stock 30 min hasta que se paga. Expira solo (`expire_due_orders`, loop cada 60 s en `main.py`). Archivos: `backend/app/services/order_service.py`, `backend/app/routes/payment_routes.py`, `backend/app/models/payment_attempt.py`, `stripe_event.py`, `frontend/src/app/features/shared/services/checkout-api.service.ts`, `mobile/lib/features/orders/checkout_page.dart`.
+**Cómo funciona:** **Stripe** (PaymentIntent + webhook `POST /api/payments/stripe/webhook`, idempotencia con `payment_attempts.idempotency_key` y `stripe_events`) **únicamente**: ni QR ni efectivo (regla RN-22: el QR y el efectivo solo existen en la caja de la tienda). El pedido aparta stock 40 min hasta que se paga. Expira solo (`expire_due_orders`, loop cada 60 s en `main.py`). Archivos: `backend/app/services/order_service.py`, `backend/app/routes/payment_routes.py`, `backend/app/models/payment_attempt.py`, `stripe_event.py`, `frontend/src/app/features/shared/services/checkout-api.service.ts`, `mobile/lib/features/orders/checkout_page.dart`.
 
 | # | Brecha | Gravedad | Archivos |
 |---|---|---|---|

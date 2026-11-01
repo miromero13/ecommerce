@@ -1,7 +1,7 @@
 import uuid
 
-from sqlalchemy import Column, DateTime, Enum as SQLAlchemyEnum, ForeignKey, Numeric, String
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import JSON, Column, DateTime, Enum as SQLAlchemyEnum, ForeignKey, Numeric, String
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -25,6 +25,11 @@ class Sale(Base):
     payment_method = Column(SQLAlchemyEnum(PaymentMethodEnum, name="paymentmethodenum"), nullable=False)
     payment_status = Column(SQLAlchemyEnum(PaymentStatusEnum, name="paymentstatusenum"), nullable=False, default=PaymentStatusEnum.paid)
     cash_reference = Column(String, nullable=True)
+    # CU30: the client UUID of an offline sale; unique so a re-sent batch never duplicates it.
+    offline_operation_id = Column(String(64), nullable=True, unique=True)
+    # When the cashier charged it at the till (device clock): its place in the offline queue.
+    offline_created_at = Column(DateTime(timezone=True), nullable=True, index=True)
+    offline_details = Column(JSON().with_variant(JSONB, "postgresql"), nullable=True)  # receipt, customer contact, cash received/change
     subtotal = Column(Numeric(10, 2), nullable=False, default=0)
     discount_amount = Column(Numeric(10, 2), nullable=False, default=0)
     total_amount = Column(Numeric(10, 2), nullable=False, default=0)

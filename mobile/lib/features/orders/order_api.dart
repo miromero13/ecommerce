@@ -67,10 +67,16 @@ class OrderApi {
     required String pickupBranchId,
     Map<String, dynamic>? delivery,
     int points = 0,
+    String? offlineRequestedAt, // CU30: when the customer pressed "Comprar" without internet
   }) async {
     final response = await _client.post<StripeCheckout>(
       'payments/stripe/checkout',
-      data: {'pickup_branch_id': pickupBranchId, 'delivery': ?delivery, 'points_to_redeem': points},
+      data: {
+        'pickup_branch_id': pickupBranchId,
+        'delivery': ?delivery,
+        'points_to_redeem': points,
+        'offline_requested_at': ?offlineRequestedAt,
+      },
       parser: _parseStripeCheckout,
     );
     final checkout = response.data;
@@ -90,6 +96,12 @@ class OrderApi {
       throw const FormatException('La respuesta de Stripe está vacía');
     }
     return StripeCheckoutResult(checkout: checkout, message: response.message);
+  }
+
+  /// Cancels an order pending payment; the server unlocks the cart with its items.
+  Future<String> cancelOrder({required String orderId}) async {
+    final response = await _client.post<Object?>('orders/$orderId/cancel');
+    return response.message;
   }
 
   Future<Map<String, dynamic>> checkoutWallet({

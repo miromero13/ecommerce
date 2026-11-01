@@ -41,16 +41,38 @@ void main() {
     expect(controller.status, CartControllerStatus.error);
     expect(controller.errorMessage, 'Sin stock');
   });
+
+  test('si el servidor responde que el carrito está bloqueado, lo recarga sin reintentar', () async {
+    final api = _FakeCartApi(
+      addFailure: const ApiException(
+        statusCode: 400,
+        message: 'Tienes un pedido pendiente de pago. Págalo o cancélalo para modificar el carrito.',
+      ),
+    );
+    final controller = CartController(api: api);
+
+    await controller.addItem(variantId: 'variant-id', quantity: 1);
+
+    expect(controller.status, CartControllerStatus.error);
+    expect(controller.errorMessage, contains('pedido pendiente de pago'));
+    expect(controller.cart, isNotNull); // reloaded from the server
+    expect(api.getCurrentCalls, 1);
+    expect(api.addCalls, 1);
+  });
 }
 
 class _FakeCartApi extends CartApi {
-  _FakeCartApi({this.failure}) : super();
+  _FakeCartApi({this.failure, this.addFailure}) : super();
 
   final Object? failure;
+  final Object? addFailure;
+  var getCurrentCalls = 0;
+  var addCalls = 0;
   var itemCount = 0;
 
   @override
   Future<CartOperationResult> getCurrent() async {
+    getCurrentCalls++;
     if (failure != null) throw failure!;
     return _result('Carrito obtenido exitosamente');
   }
@@ -59,7 +81,10 @@ class _FakeCartApi extends CartApi {
   Future<CartOperationResult> addItem({
     required String variantId,
     required int quantity,
+    String? offlineRequestedAt,
   }) async {
+    addCalls++;
+    if (addFailure != null) throw addFailure!;
     itemCount += quantity;
     return _result('Producto agregado al carrito');
   }

@@ -59,6 +59,7 @@ async def consolidated_stock_route(
 
 
 # [CU11 - Secuencia: Pasos 1.1, 2.5] AdminInventoryPageComponent llama a branch_stock_route(branch_id) de inventory_routes (GET /api/inventory/branches/{branch_id})
+# [CU11 - Secuencia: Pasos 1.4, 2.8] inventory_routes retorna branch_stock_route(branch_id): 200 Inventario por sucursal obtenido exitosamente a AdminInventoryPageComponent
 @router.get("/branches/{branch_id}")
 async def branch_stock_route(
     branch_id: UUID,
@@ -72,6 +73,7 @@ async def branch_stock_route(
 
 
 # [CU11 - Secuencia: Pasos 1.5, 2.9] AdminInventoryPageComponent llama a movements_route(variant_id, branch_id, movement_type, limit) de inventory_routes (GET /api/inventory/movements)
+# [CU11 - Secuencia: Pasos 1.12, 2.16] inventory_routes retorna movements_route(variant_id, branch_id, movement_type, limit): 200 Movimientos de inventario obtenidos exitosamente a AdminInventoryPageComponent
 @router.get("/movements")
 async def movements_route(
     db: Session = Depends(get_db),
@@ -146,6 +148,7 @@ async def outcome_route(
 
 
 # [CU11 - Secuencia: Paso 2.1] AdminInventoryPageComponent llama a transfer_route(payload) de inventory_routes (POST /api/inventory/movements/transfer)
+# [CU11 - Secuencia: Paso 2.4] inventory_routes retorna transfer_route(payload): 201 Traspaso de inventario registrado exitosamente a AdminInventoryPageComponent
 @router.post("/movements/transfer", status_code=status.HTTP_201_CREATED)
 async def transfer_route(
     payload: InventoryTransferCreate,

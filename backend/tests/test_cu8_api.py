@@ -32,7 +32,7 @@ def cu8(monkeypatch):
         from app.auth.dependencies import get_current_payload
         from app.routes import report_routes
     engine = create_engine('sqlite://', poolclass=StaticPool, connect_args={'check_same_thread': False})
-    tables = ['tenants', 'branches', 'products', 'product_variants', 'inventory', 'sales', 'sale_items', 'orders', 'order_items', 'inventory_movements']
+    tables = ['tenants', 'branches', 'products', 'product_variants', 'inventory', 'sales', 'sale_items', 'orders', 'order_items', 'inventory_movements', 'users', 'categories']
     Base.metadata.create_all(engine, tables=[Base.metadata.tables[name] for name in tables])
     db = Session(engine)
     from app.models.tenant import Tenant
@@ -167,14 +167,17 @@ def test_ml_real_source_uses_only_own_sales_and_customer_not_cashier(cu8, body):
     from app.services.ml.demand_forecast_service import forecast_from_history
     day = date.today() - timedelta(days=14)
     week = day - timedelta(days=day.weekday())
+    products = data.pop('products')
     assert data == forecast_from_history({week: 3}, 2, today=date.today())
+    assert [p['product_name'] for p in products] == ['AlphaCU8 Blusa']
+    assert products[0]['available_stock'] == 4 and products[0]['suggested_restock'] >= 0
     result = cu8.client.post('/api/reports/ml/customer-clusters', **({'json': body} if body is not None else {}))
     assert result.status_code == 200, result.text
     data = result.json()['data']
     assert data['data_source']['real_samples'] == 1
     assert sum(segment['real_customers'] for segment in data['segments']) == 1
     from app.services.ml.customer_segmentation_service import segment_customers
-    assert data == segment_customers([(14, 1, 25.0)])
+    assert data == segment_customers([(14, 1, 25.0)], ['Cliente'])
 
 
 @pytest.mark.parametrize('path', ['predict-demand', 'customer-clusters'])
@@ -222,21 +225,15 @@ def test_explicit_synthetic_http_trains_without_business_queries_or_writes(cu8, 
     assert [cu8.db.execute(select(table)).all() for table in business] == before
 
 
-@pytest.mark.parametrize('kind', ['top_products', 'branch_comparison', 'critical_inventory'])
-def test_nlp_executes_new_reports_and_preserves_query_contract(cu8, monkeypatch, kind):
-    from app.services import natural_report_service
-    from app.schemas.report_schema import NaturalReportInterpretation
-    monkeypatch.setattr(natural_report_service.settings, 'gemini_api_key', 'cu8-test-stub')
-    monkeypatch.setattr(natural_report_service, '_interpret_sync', lambda prompt: NaturalReportInterpretation(
-        report_type=kind, interpretation='Consulta CU8 interpretada'))
-    result = cu8.client.post('/api/reports/query', json={'query': 'Reporte de mi empresa'})
+def test_nlp_returns_a_local_spec_without_running_the_report(cu8):
+    result = cu8.client.post('/api/reports/query', json={'query': 'top 10 productos mas vendidos de AlphaCU8 Blusa'})
     assert result.status_code == 200, result.text
     data = result.json()['data']
-    assert data['report_type'] == kind
-    assert data['format'] == 'pdf'
-    assert len(data['report']['rows']) == 1
+    assert data['spec']['top_n'] == 10
+    assert data['spec']['product_ids'] == [str(cu8.products[0].id)]
+    assert data['interpretation'].startswith('Top 10 productos')
+    assert 'report' not in data
     assert 'BetaCU8' not in result.text
-    assert data['columns']
 
 
 def test_manager_scope_is_preserved_for_new_reports_and_exports(cu8):
@@ -266,3 +263,16 @@ def test_invalid_export_type_dates_and_missing_branch_do_not_mutate_data(cu8):
     assert empty.status_code == 200
     assert empty.json()['data']['rows'] == []
     assert [cu8.db.execute(select(table)).all() for table in tables] == before
+
+
+def test_customers_report_is_tenant_scoped_and_ranked_by_spend(cu8):
+    from app.schemas.report_schema import ReportQuery
+    from app.services.report_service import _customers_report
+
+    report = _customers_report(cu8.db, ReportQuery(), cu8.companies[0].id)
+    assert report['summary']['total_customers'] == 1
+    row = report['rows'][0]
+    assert row['orders_count'] == 1 and float(row['total_spent']) == 25
+    assert row['customer_name'] == 'Cliente'  # order without a user row still counts
+    empty = _customers_report(cu8.db, ReportQuery(branch_id=cu8.branches[1].id), cu8.companies[0].id)
+    assert empty['rows'] == []

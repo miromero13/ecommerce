@@ -229,6 +229,14 @@ class PickupBranch {
       isActive: json['is_active'] == true,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'city': city,
+        'is_default': isDefault,
+        'is_active': isActive,
+      };
 }
 
 class StripeCheckout {

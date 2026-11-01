@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../app/theme.dart';
@@ -18,6 +20,7 @@ import '../../app/routes.dart';
 import 'cart_api.dart';
 import 'cart_controller.dart';
 import 'cart_models.dart';
+import '../orders/order_controller.dart';
 
 class CartPage extends StatefulWidget {
   const CartPage({super.key, required this.authController, this.controller});
@@ -34,10 +37,24 @@ class _CartPageState extends State<CartPage> {
   late final bool _ownsController;
   String? _loadedToken;
   final _couponController = TextEditingController();
+  late final OrderController _orders;
+  Timer? _countdown;
+  bool _busy = false; // a double tap cannot open two checkouts or two dialogs
 
   @override
   void initState() {
     super.initState();
+    _orders = OrderController(authController: widget.authController);
+    // Refreshes the pending-order countdown; at 0 the server has emptied the cart, so it is reloaded.
+    _countdown = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (!mounted) return;
+      final cart = _controller.cart;
+      final expires = cart?.pendingOrderExpiresAt;
+      if (cart != null && cart.isLocked && expires != null && !expires.isAfter(DateTime.now())) {
+        _controller.reload();
+      }
+      if (cart?.isLocked == true) setState(() {});
+    });
     _ownsController = widget.controller == null;
     _controller =
         widget.controller ??
@@ -53,6 +70,8 @@ class _CartPageState extends State<CartPage> {
 
   @override
   void dispose() {
+    _countdown?.cancel();
+    _orders.dispose();
     widget.authController.removeListener(_handleAuthChanged);
     if (_ownsController) _controller.dispose();
     _couponController.dispose();
@@ -136,12 +155,16 @@ class _CartPageState extends State<CartPage> {
             subtitle: _itemCountLabel(cart.itemCount),
           ),
           const SizedBox(height: 12),
+          if (cart.isLocked) ...[
+            _pendingOrderBanner(context, cart),
+            const SizedBox(height: 12),
+          ],
           _originBanner(context),
           const SizedBox(height: 12),
           for (final item in cart.items) ...[
             _CartItemCard(
               item: item,
-              enabled: _controller.status != CartControllerStatus.loading,
+              enabled: !cart.isLocked && _controller.status != CartControllerStatus.loading,
               onQuantityChanged: (quantity) => _updateQuantity(item, quantity),
               onRemove: () => _removeItem(item),
             ),
@@ -153,21 +176,133 @@ class _CartPageState extends State<CartPage> {
           _CouponCard(
             cart: cart,
             controller: _couponController,
-            onApply: () => _runMutation(
-              () => _controller.applyCoupon(_couponController.text),
-            ),
-            onRemove: () => _runMutation(_controller.removeCoupon),
+            onApply: cart.isLocked
+                ? null
+                : () => _runMutation(
+                    () => _controller.applyCoupon(_couponController.text),
+                  ),
+            onRemove: cart.isLocked
+                ? null
+                : () => _runMutation(_controller.removeCoupon),
           ),
           const SizedBox(height: 16),
           AppButton(
             label: 'Continuar',
             icon: Icon(Icons.arrow_forward),
-            onPressed: () =>
-                Navigator.of(context).pushNamed(AppRoutes.checkout),
+            onPressed: cart.isLocked || _busy ? null : () => _openCheckout(),
             expand: true,
           ),
         ],
       ),
+    );
+  }
+
+  /// Opens the checkout (new purchase, or paying the pending order) and then shows what the server holds.
+  Future<void> _openCheckout({String? orderId}) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await Navigator.of(context).pushNamed(AppRoutes.checkout, arguments: orderId);
+      if (mounted) await _controller.reload();
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Widget _pendingOrderBanner(BuildContext context, Cart cart) {
+    final expires = cart.pendingOrderExpiresAt?.toLocal();
+    final orderId = cart.pendingOrderId;
+    var text = 'Tienes un pedido pendiente de pago.';
+    if (expires != null) {
+      final minutes = expires.difference(DateTime.now()).inMinutes;
+      final hh = expires.hour.toString().padLeft(2, '0');
+      final mm = expires.minute.toString().padLeft(2, '0');
+      text += ' Vence a las $hh:$mm (en ${minutes < 0 ? 0 : minutes} min).';
+    }
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.orange.shade300),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.lock_clock, color: Colors.orange.shade900),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  text,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: Colors.orange.shade900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (orderId != null) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton(
+                    onPressed: _busy ? null : () => _openCheckout(orderId: orderId),
+                    child: const Text('Continuar pago'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(foregroundColor: scheme.error),
+                    onPressed: _busy ? null : () => _cancelOrder(orderId),
+                    child: const Text('Cancelar pedido'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _cancelOrder(String orderId) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await _confirmAndCancel(orderId);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _confirmAndCancel(String orderId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancelar pedido'),
+        content: const Text('Se cancelará el pedido pendiente y podrás modificar tu carrito.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Volver')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Cancelar pedido')),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final ok = await _orders.cancelOrder(orderId: orderId);
+    if (!mounted) return;
+    await _controller.reload();
+    if (!mounted) return;
+    AppSnackBar.show(
+      context,
+      ok ? 'Pedido cancelado' : (_orders.errorMessage ?? 'No se pudo cancelar el pedido.'),
+      tone: ok ? AppSnackBarTone.success : AppSnackBarTone.error,
     );
   }
 
@@ -415,8 +550,8 @@ class _CouponCard extends StatelessWidget {
 
   final Cart cart;
   final TextEditingController controller;
-  final VoidCallback onApply;
-  final VoidCallback onRemove;
+  final VoidCallback? onApply;
+  final VoidCallback? onRemove;
 
   @override
   Widget build(BuildContext context) {
@@ -434,6 +569,7 @@ class _CouponCard extends StatelessWidget {
                 Expanded(
                   child: TextField(
                     controller: controller,
+                    enabled: onApply != null,
                     textCapitalization: TextCapitalization.characters,
                     decoration: const InputDecoration(
                       labelText: 'Código promocional',

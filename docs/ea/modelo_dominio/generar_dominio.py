@@ -40,6 +40,7 @@ NOMBRE = {
     # tablas nuevas (segundo parcial), con el mismo patron de nombres
     "gift_cards": "TarjetaRegalo", "rma_requests": "SolicitudDevolucion", "rma_request_items": "DetalleSolicitudDevolucion",
     "user_wallets": "BilleteraUsuario", "wallet_transactions": "MovimientoBilletera",
+    "offline_sale_conflicts": "ConflictoVentaSinConexion",
 }
 _prev = json.loads((HERE / "traducciones_columnas.json").read_text(encoding="utf-8"))
 COLUMNA = dict(_prev)
@@ -56,6 +57,13 @@ COLUMNA.update({
     "requested_variant_id": "id_variante_solicitada", "restock_movement_id": "id_movimiento_reingreso",
     "rma_id": "id_solicitud_devolucion", "rma_number": "numero_solicitud", "settlement_status": "estado_liquidacion",
     "wallet_id": "id_billetera", "wallet_settlement_date": "fecha_liquidacion_billetera",
+    # conflictos de ventas sin conexion (offline_sale_conflicts)
+    "cash_session_id": "id_sesion_caja", "change_returned": "cambio_devuelto", "customer_phone": "telefono_cliente",
+    "discount": "descuento", "extra_charged": "cobro_adicional", "items": "detalle_items",
+    "offline_created_at": "fecha_creacion_sin_conexion", "operation_id": "id_operacion",
+    "receipt_number": "numero_comprobante", "refund_receipt_number": "numero_comprobante_reembolso",
+    "resolution": "resolucion", "resolution_notes": "notas_resolucion", "resolved_at": "fecha_resolucion",
+    "resolved_by": "resuelto_por", "wallet_credit_amount": "importe_abono_billetera",
 })
 faltan = sorted({c["column"] for t in MODELOS.values() for c in t["columns"]} - set(COLUMNA))
 assert not faltan, f"columnas sin traduccion: {faltan}"

@@ -1,6 +1,8 @@
 """Genera FashionStore_comunicacion.js: un diagrama de comunicacion (ICONIX / UML 2.5) por caso de uso.
 
-Uso (desde la raiz del repo):  python docs/ea/comunicacion/generar_comunicacion.py
+Uso (desde la raiz del repo):  python docs/ea/comunicacion/generar_comunicacion.py [--only CU8]
+  --only CUn: regenera solo ese caso de uso y lo une a comunicacion.json (los demas diagramas no cambian); el .js se
+              vuelve a escribir desde el JSON unido.
 Lo unico escrito a mano es QUE pantallas y acciones (metodos del componente) forman cada caso de uso, en el
 orden de su ficha. Todo lo demas se traza del codigo con trazar.py: la llamada HTTP de cada metodo, la ruta FastAPI
 que la atiende, sus parametros, las funciones de servicio que llama y la entidad a la que van (la misma asignacion
@@ -43,7 +45,10 @@ SPEC = {
     "CU5": ["CL", [("PhotoTryOnComponent", "onFile"), ("PhotoTryOnComponent", "generate")]],
     "CU6": ["CL", [("CatalogPageComponent", "selectBranch"), ("CatalogPageComponent", "recordProductView")]],
     "CU7": ["CL", [("ChatbotComponent", "openChat"), ("ChatbotComponent", "sendMessage"), ("ChatbotComponent", "confirmDelete")]],
-    "CU8": ["AD", [("AdminReportsPageComponent", "generateReport"), ("AdminReportsPageComponent", "exportReport"),
+    # ask() interpreta la consulta (POST /reports/query) y luego ejecuta run() (POST /reports/analytics)
+    "CU8": ["AD", [("AdminReportsPageComponent", "ask", None, {"rutas": ["routes.report_routes.natural_report_route",
+                                                                         "routes.report_routes.analytics_route"]}),
+                   ("AdminReportsPageComponent", "exportAnalytics", None, {"rutas": ["routes.report_routes.analytics_export_route"]}),
                    ("AdminReportsPageComponent", "predictDemand"), ("AdminReportsPageComponent", "segmentCustomers")]],
     "CU9": ["AD", [("AdminExpertReplenishmentPageComponent", "loadRules"), ("AdminExpertReplenishmentPageComponent", "loadSuggestions"),
                    ("AdminExpertReplenishmentPageComponent", "evaluateReplenishment"),
@@ -96,7 +101,11 @@ SPEC = {
                                 ("bnd:OfflineQueueModalComponent", "ctl:OfflineQueueService", "operations()", "2.1")])]],
     "CU30": ["CA", [("OfflineSyncService", "triggerAutoSync", "-"), ("CajaPageComponent", "syncOfflineQueue"),
                     ("OfflineCartService", "syncPending", "-"),
-                    ("OfflineConflictsPageComponent", "resolveWithWallet"), ("OfflineConflictsPageComponent", "resolveWithRefund")]],
+                    # la pagina de conflictos lee los conflictos del servidor y resuelve uno (entregado / reembolso /
+                    # billetera / cambio); resolve() vuelve a cargar la lista
+                    ("OfflineConflictsPageComponent", "setTab", None, {"rutas": ["routes.offline_routes.list_offline_conflicts"]}),
+                    ("OfflineConflictsPageComponent", "resolve", None, {"rutas": ["routes.offline_routes.resolve_offline_conflict",
+                                                                                 "routes.offline_routes.list_offline_conflicts"]})]],
 }
 
 
@@ -476,10 +485,21 @@ def etiquetas(model, pos):
             sx, sy = fn(lv, a)
             m["sx"], m["sy"] = round(sx + ddx), round(sy - ddy)   # en EA, SY positivo es hacia arriba
 
+def unir(cu, diagrama, previo):
+    """--only: reemplaza el diagrama de cu en el modelo previo; los clasificadores se recalculan de todos los diagramas."""
+    diagrams = [diagrama if d["cu"] == cu else d for d in previo["diagrams"]]
+    if diagrama not in diagrams:
+        diagrams.append(diagrama)
+    cls = sorted({(o["kind"], o["name"]) for d in diagrams for o in d["objs"].values() if o["kind"] != "actor"})
+    return diagrams, [{"kind": k, "name": n} for k, n in cls]
+
+
 if __name__ == "__main__":
+    # --only CU8: regenera solo ese caso de uso y lo une al comunicacion.json existente (los demas quedan intactos)
+    only = sys.argv[sys.argv.index("--only") + 1] if "--only" in sys.argv else None
     diagrams = []
     classifiers = {}
-    for cu in [f"CU{i}" for i in range(1, 31)]:
+    for cu in [only] if only else [f"CU{i}" for i in range(1, 31)]:
         m = build(cu)
         pos = layout(m)
         for oid, o in m["objs"].items():
@@ -497,6 +517,9 @@ if __name__ == "__main__":
                 raise SystemExit(f"{cu}: entidad llama a entidad")
     model = {"actors": ACTORES, "classifiers": [{"kind": k, "name": n} for k, n in sorted(classifiers)],
              "diagrams": diagrams}
+    if only:
+        previo = json.loads((HERE / "comunicacion.json").read_text(encoding="utf-8"))
+        model["diagrams"], model["classifiers"] = unir(only, diagrams[0], previo)
     (HERE / "comunicacion.json").write_text(json.dumps(model, ensure_ascii=False, indent=1), encoding="utf-8")
     tpl = (HERE / "plantilla_comunicacion.js").read_text(encoding="utf-8") if (HERE / "plantilla_comunicacion.js").exists() else None
     if tpl:

@@ -23,6 +23,8 @@ class Order(Base):
     cash_reference = Column(String, nullable=True)
     pickup_branch_id = Column(UUID(as_uuid=True), ForeignKey("branches.id"), nullable=True, index=True)
     pickup_expires_at = Column(DateTime(timezone=True), nullable=True)
+    # CU30: purchase started without internet on the phone; its place in the offline queue.
+    offline_requested_at = Column(DateTime(timezone=True), nullable=True, index=True)
     pickup_code = Column(String, nullable=True, unique=True)
     fulfillment_status = Column(SQLAlchemyEnum(FulfillmentStatusEnum, name="fulfillmentstatusenum"), nullable=True)
     subtotal = Column(Numeric(10, 2), nullable=False, default=0)

@@ -37,6 +37,17 @@
     </div>
   </header>
 
+  <!-- Pregunta rápida: navega a Reportes con ?q=<frase> -->
+  <section hlmCard class="bg-white shadow-sm"><div hlmCardContent class="space-y-2 p-3">
+    <label for="quick-question" class="text-sm font-semibold">Pregunta rápida</label>
+    <form class="flex flex-wrap items-center gap-2" (submit)="$event.preventDefault(); askQuick()">
+      <input id="quick-question" maxlength="500" hlmInput type="text" class="min-w-0 flex-1 basis-56" name="q" autocomplete="off" placeholder="Ej.: top 10 productos más vendidos de los últimos 3 meses por sucursal" [value]="quickQuestion()" (input)="quickQuestion.set($any($event.target).value)" />
+      <app-voice-input-button (transcript)="askQuick($event)" />
+      <button hlmBtn type="submit">Consultar</button>
+    </form>
+    <div class="flex flex-wrap gap-1.5">@for (example of quickExamples; track example) {<button type="button" class="rounded-full border border-slate-300 px-2.5 py-1 text-left text-xs text-slate-600 hover:bg-slate-50" (click)="askQuick(example)">{{ example }}</button>}</div>
+  </div></section>
+
   <section hlmCard class="bg-white shadow-sm"><div hlmCardContent class="grid gap-2 p-3 sm:grid-cols-2 lg:grid-cols-5">
     <div hlmSelect class="lg:col-span-2" [value]="selectedBranchId()" [itemToString]="branchSelectLabel" (valueChange)="onBranchChange($event)">
       <hlm-select-trigger class="h-9" buttonId="dashboard-branch"><span hlmSelectValue placeholder="Todas las sucursales"></span></hlm-select-trigger>
@@ -50,7 +61,8 @@
     <button hlmBtn type="button" class="sm:col-span-2 lg:col-span-1" (click)="applyFilters()" [disabled]="loading()">Aplicar</button>
   </div></section>
 
-  <section class="grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-8">@for (card of summaryCards(); track card.label) {<article hlmCard class="bg-white shadow-sm"><div hlmCardContent class="p-3"><p class="text-[11px] uppercase tracking-wide text-slate-500">{{ card.label }}</p><p class="mt-1 text-xl font-semibold" [ngClass]="card.tone">{{ card.value }}</p></div></article>}</section>
+  <section class="grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-8">@for (card of summaryCards(); track card.label) {<article hlmCard class="bg-white shadow-sm"><div hlmCardContent class="p-3"><p class="text-[11px] uppercase tracking-wide text-slate-500">{{ card.label }}</p><p class="mt-1 text-xl font-semibold" [ngClass]="card.tone">{{ card.value }}</p>@if (card.delta) {<p class="mt-0.5 text-xs font-medium" [ngClass]="card.delta.tone" [attr.aria-label]="card.delta.aria" title="Variación calculada con ventas en tienda y en línea">{{ card.delta.text }}</p>}</div></article>}</section>
+  @if (dashboard().comparison?.sales_delta_pct != null) {<p class="text-xs text-slate-500">Variación frente al período anterior, calculada con ventas en tienda y en línea.</p>}
 
   <section class="grid gap-3 xl:grid-cols-2">
     <article hlmCard class="bg-white shadow-sm"><div hlmCardContent class="p-3"><div class="mb-1 flex items-center justify-between"><div><h2 class="font-semibold">Ventas por periodo</h2><p class="text-xs text-slate-500">Sucursal: {{ branchLabel() }}</p></div><span class="text-xs text-slate-500">{{ dashboard().sales_series.length }} puntos</span></div>
@@ -71,4 +83,20 @@
       @if (topProductsChartData().length) {<div hlmOnBrowser><ngx-bar-chart [data]="topProductsChartData()" [categories]="{ sales: { name: 'Ventas', color: '#8b5cf6' } }" [yAxis]="['sales']" [height]="180" [hideLegend]="true" [yGridLine]="true" /></div>} @else {<p class="py-12 text-sm text-slate-500">Sin ventas por producto.</p>}
     </div></article>
   </section>
+
+  <section class="grid gap-3 xl:grid-cols-2">
+    <article hlmCard class="bg-white shadow-sm"><div hlmCardContent class="p-3"><h2 class="mb-2 font-semibold">Tienda vs En línea</h2>
+      @if (channelDonutData().length) {<div hlmOnBrowser><ngx-donut-chart [data]="channelDonutData()" [categories]="channelDonutCategories()" [height]="180" [arcWidth]="28" /></div>} @else {<p class="py-12 text-sm text-slate-500">Sin ventas por canal.</p>}
+    </div></article>
+    <article hlmCard class="bg-white shadow-sm"><div hlmCardContent class="p-3"><h2 class="mb-2 font-semibold">Top 5 categorías</h2>
+      @if (topCategoriesChartData().length) {<div hlmOnBrowser><ngx-bar-chart [data]="topCategoriesChartData()" [categories]="{ sales: { name: 'Ventas', color: '#f59e0b' } }" [yAxis]="['sales']" [height]="180" [hideLegend]="true" [yGridLine]="true" /></div>} @else {<p class="py-12 text-sm text-slate-500">Sin ventas por categoría.</p>}
+    </div></article>
+  </section>
+
+  <section hlmCard class="bg-white shadow-sm"><div hlmCardContent class="p-3">
+    <div class="mb-2 flex items-center justify-between gap-2"><h2 class="font-semibold">Stock crítico</h2><a hlmBtn variant="outline" size="sm" routerLink="/app/admin/inventory">Ver inventario</a></div>
+    @if (lowStockRows().length) {<div class="overflow-x-auto"><table class="w-full min-w-[32rem] text-sm"><thead><tr class="border-b text-left text-xs uppercase text-slate-500"><th class="py-1.5 pr-2">Producto</th><th class="pr-2">SKU</th><th class="pr-2">Sucursal</th><th class="pr-2 text-right">Disponible</th><th class="text-right">Mínimo</th></tr></thead><tbody>
+      @for (row of lowStockRows(); track $index) {<tr class="border-b last:border-0"><td class="py-1.5 pr-2">{{ row.product_name }}</td><td class="pr-2">{{ row.sku || row.variant_sku }}</td><td class="pr-2">{{ row.branch_name }}</td><td class="pr-2 text-right font-medium text-rose-600">{{ row.available ?? row.available_quantity }}</td><td class="text-right">{{ row.minimum ?? '-' }}</td></tr>}
+    </tbody></table></div>} @else {<p class="py-6 text-sm text-slate-500">Sin productos en stock crítico</p>}
+  </div></section>
 </section>

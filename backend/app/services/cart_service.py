@@ -9,6 +9,7 @@ from app.models.reservation_item import ReservationItem
 from app.models.cart import Cart
 from app.models.cart_item import CartItem
 from app.models.inventory import Inventory
+from app.models.order import Order
 from app.models.product import Product
 from app.models.product_variant import ProductVariant
 from app.models.tenant import Tenant
@@ -22,8 +23,24 @@ from app.services.promotion_service import calculate_discount, cart_has_product_
 from app.services.recommendation_service import ADD_TO_CART, record_interaction
 
 
+CART_LOCKED_MESSAGE = "Tienes un pedido pendiente de pago. Págalo o cancélalo para modificar el carrito."
+
+
+def pending_order(db: Session, user_id: UUID, exclude_order_id: UUID | None = None) -> Order | None:
+    """The customer's latest order still waiting for payment (it holds the cart lock)."""
+    from app.schemas.order_schema import FulfillmentStatusEnum, PaymentStatusEnum
+
+    query = db.query(Order).filter(Order.user_id == user_id, Order.payment_status == PaymentStatusEnum.pending,
+                                   Order.fulfillment_status == FulfillmentStatusEnum.pending_pickup)
+    if exclude_order_id is not None:
+        query = query.filter(Order.id != exclude_order_id)
+    return query.order_by(Order.created_at.desc()).first()
+
+
 # [CU25 - Secuencia: Paso 2.13] cart_routes invoca _available_quantity(variant_id, tenant_id, branch_id) sobre la entidad Inventario
+# [CU25 - Secuencia: Paso 2.14] Inventario retorna _available_quantity(variant_id, tenant_id, branch_id): int a cart_routes
 # [CU30 - Secuencia: Paso 3.10] cart_routes invoca _available_quantity(variant_id, tenant_id, branch_id) sobre la entidad Inventario
+# [CU30 - Secuencia: Paso 3.11] Inventario retorna _available_quantity(variant_id, tenant_id, branch_id): int a cart_routes
 def _available_quantity(db: Session, variant_id: UUID, tenant_id: UUID, branch_id: UUID | None = None) -> int:
     query = db.query(Inventory.quantity, Inventory.reserved_quantity).join(Branch).filter(
         Inventory.variant_id == variant_id, Inventory.tenant_id == tenant_id,
@@ -53,19 +70,36 @@ def _get_active_cart(db: Session, user_id: UUID) -> Cart:
 
 
 # [CU15 - Secuencia: Pasos 3.2, 4.2] cart_routes invoca _get_mutable_cart(user_id) sobre la entidad Carrito
+# [CU15 - Secuencia: Pasos 3.3, 4.3] Carrito retorna _get_mutable_cart(user_id): Cart a cart_routes
 # [CU16 - Secuencia: Paso 4.4] wishlist_routes invoca _get_mutable_cart(user_id) sobre la entidad Carrito
+# [CU16 - Secuencia: Paso 4.5] Carrito retorna _get_mutable_cart(user_id): Cart a wishlist_routes
 # [CU25 - Secuencia: Paso 2.7] cart_routes invoca _get_mutable_cart(user_id) sobre la entidad Carrito
+# [CU25 - Secuencia: Paso 2.8] Carrito retorna _get_mutable_cart(user_id): Cart a cart_routes
 # [CU30 - Secuencia: Paso 3.4] cart_routes invoca _get_mutable_cart(user_id) sobre la entidad Carrito
+# [CU30 - Secuencia: Paso 3.5] Carrito retorna _get_mutable_cart(user_id): Cart a cart_routes
+def _expire_due_orders(db: Session) -> None:
+    # Before locking the cart row: an order past its 40 minutes must not keep the cart locked.
+    from app.services.order_service import expire_due_orders
+
+    expire_due_orders(db)
+
+
 def _get_mutable_cart(db: Session, user_id: UUID) -> Cart:
+    _expire_due_orders(db)
     cart = _get_active_cart(db, user_id)
     if cart.status == CartStatusEnum.checkout_pending:
-        raise ValueError("El carrito tiene un checkout pendiente")
+        if pending_order(db, user_id):
+            raise ValueError(CART_LOCKED_MESSAGE)
+        cart.status = CartStatusEnum.active  # stale lock with no pending order: never lock a cart forever
     return cart
 
 
 # [CU15 - Secuencia: Paso 3.6] cart_routes invoca validate_cart_company(cart, tenant_id) sobre la entidad Carrito
+# [CU15 - Secuencia: Paso 3.7] Carrito retorna validate_cart_company(cart, tenant_id): None a cart_routes
 # [CU25 - Secuencia: Paso 2.9] cart_routes invoca validate_cart_company(cart, tenant_id) sobre la entidad Carrito
+# [CU25 - Secuencia: Paso 2.10] Carrito retorna validate_cart_company(cart, tenant_id): None a cart_routes
 # [CU30 - Secuencia: Paso 3.6] cart_routes invoca validate_cart_company(cart, tenant_id) sobre la entidad Carrito
+# [CU30 - Secuencia: Paso 3.7] Carrito retorna validate_cart_company(cart, tenant_id): None a cart_routes
 def validate_cart_company(db: Session, cart: Cart, tenant_id: UUID) -> None:
     """Validate before binding an empty cart or mutating an existing one."""
     rows = db.query(ProductVariant, Product).select_from(ProductVariant).join(
@@ -123,8 +157,11 @@ def _load_cart_items(db: Session, cart_id: UUID):
 
 
 # [CU15 - Secuencia: Pasos 3.16, 4.6] cart_routes invoca _serialize_cart(cart) sobre la entidad Carrito
+# [CU15 - Secuencia: Pasos 3.17, 4.7] Carrito retorna _serialize_cart(cart): CartRead a cart_routes
 # [CU25 - Secuencia: Paso 2.19] cart_routes invoca _serialize_cart(cart) sobre la entidad Carrito
+# [CU25 - Secuencia: Paso 2.20] Carrito retorna _serialize_cart(cart): CartRead a cart_routes
 # [CU30 - Secuencia: Paso 3.16] cart_routes invoca _serialize_cart(cart) sobre la entidad Carrito
+# [CU30 - Secuencia: Paso 3.17] Carrito retorna _serialize_cart(cart): CartRead a cart_routes
 def _serialize_cart(db: Session, cart: Cart) -> CartRead:
     cart_items = _load_cart_items(db, cart.id)
     subtotal = sum(Decimal(str(item["original_unit_price"])) * int(item["quantity"]) for item in cart_items)
@@ -139,6 +176,7 @@ def _serialize_cart(db: Session, cart: Cart) -> CartRead:
         except ValueError:
             coupon = None
     discount_amount = item_discount + coupon_discount
+    pending = pending_order(db, cart.user_id) if cart.status == CartStatusEnum.checkout_pending else None
     return CartRead.model_validate(
         {
             "id": cart.id,
@@ -157,11 +195,14 @@ def _serialize_cart(db: Session, cart: Cart) -> CartRead:
             "created_at": cart.created_at,
             "updated_at": cart.updated_at,
             "items": cart_items,
+            "pending_order_id": pending.id if pending else None,
+            "pending_order_expires_at": pending.pickup_expires_at if pending else None,
         }
     )
 
 
 def get_current_cart(db: Session, user_id: UUID) -> CartRead:
+    _expire_due_orders(db)
     cart = _get_active_cart(db, user_id)
     db.commit()
     db.refresh(cart)
@@ -169,8 +210,11 @@ def get_current_cart(db: Session, user_id: UUID) -> CartRead:
 
 
 # [CU16 - Secuencia: Pasos 3.6, 4.10] wishlist_routes invoca add_cart_item(user_id, payload) sobre la entidad DetalleCarrito
+# [CU16 - Secuencia: Pasos 3.7, 4.11] DetalleCarrito retorna add_cart_item(user_id, payload): CartRead a wishlist_routes
 # [CU25 - Secuencia: Paso 2.5] cart_routes invoca add_cart_item(user_id, payload) sobre la entidad DetalleCarrito
+# [CU25 - Secuencia: Paso 2.6] DetalleCarrito retorna add_cart_item(user_id, payload): CartRead a cart_routes
 # [CU30 - Secuencia: Paso 3.2] cart_routes invoca add_cart_item(user_id, payload) sobre la entidad DetalleCarrito
+# [CU30 - Secuencia: Paso 3.3] DetalleCarrito retorna add_cart_item(user_id, payload): CartRead a cart_routes
 def add_cart_item(db: Session, user_id: UUID, payload: CartItemCreate) -> CartRead:
     cart = _get_mutable_cart(db, user_id)
     variant = db.query(ProductVariant).join(Product).filter(ProductVariant.id == payload.variant_id).first()
@@ -204,7 +248,10 @@ def add_cart_item(db: Session, user_id: UUID, payload: CartItemCreate) -> CartRe
         raise ValueError("El carrito ya contiene una línea de una variante reservada")
     available = _available_quantity(db, variant.id, variant.tenant_id, payload.branch_id)
     next_quantity = payload.quantity + (existing.quantity if existing else 0)
-    if next_quantity > available:
+    from app.services.offline_sync_service import trusted_time
+
+    # An offline add may still win the unit by time at checkout (CU30), so it is not rejected here.
+    if next_quantity > available and not trusted_time(payload.offline_requested_at):
         raise ValueError("No hay stock disponible suficiente para la variante")
     if cart.promotion_code_id and variant.product and variant.product.discount_type and variant.product.discount_value:
         raise ValueError("Retira el cupón antes de agregar un producto con descuento")
@@ -271,6 +318,7 @@ def remove_cart_item(db: Session, user_id: UUID, item_id: UUID) -> CartRead:
 
 
 # [CU16 - Secuencia: Paso 4.6] wishlist_routes invoca clear_cart(user_id) sobre la entidad DetalleCarrito
+# [CU16 - Secuencia: Paso 4.7] DetalleCarrito retorna clear_cart(user_id): CartRead a wishlist_routes
 def clear_cart(db: Session, user_id: UUID) -> CartRead:
     cart = _get_mutable_cart(db, user_id)
     db.query(CartItem).filter(CartItem.cart_id == cart.id).delete(synchronize_session=False)
@@ -284,8 +332,11 @@ def clear_cart(db: Session, user_id: UUID) -> CartRead:
 
 
 # [CU15 - Secuencia: Pasos 3.14, 4.4] cart_routes invoca refresh_cart_totals(cart) sobre la entidad Carrito
+# [CU15 - Secuencia: Pasos 3.15, 4.5] Carrito retorna refresh_cart_totals(cart): None a cart_routes
 # [CU25 - Secuencia: Paso 2.17] cart_routes invoca refresh_cart_totals(cart) sobre la entidad Carrito
+# [CU25 - Secuencia: Paso 2.18] Carrito retorna refresh_cart_totals(cart): None a cart_routes
 # [CU30 - Secuencia: Paso 3.14] cart_routes invoca refresh_cart_totals(cart) sobre la entidad Carrito
+# [CU30 - Secuencia: Paso 3.15] Carrito retorna refresh_cart_totals(cart): None a cart_routes
 def refresh_cart_totals(db: Session, cart: Cart) -> None:
     # SessionLocal has autoflush=False: without this, a just-added line is invisible
     # here and the cart would be emptied of its company (tenant_id = None).
@@ -350,6 +401,7 @@ def apply_coupon(db: Session, user_id: UUID, payload: PromotionCodeApply) -> Car
 
 
 # [CU16 - Secuencia: Paso 4.8] wishlist_routes invoca set_cart_branch(user_id, branch_id) sobre la entidad Sucursal
+# [CU16 - Secuencia: Paso 4.9] Sucursal retorna set_cart_branch(user_id, branch_id): tuple[CartRead, str | None] a wishlist_routes
 def set_cart_branch(db: Session, user_id: UUID, branch_id: UUID | None) -> tuple[CartRead, str | None]:
     cart = _get_mutable_cart(db, user_id)
     warning_message = None

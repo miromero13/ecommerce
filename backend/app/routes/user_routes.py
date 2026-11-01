@@ -30,6 +30,7 @@ async def create_user_route(user: UserCreate, db: Session = Depends(get_db)):
 
 
 # [CU03 - Secuencia: Paso 3.1] AdminUserPageComponent llama a create_admin_user_route(user) de user_routes (POST /api/users/admin)
+# [CU03 - Secuencia: Paso 3.6] user_routes retorna create_admin_user_route(user): 201 Usuario creado exitosamente a AdminUserPageComponent
 @router.post("/admin", status_code=status.HTTP_201_CREATED)
 async def create_admin_user_route(
     user: AdminUserCreate,

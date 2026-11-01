@@ -610,23 +610,24 @@ def test_own_company_coupon_cash_collection_records_one_usage(market_api, api_db
              message="El pedido no está disponible para entrega", json={"pickup_code": order["pickup_code"]})
 
 
-def test_pending_web_order_does_not_block_buying_from_other_company(market_api, api_db, market):
+def test_pending_web_order_locks_cart_until_paid(market_api, api_db, market):
     reservation = purchase_pending(market_api, market)
     path = f"/reservations/{reservation['id']}/to-cart"
     call(market_api, market.customer, "POST", path)
     order = checkout(market_api, market)
-    empty = call(market_api, market.customer, "GET", "/cart/current")
-    assert empty["status"] == "active" and empty["items"] == []
-    # A pending pickup order must not lock the cart for other companies.
-    cart = add(market_api, market, market.foreign, market.branches[2])
-    assert cart["item_count"] == 1
-    call(market_api, market.customer, "DELETE", "/cart/current")
+    # The cart keeps the reserved line (locked) until the order is paid or expires.
+    locked = call(market_api, market.customer, "GET", "/cart/current")
+    assert locked["status"] == "checkout_pending" and locked["pending_order_id"] == order["id"]
+    assert [item["variant_id"] for item in locked["items"]] == [str(market.own.variant.id)]
+    rejected(market_api, api_db, market.customer, "POST", "/cart/items",
+             message="Tienes un pedido pendiente de pago. Págalo o cancélalo para modificar el carrito.",
+             json={"variant_id": str(market.foreign.variant.id), "branch_id": str(market.branches[2].id), "quantity": 1})
     # The reservation already travels in the pending order: no second checkout.
     rejected(market_api, api_db, market.customer, "POST", path,
              message="La reserva ya tiene un pedido pendiente de pago")
-    add(market_api, market, market.foreign, market.branches[2])
-    # Paying the first order must not wipe the new company's cart.
+    # Once paid, the cart is free again for any company.
     pay(market_api, market, order)
+    add(market_api, market, market.foreign, market.branches[2])
     cart = call(market_api, market.customer, "GET", "/cart/current")
     assert [item["variant_id"] for item in cart["items"]] == [str(market.foreign.variant.id)]
     assert_tenant(api_db, "carts", cart["id"], market.foreign.tenant)

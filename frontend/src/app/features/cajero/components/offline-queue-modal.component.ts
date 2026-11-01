@@ -121,9 +121,9 @@ import { OfflineCatalogService } from '../../../core/services/offline-catalog.se
                         [ngClass]="{
                           'bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300': op.status === 'local_pending',
                           'bg-blue-100 text-blue-800 dark:bg-blue-950/50 dark:text-blue-300': op.status === 'syncing',
-                          'bg-rose-100 text-rose-800 dark:bg-rose-950/50 dark:text-rose-300': op.status === 'conflict_rejected'
+                          'bg-rose-100 text-rose-800 dark:bg-rose-950/50 dark:text-rose-300': op.status === 'rejected'
                         }">
-                        {{ op.status === 'local_pending' ? 'Pendiente' : op.status === 'syncing' ? 'Sincronizando' : 'Conflicto' }}
+                        {{ op.status === 'local_pending' ? 'Pendiente' : op.status === 'syncing' ? 'Sincronizando' : 'Rechazada' }}
                       </span>
                     </div>
 
@@ -134,6 +134,9 @@ import { OfflineCatalogService } from '../../../core/services/offline-catalog.se
                       <span>•</span>
                       <span>{{ op.items.length }} {{ op.items.length === 1 ? 'prenda' : 'prendas' }}</span>
                     </div>
+                    @if (op.status === 'rejected' && op.sync_error) {
+                      <p class="text-xs text-rose-700 dark:text-rose-300">Motivo del rechazo: {{ op.sync_error }}</p>
+                    }
                   </div>
 
                   <div class="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-0 border-zinc-100 dark:border-zinc-800">
@@ -179,7 +182,7 @@ import { OfflineCatalogService } from '../../../core/services/offline-catalog.se
                     @if (op.sync_error) {
                       <div class="mt-2 p-2 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-[11px] text-rose-700 dark:text-rose-300 flex items-center gap-1.5">
                         <ng-icon name="lucideAlertTriangle" class="text-xs shrink-0" />
-                        <span>Error previo: {{ op.sync_error }}</span>
+                        <span>{{ op.status === 'rejected' ? 'Rechazada por el servidor' : 'Error previo' }}: {{ op.sync_error }}</span>
                       </div>
                     }
                   </div>

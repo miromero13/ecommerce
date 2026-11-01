@@ -6,6 +6,7 @@ import { HlmButton } from '../../../components/button/src';
 import { HlmInput } from '../../../components/input/src';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
 import { CashSessionApiService } from '../../shared/services/cash-session-api.service';
+import { OfflineQueueService } from '../../../core/services/offline-queue.service';
 
 /** 1P-CU18: open the drawer with a starting amount, register deposits/withdrawals and close it counting the cash. */
 @Component({
@@ -78,6 +79,7 @@ import { CashSessionApiService } from '../../shared/services/cash-session-api.se
 })
 export class CashDrawerPanelComponent implements OnInit {
   protected readonly cash = inject(CashSessionApiService);
+  private readonly offlineQueue = inject(OfflineQueueService);
   protected readonly mode = signal<'movement' | 'close' | null>(null);
   protected readonly busy = signal(false);
   protected readonly openingAmount = signal('');
@@ -119,6 +121,11 @@ export class CashDrawerPanelComponent implements OnInit {
   }
 
   protected closeDrawer(): Promise<void> {
+    // Offline sales belong to this drawer: they must reach the server before the cash count.
+    if (this.offlineQueue.pendingCount() > 0) {
+      toast.warning('Sincroniza las ventas offline antes de cerrar la caja');
+      return Promise.resolve();
+    }
     const counted = Number(this.countedAmount());
     if (this.countedAmount() === '' || !(counted >= 0)) {
       toast.warning('Ingresa el efectivo contado en la caja.');

@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 
 import '../../core/network/api_client.dart';
 import '../../core/network/api_exception.dart';
+import '../../core/offline/offline_cart_service.dart';
+import '../../core/offline/offline_checkout_service.dart';
 import '../auth/auth_controller.dart';
 import 'order_api.dart';
 import 'order_models.dart';
@@ -21,6 +23,10 @@ class OrderController extends ChangeNotifier {
 
   final OrderApi _api;
   OrderApi get api => _api;
+  final _offlineCheckout = OfflineCheckoutService();
+
+  /// True when the last request got no answer from the server (no connection).
+  bool isOffline = false;
 
   OrderControllerStatus status = OrderControllerStatus.idle;
   List<Order> orders = const [];
@@ -43,10 +49,20 @@ class OrderController extends ChangeNotifier {
       orders = result.orders;
       pickupBranches = results.last as List<PickupBranch>;
       feedbackMessage = result.message;
+      isOffline = false;
       status = OrderControllerStatus.ready;
+      await _offlineCheckout.cacheBranches(pickupBranches.map((b) => b.toJson()).toList());
     } catch (error) {
-      status = OrderControllerStatus.error;
       errorMessage = _messageFor(error);
+      isOffline = OfflineCartService.isOffline(error);
+      // CU30: sin conexión se usan las sucursales guardadas para poder dejar la compra pendiente.
+      final cached = isOffline ? await _offlineCheckout.cachedBranches() : const <Map<String, dynamic>>[];
+      if (cached.isNotEmpty) {
+        pickupBranches = cached.map(PickupBranch.fromJson).toList(growable: false);
+        status = OrderControllerStatus.ready;
+      } else {
+        status = OrderControllerStatus.error;
+      }
     }
     notifyListeners();
   }
@@ -71,13 +87,19 @@ class OrderController extends ChangeNotifier {
     required String pickupBranchId,
     Map<String, dynamic>? delivery,
     int points = 0,
+    String? offlineRequestedAt,
   }) async {
     status = OrderControllerStatus.saving;
     errorMessage = null;
     feedbackMessage = null;
     notifyListeners();
     try {
-      final result = await _api.checkoutStripe(pickupBranchId: pickupBranchId, delivery: delivery, points: points);
+      final result = await _api.checkoutStripe(
+        pickupBranchId: pickupBranchId,
+        delivery: delivery,
+        points: points,
+        offlineRequestedAt: offlineRequestedAt,
+      );
       feedbackMessage = result.message;
       status = OrderControllerStatus.ready;
       notifyListeners();
@@ -85,6 +107,7 @@ class OrderController extends ChangeNotifier {
     } catch (error) {
       status = OrderControllerStatus.error;
       errorMessage = _messageFor(error);
+      isOffline = OfflineCartService.isOffline(error);
       notifyListeners();
       return null;
     }
@@ -108,6 +131,7 @@ class OrderController extends ChangeNotifier {
     } catch (error) {
       status = OrderControllerStatus.error;
       errorMessage = _messageFor(error);
+      isOffline = OfflineCartService.isOffline(error);
       notifyListeners();
       return null;
     }
@@ -127,8 +151,21 @@ class OrderController extends ChangeNotifier {
     } catch (error) {
       status = OrderControllerStatus.error;
       errorMessage = _messageFor(error);
+      isOffline = OfflineCartService.isOffline(error);
       notifyListeners();
       return null;
+    }
+  }
+
+  /// Returns true when the order was cancelled (the cart is unlocked on the server).
+  Future<bool> cancelOrder({required String orderId}) async {
+    errorMessage = null;
+    try {
+      feedbackMessage = await _api.cancelOrder(orderId: orderId);
+      return true;
+    } catch (error) {
+      errorMessage = _messageFor(error);
+      return false;
     }
   }
 

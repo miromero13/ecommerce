@@ -82,6 +82,29 @@ class DashboardInventoryPoint(BaseModel):
     quantity: int = 0
     reserved_quantity: int = 0
     available_quantity: int = 0
+    # sku/available duplicate variant_sku/available_quantity on purpose: backward compatibility for old clients.
+    sku: str = ''
+    available: int = 0
+    minimum: int = 0
+
+
+class DashboardComparison(BaseModel):
+    sales_delta_pct: float | None = None
+    orders_delta_pct: float | None = None
+    units_delta_pct: float | None = None
+    avg_ticket_delta_pct: float | None = None
+
+
+class DashboardChannelPoint(BaseModel):
+    channel_label: str
+    sales: Decimal = Decimal('0.00')
+    orders: int = 0
+
+
+class DashboardCategoryPoint(BaseModel):
+    category_name: str
+    units: int = 0
+    sales: Decimal = Decimal('0.00')
 
 
 class DashboardResponse(BaseModel):
@@ -93,3 +116,6 @@ class DashboardResponse(BaseModel):
     branch_kpis: list[DashboardBranchKpi]
     top_products: list[DashboardProductKpi]
     low_stock: list[DashboardInventoryPoint]
+    comparison: DashboardComparison = Field(default_factory=DashboardComparison)
+    channel_split: list[DashboardChannelPoint] = Field(default_factory=list)
+    top_categories: list[DashboardCategoryPoint] = Field(default_factory=list)

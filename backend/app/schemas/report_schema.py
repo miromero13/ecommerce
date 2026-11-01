@@ -5,7 +5,7 @@ from uuid import UUID
 
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 from app.schemas.order_schema import PaymentMethodEnum, PaymentStatusEnum
 from app.schemas.sales_schema import SaleStatusEnum
@@ -71,57 +71,7 @@ class ReportQuery(BaseModel):
     q: str | None = None
 
 
-AllowedReportColumn = Literal[
-    "branch_name",
-    "product_name",
-    "variant_sku",
-    "type",
-    "quantity_sold",
-    "gross_sales",
-    "payment_method",
-    "payment_status",
-    "sale_status",
-    "quantity",
-    "reserved_quantity",
-    "available_quantity",
-    "minimum_stock",
-    "movement_type",
-    "movements_count",
-]
-
-AllowedSalesReportColumn = Literal[
-    "branch_name",
-    "product_name",
-    "variant_sku",
-    "type",
-    "quantity_sold",
-    "gross_sales",
-    "payment_method",
-    "payment_status",
-    "sale_status",
-]
-
-DEFAULT_SALES_REPORT_COLUMNS: list[AllowedSalesReportColumn] = [
-    "branch_name",
-    "product_name",
-    "variant_sku",
-    "type",
-    "quantity_sold",
-    "gross_sales",
-    "payment_method",
-    "payment_status",
-    "sale_status",
-]
-
-DEFAULT_INVENTORY_REPORT_COLUMNS = [
-    "branch_name", "product_name", "variant_sku", "quantity", "reserved_quantity", "available_quantity",
-]
-DEFAULT_MOVEMENT_REPORT_COLUMNS = [
-    "branch_name", "product_name", "variant_sku", "movement_type", "quantity", "movements_count",
-]
-
-
-SmartReportType = Literal["sales", "inventory", "movements", "top_products", "branch_comparison", "critical_inventory"]
+SmartReportType = Literal["sales", "inventory", "movements", "top_products", "branch_comparison", "critical_inventory", "customers"]
 
 
 class DemandForecastRequest(BaseModel):
@@ -143,6 +93,7 @@ class ModelDataSource(BaseModel):
 
 class ForecastPoint(BaseModel):
     week: str
+    week_start: str | None = None
     predicted_units: float
     confidence_lower: float
     confidence_upper: float
@@ -154,11 +105,21 @@ class ForecastMetrics(BaseModel):
     test_samples: int
 
 
+class ProductDemand(BaseModel):
+    product_id: str
+    product_name: str
+    predicted_units: float
+    available_stock: int
+    suggested_restock: int
+
+
 class DemandForecast(BaseModel):
     model_type: str
     evaluation_metrics: ForecastMetrics
     forecast: list[ForecastPoint]
     data_source: ModelDataSource
+    recent_weekly_average: float | None = None
+    products: list[ProductDemand] = Field(default_factory=list)
 
 
 class CustomerSegment(BaseModel):
@@ -168,6 +129,10 @@ class CustomerSegment(BaseModel):
     avg_spend: float
     real_customers: int
     synthetic_customers: int
+    avg_recency_days: float = 0
+    avg_orders: float = 0
+    recommendation: str = ""
+    top_customers: list[str] = Field(default_factory=list)
 
 
 class ClusterMetrics(BaseModel):
@@ -184,25 +149,6 @@ class CustomerClusters(BaseModel):
 
 class NaturalReportRequest(BaseModel):
     query: str = Field(min_length=1, max_length=500)
-
-
-class NaturalReportInterpretation(BaseModel):
-    report_type: SmartReportType
-    format: Literal["pdf", "html", "csv"] = "pdf"
-    branch_id: UUID | None = None
-    product_id: UUID | None = None
-    variant_id: UUID | None = None
-    from_date: date | None = None
-    to_date: date | None = None
-    q: str | None = Field(default=None, max_length=120)
-    interpretation: str = Field(min_length=1, max_length=500)
-    unmatched_entity: str | None = Field(default=None, max_length=160)
-    columns: list[AllowedReportColumn] = Field(default_factory=lambda: DEFAULT_SALES_REPORT_COLUMNS.copy(), min_length=1)
-
-    @field_validator("columns")
-    @classmethod
-    def deduplicate_columns(cls, value: list[AllowedReportColumn]) -> list[AllowedReportColumn]:
-        return list(dict.fromkeys(value))
 
 
 class ReportExportMeta(BaseModel):

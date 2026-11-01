@@ -13,6 +13,7 @@ from app.schemas.order_schema import PaymentMethodEnum, PaymentStatusEnum
 
 
 # [CU19 - Secuencia: Pasos 1.2, 1.8, 2.8, 2.14, 3.10, 3.16, 4.20] wallet_routes invoca get_or_create_wallet(user_id) sobre la entidad BilleteraUsuario
+# [CU19 - Secuencia: Pasos 1.3, 1.9, 2.9, 2.15, 3.11, 3.17, 4.21] BilleteraUsuario retorna get_or_create_wallet(user_id): UserWallet a wallet_routes
 def get_or_create_wallet(db: Session, user_id: UUID) -> UserWallet:
     wallet = db.query(UserWallet).filter(UserWallet.user_id == user_id).first()
     if not wallet:
@@ -32,7 +33,9 @@ def get_wallet_balance(db: Session, user_id: UUID) -> dict:
 
 
 # [CU19 - Secuencia: Paso 2.2] wallet_routes invoca redeem_gift_card(user_id, card_code) sobre la entidad BilleteraUsuario
+# [CU19 - Secuencia: Paso 2.3] BilleteraUsuario retorna redeem_gift_card(user_id, card_code): dict a wallet_routes
 # [CU19 - Secuencia: Paso 2.4] wallet_routes invoca redeem_gift_card(user_id, card_code) sobre la entidad MovimientoBilletera
+# [CU19 - Secuencia: Paso 2.5] MovimientoBilletera retorna redeem_gift_card(user_id, card_code): dict a wallet_routes
 def redeem_gift_card(db: Session, user_id: UUID, card_code: str) -> dict:
     code = card_code.strip().upper()
     now = datetime.now(timezone.utc)
@@ -100,7 +103,9 @@ def redeem_gift_card(db: Session, user_id: UUID, card_code: str) -> dict:
 
 
 # [CU19 - Secuencia: Paso 3.2] wallet_routes invoca convert_loyalty_points(user_id, tenant_id, points) sobre la entidad BilleteraUsuario
+# [CU19 - Secuencia: Paso 3.3] BilleteraUsuario retorna convert_loyalty_points(user_id, tenant_id, points): dict a wallet_routes
 # [CU19 - Secuencia: Paso 3.4] wallet_routes invoca convert_loyalty_points(user_id, tenant_id, points) sobre la entidad MovimientoBilletera
+# [CU19 - Secuencia: Paso 3.5] MovimientoBilletera retorna convert_loyalty_points(user_id, tenant_id, points): dict a wallet_routes
 def convert_loyalty_points(db: Session, user_id: UUID, tenant_id: UUID, points: int) -> dict:
     from app.models.tenant import Tenant
     from app.services import loyalty_service
@@ -225,7 +230,9 @@ def pay_order_with_wallet(db: Session, user_id: UUID, order_id: UUID, amount_to_
 
 
 # [CU19 - Secuencia: Paso 4.2] wallet_routes invoca checkout_with_wallet(user_id, pickup_branch_id, delivery, points_to_redeem) sobre la entidad BilleteraUsuario
+# [CU19 - Secuencia: Paso 4.3] BilleteraUsuario retorna checkout_with_wallet(user_id, pickup_branch_id, delivery, points_to_redeem): dict a wallet_routes
 # [CU19 - Secuencia: Paso 4.4] wallet_routes invoca checkout_with_wallet(user_id, pickup_branch_id, delivery, points_to_redeem) sobre la entidad MovimientoBilletera
+# [CU19 - Secuencia: Paso 4.5] MovimientoBilletera retorna checkout_with_wallet(user_id, pickup_branch_id, delivery, points_to_redeem): dict a wallet_routes
 def checkout_with_wallet(
     db: Session,
     user_id: UUID,
@@ -234,7 +241,8 @@ def checkout_with_wallet(
     points_to_redeem: int = 0,
 ) -> dict:
     from app.models.cart import Cart
-    from app.schemas.enums import CartStatusEnum
+    from app.schemas.cart_schema import CartStatusEnum
+    from app.services.cart_service import CART_LOCKED_MESSAGE, pending_order
     from app.services.order_service import (
         _consume_order,
         _locked_cart,
@@ -246,10 +254,13 @@ def checkout_with_wallet(
     expire_due_orders(db)
     cart = _locked_cart(db, user_id)
     if cart.status == CartStatusEnum.checkout_pending:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="El carrito tiene un checkout pendiente",
-        )
+        if pending_order(db, user_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=CART_LOCKED_MESSAGE,
+            )
+        cart.status = CartStatusEnum.active  # stale lock without a pending order
+
 
     wallet = (
         db.query(UserWallet)
@@ -296,6 +307,9 @@ def checkout_with_wallet(
     db.add(tx)
     _consume_order(db, order)
     db.commit()
+    from app.services.notification_service import notify_order_event
+
+    notify_order_event(db, order.id, order.user_id, "paid")  # same notice a card payment gets
     return _serialize_order(db, order).model_dump()
 
 
@@ -307,6 +321,7 @@ def credit_wallet(
     source_type: str | None = None,
     source_id: UUID | None = None,
     description: str | None = None,
+    commit: bool = True,
 ) -> UserWallet:
     wallet = (
         db.query(UserWallet)
@@ -335,12 +350,16 @@ def credit_wallet(
         created_at=now,
     )
     db.add(tx)
+    if not commit:  # caller owns the transaction (e.g. CU30 conflict resolution)
+        db.flush()
+        return wallet
     db.commit()
     db.refresh(wallet)
     return wallet
 
 
 # [CU19 - Secuencia: Pasos 1.6, 2.12, 3.14] wallet_routes invoca list_transactions(user_id) sobre la entidad MovimientoBilletera
+# [CU19 - Secuencia: Pasos 1.7, 2.13, 3.15] MovimientoBilletera retorna list_transactions(user_id): list[dict] a wallet_routes
 def list_transactions(db: Session, user_id: UUID) -> list[dict]:
     wallet = get_or_create_wallet(db, user_id)
     txs = (

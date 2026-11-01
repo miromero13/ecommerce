@@ -128,33 +128,15 @@
                     <ng-icon name="lucideSparkles" class="text-amber-500"></ng-icon>
                     Reporte por lenguaje natural asistido con IA
                   </h3>
-                  <span class="text-xs text-slate-400">Dictá o escribí tu consulta</span>
                 </div>
                 <p class="text-xs text-slate-500">
-                  Por ejemplo: <em>«stock disponible de pantalones en la sucursal Norte»</em> o <em>«movimientos de salida de este mes en PDF»</em>.
+                  Las consultas en lenguaje natural (por voz o texto) ahora se hacen en la página de Reportes.
                 </p>
-                <div class="flex items-center gap-2">
-                  <div class="relative flex-1">
-                    <input
-                      type="text"
-                      class="h-10 w-full rounded-md border border-slate-300 bg-white px-3 pr-11 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
-                      [value]="naturalQuery()"
-                      (input)="setNaturalQuery($event)"
-                      placeholder="Escribe o dicta tu consulta..." />
-                    <button
-                      type="button"
-                      class="absolute right-1 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-primary text-white hover:opacity-90 disabled:opacity-50 cursor-pointer"
-                      [disabled]="reportLoading()"
-                      [attr.aria-label]="listening() ? 'Detener reconocimiento de voz' : 'Iniciar reconocimiento de voz'"
-                      [title]="listening() ? 'Detener reconocimiento de voz' : 'Iniciar reconocimiento de voz'"
-                      (click)="startListening()">
-                        <ng-icon [name]="listening() ? 'lucideSquare' : 'lucideMic'" color="white" size="16px" />
-                    </button>
-                  </div>
-                  <button hlmBtn class="h-10 px-4 cursor-pointer" type="button" [disabled]="reportLoading() || listening()" (click)="generateNaturalReport()">
-                    {{ reportLoading() ? 'Consultando...' : 'Generar' }}
-                  </button>
-                </div>
+                @if (isAdmin()) {
+                  <a hlmBtn class="h-10 px-4" routerLink="/app/admin/reports">Preguntar en Reportes</a>
+                } @else {
+                  <p class="text-xs text-slate-500">Pide al administrador la consulta en la página de Reportes.</p>
+                }
               </section>
             } @else {
               <!-- BLOQUEADO CON CANDADITO (PLAN BÁSICO) -->

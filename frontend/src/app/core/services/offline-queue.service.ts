@@ -5,7 +5,7 @@ import { IndexedDbService, STORES } from './indexeddb.service';
 import { environment } from '../../../environments/environment';
 
 export type OfflineOperationType = 'cash_sale' | 'reservation';
-export type OfflineOperationStatus = 'local_pending' | 'syncing' | 'synced' | 'conflict_rejected';
+export type OfflineOperationStatus = 'local_pending' | 'syncing' | 'synced' | 'rejected';
 
 export interface OfflineSaleItem {
   variant_id: string;
@@ -29,7 +29,9 @@ export interface OfflineOperation {
   branch_id?: string | null;
   cashier_name?: string | null;
   cashier_id?: string | null;
+  cash_session_id?: string | null;
   customer_name?: string | null;
+  customer_phone?: string | null;
   customer_email?: string | null;
   customer_document?: string | null;
   items: OfflineSaleItem[];
@@ -157,15 +159,16 @@ export class OfflineQueueService {
    */
   // [CU30 - Secuencia: Paso 1.1] OfflineSyncService invoca syncBatchNow() en OfflineQueueService
   // [CU30 - Secuencia: Paso 2.1] CajaPageComponent invoca syncBatchNow() en OfflineQueueService
-  async syncBatchNow(): Promise<{ synced: number; conflicts: number; failed: number }> {
-    if (this.isSyncing()) {
-      return { synced: 0, conflicts: 0, failed: 0 };
-    }
+  async syncBatchNow(): Promise<{ synced: number; conflicts: number; rejected: number; failed: number }> {
+    const empty = { synced: 0, conflicts: 0, rejected: 0, failed: 0 };
+    if (this.isSyncing()) return empty;
 
-    const pending = this.operations().filter((op) => op.status === 'local_pending' || op.status === 'conflict_rejected');
-    if (!pending.length) {
-      return { synced: 0, conflicts: 0, failed: 0 };
-    }
+    // Oldest first: the sale that reaches the server first keeps the last unit.
+    // Rejected operations are never resent automatically.
+    const pending = this.operations()
+      .filter((op) => op.status === 'local_pending')
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    if (!pending.length) return empty;
 
     this.isSyncing.set(true);
     this.lastSyncAttempt.set(new Date());
@@ -182,22 +185,25 @@ export class OfflineQueueService {
           receipt_number: op.receipt_number,
           type: op.type,
           created_at: op.created_at,
-          tenant_id: op.tenant_id,
           branch_id: op.branch_id,
           cashier_id: op.cashier_id,
-          cashier_name: op.cashier_name,
-          customer_email: op.customer_email,
+          cash_session_id: op.cash_session_id ?? null,
+          customer_name: op.customer_name,
+          customer_phone: op.customer_phone ?? null,
+          customer_email: op.customer_email ?? null,
           items: op.items.map((it) => ({
             variant_id: it.variant_id,
             quantity: it.quantity,
             unit_price: it.unit_price,
+            product_name: it.product_name,
+            variant_sku: it.variant_sku,
           })),
           subtotal: op.subtotal,
           discount: op.discount,
           total: op.total,
           cash_received: op.cash_received,
           change_returned: op.change_returned,
-          notes: op.notes,
+          notes: op.notes ?? null,
         })),
       };
 
@@ -207,35 +213,46 @@ export class OfflineQueueService {
           data: {
             synced_count: number;
             conflicts_count: number;
+            rejected_count: number;
             synced_ids: string[];
-            conflicts: Array<{ operation_id: string; reason: string }>;
+            conflicts: Array<{ operation_id: string }>;
+            rejected: Array<{ operation_id: string; reason: string }>;
           };
         }>(`${apiUrl}/offline/queue-sync`, payload)
       );
 
       const data = res?.data;
-      if (data) {
-        for (const syncedId of data.synced_ids || []) {
-          await this.removeOperation(syncedId);
-        }
-
-        for (const conflict of data.conflicts || []) {
-          await this.updateStatus(conflict.operation_id, 'conflict_rejected', conflict.reason);
-        }
-
-        return {
-          synced: data.synced_count || 0,
-          conflicts: data.conflicts_count || 0,
-          failed: 0,
-        };
+      if (!data) {
+        for (const op of pending) await this.updateStatus(op.operation_id, 'local_pending');
+        return { ...empty, failed: pending.length };
       }
-      return { synced: 0, conflicts: 0, failed: 0 };
+
+      // Synced sales and conflicts now live on the server: drop them from the local queue.
+      const done = [...(data.synced_ids || []), ...(data.conflicts || []).map((c) => c.operation_id)];
+      for (const id of done) {
+        await this.idb.deleteItem(STORES.PENDING_OPERATIONS_QUEUE, id);
+      }
+      for (const r of data.rejected || []) {
+        await this.updateStatus(r.operation_id, 'rejected', r.reason);
+      }
+      // Anything the server did not mention goes back to pending.
+      const handled = new Set([...done, ...(data.rejected || []).map((r) => r.operation_id)]);
+      for (const op of pending) {
+        if (!handled.has(op.operation_id)) await this.updateStatus(op.operation_id, 'local_pending');
+      }
+
+      return {
+        synced: data.synced_count || 0,
+        conflicts: data.conflicts_count || 0,
+        rejected: data.rejected_count || 0,
+        failed: 0,
+      };
     } catch (err) {
       console.warn('Error sincronizando lote offline con el servidor:', err);
       for (const op of pending) {
         await this.updateStatus(op.operation_id, 'local_pending', 'Error de conexión con el servidor central');
       }
-      return { synced: 0, conflicts: 0, failed: pending.length };
+      return { ...empty, failed: pending.length };
     } finally {
       this.isSyncing.set(false);
       await this.loadQueue();

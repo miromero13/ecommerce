@@ -25,6 +25,7 @@ def _filters(
 
 
 # [CU13 - Secuencia: Pasos 1.1, 2.1] AdminHomePageComponent llama a dashboard_route() de dashboard_routes (GET /api/dashboard)
+# [CU13 - Secuencia: Pasos 1.4, 2.4] dashboard_routes retorna dashboard_route(): 200 Dashboard obtenido exitosamente a AdminHomePageComponent
 @router.get("")
 def dashboard_route(
     db: Session = Depends(get_db),

@@ -17,6 +17,7 @@ CUSTOMER = require_roles(RolEnum.cliente)
 
 
 # [CU17 - Secuencia: Paso 1.1] LoyaltyPageComponent llama a balance_route() de loyalty_routes (GET /api/loyalty/balance)
+# [CU17 - Secuencia: Paso 1.6] loyalty_routes retorna balance_route(): 200 Puntos obtenidos exitosamente a LoyaltyPageComponent
 @router.get("/balance")
 def balance_route(db: Session = Depends(get_db), user: dict = Depends(CUSTOMER)):
     return response(status_code=200, message="Puntos obtenidos exitosamente",
@@ -24,6 +25,7 @@ def balance_route(db: Session = Depends(get_db), user: dict = Depends(CUSTOMER))
 
 
 # [CU17 - Secuencia: Paso 1.7] LoyaltyPageComponent llama a transactions_route() de loyalty_routes (GET /api/loyalty/transactions)
+# [CU17 - Secuencia: Paso 1.10] loyalty_routes retorna transactions_route(): 200 Movimientos de puntos obtenidos exitosamente a LoyaltyPageComponent
 @router.get("/transactions")
 def transactions_route(db: Session = Depends(get_db), user: dict = Depends(CUSTOMER)):
     return response(status_code=200, message="Movimientos de puntos obtenidos exitosamente",
@@ -31,6 +33,7 @@ def transactions_route(db: Session = Depends(get_db), user: dict = Depends(CUSTO
 
 
 # [CU17 - Secuencia: Paso 2.1] CajaPageComponent llama a customer_balance_route(email) de loyalty_routes (GET /api/loyalty/customer)
+# [CU17 - Secuencia: Paso 2.8] loyalty_routes retorna customer_balance_route(email): 200 Puntos del cliente obtenidos exitosamente a CajaPageComponent
 @router.get("/customer")
 def customer_balance_route(
     email: EmailStr = Query(...),

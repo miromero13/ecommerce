@@ -143,20 +143,22 @@ export class DetectorRopaComponent implements OnChanges, OnDestroy {
     this.bindGarment();
   }
   protected async saveCalibration(): Promise<void> {
+    if (!this.editor) { this.calibrationMessage.set('Espera a que se cargue la prenda.'); return; }
+    let points: Point[];
     try {
-      const variantId = this.variantId;
-      const hasVariant = !!variantId;
-      const message = this.editor?.save(!hasVariant);
-      if (!message) { this.calibrationMessage.set('Espera a que se cargue la prenda.'); return; }
-      const points = this.editor?.getPoints();
-      if (variantId && points) {
-        await firstValueFrom(this.catalogApi.updateVariantGarmentPoints(variantId, points));
-        this.engine?.setCalibration(points); this.calibrated.set(true);
-        this.calibrationMessage.set('Calibración guardada en esta variante.');
-      } else {
-        this.calibrationMessage.set(message);
-      }
-    } catch (error) { this.calibrationMessage.set(this.messageFor(error)); }
+      this.editor.save(false); points = this.editor.getPoints();
+      // The garment goes on the camera first: trying it on never depends on saving the points.
+      this.engine?.setCalibration(points); this.calibrated.set(true);
+    } catch (error) { this.calibrationMessage.set(this.messageFor(error)); return; }
+    const variantId = this.variantId;
+    if (!variantId) { this.calibrationMessage.set('Calibración aplicada para esta sesión.'); return; }
+    try {
+      // Only the store administrator may save the points on the variant (the API answers 403 to customers).
+      await firstValueFrom(this.catalogApi.updateVariantGarmentPoints(variantId, points));
+      this.calibrationMessage.set('Calibración guardada en esta variante.');
+    } catch {
+      this.calibrationMessage.set('Calibración aplicada para esta sesión.');
+    }
   }
   protected resetCalibration(): void {
     this.editor?.reset(); this.engine?.recalibrate(); this.calibrated.set(false); this.calibrationMessage.set('Ajusta los puntos y vuelve a guardar.');

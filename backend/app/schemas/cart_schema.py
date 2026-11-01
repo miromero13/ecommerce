@@ -22,6 +22,8 @@ class CartItemCreate(BaseModel):
     branch_id: UUID | None = None
     reservation_id: UUID | None = None
     quantity: int = Field(gt=0)
+    # CU30: garment added on the phone without internet; its stock is decided by the offline queue at checkout.
+    offline_requested_at: datetime | None = None
 
 
 class CartItemUpdate(BaseModel):
@@ -67,5 +69,8 @@ class CartRead(BaseModel):
     created_at: datetime
     updated_at: datetime | None = None
     items: list[CartItemRead] = Field(default_factory=list)
+    # Set only while an unpaid order locks the cart (status checkout_pending).
+    pending_order_id: UUID | None = None
+    pending_order_expires_at: datetime | None = None
 
     model_config = {"from_attributes": True}

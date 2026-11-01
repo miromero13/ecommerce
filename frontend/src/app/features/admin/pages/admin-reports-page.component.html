@@ -17,13 +17,226 @@
   @if (tab() === 'reports') {
     <section hlmCard class="p-4 space-y-3">
       <h2 class="font-semibold">Consulta en lenguaje natural</h2>
-      <p class="text-sm text-slate-500">Por ejemplo: ventas de esta semana por sucursal. Requiere reportes con IA en tu plan.</p>
+      <p class="text-sm text-slate-500">Escribe o dicta lo que necesitas; luego ajusta la interpretación sin volver a consultar. Requiere reportes con IA en tu plan.</p>
       <label for="natural-query" class="text-sm">Solicitud escrita o dictada</label>
-      <textarea id="natural-query" hlmInput rows="2" [(ngModel)]="naturalQuery" placeholder="¿Qué reporte necesitas?"></textarea>
-      <div class="flex flex-wrap gap-2">
-        <button hlmBtn type="button" variant="outline" (click)="startListening()" [attr.aria-pressed]="listening()">{{ listening() ? 'Detener dictado' : 'Dictar por voz' }}</button>
-        <button hlmBtn type="button" (click)="generateReport(true)" [disabled]="loading() || exporting()">Consultar IA</button>
+      <textarea id="natural-query" hlmInput rows="2" maxlength="500" [(ngModel)]="question" placeholder="¿Qué reporte necesitas?"></textarea>
+      <div class="flex flex-wrap items-center gap-2">
+        <app-voice-input-button (transcript)="question = $event" />
+        <button hlmBtn type="button" (click)="ask()" [disabled]="asking() || running() || exportingAnalytics()">{{ asking() ? 'Interpretando…' : 'Consultar' }}</button>
       </div>
+      <div class="flex flex-wrap items-center gap-2" role="group" aria-label="Ejemplos rápidos">
+        <span class="text-xs text-slate-500">Ejemplos rápidos:</span>
+        @for (example of quickExamples; track example) {
+          <button type="button" class="rounded-full border px-3 py-1 text-left text-xs text-slate-600 hover:bg-slate-50" [disabled]="asking() || running()" (click)="useExample(example)">{{ example }}</button>
+        }
+      </div>
+      <div class="rounded-md border">
+        <button type="button" class="flex w-full items-center justify-between gap-2 p-3 text-left text-sm font-semibold" [attr.aria-expanded]="helpOpen()" aria-controls="help-panel" (click)="toggleHelp()">
+          <span>¿Qué puedo preguntar?</span><span aria-hidden="true">{{ helpOpen() ? '▲' : '▼' }}</span>
+        </button>
+        @if (helpOpen()) {
+          <div id="help-panel" class="grid gap-4 border-t p-3 md:grid-cols-[2fr_1fr]">
+            <div class="grid min-w-0 gap-3 sm:grid-cols-2">
+              @for (group of exampleGroups; track group.title) {
+                <section class="min-w-0 space-y-1">
+                  <h3 class="text-sm font-semibold">{{ group.title }}</h3>
+                  <div class="flex flex-wrap gap-1">
+                    @for (example of group.items; track example) {
+                      <button type="button" class="rounded-full border px-3 py-1 text-left text-xs text-slate-600 hover:bg-slate-50" [disabled]="asking() || running()" (click)="useExample(example)">{{ example }}</button>
+                    }
+                  </div>
+                </section>
+              }
+            </div>
+            <div class="space-y-1 text-sm">
+              <h3 class="font-semibold">Consejos para dictar</h3>
+              <ul class="list-disc space-y-1 pl-5 text-slate-600">
+                @for (tip of voiceTips; track tip) { <li>{{ tip }}</li> }
+              </ul>
+            </div>
+          </div>
+        }
+      </div>
+      @if (analyticsError()) { <p role="alert" class="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{{ analyticsError() }}</p> }
+      @if (suggestions().length) {
+        <div class="space-y-1" role="group" aria-label="Sugerencias">
+          <p class="text-sm">Prueba con uno de estos:</p>
+          <div class="flex flex-wrap gap-2">
+            @for (example of suggestions(); track example) {
+              <button type="button" class="rounded-full border px-3 py-1 text-left text-xs text-slate-600 hover:bg-slate-50" [disabled]="asking() || running()" (click)="useExample(example)">{{ example }}</button>
+            }
+          </div>
+        </div>
+      }
+      @if (asking() || running()) { <p role="status" class="text-sm text-slate-500">Procesando consulta…</p> }
+      <div aria-live="polite" class="space-y-2">
+        @if (interpretationText()) {
+          <p class="text-sm"><strong>Entendí:</strong> {{ interpretationText() }}
+            <span class="ml-2 text-xs text-slate-500">{{ interpretedBy() === 'groq' ? 'Interpretado con IA (Groq)' : 'Interpretado por reglas locales' }}</span></p>
+        }
+        @if (warnings().length) {
+          <p role="alert" class="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">⚠ {{ warnings().join(' ') }} Revisa la interpretación y ajusta los filtros si hace falta.</p>
+        }
+      </div>
+
+      @if (spec(); as q) {
+        <div class="space-y-3 border-t pt-3">
+          <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <label class="min-w-0 space-y-1 text-sm">Tipo de reporte
+              <select hlmInput class="w-full" [ngModel]="q.kind" (ngModelChange)="setKind($event)" [disabled]="running()">
+                @for (item of kinds; track item.key) { <option [value]="item.key">{{ item.label }}</option> }
+              </select>
+            </label>
+            @if (q.kind === 'sales') {
+              <label class="min-w-0 space-y-1 text-sm">Métrica
+                <select hlmInput class="w-full" [ngModel]="q.metric" (ngModelChange)="patch({ metric: $event })" [disabled]="running()">
+                  @for (item of metrics; track item.key) { <option [value]="item.key">{{ item.label }}</option> }
+                </select>
+              </label>
+              <label class="min-w-0 space-y-1 text-sm">Agrupar por (1)
+                <select hlmInput class="w-full" [ngModel]="q.group_by.at(0) ?? ''" (ngModelChange)="setGroup(0, $event)" [disabled]="running()">
+                  <option value="">Sin agrupar</option>
+                  @for (item of dimensions; track item.key) { <option [value]="item.key">{{ item.label }}</option> }
+                </select>
+              </label>
+              <label class="min-w-0 space-y-1 text-sm">Agrupar por (2)
+                <select hlmInput class="w-full" [ngModel]="q.group_by.at(1) ?? ''" (ngModelChange)="setGroup(1, $event)" [disabled]="running() || !q.group_by.length">
+                  <option value="">Ninguno</option>
+                  @for (item of dimensions; track item.key) { <option [value]="item.key">{{ item.label }}</option> }
+                </select>
+              </label>
+              <label class="min-w-0 space-y-1 text-sm">Top N (vacío = sin límite)
+                <input hlmInput type="number" min="1" max="50" step="1" [ngModel]="q.top_n" (change)="setTopN($any($event.target).value)" [disabled]="running()" />
+              </label>
+            }
+            @if (q.kind === 'sales' || q.kind === 'movements') {
+              <label class="min-w-0 space-y-1 text-sm">Período
+                <select hlmInput class="w-full" [ngModel]="q.period.preset" (ngModelChange)="setPreset($event)" [disabled]="running()">
+                  @for (item of presets; track item.key) { <option [value]="item.key">{{ item.label }}</option> }
+                </select>
+              </label>
+              @if (presetUsesN()) {
+                <label class="min-w-0 space-y-1 text-sm">Valor de N
+                  <input hlmInput type="number" min="1" max="36" step="1" [ngModel]="q.period.n" (change)="setPeriod({ n: +$any($event.target).value || 1 })" [disabled]="running()" />
+                </label>
+              }
+              @if (q.period.preset === 'custom') {
+                <label class="min-w-0 space-y-1 text-sm">Desde
+                  <input hlmInput type="date" [ngModel]="q.period.from_date" (ngModelChange)="setPeriod({ from_date: $event || null })" [disabled]="running()" />
+                </label>
+                <label class="min-w-0 space-y-1 text-sm">Hasta
+                  <input hlmInput type="date" [ngModel]="q.period.to_date" (ngModelChange)="setPeriod({ to_date: $event || null })" [disabled]="running()" />
+                </label>
+              }
+            }
+            @if (q.kind === 'sales') {
+              <label class="min-w-0 space-y-1 text-sm">Canal
+                <select hlmInput class="w-full" [ngModel]="q.channel" (ngModelChange)="patch({ channel: $event })" [disabled]="running()">
+                  <option value="all">Todos</option>
+                  <option value="store">Tienda</option>
+                  <option value="online">Online</option>
+                </select>
+              </label>
+              <fieldset class="min-w-0 space-y-1 text-sm">
+                <legend>Método de pago</legend>
+                <div class="flex flex-wrap gap-x-3 gap-y-1">
+                  @for (item of payments; track item.key) {
+                    <label class="flex items-center gap-1">
+                      <input type="checkbox" [checked]="q.payment_methods.includes(item.key)" (change)="togglePayment(item.key, $any($event.target).checked)" [disabled]="running()" />
+                      {{ item.label }}
+                    </label>
+                  }
+                </div>
+              </fieldset>
+            }
+            <div class="min-w-0 space-y-1 text-sm">
+              <span>Sucursal</span>
+              @if (q.branch_ids.length > 1) {
+                <p>{{ q.branch_ids.length }} sucursales seleccionadas
+                  <button type="button" class="underline" (click)="setBranch('')" [disabled]="running()">Quitar</button></p>
+              } @else {
+                <select hlmInput class="w-full" aria-label="Sucursal" [ngModel]="q.branch_ids.at(0) ?? ''" (ngModelChange)="setBranch($event)" [disabled]="running()">
+                  <option value="">Todas las sucursales</option>
+                  @for (branch of branches(); track branch.id) { <option [value]="branch.id">{{ branch.name }}</option> }
+                </select>
+              }
+            </div>
+            @if (q.kind !== 'movements' && q.category_ids.length) {
+              <p class="text-sm">{{ q.category_ids.length }} categorías seleccionadas
+                @if (q.kind === 'sales') { <button type="button" class="underline" (click)="patch({ category_ids: [] })" [disabled]="running()">Quitar</button> }</p>
+            }
+            @if (q.kind !== 'movements' && q.product_ids.length) {
+              <p class="text-sm">{{ q.product_ids.length }} productos seleccionados
+                @if (q.kind === 'sales') { <button type="button" class="underline" (click)="patch({ product_ids: [] })" [disabled]="running()">Quitar</button> }</p>
+            }
+            @if (q.kind === 'sales') {
+              <label class="flex items-center gap-2 text-sm">
+                <input type="checkbox" [ngModel]="q.compare_previous" (ngModelChange)="patch({ compare_previous: $event })" [disabled]="running()" />
+                Comparar con período anterior
+              </label>
+            }
+          </div>
+        </div>
+      }
+
+      @if (result(); as res) {
+        <div class="space-y-3 border-t pt-3">
+          <div>
+            <h3 class="text-lg font-semibold">{{ res.title }}</h3>
+            <p class="text-sm text-slate-500">{{ res.period.label }} ({{ res.period.from_date }} a {{ res.period.to_date }})</p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button hlmBtn type="button" variant="outline" (click)="exportAnalytics('pdf')" [disabled]="exportingAnalytics() || running()">Exportar PDF</button>
+            <button hlmBtn type="button" variant="outline" (click)="exportAnalytics('excel')" [disabled]="exportingAnalytics() || running()">Exportar Excel</button>
+          </div>
+          @if (kindLine()) { <p class="text-sm font-medium">{{ kindLine() }}</p> }
+          <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            @for (card of cards(); track card.label) {
+              <article class="rounded-md border p-3">
+                <p class="text-xs text-slate-500">{{ card.label }}</p>
+                <p class="text-lg font-semibold">{{ card.value }}</p>
+                @if (card.delta !== null) {
+                  <p class="text-xs font-medium" [class.text-emerald-600]="card.delta >= 0" [class.text-red-600]="card.delta < 0">{{ card.delta >= 0 ? '▲' : '▼' }} {{ card.delta >= 0 ? '+' : '' }}{{ card.delta | number:'1.0-1' }}%</p>
+                }
+              </article>
+            }
+          </div>
+          @if (res.message) { <p class="rounded-md bg-amber-50 p-3 text-sm text-amber-950">{{ res.message }}</p> }
+          @if (chart(); as c) {
+            <div hlmOnBrowser class="min-w-0 overflow-hidden">
+              @switch (c.kind) {
+                @case ('line') { <ngx-line-chart [data]="c.data" [categories]="c.categories" [height]="240" [hideLegend]="true" [yGridLine]="true" [xFormatter]="xLabel" /> }
+                @case ('donut') { <ngx-donut-chart [data]="c.values" [categories]="c.donutCategories" [height]="240" [arcWidth]="40" /> }
+                @default { <ngx-bar-chart [data]="c.data" [categories]="c.categories" [yAxis]="['value']" [height]="240" [hideLegend]="true" [yGridLine]="true" [xFormatter]="xLabel" /> }
+              }
+            </div>
+          }
+          @if (res.rows.length) {
+            <div class="max-h-[32rem] overflow-auto">
+              <table hlmTable class="w-full text-sm">
+                <caption class="sr-only">{{ res.title }}</caption>
+                <thead><tr>@for (column of res.columns; track column.key) { <th class="p-2" [class.text-left]="column.type === 'text'" [class.text-right]="column.type !== 'text'">{{ column.label }}</th> }</tr></thead>
+                <tbody>
+                  @for (section of sections(); track $index) {
+                    @for (row of section.rows; track $index) {
+                      <tr class="border-t">@for (column of res.columns; track column.key) { <td class="p-2" [class.text-right]="column.type !== 'text'">{{ format(row[column.key], column.type) }}</td> }</tr>
+                    }
+                    @if (section.subtotal; as subtotal) {
+                      <tr class="border-t bg-slate-50 font-semibold">
+                        @for (column of res.columns; track column.key; let first = $first) {
+                          <td class="p-2" [class.text-right]="column.type !== 'text'">{{ first ? 'Subtotal ' + section.label : (column.type === 'text' || subtotal[column.key] === undefined ? '' : format(subtotal[column.key], column.type)) }}</td>
+                        }
+                      </tr>
+                    }
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else if (!res.message) {
+            <p class="text-sm text-slate-500">Sin datos para el período seleccionado.</p>
+          }
+        </div>
+      }
     </section>
 
     <section hlmCard class="p-4 space-y-3">
@@ -49,7 +262,6 @@
     @if (report(); as result) {
       <section hlmCard class="p-4 space-y-3">
         <h2 class="font-semibold">Resultado descriptivo</h2>
-        @if (interpretation()) { <p class="text-sm">{{ interpretation() }}</p> }
         <p class="text-sm text-slate-500">Las descargas corresponden al último resultado generado y sus filtros, no a cambios sin aplicar. No incluyen análisis ML.</p>
         <div class="flex gap-2">
           <button hlmBtn type="button" variant="outline" (click)="exportReport('excel')" [disabled]="exporting() || loading()">Exportar descriptivo Excel</button>

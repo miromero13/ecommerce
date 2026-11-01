@@ -110,3 +110,39 @@ def test_legacy_firebase_credential_file_reaches_path_resolution(monkeypatch):
         _env_file=None,
     )
     assert preferred.firebase_service_account_path == "preferred/firebase.json"
+
+
+def test_unregistered_token_is_deactivated_and_others_still_receive(monkeypatch):
+    class UnregisteredError(Exception):
+        pass
+
+    dead = SimpleNamespace(token="dead", platform="android", user_id=uuid4(), is_active=True)
+    alive = SimpleNamespace(token="alive", platform="web", user_id=dead.user_id, is_active=True)
+    db = _query_db(all_result=[dead, alive])
+    send = MagicMock(side_effect=[UnregisteredError("gone"), True])
+    monkeypatch.setattr(notification_delivery, "_send_push", send)
+
+    notification_delivery.deliver_notification(db, _notification(dead.user_id))
+
+    assert dead.is_active is False and alive.is_active is True
+    assert send.call_count == 2
+    db.commit.assert_called_once()
+
+
+def test_rma_request_notifies_customer_and_store_staff(monkeypatch):
+    from app.services import notification_service as service
+
+    rma = SimpleNamespace(id=uuid4(), user_id=uuid4(), tenant_id=uuid4(), rma_number="RMA-0001")
+    admin, manager = uuid4(), uuid4()
+    db = MagicMock()
+    db.query.return_value.filter.return_value.first.return_value = rma
+    db.query.return_value.filter.return_value.all.return_value = [(admin,), (manager,)]
+    sent = MagicMock()
+    monkeypatch.setattr(service, "create_notification", sent)
+
+    notification_delivery._notify_rma_event(db, rma.id, "requested")
+
+    recipients = [call.args[1] for call in sent.call_args_list]
+    assert recipients == [rma.user_id, admin, manager]
+    assert "RMA-0001" in sent.call_args_list[0].args[2]
+    assert len({call.args[5] for call in sent.call_args_list}) == 3  # distinct dedupe keys

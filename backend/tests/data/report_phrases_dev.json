@@ -1,0 +1,4544 @@
+[
+ {
+  "id": "d001",
+  "phrase": "cuanto vendimos hoy",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "preset": "today"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_revenue",
+   "sales_simple",
+   "time_relative",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d002",
+  "phrase": "¿Cuánto se vendió ayer?",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "preset": "yesterday"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_revenue",
+   "question",
+   "sales_simple",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d003",
+  "phrase": "ventas de hoy",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "preset": "today"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_revenue",
+   "sales_simple",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d004",
+  "phrase": "Muéstrame las ventas de esta semana",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "preset": "this_week"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "command",
+   "metric_revenue",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d005",
+  "phrase": "dame los ingresos del mes pasado",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "preset": "last_month"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "command",
+   "metric_revenue",
+   "time_relative",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d006",
+  "phrase": "Necesito el reporte de ventas del año pasado",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "preset": "last_year"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "command",
+   "metric_revenue",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d007",
+  "phrase": "Facturación de este trimestre",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "preset": "this_quarter"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_revenue",
+   "sales_simple",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d008",
+  "phrase": "cuanto facturamos el trimestre pasado",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "preset": "last_quarter"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_revenue",
+   "question",
+   "time_relative",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d009",
+  "phrase": "¿Cuánta plata entró este mes?",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "preset": "this_month"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "colloquial",
+   "metric_revenue",
+   "question",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d010",
+  "phrase": "oye cuanta plata hicimos en lo que va del año",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "preset": "this_year"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "colloquial",
+   "metric_revenue",
+   "time_relative",
+   "voice"
+  ]
+ },
+ {
+  "id": "d011",
+  "phrase": "total vendido en los últimos 15 días",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "preset": "last_n_days",
+    "n": 15
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_revenue",
+   "sales_simple",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d012",
+  "phrase": "eh dime el monto recaudado los ultimos siete dias",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "preset": "last_n_days",
+    "n": 7
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_revenue",
+   "number_words",
+   "time_relative",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d013",
+  "phrase": "Ventas de los últimos 3 meses",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "preset": "last_n_months",
+    "n": 3
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_revenue",
+   "sales_simple",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d014",
+  "phrase": "ingresos del último trimestre",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "preset": "last_n_months",
+    "n": 3
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_revenue",
+   "sales_simple",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d015",
+  "phrase": "quiero que me muestres el dinero que entro la semana pasada",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "preset": "last_week"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "command",
+   "metric_revenue",
+   "time_relative",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d016",
+  "phrase": "Ventas de octubre",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "custom": [
+     "2026-10-01",
+     "2026-10-31"
+    ]
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_revenue",
+   "sales_simple",
+   "time_named_month"
+  ]
+ },
+ {
+  "id": "d017",
+  "phrase": "¿cuánto vendimos en septiembre?",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "custom": [
+     "2026-09-01",
+     "2026-09-30"
+    ]
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_revenue",
+   "question",
+   "time_named_month"
+  ]
+ },
+ {
+  "id": "d018",
+  "phrase": "Genera un informe de ventas del mes de agosto",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "custom": [
+     "2026-08-01",
+     "2026-08-31"
+    ]
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "command",
+   "metric_revenue",
+   "time_named_month"
+  ]
+ },
+ {
+  "id": "d019",
+  "phrase": "ventas de diciembre",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "custom": [
+     "2025-12-01",
+     "2025-12-31"
+    ]
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_revenue",
+   "sales_simple",
+   "time_named_month"
+  ]
+ },
+ {
+  "id": "d020",
+  "phrase": "facturación de octubre de 2025",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "custom": [
+     "2025-10-01",
+     "2025-10-31"
+    ]
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_revenue",
+   "sales_simple",
+   "time_named_month"
+  ]
+ },
+ {
+  "id": "d021",
+  "phrase": "cuanto se vendio en enero",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "custom": [
+     "2026-01-01",
+     "2026-01-31"
+    ]
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_revenue",
+   "time_named_month",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d022",
+  "phrase": "ventas del 1 al 15 de octubre",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "custom": [
+     "2026-10-01",
+     "2026-10-15"
+    ]
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_revenue",
+   "sales_simple",
+   "time_range"
+  ]
+ },
+ {
+  "id": "d023",
+  "phrase": "sácame las ventas del 3/10 al 20/10",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "custom": [
+     "2026-10-03",
+     "2026-10-20"
+    ]
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "command",
+   "metric_revenue",
+   "time_range"
+  ]
+ },
+ {
+  "id": "d024",
+  "phrase": "ingresos del 01/09/2026 al 30/09/2026",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "custom": [
+     "2026-09-01",
+     "2026-09-30"
+    ]
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_revenue",
+   "sales_simple",
+   "time_named_month"
+  ]
+ },
+ {
+  "id": "d025",
+  "phrase": "por favor necesito saber cuanto vendimos del cinco al diez de noviembre",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "custom": [
+     "2026-11-05",
+     "2026-11-10"
+    ]
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_revenue",
+   "number_words",
+   "time_range",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d026",
+  "phrase": "¿Cuánto vendimos el lunes?",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "custom": [
+     "2026-11-09",
+     "2026-11-09"
+    ]
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_revenue",
+   "question",
+   "time_weekday"
+  ]
+ },
+ {
+  "id": "d027",
+  "phrase": "ventas del viernes pasado",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "custom": [
+     "2026-11-06",
+     "2026-11-06"
+    ]
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_revenue",
+   "sales_simple",
+   "time_weekday"
+  ]
+ },
+ {
+  "id": "d028",
+  "phrase": "que tal las ventas del sabado",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "custom": [
+     "2026-11-07",
+     "2026-11-07"
+    ]
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "colloquial",
+   "metric_revenue",
+   "time_weekday",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d029",
+  "phrase": "cuanto se vendio el domingo",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "custom": [
+     "2026-11-08",
+     "2026-11-08"
+    ]
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_revenue",
+   "time_weekday",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d030",
+  "phrase": "pedidos del martes",
+  "expected": {
+   "metric": "orders",
+   "period": {
+    "custom": [
+     "2026-11-10",
+     "2026-11-10"
+    ]
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_orders",
+   "sales_simple",
+   "time_weekday"
+  ]
+ },
+ {
+  "id": "d031",
+  "phrase": "¿Cuántos pedidos tuvimos hoy?",
+  "expected": {
+   "metric": "orders",
+   "period": {
+    "preset": "today"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_orders",
+   "question",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d032",
+  "phrase": "número de transacciones de la semana pasada",
+  "expected": {
+   "metric": "orders",
+   "period": {
+    "preset": "last_week"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_orders",
+   "sales_simple",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d033",
+  "phrase": "cuantas ventas hubo ayer",
+  "expected": {
+   "metric": "orders",
+   "period": {
+    "preset": "yesterday"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_orders",
+   "question",
+   "time_relative",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d034",
+  "phrase": "tickets emitidos este mes",
+  "expected": {
+   "metric": "orders",
+   "period": {
+    "preset": "this_month"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_orders",
+   "sales_simple",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d035",
+  "phrase": "¿Cuál fue el ticket promedio de octubre?",
+  "expected": {
+   "metric": "avg_ticket",
+   "period": {
+    "custom": [
+     "2026-10-01",
+     "2026-10-31"
+    ]
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_ticket",
+   "question",
+   "time_named_month"
+  ]
+ },
+ {
+  "id": "d036",
+  "phrase": "promedio por venta de esta semana",
+  "expected": {
+   "metric": "avg_ticket",
+   "period": {
+    "preset": "this_week"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_ticket",
+   "sales_simple",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d037",
+  "phrase": "dime la compra promedio del mes pasado",
+  "expected": {
+   "metric": "avg_ticket",
+   "period": {
+    "preset": "last_month"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "command",
+   "metric_ticket",
+   "time_relative",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d038",
+  "phrase": "¿Cuántas prendas vendimos esta semana?",
+  "expected": {
+   "metric": "units",
+   "period": {
+    "preset": "this_week"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_units",
+   "question",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d039",
+  "phrase": "unidades vendidas ayer",
+  "expected": {
+   "metric": "units",
+   "period": {
+    "preset": "yesterday"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_units",
+   "sales_simple",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d040",
+  "phrase": "cantidad de piezas vendidas en los últimos 30 días",
+  "expected": {
+   "metric": "units",
+   "period": {
+    "preset": "last_n_days",
+    "n": 30
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_units",
+   "sales_simple",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d041",
+  "phrase": "cuantas unidades salieron en septiembre",
+  "expected": {
+   "metric": "units",
+   "period": {
+    "custom": [
+     "2026-09-01",
+     "2026-09-30"
+    ]
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_units",
+   "time_named_month",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d042",
+  "phrase": "cómo nos fue ayer",
+  "expected": {
+   "period": {
+    "preset": "yesterday"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "colloquial",
+   "question",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d043",
+  "phrase": "cuanto hemos vendido este año",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "preset": "this_year"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "colloquial",
+   "metric_revenue",
+   "time_relative",
+   "voice"
+  ]
+ },
+ {
+  "id": "d044",
+  "phrase": "¿Qué tal las ventas este mes?",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "preset": "this_month"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "colloquial",
+   "metric_revenue",
+   "question",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d045",
+  "phrase": "ventas de anoche",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "preset": "yesterday"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_revenue",
+   "sales_simple",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d046",
+  "phrase": "cuanto llevamos vendido en lo que va del mes",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "preset": "this_month"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "colloquial",
+   "metric_revenue",
+   "time_relative",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d047",
+  "phrase": "ingresos de los últimos treinta días",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "preset": "last_n_days",
+    "n": 30
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_revenue",
+   "number_words",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d048",
+  "phrase": "unidades de los ultimos seis meses",
+  "expected": {
+   "metric": "units",
+   "period": {
+    "preset": "last_n_months",
+    "n": 6
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_units",
+   "number_words",
+   "time_relative",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d049",
+  "phrase": "¿Cuál es la sucursal que más vende?",
+  "expected": {
+   "group_by": [
+    "branch"
+   ],
+   "metric": "revenue",
+   "top_n": 1,
+   "order": "desc"
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_revenue",
+   "question",
+   "ranking"
+  ]
+ },
+ {
+  "id": "d050",
+  "phrase": "la peor sucursal del mes pasado",
+  "expected": {
+   "group_by": [
+    "branch"
+   ],
+   "metric": "revenue",
+   "top_n": 1,
+   "order": "asc",
+   "period": {
+    "preset": "last_month"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_revenue",
+   "ranking",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d051",
+  "phrase": "el producto más vendido de esta semana",
+  "expected": {
+   "group_by": [
+    "product"
+   ],
+   "metric": "units",
+   "top_n": 1,
+   "order": "desc",
+   "period": {
+    "preset": "this_week"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_units",
+   "ranking",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d052",
+  "phrase": "cual fue el producto menos vendido en octubre",
+  "expected": {
+   "group_by": [
+    "product"
+   ],
+   "metric": "units",
+   "top_n": 1,
+   "order": "asc",
+   "period": {
+    "custom": [
+     "2026-10-01",
+     "2026-10-31"
+    ]
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_units",
+   "question",
+   "ranking",
+   "time_named_month",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d053",
+  "phrase": "los 3 mejores productos",
+  "expected": {
+   "group_by": [
+    "product"
+   ],
+   "metric": "units",
+   "top_n": 3,
+   "order": "desc"
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_units",
+   "ranking"
+  ]
+ },
+ {
+  "id": "d054",
+  "phrase": "top 5 productos de este mes",
+  "expected": {
+   "group_by": [
+    "product"
+   ],
+   "metric": "units",
+   "top_n": 5,
+   "order": "desc",
+   "period": {
+    "preset": "this_month"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_units",
+   "ranking",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d055",
+  "phrase": "dame los cinco productos más vendidos de este año",
+  "expected": {
+   "group_by": [
+    "product"
+   ],
+   "metric": "units",
+   "top_n": 5,
+   "order": "desc",
+   "period": {
+    "preset": "this_year"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "command",
+   "group_by",
+   "metric_units",
+   "number_words",
+   "ranking",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d056",
+  "phrase": "los diez productos menos vendidos del trimestre pasado",
+  "expected": {
+   "group_by": [
+    "product"
+   ],
+   "metric": "units",
+   "top_n": 10,
+   "order": "asc",
+   "period": {
+    "preset": "last_quarter"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_units",
+   "number_words",
+   "ranking",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d057",
+  "phrase": "la categoría más vendida",
+  "expected": {
+   "group_by": [
+    "category"
+   ],
+   "metric": "units",
+   "top_n": 1,
+   "order": "desc"
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_units",
+   "ranking"
+  ]
+ },
+ {
+  "id": "d058",
+  "phrase": "¿Qué categoría vende menos?",
+  "expected": {
+   "group_by": [
+    "category"
+   ],
+   "metric": "units",
+   "top_n": 1,
+   "order": "asc"
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_units",
+   "question",
+   "ranking"
+  ]
+ },
+ {
+  "id": "d059",
+  "phrase": "las 3 categorías más vendidas de septiembre",
+  "expected": {
+   "group_by": [
+    "category"
+   ],
+   "metric": "units",
+   "top_n": 3,
+   "order": "desc",
+   "period": {
+    "custom": [
+     "2026-09-01",
+     "2026-09-30"
+    ]
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_units",
+   "ranking",
+   "time_named_month"
+  ]
+ },
+ {
+  "id": "d060",
+  "phrase": "talla más vendida",
+  "expected": {
+   "group_by": [
+    "size"
+   ],
+   "metric": "units",
+   "top_n": 1,
+   "order": "desc"
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_units",
+   "ranking"
+  ]
+ },
+ {
+  "id": "d061",
+  "phrase": "¿qué color se vende más?",
+  "expected": {
+   "group_by": [
+    "color"
+   ],
+   "metric": "units",
+   "top_n": 1,
+   "order": "desc"
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_units",
+   "question",
+   "ranking"
+  ]
+ },
+ {
+  "id": "d062",
+  "phrase": "los 4 colores menos vendidos este año",
+  "expected": {
+   "group_by": [
+    "color"
+   ],
+   "metric": "units",
+   "top_n": 4,
+   "order": "asc",
+   "period": {
+    "preset": "this_year"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_units",
+   "ranking",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d063",
+  "phrase": "el mejor día de ventas del mes pasado",
+  "expected": {
+   "group_by": [
+    "day"
+   ],
+   "metric": "revenue",
+   "top_n": 1,
+   "order": "desc",
+   "period": {
+    "preset": "last_month"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_revenue",
+   "ranking",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d064",
+  "phrase": "qué día vendimos menos esta semana",
+  "expected": {
+   "group_by": [
+    "day"
+   ],
+   "metric": "revenue",
+   "top_n": 1,
+   "order": "asc",
+   "period": {
+    "preset": "this_week"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_revenue",
+   "question",
+   "ranking",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d065",
+  "phrase": "top 3 sucursales por ingresos",
+  "expected": {
+   "group_by": [
+    "branch"
+   ],
+   "metric": "revenue",
+   "top_n": 3,
+   "order": "desc"
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_revenue",
+   "ranking"
+  ]
+ },
+ {
+  "id": "d066",
+  "phrase": "las dos sucursales que menos venden",
+  "expected": {
+   "group_by": [
+    "branch"
+   ],
+   "metric": "revenue",
+   "top_n": 2,
+   "order": "asc"
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_revenue",
+   "number_words",
+   "ranking"
+  ]
+ },
+ {
+  "id": "d067",
+  "phrase": "con que metodo de pago se vende mas",
+  "expected": {
+   "group_by": [
+    "payment_method"
+   ],
+   "metric": "revenue",
+   "top_n": 1,
+   "order": "desc"
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_revenue",
+   "payment",
+   "question",
+   "ranking",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d068",
+  "phrase": "el canal que más vende",
+  "expected": {
+   "group_by": [
+    "channel"
+   ],
+   "metric": "revenue",
+   "top_n": 1,
+   "order": "desc"
+  },
+  "must_return_none": false,
+  "tags": [
+   "channel",
+   "group_by",
+   "metric_revenue",
+   "ranking"
+  ]
+ },
+ {
+  "id": "d069",
+  "phrase": "la mejor variante del mes pasado",
+  "expected": {
+   "group_by": [
+    "variant"
+   ],
+   "metric": "units",
+   "top_n": 1,
+   "order": "desc",
+   "period": {
+    "preset": "last_month"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_units",
+   "ranking",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d070",
+  "phrase": "¿Cuál fue la sucursal con menos ventas el año pasado?",
+  "expected": {
+   "group_by": [
+    "branch"
+   ],
+   "metric": "revenue",
+   "top_n": 1,
+   "order": "asc",
+   "period": {
+    "preset": "last_year"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_revenue",
+   "question",
+   "ranking",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d071",
+  "phrase": "ranking de sucursales por ventas",
+  "expected": {
+   "group_by": [
+    "branch"
+   ],
+   "metric": "revenue"
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_revenue"
+  ]
+ },
+ {
+  "id": "d072",
+  "phrase": "los productos más vendidos",
+  "expected": {
+   "group_by": [
+    "product"
+   ],
+   "metric": "units",
+   "order": "desc"
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_units",
+   "ranking"
+  ]
+ },
+ {
+  "id": "d073",
+  "phrase": "mejores productos de la sucursal Ayni Zona Sur",
+  "expected": {
+   "group_by": [
+    "product"
+   ],
+   "metric": "units",
+   "order": "desc",
+   "branches": [
+    "Ayni Zona Sur"
+   ]
+  },
+  "must_return_none": false,
+  "tags": [
+   "branch_filter",
+   "group_by",
+   "metric_units",
+   "ranking"
+  ]
+ },
+ {
+  "id": "d074",
+  "phrase": "el producto más vendido en Ayni Cochabamba este mes",
+  "expected": {
+   "group_by": [
+    "product"
+   ],
+   "metric": "units",
+   "top_n": 1,
+   "order": "desc",
+   "branches": [
+    "Ayni Cochabamba"
+   ],
+   "period": {
+    "preset": "this_month"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "branch_filter",
+   "group_by",
+   "metric_units",
+   "ranking",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d075",
+  "phrase": "los 2 peores productos de la semana pasada",
+  "expected": {
+   "group_by": [
+    "product"
+   ],
+   "metric": "units",
+   "top_n": 2,
+   "order": "asc",
+   "period": {
+    "preset": "last_week"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_units",
+   "ranking",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d076",
+  "phrase": "¿Qué sucursal vendió más ayer?",
+  "expected": {
+   "group_by": [
+    "branch"
+   ],
+   "metric": "revenue",
+   "top_n": 1,
+   "order": "desc",
+   "period": {
+    "preset": "yesterday"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_revenue",
+   "question",
+   "ranking",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d077",
+  "phrase": "cual es el color que menos se vende",
+  "expected": {
+   "group_by": [
+    "color"
+   ],
+   "metric": "units",
+   "top_n": 1,
+   "order": "asc"
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_units",
+   "question",
+   "ranking",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d078",
+  "phrase": "la talla menos vendida de Polera Basica",
+  "expected": {
+   "group_by": [
+    "size"
+   ],
+   "metric": "units",
+   "top_n": 1,
+   "order": "asc",
+   "products": [
+    "Polera Basica"
+   ]
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_units",
+   "product_filter",
+   "ranking"
+  ]
+ },
+ {
+  "id": "d079",
+  "phrase": "el día que más vendimos en octubre",
+  "expected": {
+   "group_by": [
+    "day"
+   ],
+   "metric": "revenue",
+   "top_n": 1,
+   "order": "desc",
+   "period": {
+    "custom": [
+     "2026-10-01",
+     "2026-10-31"
+    ]
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_revenue",
+   "ranking",
+   "time_named_month"
+  ]
+ },
+ {
+  "id": "d080",
+  "phrase": "los 7 productos más vendidos de los últimos 90 días",
+  "expected": {
+   "group_by": [
+    "product"
+   ],
+   "metric": "units",
+   "top_n": 7,
+   "order": "desc",
+   "period": {
+    "preset": "last_n_days",
+    "n": 90
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_units",
+   "ranking",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d081",
+  "phrase": "mejores clientes",
+  "expected": {
+   "kind": "sales",
+   "group_by": [
+    "customer"
+   ],
+   "metric": "revenue"
+  },
+  "must_return_none": false,
+  "tags": [
+   "customers",
+   "group_by",
+   "metric_revenue"
+  ]
+ },
+ {
+  "id": "d082",
+  "phrase": "¿Quién compra más?",
+  "expected": {
+   "kind": "sales",
+   "group_by": [
+    "customer"
+   ],
+   "metric": "revenue"
+  },
+  "must_return_none": false,
+  "tags": [
+   "customers",
+   "group_by",
+   "metric_revenue",
+   "question"
+  ]
+ },
+ {
+  "id": "d083",
+  "phrase": "los 10 clientes que más compran",
+  "expected": {
+   "kind": "sales",
+   "group_by": [
+    "customer"
+   ],
+   "metric": "revenue",
+   "top_n": 10,
+   "order": "desc"
+  },
+  "must_return_none": false,
+  "tags": [
+   "customers",
+   "group_by",
+   "metric_revenue",
+   "ranking"
+  ]
+ },
+ {
+  "id": "d084",
+  "phrase": "top cinco clientes del año pasado",
+  "expected": {
+   "kind": "sales",
+   "group_by": [
+    "customer"
+   ],
+   "metric": "revenue",
+   "top_n": 5,
+   "order": "desc",
+   "period": {
+    "preset": "last_year"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "customers",
+   "group_by",
+   "metric_revenue",
+   "number_words",
+   "ranking",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d085",
+  "phrase": "cuántos clientes compraron esta semana",
+  "expected": {
+   "metric": "customers",
+   "period": {
+    "preset": "this_week"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "customers",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d086",
+  "phrase": "cantidad de clientes distintos en octubre",
+  "expected": {
+   "metric": "customers",
+   "period": {
+    "custom": [
+     "2026-10-01",
+     "2026-10-31"
+    ]
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "customers",
+   "time_named_month"
+  ]
+ },
+ {
+  "id": "d087",
+  "phrase": "cuantos clientes compraron en la sucursal el alto ayer",
+  "expected": {
+   "metric": "customers",
+   "period": {
+    "preset": "yesterday"
+   },
+   "branches": [
+    "Ayni El Alto"
+   ]
+  },
+  "must_return_none": false,
+  "tags": [
+   "branch_filter",
+   "customers",
+   "time_relative",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d088",
+  "phrase": "clientes que más compran en Ayni La Paz Centro",
+  "expected": {
+   "kind": "sales",
+   "group_by": [
+    "customer"
+   ],
+   "metric": "revenue",
+   "order": "desc",
+   "branches": [
+    "Ayni La Paz Centro"
+   ]
+  },
+  "must_return_none": false,
+  "tags": [
+   "branch_filter",
+   "customers",
+   "group_by",
+   "metric_revenue",
+   "ranking"
+  ]
+ },
+ {
+  "id": "d089",
+  "phrase": "ventas por cliente del mes pasado",
+  "expected": {
+   "group_by": [
+    "customer"
+   ],
+   "metric": "revenue",
+   "period": {
+    "preset": "last_month"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "customers",
+   "group_by",
+   "metric_revenue",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d090",
+  "phrase": "dime cuantos clientes distintos tuvimos el trimestre pasado",
+  "expected": {
+   "metric": "customers",
+   "period": {
+    "preset": "last_quarter"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "command",
+   "customers",
+   "time_relative",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d091",
+  "phrase": "Cantidad de clientes que compraron por internet el mes pasado",
+  "expected": {
+   "metric": "customers",
+   "channel": "online",
+   "period": {
+    "preset": "last_month"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "channel",
+   "customers",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d092",
+  "phrase": "ventas por sucursal",
+  "expected": {
+   "group_by": [
+    "branch"
+   ],
+   "metric": "revenue",
+   "period": {
+    "preset": "last_n_days",
+    "n": 30
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_revenue",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d093",
+  "phrase": "ventas diarias de la semana pasada",
+  "expected": {
+   "group_by": [
+    "day"
+   ],
+   "metric": "revenue",
+   "period": {
+    "preset": "last_week"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_revenue",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d094",
+  "phrase": "ingresos por semana de los últimos 2 meses",
+  "expected": {
+   "group_by": [
+    "week"
+   ],
+   "metric": "revenue",
+   "period": {
+    "preset": "last_n_months",
+    "n": 2
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_revenue",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d095",
+  "phrase": "facturación mensual de este año",
+  "expected": {
+   "group_by": [
+    "month"
+   ],
+   "metric": "revenue",
+   "period": {
+    "preset": "this_year"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_revenue",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d096",
+  "phrase": "ventas mes a mes del año pasado",
+  "expected": {
+   "group_by": [
+    "month"
+   ],
+   "metric": "revenue",
+   "period": {
+    "preset": "last_year"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_revenue",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d097",
+  "phrase": "unidades vendidas por categoría este mes",
+  "expected": {
+   "group_by": [
+    "category"
+   ],
+   "metric": "units",
+   "period": {
+    "preset": "this_month"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_units",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d098",
+  "phrase": "ventas desglosadas por talla",
+  "expected": {
+   "group_by": [
+    "size"
+   ],
+   "metric": "revenue",
+   "period": {
+    "preset": "last_n_days",
+    "n": 30
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_revenue",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d099",
+  "phrase": "cantidad vendida según color en septiembre",
+  "expected": {
+   "group_by": [
+    "color"
+   ],
+   "metric": "units",
+   "period": {
+    "custom": [
+     "2026-09-01",
+     "2026-09-30"
+    ]
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_units",
+   "time_named_month"
+  ]
+ },
+ {
+  "id": "d100",
+  "phrase": "ventas por canal",
+  "expected": {
+   "group_by": [
+    "channel"
+   ],
+   "metric": "revenue"
+  },
+  "must_return_none": false,
+  "tags": [
+   "channel",
+   "group_by",
+   "metric_revenue"
+  ]
+ },
+ {
+  "id": "d101",
+  "phrase": "online vs tienda este mes",
+  "expected": {
+   "group_by": [
+    "channel"
+   ],
+   "period": {
+    "preset": "this_month"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "channel",
+   "group_by",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d102",
+  "phrase": "ventas separadas por método de pago de la semana pasada",
+  "expected": {
+   "group_by": [
+    "payment_method"
+   ],
+   "metric": "revenue",
+   "period": {
+    "preset": "last_week"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_revenue",
+   "payment",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d103",
+  "phrase": "cuanto vendio cada sucursal ayer",
+  "expected": {
+   "group_by": [
+    "branch"
+   ],
+   "metric": "revenue",
+   "period": {
+    "preset": "yesterday"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_revenue",
+   "question",
+   "time_relative",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d104",
+  "phrase": "pedidos en cada sucursal este trimestre",
+  "expected": {
+   "group_by": [
+    "branch"
+   ],
+   "metric": "orders",
+   "period": {
+    "preset": "this_quarter"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_orders",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d105",
+  "phrase": "ventas de cada producto en Ayni El Alto",
+  "expected": {
+   "group_by": [
+    "product"
+   ],
+   "metric": "revenue",
+   "branches": [
+    "Ayni El Alto"
+   ]
+  },
+  "must_return_none": false,
+  "tags": [
+   "branch_filter",
+   "group_by",
+   "metric_revenue"
+  ]
+ },
+ {
+  "id": "d106",
+  "phrase": "ticket promedio por sucursal",
+  "expected": {
+   "group_by": [
+    "branch"
+   ],
+   "metric": "avg_ticket"
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_ticket"
+  ]
+ },
+ {
+  "id": "d107",
+  "phrase": "ventas por día de octubre",
+  "expected": {
+   "group_by": [
+    "day"
+   ],
+   "metric": "revenue",
+   "period": {
+    "custom": [
+     "2026-10-01",
+     "2026-10-31"
+    ]
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_revenue",
+   "time_named_month"
+  ]
+ },
+ {
+  "id": "d108",
+  "phrase": "comparame las sucursales este mes",
+  "expected": {
+   "group_by": [
+    "branch"
+   ],
+   "period": {
+    "preset": "this_month"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "colloquial",
+   "command",
+   "group_by",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d109",
+  "phrase": "unidades por producto del 1 al 15 de octubre",
+  "expected": {
+   "group_by": [
+    "product"
+   ],
+   "metric": "units",
+   "period": {
+    "custom": [
+     "2026-10-01",
+     "2026-10-15"
+    ]
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_units",
+   "time_range"
+  ]
+ },
+ {
+  "id": "d110",
+  "phrase": "ventas por categoría y por mes del año pasado",
+  "expected": {
+   "group_by": [
+    "category",
+    "month"
+   ],
+   "metric": "revenue",
+   "period": {
+    "preset": "last_year"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_revenue",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d111",
+  "phrase": "top 5 productos por sucursal",
+  "expected": {
+   "group_by": [
+    "branch",
+    "product"
+   ],
+   "metric": "units",
+   "top_n": 5,
+   "order": "desc"
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_units",
+   "ranking"
+  ]
+ },
+ {
+  "id": "d112",
+  "phrase": "ventas por sucursal y canal este mes",
+  "expected": {
+   "group_by": [
+    "branch",
+    "channel"
+   ],
+   "metric": "revenue",
+   "period": {
+    "preset": "this_month"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "channel",
+   "group_by",
+   "metric_revenue",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d113",
+  "phrase": "pedidos por día y método de pago la semana pasada",
+  "expected": {
+   "group_by": [
+    "day",
+    "payment_method"
+   ],
+   "metric": "orders",
+   "period": {
+    "preset": "last_week"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_orders",
+   "payment",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d114",
+  "phrase": "las 3 tallas más vendidas por categoría",
+  "expected": {
+   "group_by": [
+    "category",
+    "size"
+   ],
+   "metric": "units",
+   "top_n": 3,
+   "order": "desc"
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_units",
+   "ranking"
+  ]
+ },
+ {
+  "id": "d115",
+  "phrase": "ingresos por sucursal y semana en septiembre",
+  "expected": {
+   "group_by": [
+    "branch",
+    "week"
+   ],
+   "metric": "revenue",
+   "period": {
+    "custom": [
+     "2026-09-01",
+     "2026-09-30"
+    ]
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_revenue",
+   "time_named_month"
+  ]
+ },
+ {
+  "id": "d116",
+  "phrase": "ventas por color de la categoría Blusas",
+  "expected": {
+   "group_by": [
+    "color"
+   ],
+   "metric": "revenue",
+   "categories": [
+    "Blusas"
+   ]
+  },
+  "must_return_none": false,
+  "tags": [
+   "category_filter",
+   "group_by",
+   "metric_revenue"
+  ]
+ },
+ {
+  "id": "d117",
+  "phrase": "dinero recaudado en efectivo por sucursal",
+  "expected": {
+   "group_by": [
+    "branch"
+   ],
+   "metric": "revenue",
+   "payment_methods": [
+    "cash"
+   ]
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_revenue",
+   "payment"
+  ]
+ },
+ {
+  "id": "d118",
+  "phrase": "ventas por internet de esta semana",
+  "expected": {
+   "channel": "online",
+   "metric": "revenue",
+   "period": {
+    "preset": "this_week"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "channel",
+   "metric_revenue",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d119",
+  "phrase": "¿Cuánto se vendió en tienda física ayer?",
+  "expected": {
+   "channel": "store",
+   "metric": "revenue",
+   "period": {
+    "preset": "yesterday"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "channel",
+   "metric_revenue",
+   "question",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d120",
+  "phrase": "pedidos web del mes pasado",
+  "expected": {
+   "channel": "online",
+   "metric": "orders",
+   "period": {
+    "preset": "last_month"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "channel",
+   "metric_orders",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d121",
+  "phrase": "ventas en mostrador de hoy",
+  "expected": {
+   "channel": "store",
+   "metric": "revenue",
+   "period": {
+    "preset": "today"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "channel",
+   "metric_revenue",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d122",
+  "phrase": "cuanto vendimos por la pagina en octubre",
+  "expected": {
+   "channel": "online",
+   "metric": "revenue",
+   "period": {
+    "custom": [
+     "2026-10-01",
+     "2026-10-31"
+    ]
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "channel",
+   "metric_revenue",
+   "time_named_month",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d123",
+  "phrase": "ventas en caja de esta semana",
+  "expected": {
+   "channel": "store",
+   "metric": "revenue",
+   "period": {
+    "preset": "this_week"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "channel",
+   "metric_revenue",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d124",
+  "phrase": "monto vendido por la web este trimestre",
+  "expected": {
+   "channel": "online",
+   "metric": "revenue",
+   "period": {
+    "preset": "this_quarter"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "channel",
+   "metric_revenue",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d125",
+  "phrase": "promedio por venta en tienda física este año",
+  "expected": {
+   "channel": "store",
+   "metric": "avg_ticket",
+   "period": {
+    "preset": "this_year"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "channel",
+   "metric_ticket",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d126",
+  "phrase": "ventas en efectivo de hoy",
+  "expected": {
+   "payment_methods": [
+    "cash"
+   ],
+   "metric": "revenue",
+   "period": {
+    "preset": "today"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_revenue",
+   "payment",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d127",
+  "phrase": "cuánto entró con tarjeta esta semana",
+  "expected": {
+   "payment_methods": [
+    "card"
+   ],
+   "period": {
+    "preset": "this_week"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "payment",
+   "question",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d128",
+  "phrase": "pagos con qr del mes pasado",
+  "expected": {
+   "payment_methods": [
+    "qr"
+   ],
+   "period": {
+    "preset": "last_month"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "payment",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d129",
+  "phrase": "ventas pagadas con billetera en septiembre",
+  "expected": {
+   "payment_methods": [
+    "wallet"
+   ],
+   "metric": "revenue",
+   "period": {
+    "custom": [
+     "2026-09-01",
+     "2026-09-30"
+    ]
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_revenue",
+   "payment",
+   "time_named_month"
+  ]
+ },
+ {
+  "id": "d130",
+  "phrase": "ventas con tarjeta o qr de ayer",
+  "expected": {
+   "payment_methods": [
+    "card",
+    "qr"
+   ],
+   "metric": "revenue",
+   "period": {
+    "preset": "yesterday"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_revenue",
+   "payment",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d131",
+  "phrase": "cuantos pedidos se pagaron al contado la semana pasada",
+  "expected": {
+   "payment_methods": [
+    "cash"
+   ],
+   "metric": "orders",
+   "period": {
+    "preset": "last_week"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_orders",
+   "payment",
+   "question",
+   "time_relative",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d132",
+  "phrase": "ventas con stripe de este trimestre",
+  "expected": {
+   "payment_methods": [
+    "card"
+   ],
+   "metric": "revenue",
+   "period": {
+    "preset": "this_quarter"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_revenue",
+   "payment",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d133",
+  "phrase": "ventas por internet pagadas con tarjeta este mes",
+  "expected": {
+   "channel": "online",
+   "payment_methods": [
+    "card"
+   ],
+   "metric": "revenue",
+   "period": {
+    "preset": "this_month"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "channel",
+   "metric_revenue",
+   "payment",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d134",
+  "phrase": "pedidos en tienda pagados en efectivo ayer",
+  "expected": {
+   "channel": "store",
+   "payment_methods": [
+    "cash"
+   ],
+   "metric": "orders",
+   "period": {
+    "preset": "yesterday"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "channel",
+   "metric_orders",
+   "payment",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d135",
+  "phrase": "ventas con codigo qr en Ayni Zona Sur",
+  "expected": {
+   "payment_methods": [
+    "qr"
+   ],
+   "metric": "revenue",
+   "branches": [
+    "Ayni Zona Sur"
+   ]
+  },
+  "must_return_none": false,
+  "tags": [
+   "branch_filter",
+   "metric_revenue",
+   "payment"
+  ]
+ },
+ {
+  "id": "d136",
+  "phrase": "ventas de este mes comparado con el mes pasado",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "preset": "this_month"
+   },
+   "compare_previous": true
+  },
+  "must_return_none": false,
+  "tags": [
+   "compare",
+   "metric_revenue",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d137",
+  "phrase": "ingresos de esta semana vs la anterior",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "preset": "this_week"
+   },
+   "compare_previous": true
+  },
+  "must_return_none": false,
+  "tags": [
+   "compare",
+   "metric_revenue",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d138",
+  "phrase": "cuanto vendimos hoy comparado con ayer",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "preset": "today"
+   },
+   "compare_previous": true
+  },
+  "must_return_none": false,
+  "tags": [
+   "compare",
+   "metric_revenue",
+   "question",
+   "time_relative",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d139",
+  "phrase": "pedidos de este trimestre vs el anterior",
+  "expected": {
+   "metric": "orders",
+   "period": {
+    "preset": "this_quarter"
+   },
+   "compare_previous": true
+  },
+  "must_return_none": false,
+  "tags": [
+   "compare",
+   "metric_orders",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d140",
+  "phrase": "ventas del año pasado comparado con el anterior",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "preset": "last_year"
+   },
+   "compare_previous": true
+  },
+  "must_return_none": false,
+  "tags": [
+   "compare",
+   "metric_revenue",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d141",
+  "phrase": "ventas por sucursal este mes comparado con el anterior",
+  "expected": {
+   "group_by": [
+    "branch"
+   ],
+   "metric": "revenue",
+   "period": {
+    "preset": "this_month"
+   },
+   "compare_previous": true
+  },
+  "must_return_none": false,
+  "tags": [
+   "compare",
+   "group_by",
+   "metric_revenue",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d142",
+  "phrase": "ticket promedio de este año vs el anterior",
+  "expected": {
+   "metric": "avg_ticket",
+   "period": {
+    "preset": "this_year"
+   },
+   "compare_previous": true
+  },
+  "must_return_none": false,
+  "tags": [
+   "compare",
+   "metric_ticket",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d143",
+  "phrase": "ventas de Ayni Cochabamba esta semana",
+  "expected": {
+   "branches": [
+    "Ayni Cochabamba"
+   ],
+   "metric": "revenue",
+   "period": {
+    "preset": "this_week"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "branch_filter",
+   "metric_revenue",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d144",
+  "phrase": "cuanto vendio la sucursal sur hoy",
+  "expected": {
+   "branches": [
+    "Ayni Zona Sur"
+   ],
+   "metric": "revenue",
+   "period": {
+    "preset": "today"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "branch_filter",
+   "metric_revenue",
+   "question",
+   "time_relative",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d145",
+  "phrase": "ventas en el alto del mes pasado",
+  "expected": {
+   "branches": [
+    "Ayni El Alto"
+   ],
+   "metric": "revenue",
+   "period": {
+    "preset": "last_month"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "branch_filter",
+   "metric_revenue",
+   "time_relative",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d146",
+  "phrase": "unidades vendidas de Blusa Floral este mes",
+  "expected": {
+   "products": [
+    "Blusa Floral"
+   ],
+   "metric": "units",
+   "period": {
+    "preset": "this_month"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_units",
+   "product_filter",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d147",
+  "phrase": "¿Cuántos Jean Clasico vendimos en octubre?",
+  "expected": {
+   "products": [
+    "Jean Clasico"
+   ],
+   "metric": "units",
+   "period": {
+    "custom": [
+     "2026-10-01",
+     "2026-10-31"
+    ]
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_units",
+   "product_filter",
+   "question",
+   "time_named_month"
+  ]
+ },
+ {
+  "id": "d148",
+  "phrase": "ventas de la categoría Vestidos el año pasado",
+  "expected": {
+   "categories": [
+    "Vestidos"
+   ],
+   "metric": "revenue",
+   "period": {
+    "preset": "last_year"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "category_filter",
+   "metric_revenue",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d149",
+  "phrase": "ingresos de chaquetas en cochabamba este trimestre",
+  "expected": {
+   "categories": [
+    "Chaquetas"
+   ],
+   "branches": [
+    "Ayni Cochabamba"
+   ],
+   "metric": "revenue",
+   "period": {
+    "preset": "this_quarter"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "branch_filter",
+   "category_filter",
+   "metric_revenue",
+   "time_relative",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d150",
+  "phrase": "ventas de Falda Plisada por sucursal",
+  "expected": {
+   "products": [
+    "Falda Plisada"
+   ],
+   "group_by": [
+    "branch"
+   ],
+   "metric": "revenue"
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_revenue",
+   "product_filter"
+  ]
+ },
+ {
+  "id": "d151",
+  "phrase": "Polera Basica vendidas por talla",
+  "expected": {
+   "products": [
+    "Polera Basica"
+   ],
+   "group_by": [
+    "size"
+   ],
+   "metric": "units"
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_units",
+   "product_filter"
+  ]
+ },
+ {
+  "id": "d152",
+  "phrase": "ventas de jeans por color en septiembre",
+  "expected": {
+   "categories": [
+    "Jeans"
+   ],
+   "group_by": [
+    "color"
+   ],
+   "metric": "revenue",
+   "period": {
+    "custom": [
+     "2026-09-01",
+     "2026-09-30"
+    ]
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "category_filter",
+   "group_by",
+   "metric_revenue",
+   "time_named_month"
+  ]
+ },
+ {
+  "id": "d153",
+  "phrase": "la sucursal que más vendió Vestido Largo",
+  "expected": {
+   "products": [
+    "Vestido Largo"
+   ],
+   "group_by": [
+    "branch"
+   ],
+   "metric": "revenue",
+   "top_n": 1,
+   "order": "desc"
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "metric_revenue",
+   "product_filter",
+   "ranking"
+  ]
+ },
+ {
+  "id": "d154",
+  "phrase": "pedidos de Ayni La Paz Centro y Ayni El Alto ayer",
+  "expected": {
+   "branches": [
+    "Ayni La Paz Centro",
+    "Ayni El Alto"
+   ],
+   "metric": "orders",
+   "period": {
+    "preset": "yesterday"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "branch_filter",
+   "metric_orders",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d155",
+  "phrase": "ventas de Chaqueta de Cuero en el centro",
+  "expected": {
+   "products": [
+    "Chaqueta de Cuero"
+   ],
+   "branches": [
+    "Ayni La Paz Centro"
+   ],
+   "metric": "revenue"
+  },
+  "must_return_none": false,
+  "tags": [
+   "branch_filter",
+   "metric_revenue",
+   "product_filter"
+  ]
+ },
+ {
+  "id": "d156",
+  "phrase": "ventas del domingo en la sucursal sur",
+  "expected": {
+   "branches": [
+    "Ayni Zona Sur"
+   ],
+   "metric": "revenue",
+   "period": {
+    "custom": [
+     "2026-11-08",
+     "2026-11-08"
+    ]
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "branch_filter",
+   "metric_revenue",
+   "time_weekday"
+  ]
+ },
+ {
+  "id": "d157",
+  "phrase": "ver inventario",
+  "expected": {
+   "kind": "inventory"
+  },
+  "must_return_none": false,
+  "tags": [
+   "inventory"
+  ]
+ },
+ {
+  "id": "d158",
+  "phrase": "Muéstrame las existencias de Ayni Zona Sur",
+  "expected": {
+   "kind": "inventory",
+   "branches": [
+    "Ayni Zona Sur"
+   ]
+  },
+  "must_return_none": false,
+  "tags": [
+   "branch_filter",
+   "command",
+   "inventory"
+  ]
+ },
+ {
+  "id": "d159",
+  "phrase": "¿Cuánto stock hay de Jean Clasico?",
+  "expected": {
+   "kind": "inventory",
+   "products": [
+    "Jean Clasico"
+   ]
+  },
+  "must_return_none": false,
+  "tags": [
+   "inventory",
+   "product_filter",
+   "question"
+  ]
+ },
+ {
+  "id": "d160",
+  "phrase": "cuantas blusas quedan",
+  "expected": {
+   "kind": "inventory",
+   "categories": [
+    "Blusas"
+   ]
+  },
+  "must_return_none": false,
+  "tags": [
+   "category_filter",
+   "inventory",
+   "question",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d161",
+  "phrase": "stock por sucursal",
+  "expected": {
+   "kind": "inventory",
+   "group_by": [
+    "product"
+   ]
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "inventory"
+  ]
+ },
+ {
+  "id": "d162",
+  "phrase": "existencias de la categoría Faldas en el alto",
+  "expected": {
+   "kind": "inventory",
+   "categories": [
+    "Faldas"
+   ],
+   "branches": [
+    "Ayni El Alto"
+   ]
+  },
+  "must_return_none": false,
+  "tags": [
+   "branch_filter",
+   "category_filter",
+   "inventory"
+  ]
+ },
+ {
+  "id": "d163",
+  "phrase": "necesito el inventario de Ayni Cochabamba por talla",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "branch_filter",
+   "command",
+   "group_by",
+   "inventory"
+  ]
+ },
+ {
+  "id": "d164",
+  "phrase": "oye cuantas chaquetas nos quedan en la sucursal sur",
+  "expected": {
+   "kind": "inventory",
+   "categories": [
+    "Chaquetas"
+   ],
+   "branches": [
+    "Ayni Zona Sur"
+   ]
+  },
+  "must_return_none": false,
+  "tags": [
+   "branch_filter",
+   "category_filter",
+   "colloquial",
+   "inventory",
+   "question",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d165",
+  "phrase": "stock actual de Polera Basica",
+  "expected": {
+   "kind": "inventory",
+   "products": [
+    "Polera Basica"
+   ]
+  },
+  "must_return_none": false,
+  "tags": [
+   "inventory",
+   "product_filter"
+  ]
+ },
+ {
+  "id": "d166",
+  "phrase": "reporte de inventario por categoría",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "group_by",
+   "inventory"
+  ]
+ },
+ {
+  "id": "d167",
+  "phrase": "inventario de vestidos",
+  "expected": {
+   "kind": "inventory",
+   "categories": [
+    "Vestidos"
+   ]
+  },
+  "must_return_none": false,
+  "tags": [
+   "category_filter",
+   "inventory"
+  ]
+ },
+ {
+  "id": "d168",
+  "phrase": "stock crítico",
+  "expected": {
+   "kind": "critical_stock"
+  },
+  "must_return_none": false,
+  "tags": [
+   "critical_stock"
+  ]
+ },
+ {
+  "id": "d169",
+  "phrase": "¿Qué productos están por agotarse?",
+  "expected": {
+   "kind": "critical_stock"
+  },
+  "must_return_none": false,
+  "tags": [
+   "critical_stock",
+   "question"
+  ]
+ },
+ {
+  "id": "d170",
+  "phrase": "productos con poco stock en Ayni El Alto",
+  "expected": {
+   "kind": "critical_stock",
+   "branches": [
+    "Ayni El Alto"
+   ]
+  },
+  "must_return_none": false,
+  "tags": [
+   "branch_filter",
+   "critical_stock"
+  ]
+ },
+ {
+  "id": "d171",
+  "phrase": "que falta reponer en cochabamba",
+  "expected": {
+   "kind": "critical_stock",
+   "branches": [
+    "Ayni Cochabamba"
+   ]
+  },
+  "must_return_none": false,
+  "tags": [
+   "branch_filter",
+   "critical_stock",
+   "question",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d172",
+  "phrase": "dame los artículos agotados",
+  "expected": {
+   "kind": "critical_stock"
+  },
+  "must_return_none": false,
+  "tags": [
+   "command",
+   "critical_stock"
+  ]
+ },
+ {
+  "id": "d173",
+  "phrase": "bajo stock en la categoría Vestidos",
+  "expected": {
+   "kind": "critical_stock",
+   "categories": [
+    "Vestidos"
+   ]
+  },
+  "must_return_none": false,
+  "tags": [
+   "category_filter",
+   "critical_stock"
+  ]
+ },
+ {
+  "id": "d174",
+  "phrase": "qué se está acabando en el centro",
+  "expected": {
+   "kind": "critical_stock",
+   "branches": [
+    "Ayni La Paz Centro"
+   ]
+  },
+  "must_return_none": false,
+  "tags": [
+   "branch_filter",
+   "colloquial",
+   "critical_stock",
+   "question"
+  ]
+ },
+ {
+  "id": "d175",
+  "phrase": "prendas sin stock",
+  "expected": {
+   "kind": "critical_stock"
+  },
+  "must_return_none": false,
+  "tags": [
+   "critical_stock"
+  ]
+ },
+ {
+  "id": "d176",
+  "phrase": "eh muestrame el stock critico de la sucursal sur por favor",
+  "expected": {
+   "kind": "critical_stock",
+   "branches": [
+    "Ayni Zona Sur"
+   ]
+  },
+  "must_return_none": false,
+  "tags": [
+   "branch_filter",
+   "command",
+   "critical_stock",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d177",
+  "phrase": "jeans sin stock",
+  "expected": {
+   "kind": "critical_stock",
+   "categories": [
+    "Jeans"
+   ]
+  },
+  "must_return_none": false,
+  "tags": [
+   "category_filter",
+   "critical_stock"
+  ]
+ },
+ {
+  "id": "d178",
+  "phrase": "movimientos de inventario de la semana pasada",
+  "expected": {
+   "kind": "movements",
+   "period": {
+    "preset": "last_week"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "movements",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d179",
+  "phrase": "entradas y salidas de este mes",
+  "expected": {
+   "kind": "movements",
+   "period": {
+    "preset": "this_month"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "movements",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d180",
+  "phrase": "transferencias del mes pasado",
+  "expected": {
+   "kind": "movements",
+   "period": {
+    "preset": "last_month"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "movements",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d181",
+  "phrase": "ingresos de mercadería de octubre",
+  "expected": {
+   "kind": "movements",
+   "period": {
+    "custom": [
+     "2026-10-01",
+     "2026-10-31"
+    ]
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "movements",
+   "time_named_month"
+  ]
+ },
+ {
+  "id": "d182",
+  "phrase": "reposiciones de Ayni Zona Sur esta semana",
+  "expected": {
+   "kind": "movements",
+   "branches": [
+    "Ayni Zona Sur"
+   ],
+   "period": {
+    "preset": "this_week"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "branch_filter",
+   "movements",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d183",
+  "phrase": "dame los movimientos de inventario de ayer",
+  "expected": {
+   "kind": "movements",
+   "period": {
+    "preset": "yesterday"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "command",
+   "movements",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d184",
+  "phrase": "cuantas transferencias hubo en los ultimos diez dias",
+  "expected": {
+   "kind": "movements",
+   "period": {
+    "preset": "last_n_days",
+    "n": 10
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "movements",
+   "number_words",
+   "question",
+   "time_relative",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d185",
+  "phrase": "movimientos de inventario de Blusa Floral en septiembre",
+  "expected": {
+   "kind": "movements",
+   "products": [
+    "Blusa Floral"
+   ],
+   "period": {
+    "custom": [
+     "2026-09-01",
+     "2026-09-30"
+    ]
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "movements",
+   "product_filter",
+   "time_named_month"
+  ]
+ },
+ {
+  "id": "d186",
+  "phrase": "entradas y salidas en el alto del 1 al 15 de octubre",
+  "expected": {
+   "kind": "movements",
+   "branches": [
+    "Ayni El Alto"
+   ],
+   "period": {
+    "custom": [
+     "2026-10-01",
+     "2026-10-15"
+    ]
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "branch_filter",
+   "movements",
+   "time_range"
+  ]
+ },
+ {
+  "id": "d187",
+  "phrase": "reporte de ventas",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "preset": "last_n_days",
+    "n": 30
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_revenue",
+   "sales_simple",
+   "time_relative"
+  ]
+ },
+ {
+  "id": "d188",
+  "phrase": "cuanto vendimos ayer en efectivo en la sucursal sur",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "preset": "yesterday"
+   },
+   "payment_methods": [
+    "cash"
+   ],
+   "branches": [
+    "Ayni Zona Sur"
+   ]
+  },
+  "must_return_none": false,
+  "tags": [
+   "branch_filter",
+   "metric_revenue",
+   "payment",
+   "time_relative",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d189",
+  "phrase": "buenas oye quiero que me muestres la facturacion de la sucursal el alto del mes de enero desglosada por categoria por favor",
+  "expected": {
+   "metric": "revenue",
+   "branches": [
+    "Ayni El Alto"
+   ],
+   "period": {
+    "custom": [
+     "2026-01-01",
+     "2026-01-31"
+    ]
+   },
+   "group_by": [
+    "category"
+   ]
+  },
+  "must_return_none": false,
+  "tags": [
+   "branch_filter",
+   "command",
+   "group_by",
+   "metric_revenue",
+   "time_named_month",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d190",
+  "phrase": "cuantas prendas de Vestido Largo vendimos el viernes pasado",
+  "expected": {
+   "metric": "units",
+   "products": [
+    "Vestido Largo"
+   ],
+   "period": {
+    "custom": [
+     "2026-11-06",
+     "2026-11-06"
+    ]
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "metric_units",
+   "product_filter",
+   "question",
+   "time_weekday",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d191",
+  "phrase": "eh necesito saber cuanta plata entro por internet en los ultimos tres meses y quiero verlo separado por mes para la reunion con los socios",
+  "expected": {
+   "metric": "revenue",
+   "channel": "online",
+   "period": {
+    "preset": "last_n_months",
+    "n": 3
+   },
+   "group_by": [
+    "month"
+   ]
+  },
+  "must_return_none": false,
+  "tags": [
+   "channel",
+   "colloquial",
+   "group_by",
+   "metric_revenue",
+   "number_words",
+   "time_relative",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d192",
+  "phrase": "hola buenos días",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "noise_none"
+  ]
+ },
+ {
+  "id": "d193",
+  "phrase": "ok gracias",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "noise_none"
+  ]
+ },
+ {
+  "id": "d194",
+  "phrase": "cuéntame un chiste",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "noise_none"
+  ]
+ },
+ {
+  "id": "d195",
+  "phrase": "como estas",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "noise_none",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d196",
+  "phrase": "¿quién eres?",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "noise_none",
+   "question"
+  ]
+ },
+ {
+  "id": "d197",
+  "phrase": "qué hora es",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "noise_none",
+   "question"
+  ]
+ },
+ {
+  "id": "d198",
+  "phrase": "pon música por favor",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "command",
+   "noise_none"
+  ]
+ },
+ {
+  "id": "d199",
+  "phrase": "jaja ok perfecto",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "noise_none",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d200",
+  "phrase": "eh no nada olvidalo",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "noise_none",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d201",
+  "phrase": "abre la caja",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "command",
+   "noise_none"
+  ]
+ },
+ {
+  "id": "d202",
+  "phrase": "ganancia del mes pasado",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none"
+  ]
+ },
+ {
+  "id": "d203",
+  "phrase": "¿Cuál fue la utilidad de octubre?",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none",
+   "question"
+  ]
+ },
+ {
+  "id": "d204",
+  "phrase": "margen por producto",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none"
+  ]
+ },
+ {
+  "id": "d205",
+  "phrase": "costo de la mercadería vendida este año",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none"
+  ]
+ },
+ {
+  "id": "d206",
+  "phrase": "cuanto me deben los clientes",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d207",
+  "phrase": "cuánto pagamos de luz este mes",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none"
+  ]
+ },
+ {
+  "id": "d208",
+  "phrase": "dame el margen de ganancia de los jeans",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none",
+   "command"
+  ]
+ },
+ {
+  "id": "d209",
+  "phrase": "utilidad neta por sucursal del año pasado",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none"
+  ]
+ },
+ {
+  "id": "d210",
+  "phrase": "cuántos empleados tenemos",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none",
+   "question"
+  ]
+ },
+ {
+  "id": "d211",
+  "phrase": "ventas de hace dos semanas",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none"
+  ]
+ },
+ {
+  "id": "d212",
+  "phrase": "ventas de la quincena pasada",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none"
+  ]
+ },
+ {
+  "id": "d213",
+  "phrase": "cuanto vendimos en navidad",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none",
+   "typo_free_no_accents",
+   "voice"
+  ]
+ },
+ {
+  "id": "d214",
+  "phrase": "ventas antes del feriado",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none"
+  ]
+ },
+ {
+  "id": "d215",
+  "phrase": "ventas del fin de semana largo",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none"
+  ]
+ },
+ {
+  "id": "d216",
+  "phrase": "¿cuánto vendimos hace tres días?",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none",
+   "number_words",
+   "question"
+  ]
+ },
+ {
+  "id": "d217",
+  "phrase": "ventas del próximo mes",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none"
+  ]
+ },
+ {
+  "id": "d218",
+  "phrase": "dame eso",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none",
+   "command"
+  ]
+ },
+ {
+  "id": "d219",
+  "phrase": "el reporte de siempre",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none"
+  ]
+ },
+ {
+  "id": "d220",
+  "phrase": "vendimos bien?",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none",
+   "question"
+  ]
+ },
+ {
+  "id": "d221",
+  "phrase": "ventas a lo largo del mes",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "preset": "this_month"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "review_partial_names"
+  ]
+ },
+ {
+  "id": "d222",
+  "phrase": "como fueron las ventas a lo largo de octubre",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "custom": [
+     "2026-10-01",
+     "2026-10-31"
+    ]
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "review_partial_names"
+  ]
+ },
+ {
+  "id": "d223",
+  "phrase": "ventas de la zona norte",
+  "expected": {
+   "metric": "revenue"
+  },
+  "must_return_none": false,
+  "tags": [
+   "review_partial_names"
+  ]
+ },
+ {
+  "id": "d224",
+  "phrase": "ventas del centro de cochabamba",
+  "expected": {
+   "metric": "revenue",
+   "branches": [
+    "Ayni Cochabamba"
+   ]
+  },
+  "must_return_none": false,
+  "tags": [
+   "review_partial_names"
+  ]
+ },
+ {
+  "id": "d225",
+  "phrase": "cuanto vendimos en el centro de el alto",
+  "expected": {
+   "metric": "revenue",
+   "branches": [
+    "Ayni El Alto"
+   ]
+  },
+  "must_return_none": false,
+  "tags": [
+   "review_partial_names"
+  ]
+ },
+ {
+  "id": "d226",
+  "phrase": "ventas del centro comercial",
+  "expected": {
+   "metric": "revenue"
+  },
+  "must_return_none": false,
+  "tags": [
+   "review_partial_names"
+  ]
+ },
+ {
+  "id": "d227",
+  "phrase": "dame la informacion basica de ventas de hoy",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "preset": "today"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "review_partial_names"
+  ]
+ },
+ {
+  "id": "d228",
+  "phrase": "ventas de zapatos de cuero",
+  "expected": {
+   "metric": "revenue"
+  },
+  "must_return_none": false,
+  "tags": [
+   "review_partial_names"
+  ]
+ },
+ {
+  "id": "d229",
+  "phrase": "ventas de octubre vs septiembre",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "custom": [
+     "2026-10-01",
+     "2026-10-31"
+    ]
+   },
+   "compare_previous": true
+  },
+  "must_return_none": false,
+  "tags": [
+   "compare"
+  ]
+ },
+ {
+  "id": "d230",
+  "phrase": "ventas de este mes vs el mes pasado",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "preset": "this_month"
+   },
+   "compare_previous": true
+  },
+  "must_return_none": false,
+  "tags": [
+   "compare"
+  ]
+ },
+ {
+  "id": "d231",
+  "phrase": "ventas de hoy vs ayer",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "preset": "today"
+   },
+   "compare_previous": true
+  },
+  "must_return_none": false,
+  "tags": [
+   "compare"
+  ]
+ },
+ {
+  "id": "d232",
+  "phrase": "como nos fue en octubre comparado con agosto",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none",
+   "compare"
+  ]
+ },
+ {
+  "id": "d233",
+  "phrase": "ventas de hoy vs el lunes",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none",
+   "compare"
+  ]
+ },
+ {
+  "id": "d234",
+  "phrase": "ventas de hoy comparado con el 1 de noviembre",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none",
+   "compare"
+  ]
+ },
+ {
+  "id": "d235",
+  "phrase": "ventas de octubre vs el 15 de septiembre",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none",
+   "compare"
+  ]
+ },
+ {
+  "id": "d236",
+  "phrase": "ventas de esta semana vs la semana del 19 de octubre",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none",
+   "compare"
+  ]
+ },
+ {
+  "id": "d237",
+  "phrase": "inventario por talla",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none",
+   "inventory"
+  ]
+ },
+ {
+  "id": "d238",
+  "phrase": "stock critico por categoria",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none",
+   "critical_stock"
+  ]
+ },
+ {
+  "id": "d239",
+  "phrase": "movimientos diarios",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none",
+   "movements"
+  ]
+ },
+ {
+  "id": "d240",
+  "phrase": "inventario por sucursal y categoria",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none",
+   "inventory"
+  ]
+ },
+ {
+  "id": "d241",
+  "phrase": "inventario de el alto",
+  "expected": {
+   "kind": "inventory",
+   "group_by": [
+    "product"
+   ],
+   "branches": [
+    "Ayni El Alto"
+   ]
+  },
+  "must_return_none": false,
+  "tags": [
+   "branch_filter",
+   "inventory"
+  ]
+ },
+ {
+  "id": "d242",
+  "phrase": "cuanto cobramos con transferencia bancaria",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none",
+   "payment"
+  ]
+ },
+ {
+  "id": "d243",
+  "phrase": "ventas a cuenta",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none",
+   "payment"
+  ]
+ },
+ {
+  "id": "d244",
+  "phrase": "transferencias entre sucursales",
+  "expected": {
+   "kind": "movements"
+  },
+  "must_return_none": false,
+  "tags": [
+   "movements"
+  ]
+ },
+ {
+  "id": "d245",
+  "phrase": "ventas del vendedor juan",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none",
+   "review_people"
+  ]
+ },
+ {
+  "id": "d246",
+  "phrase": "ventas de la cajera ana ayer",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none",
+   "review_people"
+  ]
+ },
+ {
+  "id": "d247",
+  "phrase": "cuanto vendio el vendedor",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none",
+   "review_people"
+  ]
+ },
+ {
+  "id": "d248",
+  "phrase": "el contador quiere las ventas de octubre por sucursal",
+  "expected": {
+   "metric": "revenue",
+   "group_by": [
+    "branch"
+   ],
+   "period": {
+    "custom": [
+     "2026-10-01",
+     "2026-10-31"
+    ]
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "group_by",
+   "review_people"
+  ]
+ },
+ {
+  "id": "d249",
+  "phrase": "cuanto vendio miraflores",
+  "expected": {
+   "metric": "revenue"
+  },
+  "must_return_none": false,
+  "tags": [
+   "review_unknown_words"
+  ]
+ },
+ {
+  "id": "d250",
+  "phrase": "ventas sopocachi",
+  "expected": {
+   "metric": "revenue"
+  },
+  "must_return_none": false,
+  "tags": [
+   "review_unknown_words"
+  ]
+ },
+ {
+  "id": "d251",
+  "phrase": "ventas zapatos este mes",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "preset": "this_month"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "review_unknown_words"
+  ]
+ },
+ {
+  "id": "d252",
+  "phrase": "cuanto vendio cocha",
+  "expected": {
+   "metric": "revenue"
+  },
+  "must_return_none": false,
+  "tags": [
+   "review_unknown_words"
+  ]
+ },
+ {
+  "id": "d253",
+  "phrase": "cuanto vendio maria",
+  "expected": {
+   "metric": "revenue"
+  },
+  "must_return_none": false,
+  "tags": [
+   "review_unknown_words"
+  ]
+ },
+ {
+  "id": "d254",
+  "phrase": "ventas pronto",
+  "expected": {
+   "metric": "revenue"
+  },
+  "must_return_none": false,
+  "tags": [
+   "review_unknown_words"
+  ]
+ },
+ {
+  "id": "d255",
+  "phrase": "ventas de este mes afectivo",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "preset": "this_month"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "review_unknown_words"
+  ]
+ },
+ {
+  "id": "d256",
+  "phrase": "ventas al por mayor del mes",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none",
+   "review_amounts"
+  ]
+ },
+ {
+  "id": "d257",
+  "phrase": "ventas por mayor",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none",
+   "review_amounts"
+  ]
+ },
+ {
+  "id": "d258",
+  "phrase": "ventas al por menor",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none",
+   "review_amounts"
+  ]
+ },
+ {
+  "id": "d259",
+  "phrase": "la venta mas alta de ayer",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none",
+   "ranking",
+   "review_amounts"
+  ]
+ },
+ {
+  "id": "d260",
+  "phrase": "el ticket mas alto del mes",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none",
+   "ranking",
+   "review_amounts"
+  ]
+ },
+ {
+  "id": "d261",
+  "phrase": "las ventas mas altas del mes",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none",
+   "ranking",
+   "review_amounts"
+  ]
+ },
+ {
+  "id": "d262",
+  "phrase": "ventas mayores a 500 bs",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none",
+   "review_amounts"
+  ]
+ },
+ {
+  "id": "d263",
+  "phrase": "ventas de mas de 100 bolivianos",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none",
+   "review_amounts"
+  ]
+ },
+ {
+  "id": "d264",
+  "phrase": "lo mas vendido",
+  "expected": {
+   "group_by": [
+    "product"
+   ],
+   "metric": "units",
+   "order": "desc"
+  },
+  "must_return_none": false,
+  "tags": [
+   "ranking"
+  ]
+ },
+ {
+  "id": "d265",
+  "phrase": "la peor sucursal",
+  "expected": {
+   "group_by": [
+    "branch"
+   ],
+   "metric": "revenue",
+   "top_n": 1,
+   "order": "asc"
+  },
+  "must_return_none": false,
+  "tags": [
+   "ranking"
+  ]
+ },
+ {
+  "id": "d266",
+  "phrase": "ventas en bs del mes",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "preset": "this_month"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "review_amounts"
+  ]
+ },
+ {
+  "id": "d267",
+  "phrase": "ventas del uno de noviembre",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "custom": [
+     "2026-11-01",
+     "2026-11-01"
+    ]
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "number_words",
+   "time_named_month"
+  ]
+ },
+ {
+  "id": "d268",
+  "phrase": "ventas de los lunes",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none",
+   "time_weekday"
+  ]
+ },
+ {
+  "id": "d269",
+  "phrase": "ventas de todos los lunes",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none",
+   "time_weekday"
+  ]
+ },
+ {
+  "id": "d270",
+  "phrase": "ventas de cada viernes",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none",
+   "time_weekday"
+  ]
+ },
+ {
+  "id": "d271",
+  "phrase": "la renta de este mes",
+  "expected": {},
+  "must_return_none": true,
+  "tags": [
+   "ambiguous_none",
+   "review_fuzzy"
+  ]
+ },
+ {
+  "id": "d272",
+  "phrase": "las ventas lentas del mes",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "preset": "this_month"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "review_fuzzy"
+  ]
+ },
+ {
+  "id": "d273",
+  "phrase": "ｖｅｎｔａｓ de hoy",
+  "expected": {
+   "metric": "revenue",
+   "period": {
+    "preset": "today"
+   }
+  },
+  "must_return_none": false,
+  "tags": [
+   "review_unicode"
+  ]
+ }
+]

@@ -77,8 +77,14 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   @override
   void initState() {
     super.initState();
+    // Start on the first size with stock, never on a sold-out one.
+    final firstInStock = _variants.indexWhere(_inStock);
+    if (firstInStock > 0) _selectedVariantIndex = firstInStock;
     _loadSaved();
   }
+
+  /// Unknown stock (no branch info) is left to the server; a known 0 is sold out.
+  static bool _inStock(ProductVariant variant) => (variant.branchQuantity ?? 1) > 0;
 
   Future<void> _loadSaved() async {
     final api = _wishlistApi;
@@ -297,6 +303,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           AppVariantOption(
             id: _variants[index].id,
             label: _variantLabel(_variants[index]),
+            enabled: _inStock(_variants[index]),
           ),
       ],
       selectedId: _selectedVariant?.id,
@@ -310,6 +317,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   void _selectVariant(int index) {
+    if (!_inStock(_variants[index])) {
+      AppSnackBar.show(context, 'Esta talla está agotada en la sucursal.', tone: AppSnackBarTone.warning);
+      return;
+    }
     final maxQuantity = _quantityLimit(_variants[index].branchQuantity);
     setState(() {
       _selectedVariantIndex = index;
@@ -370,11 +381,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   bool _canAddToCart(ProductVariant? variant, int? quantity) {
     return widget.authController != null &&
         variant != null &&
+        _inStock(variant) &&
         (quantity == null || quantity > 0);
   }
 
   bool _canReserve(Product? product, ProductVariant? variant) {
-    return widget.authController != null && product != null && variant != null;
+    return widget.authController != null && product != null && variant != null && _inStock(variant);
   }
 
   Branch? _resolveBranch() {

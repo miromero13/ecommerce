@@ -28,8 +28,11 @@ WEIGHTS = {VIEW: 1, ADD_TO_CART: 2, WISHLIST: 3, COMPLETED_ORDER: 5}
 
 
 # [CU06 - Secuencia: Paso 2.4] catalog_routes invoca record_interaction(user_id, product_id, interaction_type, order_id, variant_id, branch_id) sobre la entidad InteraccionProducto
+# [CU06 - Secuencia: Paso 2.5] InteraccionProducto retorna record_interaction(user_id, product_id, interaction_type, order_id, variant_id, branch_id): None a catalog_routes
 # [CU25 - Secuencia: Paso 2.15] cart_routes invoca record_interaction(user_id, product_id, interaction_type, order_id, variant_id, branch_id) sobre la entidad InteraccionProducto
+# [CU25 - Secuencia: Paso 2.16] InteraccionProducto retorna record_interaction(user_id, product_id, interaction_type, order_id, variant_id, branch_id): None a cart_routes
 # [CU30 - Secuencia: Paso 3.12] cart_routes invoca record_interaction(user_id, product_id, interaction_type, order_id, variant_id, branch_id) sobre la entidad InteraccionProducto
+# [CU30 - Secuencia: Paso 3.13] InteraccionProducto retorna record_interaction(user_id, product_id, interaction_type, order_id, variant_id, branch_id): None a cart_routes
 def record_interaction(db: Session, user_id: UUID, product_id: UUID, interaction_type: str, order_id: UUID | None = None, variant_id: UUID | None = None, branch_id: UUID | None = None) -> None:
     db.add(UserProductInteraction(
         user_id=user_id,
@@ -43,6 +46,7 @@ def record_interaction(db: Session, user_id: UUID, product_id: UUID, interaction
 
 
 # [CU06 - Secuencia: Paso 2.2] catalog_routes invoca record_product_view(user_id, product_id, variant_id, branch_id) sobre la entidad Producto
+# [CU06 - Secuencia: Paso 2.3] Producto retorna record_product_view(user_id, product_id, variant_id, branch_id): bool a catalog_routes
 def record_product_view(db: Session, user_id: UUID, product_id: UUID, variant_id: UUID | None = None, branch_id: UUID | None = None) -> bool:
     active_product = db.query(Product.id).join(ProductVariant).filter(
         Product.id == product_id,
@@ -67,6 +71,7 @@ def record_product_view(db: Session, user_id: UUID, product_id: UUID, variant_id
 
 
 # [CU16 - Secuencia: Pasos 2.10, 5.10] wishlist_routes invoca record_wishlist_interaction(user_id, product_id) sobre la entidad InteraccionProducto
+# [CU16 - Secuencia: Pasos 2.11, 5.11] InteraccionProducto retorna record_wishlist_interaction(user_id, product_id): None a wishlist_routes
 def record_wishlist_interaction(db: Session, user_id: UUID, product_id: UUID) -> None:
     """CU16 favorites are a strong interest signal; counted once per customer and garment."""
     already = db.query(UserProductInteraction.id).filter(
@@ -178,6 +183,7 @@ def _active_product_ids(db: Session) -> list[UUID]:
 
 
 # [CU06 - Secuencia: Paso 1.6] recommendation_routes invoca _purchased_product_ids(user_id) sobre la entidad InteraccionProducto
+# [CU06 - Secuencia: Paso 1.7] InteraccionProducto retorna _purchased_product_ids(user_id): set[UUID] a recommendation_routes
 def _purchased_product_ids(db: Session, user_id: UUID) -> set[UUID]:
     return {
         row.product_id
@@ -198,6 +204,7 @@ def rank_embedding_scores(user_vector, product_vectors, excluded_product_ids: se
 
 
 # [CU06 - Secuencia: Paso 1.10] recommendation_routes invoca _popular_recommendations(available_ids, excluded_ids, limit) sobre la entidad InteraccionProducto
+# [CU06 - Secuencia: Paso 1.11] InteraccionProducto retorna _popular_recommendations(available_ids, excluded_ids, limit): ranked[:limit] a recommendation_routes
 def _popular_recommendations(db: Session, available_ids: set[UUID], excluded_ids: set[UUID], limit: int):
     rows = db.query(
         UserProductInteraction.product_id,
@@ -212,6 +219,7 @@ def _popular_recommendations(db: Session, available_ids: set[UUID], excluded_ids
 
 
 # [CU06 - Secuencia: Paso 1.4] recommendation_routes invoca _eligible_product_ids(branch_id) sobre la entidad Producto
+# [CU06 - Secuencia: Paso 1.5] Producto retorna _eligible_product_ids(branch_id): set[UUID] a recommendation_routes
 def _eligible_product_ids(db: Session, branch_id: UUID | None = None) -> set[UUID]:
     # Same rule as the public catalog: suspended companies sell nothing, so they are never recommended.
     query = db.query(Product.id).join(ProductVariant).join(Tenant, Tenant.id == Product.tenant_id).filter(
@@ -227,6 +235,7 @@ def _eligible_product_ids(db: Session, branch_id: UUID | None = None) -> set[UUI
 
 
 # [CU06 - Secuencia: Pasos 1.8, 1.12] recommendation_routes invoca _history_affinity(user_id, candidate_ids) sobre la entidad InteraccionProducto
+# [CU06 - Secuencia: Pasos 1.9, 1.13] InteraccionProducto retorna _history_affinity(user_id, candidate_ids): dict[UUID, float] a recommendation_routes
 def _history_affinity(db: Session, user_id: UUID, candidate_ids: set[UUID]) -> dict[UUID, float]:
     """Learn weighted parent, variant, season, and branch metadata; cap boost at 0.25."""
     events = db.query(UserProductInteraction).filter(UserProductInteraction.user_id == user_id).all()
@@ -270,6 +279,7 @@ def _bounded_affinity_score(preferences, totals, candidate_values) -> float:
 
 
 # [CU06 - Secuencia: Paso 1.2] recommendation_routes invoca get_recommendations(user_id, limit, branch_id) sobre la entidad RepresentacionColaborativa
+# [CU06 - Secuencia: Paso 1.3] RepresentacionColaborativa retorna get_recommendations(user_id, limit, branch_id): dict a recommendation_routes
 def get_recommendations(
     db: Session,
     user_id: UUID,

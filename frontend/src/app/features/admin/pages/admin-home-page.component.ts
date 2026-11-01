@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
 import { toast } from '@spartan-ng/brain/sonner';
@@ -20,14 +20,21 @@ import { CatalogBranch } from '../../shared/models/catalog.model';
 import { DashboardData, DashboardPeriod, DashboardQuery } from '../../shared/models/dashboard.model';
 import { CatalogApiService } from '../../shared/services/catalog-api.service';
 import { DashboardApiService } from '../../shared/services/dashboard-api.service';
+import { VoiceInputButtonComponent } from '../../shared/components/voice-input-button.component';
 import { AdminBranchService } from '../services/admin-branch.service';
+
+function localDate(offsetDays: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 type MovementTab = 'income' | 'outcome' | 'transfers';
 
 @Component({
   selector: 'app-admin-home-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, NgIcon, HlmButton, OnBrowserDirective, AreaChartComponent, BarChartComponent, DonutChartComponent, ...HlmBadgeImports, ...HlmCardImports, ...HlmInputImports, ...HlmSelectImports],
+  imports: [CommonModule, RouterLink, NgIcon, HlmButton, OnBrowserDirective, AreaChartComponent, BarChartComponent, DonutChartComponent, VoiceInputButtonComponent, ...HlmBadgeImports, ...HlmCardImports, ...HlmInputImports, ...HlmSelectImports],
   providers: [provideIcons({ lucideBrainCircuit, lucideUsers })],
   templateUrl: './admin-home-page.component.html',
 })
@@ -35,11 +42,20 @@ export class AdminHomePageComponent {
   private readonly catalogApi = inject(CatalogApiService);
   private readonly dashboardApi = inject(DashboardApiService);
   private readonly branchApi = inject(AdminBranchService);
+  private readonly router = inject(Router);
+
+  protected readonly quickQuestion = signal('');
+  protected readonly quickExamples = [
+    'top 10 productos más vendidos de los últimos 3 meses por sucursal',
+    'ventas por categoría del último mes',
+    'ventas online vs tienda de esta semana',
+  ];
 
   protected readonly branches = signal<CatalogBranch[]>([]);
   protected readonly selectedBranchId = signal('');
-  protected readonly fromDate = signal('');
-  protected readonly toDate = signal('');
+  // Últimos 30 días por defecto para que la comparación con el período anterior esté disponible
+  protected readonly fromDate = signal(localDate(-29));
+  protected readonly toDate = signal(localDate(0));
   protected readonly period = signal<DashboardPeriod>('day');
   protected readonly branchSelectLabel = (branchId: string | null | undefined): string => {
     if (!branchId) return 'Todas las sucursales';
@@ -102,6 +118,12 @@ export class AdminHomePageComponent {
     }
     return [...totals.entries()].map(([key, item]) => ({ key, ...item }));
   });
+  protected readonly channelDistribution = computed(() => (this.dashboard().channel_split ?? []).map((c) => ({ name: c.channel_label, value: Number(c.sales || 0) })).filter((c) => c.value > 0));
+  protected readonly channelDonutData = computed(() => this.channelDistribution().map((c) => c.value));
+  protected readonly channelDonutCategories = computed<Record<string, BulletLegendItemInterface>>(() =>
+    Object.fromEntries(this.channelDistribution().map((c, index) => [`c${index}`, { name: c.name, color: ['#0ea5e9', '#10b981'][index % 2] }])));
+  protected readonly topCategoriesChartData = computed(() => (this.dashboard().top_categories ?? []).map((c) => ({ label: c.category_name, sales: Number(c.sales || 0) })));
+  protected readonly lowStockRows = computed(() => this.dashboard().low_stock ?? []);
   protected readonly movementDonutData = computed(() => this.movementDistribution().map((item) => item.value));
   protected readonly movementDonutCategories = computed<Record<string, BulletLegendItemInterface>>(() =>
     Object.fromEntries(this.movementDistribution().map((item, index) => [item.key, { name: item.name, color: ['#10b981', '#f43f5e', '#0ea5e9', '#8b5cf6', '#f59e0b'][index % 5] }])));
@@ -150,13 +172,30 @@ export class AdminHomePageComponent {
     this.toDate.set((event.target as HTMLInputElement).value);
   }
 
-  protected summaryCards(): Array<{ label: string; value: string | number; tone: string }> {
+  protected askQuick(text: string = this.quickQuestion()): void {
+    const q = text.trim();
+    if (!q) return;
+    this.quickQuestion.set(q);
+    void this.router.navigate(['/app/admin/reports'], { queryParams: { q } });
+  }
+
+  protected deltaView(delta: number | null | undefined): { text: string; tone: string; aria: string } | null {
+    if (delta === null || delta === undefined || !Number.isFinite(Number(delta))) return null;
+    const n = Number(delta);
+    const abs = Math.abs(n).toLocaleString('es-BO', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    if (n > 0) return { text: `▲ ${abs} %`, tone: 'text-emerald-600', aria: `Aumentó ${abs} % frente al período anterior` };
+    if (n < 0) return { text: `▼ ${abs} %`, tone: 'text-rose-600', aria: `Disminuyó ${abs} % frente al período anterior` };
+    return { text: '0,0 %', tone: 'text-slate-500', aria: 'Sin cambios frente al período anterior' };
+  }
+
+  protected summaryCards(): Array<{ label: string; value: string | number; tone: string; delta?: { text: string; tone: string; aria: string } | null }> {
     const summary = this.dashboard().summary;
+    const cmp = this.dashboard().comparison;
     return [
-      { label: 'Ventas', value: summary.total_sales, tone: 'text-emerald-600' },
-      { label: 'Órdenes', value: summary.total_orders, tone: 'text-sky-600' },
-      { label: 'Unidades', value: summary.total_units_sold, tone: 'text-violet-600' },
-      { label: 'Ticket promedio', value: summary.average_ticket, tone: 'text-amber-600' },
+      { label: 'Ventas', value: summary.total_sales, tone: 'text-emerald-600', delta: this.deltaView(cmp?.sales_delta_pct) },
+      { label: 'Órdenes', value: summary.total_orders, tone: 'text-sky-600', delta: this.deltaView(cmp?.orders_delta_pct) },
+      { label: 'Unidades', value: summary.total_units_sold, tone: 'text-violet-600', delta: this.deltaView(cmp?.units_delta_pct) },
+      { label: 'Ticket promedio', value: summary.average_ticket, tone: 'text-amber-600', delta: this.deltaView(cmp?.avg_ticket_delta_pct) },
       { label: 'Stock total', value: summary.total_stock, tone: 'text-slate-900' },
       { label: 'Disponible', value: summary.total_available_stock, tone: 'text-slate-900' },
       { label: 'Bajo stock', value: summary.low_stock_items, tone: 'text-rose-600' },

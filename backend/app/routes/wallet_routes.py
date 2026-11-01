@@ -20,7 +20,9 @@ CUSTOMER = require_roles(RolEnum.cliente)
 
 
 # [CU19 - Secuencia: Pasos 1.1, 2.7, 3.9] WalletPageComponent llama a balance_route() de wallet_routes (GET /api/wallet/balance)
+# [CU19 - Secuencia: Pasos 1.4, 2.10, 3.12] wallet_routes retorna balance_route(): 200 Saldo de billetera virtual obtenido a WalletPageComponent
 # [CU19 - Secuencia: Paso 4.19] CartPageComponent llama a balance_route() de wallet_routes (GET /api/wallet/balance)
+# [CU19 - Secuencia: Paso 4.22] wallet_routes retorna balance_route(): 200 Saldo de billetera virtual obtenido a CartPageComponent
 @router.get("/balance")
 def balance_route(
     db: Session = Depends(get_db),
@@ -35,6 +37,7 @@ def balance_route(
 
 
 # [CU19 - Secuencia: Paso 2.1] WalletPageComponent llama a redeem_gift_card_route(payload) de wallet_routes (POST /api/wallet/redeem-gift-card)
+# [CU19 - Secuencia: Paso 2.6] wallet_routes retorna redeem_gift_card_route(payload): 200 Gift Card canjeada exitosamente. Se acreditaron $... en tu saldo. a WalletPageComponent
 @router.post("/redeem-gift-card")
 def redeem_gift_card_route(
     payload: WalletRedeemRequest,
@@ -50,6 +53,7 @@ def redeem_gift_card_route(
 
 
 # [CU19 - Secuencia: Paso 3.1] WalletPageComponent llama a convert_points_route(payload) de wallet_routes (POST /api/wallet/convert-points)
+# [CU19 - Secuencia: Paso 3.8] wallet_routes retorna convert_points_route(payload): 200 Puntos convertidos exitosamente: se acreditaron $... BOB en tu saldo. a WalletPageComponent
 @router.post("/convert-points")
 def convert_points_route(
     payload: WalletConvertPointsRequest,
@@ -84,6 +88,7 @@ def pay_route(
 
 
 # [CU19 - Secuencia: Paso 4.1] CartPageComponent llama a checkout_route(payload) de wallet_routes (POST /api/wallet/checkout)
+# [CU19 - Secuencia: Paso 4.18] wallet_routes retorna checkout_route(payload): 201 Pedido pagado exitosamente con tu Billetera Digital a CartPageComponent
 @router.post("/checkout")
 def checkout_route(
     payload: WalletCheckoutRequest,
@@ -105,6 +110,7 @@ def checkout_route(
 
 
 # [CU19 - Secuencia: Pasos 1.5, 2.11, 3.13] WalletPageComponent llama a transactions_route() de wallet_routes (GET /api/wallet/transactions)
+# [CU19 - Secuencia: Pasos 1.10, 2.16, 3.18] wallet_routes retorna transactions_route(): 200 Movimientos de billetera obtenidos exitosamente a WalletPageComponent
 @router.get("/transactions")
 def transactions_route(
     db: Session = Depends(get_db),

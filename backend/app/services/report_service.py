@@ -20,13 +20,15 @@ from app.models.product import Product
 from app.models.product_variant import ProductVariant
 from app.models.sale import Sale
 from app.models.sale_item import SaleItem
+from app.models.user import User
 from app.schemas.report_schema import InventoryReportRow, MovementReportRow, ReportQuery, ReportSummary, SalesReportRow
 from app.schemas.sales_schema import SaleTypeEnum
 
 
-def _date_range(filters: ReportQuery):
-    start = datetime.combine(filters.from_date, datetime.min.time()) if filters.from_date else None
-    end = datetime.combine(filters.to_date + timedelta(days=1), datetime.min.time()) if filters.to_date else None
+def _date_range(filters: ReportQuery, tz=None):
+    # tz=None keeps the historical naive bounds (DB session timezone) used by the sales reports.
+    start = datetime.combine(filters.from_date, datetime.min.time(), tz) if filters.from_date else None
+    end = datetime.combine(filters.to_date + timedelta(days=1), datetime.min.time(), tz) if filters.to_date else None
     return start, end
 
 
@@ -190,6 +192,38 @@ def get_branch_comparison_report(db: Session, filters: ReportQuery, tenant_id: U
     return {"summary": {"total_branches": len(rows), "total_sales": sum(row["gross_sales"] for row in rows)}, "rows": rows}
 
 
+def _customers_report(db: Session, filters: ReportQuery, tenant_id: UUID):
+    """Customers ranked by spend, from paid online orders and identified in-store sales."""
+    start, end = _date_range(filters)
+    orders = db.query(Order.user_id, Order.created_at, Order.total_amount).filter(
+        Order.tenant_id == tenant_id, Order.status == "paid", Order.payment_status == "paid")
+    sales = db.query(Sale.customer_id, Sale.created_at, Sale.total_amount).filter(
+        Sale.tenant_id == tenant_id, Sale.customer_id.isnot(None),
+        Sale.status == "completed", Sale.payment_status == "paid")
+    if filters.branch_id:
+        orders = orders.filter(Order.pickup_branch_id == filters.branch_id)
+        sales = sales.filter(Sale.branch_id == filters.branch_id)
+    if start:
+        orders, sales = orders.filter(Order.created_at >= start), sales.filter(Sale.created_at >= start)
+    if end:
+        orders, sales = orders.filter(Order.created_at < end), sales.filter(Sale.created_at < end)
+    customers: dict = {}
+    for user_id, created_at, amount in [*orders.all(), *sales.all()]:
+        row = customers.setdefault(user_id, {"orders_count": 0, "total_spent": Decimal("0"), "last": created_at})
+        row["orders_count"] += 1
+        row["total_spent"] += amount or 0
+        row["last"] = max(row["last"], created_at)
+    users = {uid: (name, email) for uid, name, email in db.query(User.id, User.name, User.email).filter(
+        User.id.in_(list(customers))).all()} if customers else {}
+    rows = [{
+        "customer_name": users.get(uid, ("Cliente", ""))[0], "customer_email": users.get(uid, ("", ""))[1],
+        "orders_count": row["orders_count"], "total_spent": row["total_spent"],
+        "last_purchase": row["last"].date().isoformat(),
+    } for uid, row in customers.items()]
+    rows.sort(key=lambda item: (-item["total_spent"], item["customer_name"]))
+    return {"summary": {"total_customers": len(rows), "total_sales": sum(r["total_spent"] for r in rows)}, "rows": rows}
+
+
 def get_critical_inventory_report(db: Session, filters: ReportQuery, tenant_id: UUID):
     minimums = {(branch_id, variant_id): minimum for branch_id, variant_id, minimum in db.query(
         Inventory.branch_id, Inventory.variant_id, Inventory.minimum_stock,
@@ -255,7 +289,9 @@ def get_inventory_report(db: Session, filters: ReportQuery, tenant_id: UUID):
 
 
 def get_movements_report(db: Session, filters: ReportQuery, tenant_id: UUID):
-    start, end = _date_range(filters)
+    from app.services.analytics_service import LA_PAZ  # movement days are La Paz calendar days
+
+    start, end = _date_range(filters, LA_PAZ)
     query = (
         db.query(
             InventoryMovement.branch_id.label("branch_id"),

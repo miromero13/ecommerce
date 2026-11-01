@@ -337,6 +337,7 @@ async def get_product(product_id: UUID, branch_id: UUID | None = None, db: Sessi
 
 
 # [CU06 - Secuencia: Paso 2.1] CatalogPageComponent llama a record_product_view_route(product_id, payload) de catalog_routes (POST /api/catalog/products/{product_id}/view)
+# [CU06 - Secuencia: Paso 2.6] catalog_routes retorna record_product_view_route(product_id, payload): 201 Vista de producto registrada a CatalogPageComponent
 @router.post("/products/{product_id}/view", status_code=status.HTTP_201_CREATED)
 async def record_product_view_route(
     product_id: UUID,

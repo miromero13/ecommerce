@@ -269,59 +269,42 @@ def test_manager_preserves_branch_coupon_listing_and_creation(api, api_db, busin
     assert {row["code"] for row in get(api, "/promotions", c.user)} == {"ALPHABRANCH", "BRANCH-NEW"}
 
 
-@pytest.fixture
-def interpreter(monkeypatch, api_db, business):
+def test_natural_report_catalog_and_spec_only_know_the_company(api, api_db, business, monkeypatch):
+    """The local interpreter only sees the caller's catalog: foreign names never become filters."""
     from app.core.config import settings
-    from app.models.subscription_plan import SubscriptionPlan
-    from app.schemas.report_schema import NaturalReportInterpretation
-    from app.services import natural_report_service
-    from app.services.subscription_service import create_or_update_tenant_subscription
-    plan = SubscriptionPlan(id="cu1_ai", name="AI fixture", slug="cu1-ai", features=["ai_text_reports"])
-    api_db.add(plan)
-    api_db.flush()
-    create_or_update_tenant_subscription(api_db, business.own.tenant.id, plan.id)
-    api_db.commit()
-    monkeypatch.setattr(settings, "gemini_api_key", "test-boundary-only")
-    observed = []
-    interpretation = {"report_type": "inventory", "format": "csv", "interpretation": "Inventario propio",
-                      "columns": ["product_name", "quantity", "reserved_quantity", "available_quantity"]}
-
-    def interpret(prompt):
-        observed.append(prompt)
-        return NaturalReportInterpretation(**interpretation)
-
-    monkeypatch.setattr(natural_report_service, "_interpret_sync", interpret)
-    return observed, interpretation
-
-
-def test_natural_report_scopes_prompt_catalog_and_executed_result(api, business, interpreter):
-    prompts, _ = interpreter
+    from app.services.natural_report_service import _catalog
+    monkeypatch.setattr(settings, "groq_api_key", None)  # solo el intérprete local (sin red)
     c = business
-    result = api.post("/api/reports/query", headers=headers(c.user), json={"query": "Inventario en CSV"})
+    catalog = _catalog(api_db, c.own.tenant.id)
+    assert set(catalog.branches.values()) == {c.branches[0].id, c.branches[1].id}
+    assert set(catalog.products.values()) == {c.own.product.id, c.own.pending.id}
+    assert c.foreign.category.id not in catalog.categories.values()
+    before = snapshot(api_db)
+    result = api.post("/api/reports/query", headers=headers(c.user), json={
+        "query": f"ventas por mes de {c.own.product.name} y {c.foreign.product.name} en {c.branches[2].name}"})
     assert result.status_code == 200, result.text
     assert result.json()["message"] == "Reporte interpretado exitosamente"
-    report = result.json()["data"]["report"]
-    assert report["summary"] == {"total_lines": 1, "total_stock": 9, "total_reserved": 2, "total_available": 7}
-    assert [row["product_id"] for row in report["rows"]] == [str(c.own.product.id)]
-    assert len(prompts) == 1
-    assert str(c.own.product.id) in prompts[0]
-    assert str(c.branches[0].id) in prompts[0]
-    for item in (c.foreign.product, c.foreign.pending, c.branches[2]):
-        assert str(item.id) not in prompts[0]
-        assert item.name not in prompts[0]
+    spec = result.json()["data"]["spec"]
+    assert (spec["product_ids"], spec["branch_ids"]) == ([str(c.own.product.id)], [])
+    # los nombres ajenos que el usuario escribió no se aplican en silencio: se avisan (sin ids ni datos ajenos)
+    warnings = result.json()["data"]["warnings"]
+    assert len(warnings) == 1 and warnings[0].startswith("No apliqué estas palabras: «")
+    for item in (c.foreign.product, c.foreign.pending, c.foreign.category, c.branches[2]):
+        assert str(item.id) not in result.text
+    assert snapshot(api_db) == before
 
 
-@pytest.mark.parametrize("field,attribute,message", [
-    ("branch_id", None, "La sucursal interpretada no existe en el catálogo"),
-    ("product_id", "product", "El producto interpretado no existe en el catálogo"),
-    ("variant_id", "variant", "La variante interpretada no existe en el catálogo"),
+@pytest.mark.parametrize("field,attribute,label", [
+    ("branch_ids", None, "sucursal"),
+    ("product_ids", "product", "producto"),
+    ("category_ids", "category", "categoría"),
 ])
-def test_natural_report_rejects_foreign_interpreter_ids_before_results(api, api_db, business, interpreter, field, attribute, message):
-    _, interpretation = interpreter
+def test_analytics_rejects_foreign_spec_ids_before_results(api, api_db, business, field, attribute, label):
     item = business.branches[2] if attribute is None else getattr(business.foreign, attribute)
-    interpretation[field] = item.id
     before = snapshot(api_db)
-    result = api.post("/api/reports/query", headers=headers(business.user), json={"query": "Inventario"})
+    result = api.post("/api/reports/analytics", headers=headers(business.user), json={
+        "metric": "units", "group_by": ["product"], "period": {"preset": "this_month"}, field: [str(item.id)]})
     assert result.status_code == 422, result.text
+    message = f"No se encontró en el catálogo: {label} {item.id}"
     assert result.json() == {"statusCode": 422, "message": message, "error": message}
     assert snapshot(api_db) == before

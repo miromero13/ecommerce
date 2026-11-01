@@ -1,8 +1,14 @@
 plugins {
     id("com.android.application")
-    id("com.google.gms.google-services")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+// google-services.json is git-ignored; without it the app builds without push notifications.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+} else {
+    logger.warn("AVISO: falta android/app/google-services.json -> la app NO recibirá notificaciones push.")
 }
 
 android {

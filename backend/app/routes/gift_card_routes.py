@@ -19,6 +19,7 @@ CUSTOMER = require_roles(RolEnum.cliente)
 
 
 # [CU18 - Secuencia: Paso 2.1] GiftCardsPageComponent llama a purchase_route(payload) de gift_card_routes (POST /api/gift-cards/purchase)
+# [CU18 - Secuencia: Paso 2.8] gift_card_routes retorna purchase_route(payload): 201 Pago con Stripe iniciado: ingresa los datos de la tarjeta a GiftCardsPageComponent
 @router.post("/purchase", status_code=status.HTTP_201_CREATED)
 async def purchase_route(
     payload: GiftCardPurchaseRequest,
@@ -40,6 +41,7 @@ async def purchase_route(
 
 
 # [CU18 - Secuencia: Paso 3.1] GiftCardsPageComponent llama a confirm_payment_route(card_id) de gift_card_routes (POST /api/gift-cards/{card_id}/confirm-payment)
+# [CU18 - Secuencia: Paso 3.6] gift_card_routes retorna confirm_payment_route(card_id): 200 Tarjeta de regalo adquirida y enviada por correo al destinatario a GiftCardsPageComponent
 @router.post("/{card_id}/confirm-payment")
 async def confirm_payment_route(
     card_id: UUID,
@@ -66,6 +68,7 @@ async def confirm_payment_route(
 
 
 # [CU18 - Secuencia: Pasos 1.1, 3.7] GiftCardsPageComponent llama a my_purchases_route() de gift_card_routes (GET /api/gift-cards/my-purchases)
+# [CU18 - Secuencia: Pasos 1.4, 3.10] gift_card_routes retorna my_purchases_route(): 200 Tarjetas de regalo obtenidas exitosamente a GiftCardsPageComponent
 @router.get("/my-purchases")
 def my_purchases_route(
     db: Session = Depends(get_db),

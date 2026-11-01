@@ -1,5 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../../core/network/api_exception.dart';
+import '../../core/offline/offline_cart_service.dart';
+import '../../core/offline/offline_checkout_service.dart';
+import '../cart/cart_api.dart';
 import 'package:flutter_stripe/flutter_stripe.dart' hide PaymentMethod;
 
 import '../../core/config/app_config.dart';
@@ -53,6 +58,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
   String _paymentMethod = 'stripe'; // 'stripe' | 'wallet'
   Map<String, dynamic>? _quote;
   bool _quoting = false;
+  // CU30: card purchase saved without connection; charged with Stripe when the connection returns.
+  final _offlineCheckout = OfflineCheckoutService();
+  Map<String, dynamic>? _pendingOffline;
+  Timer? _retryTimer;
+  bool _resuming = false;
 
   bool get _isOrderPayment => widget.orderId != null;
 
@@ -72,6 +82,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   @override
   void dispose() {
     widget.authController.removeListener(_handleAuthChanged);
+    _retryTimer?.cancel();
     if (_ownsController) _controller.dispose();
     for (final c in [_address, _reference, _latitude, _longitude, _points]) {
       c.dispose();
@@ -93,8 +104,77 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   Future<void> _loadCheckout() async {
     await _controller.load();
-    if (!mounted || widget.orderId == null) return;
-    await _controller.loadDetail(widget.orderId!);
+    if (!mounted) return;
+    if (widget.orderId != null) {
+      await _controller.loadDetail(widget.orderId!);
+      return;
+    }
+    final pending = await _offlineCheckout.pending(widget.authController.user?.id);
+    if (!mounted || pending == null) return;
+    setState(() => _pendingOffline = pending);
+    _controller.isOffline ? _startRetry() : await _resumePending();
+  }
+
+  /// Checks the connection every 5 s while a purchase is pending; when it returns, opens the payment.
+  void _startRetry() {
+    _retryTimer?.cancel();
+    _retryTimer = Timer.periodic(const Duration(seconds: 5), (_) => _retryNow());
+  }
+
+  Future<void> _retryNow() async {
+    if (_resuming || _pendingOffline == null) return;
+    _resuming = true;
+    try {
+      await _controller.load();
+    } finally {
+      _resuming = false;
+    }
+    if (!mounted || _controller.isOffline) return;
+    _retryTimer?.cancel();
+    await _resumePending();
+  }
+
+  Future<void> _resumePending() async {
+    final pending = _pendingOffline;
+    if (pending == null || _resuming) return;
+    _resuming = true;
+    try {
+      // Garments added without connection go to the server cart first, so they are part of the order.
+      await OfflineCartService().syncPending(CartApi(
+        tokenProvider: () => widget.authController.accessToken,
+        onUnauthorized: widget.authController.handleUnauthorized,
+      ));
+      if (!mounted) return;
+      AppSnackBar.show(context, 'Volvió la conexión: completa el pago con tarjeta de tu compra pendiente.');
+      final delivery = pending['delivery'];
+      await _checkoutStripe(
+        pickupBranchId: pending['pickup_branch_id'] as String,
+        delivery: delivery is Map ? Map<String, dynamic>.from(delivery) : null,
+        points: (pending['points'] as num?)?.toInt() ?? 0,
+        fromPending: pending,
+      );
+    } finally {
+      _resuming = false;
+    }
+  }
+
+  /// Order already created by an earlier attempt whose answer was lost: pay it instead of creating another one.
+  Order? _serverOrderFor(Map<String, dynamic> pending) {
+    final savedAt = DateTime.tryParse(pending['created_at'] as String? ?? '');
+    if (savedAt == null) return null;
+    final since = savedAt.subtract(const Duration(minutes: 5)); // ponytail: tolerates phone/server clock skew
+    return _controller.orders
+        .where((o) =>
+            o.paymentMethod == PaymentMethod.stripe &&
+            o.paymentStatus == PaymentStatus.pending &&
+            o.createdAt.isAfter(since))
+        .firstOrNull;
+  }
+
+  Future<void> _clearPending() async {
+    await _offlineCheckout.clear();
+    _retryTimer?.cancel();
+    if (mounted) setState(() => _pendingOffline = null);
   }
 
   @override
@@ -139,8 +219,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   Widget _buildContent(BuildContext context) {
     final order = _controller.selectedOrder;
+    final offlineReady = _controller.isOffline && _controller.pickupBranches.isNotEmpty;
     if (_controller.status == OrderControllerStatus.error &&
-        (_isOrderPayment || _controller.orders.isEmpty)) {
+        (_isOrderPayment || (_controller.orders.isEmpty && !offlineReady))) {
       return AppErrorView(
         message: _controller.errorMessage ?? 'No se pudo cargar el pago.',
         onRetry: _loadCheckout,
@@ -167,6 +248,17 @@ class _CheckoutPageState extends State<CheckoutPage> {
               : 'Elige dónde retirarás tu pedido y cómo pagarás.',
         ),
         const SizedBox(height: 16),
+        if (_pendingOffline != null) ...[
+          _pendingOfflineCard(context),
+          const SizedBox(height: 12),
+        ] else if (_controller.isOffline && !_isOrderPayment) ...[
+          const _InfoBanner(
+            color: Colors.orange,
+            text: 'Sin conexión. Puedes elegir "Pagar con tarjeta": guardaremos tu compra como pendiente de pago '
+                'y te pediremos la tarjeta cuando vuelva internet.',
+          ),
+          const SizedBox(height: 12),
+        ],
         if (order != null) ...[
           _OrderSummary(order: order),
           const SizedBox(height: 12),
@@ -300,7 +392,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
           AppButton(
             label: _paymentMethod == 'wallet' ? 'Pagar con Billetera Digital' : 'Pagar con tarjeta',
             icon: Icon(_paymentMethod == 'wallet' ? Icons.account_balance_wallet_outlined : Icons.credit_card_outlined),
-            onPressed: isSaving || (!_isOrderPayment && pickupBranchId == null)
+            onPressed: isSaving || _pendingOffline != null || (!_isOrderPayment && pickupBranchId == null)
                 ? null
                 : () => _submit(pickupBranchId),
             isLoading: isSaving,
@@ -308,6 +400,37 @@ class _CheckoutPageState extends State<CheckoutPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _pendingOfflineCard(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const _InfoBanner(
+          color: Colors.orange,
+          text: 'Compra pendiente de pago (guardada sin conexión). Todavía no se cobró nada. '
+              'Cuando vuelva internet abriremos el pago con tarjeta; el pedido quedará "Pagado" '
+              'solo cuando Stripe confirme el cobro.',
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _resuming ? null : _retryNow,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Reintentar ahora'),
+              ),
+            ),
+            const SizedBox(width: 8),
+            TextButton(
+              onPressed: _resuming ? null : _clearPending,
+              child: const Text('Descartar'),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -341,6 +464,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
       if (order != null) {
         AppSnackBar.show(context, '¡Pedido pagado exitosamente con tu Billetera!', tone: AppSnackBarTone.success);
         Navigator.of(context).pushReplacementNamed(AppRoutes.orders, arguments: order['id']);
+      } else {
+        // The wallet balance lives on the server: it always needs a connection.
+        AppSnackBar.show(context, _controller.errorMessage ?? 'No se pudo pagar con la billetera.',
+            tone: AppSnackBarTone.error);
       }
       return;
     }
@@ -380,7 +507,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
     }
   }
 
-  Future<void> _checkoutStripe({String? pickupBranchId, Map<String, dynamic>? delivery}) async {
+  Future<void> _checkoutStripe({
+    String? pickupBranchId,
+    Map<String, dynamic>? delivery,
+    int? points,
+    Map<String, dynamic>? fromPending,
+  }) async {
     if (AppConfig.stripePublishableKey.isEmpty) {
       AppSnackBar.show(
         context,
@@ -390,11 +522,45 @@ class _CheckoutPageState extends State<CheckoutPage> {
       return;
     }
 
-    final result = _isOrderPayment
+    var result = _isOrderPayment
         ? await _controller.payOrder(orderId: widget.orderId!)
-        : await _controller.checkoutStripe(pickupBranchId: pickupBranchId!, delivery: delivery, points: _pointsToRedeem);
+        : await _controller.checkoutStripe(
+            pickupBranchId: pickupBranchId!,
+            delivery: delivery,
+            points: points ?? _pointsToRedeem,
+            // CU30: a purchase started without internet keeps its place in the offline queue.
+            offlineRequestedAt: fromPending?['created_at'] as String?,
+          );
+    final lostOrder = result == null && fromPending != null && !_controller.isOffline
+        ? _serverOrderFor(fromPending)
+        : null;
+    if (lostOrder != null) result = await _controller.payOrder(orderId: lostOrder.id);
     if (!mounted) return;
     if (result == null) {
+      if (!_isOrderPayment && _controller.isOffline) {
+        // CU30: no connection, nothing is charged; the purchase waits on the device.
+        if (fromPending == null) {
+          await _offlineCheckout.save(
+            userId: widget.authController.user?.id,
+            pickupBranchId: pickupBranchId!,
+            delivery: delivery,
+            points: points ?? _pointsToRedeem,
+          );
+          final saved = await _offlineCheckout.pending(widget.authController.user?.id);
+          if (!mounted) return;
+          setState(() => _pendingOffline = saved);
+        }
+        AppSnackBar.show(
+          context,
+          'Sin conexión: tu compra quedó pendiente de pago. No se cobró nada; te pediremos la tarjeta cuando vuelva internet.',
+          tone: AppSnackBarTone.warning,
+        );
+        _startRetry();
+        return;
+      }
+      // The server rejected it (stock, empty cart...): retrying would fail the same way.
+      if (fromPending != null) await _clearPending();
+      if (!mounted) return;
       AppSnackBar.show(
         context,
         _controller.errorMessage ?? 'No se pudo iniciar el pago.',
@@ -402,6 +568,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
       );
       return;
     }
+    // The order now exists on the server (shown in My orders): it is the source of truth from here.
+    if (fromPending != null) await _clearPending();
+    if (!mounted) return;
 
     try {
       await Stripe.instance.initPaymentSheet(
@@ -420,7 +589,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
       if (!mounted) return;
       AppSnackBar.show(
         context,
-        error.error.localizedMessage ?? 'No se pudo completar el pago.',
+        '${error.error.localizedMessage ?? 'No se pudo completar el pago.'} '
+        'Tu pedido quedó pendiente de pago en Mis pedidos.',
         tone: AppSnackBarTone.error,
       );
     } catch (_) {
@@ -431,6 +601,33 @@ class _CheckoutPageState extends State<CheckoutPage> {
         tone: AppSnackBarTone.error,
       );
     }
+  }
+}
+
+class _InfoBanner extends StatelessWidget {
+  const _InfoBanner({required this.color, required this.text});
+
+  final MaterialColor color;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.shade200),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.wifi_off, size: 18, color: color.shade900),
+          const SizedBox(width: 8),
+          Expanded(child: Text(text, style: TextStyle(fontSize: 13, color: color.shade900))),
+        ],
+      ),
+    );
   }
 }
 

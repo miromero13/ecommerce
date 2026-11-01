@@ -24,6 +24,7 @@ from app.services.notification_service import notify_low_stock
 
 
 # [CU09 - Secuencia: Pasos 3.6, 3.8, 4.4, 6.4] expert_replenishment_routes invoca _inventory_available(inventory) sobre la entidad Inventario
+# [CU09 - Secuencia: Pasos 3.7, 3.9, 4.5, 6.5] Inventario retorna _inventory_available(inventory): int a expert_replenishment_routes
 def _inventory_available(inventory: Inventory) -> int:
     return max((inventory.quantity or 0) - (inventory.reserved_quantity or 0), 0)
 
@@ -38,7 +39,9 @@ def _get_inventory(db: Session, variant_id, branch_id) -> Inventory | None:
 
 
 # [CU21 - Secuencia: Pasos 4.4, 4.6, 4.8] rma_routes invoca _get_or_create_inventory(variant_id, branch_id, tenant_id) sobre la entidad Inventario
+# [CU21 - Secuencia: Pasos 4.5, 4.7, 4.9] Inventario retorna _get_or_create_inventory(variant_id, branch_id, tenant_id): Inventory a rma_routes
 # [CU24 - Secuencia: Pasos 1.4, 1.6, 1.8] rma_routes invoca _get_or_create_inventory(variant_id, branch_id, tenant_id) sobre la entidad Inventario
+# [CU24 - Secuencia: Pasos 1.5, 1.7, 1.9] Inventario retorna _get_or_create_inventory(variant_id, branch_id, tenant_id): Inventory a rma_routes
 def _get_or_create_inventory(db: Session, variant_id, branch_id, tenant_id) -> Inventory:
     inventory = _get_inventory(db, variant_id, branch_id)
     if inventory:
@@ -52,6 +55,7 @@ def _get_or_create_inventory(db: Session, variant_id, branch_id, tenant_id) -> I
 
 
 # [CU11 - Secuencia: Pasos 1.2, 1.8, 2.6, 2.12] inventory_routes invoca _require_branch(branch_id, tenant_id) sobre la entidad Sucursal
+# [CU11 - Secuencia: Pasos 1.3, 1.9, 2.7, 2.13] Sucursal retorna _require_branch(branch_id, tenant_id): Branch a inventory_routes
 def _require_branch(db: Session, branch_id, tenant_id) -> Branch:
     branch = db.query(Branch).filter(Branch.id == branch_id).first()
     if not branch:
@@ -72,6 +76,7 @@ def _require_active_variant(db: Session, variant_id, tenant_id, active=True) -> 
 
 
 # [CU11 - Secuencia: Pasos 1.10, 2.14] inventory_routes invoca _movement_to_read(movement) sobre la entidad MovimientoInventario
+# [CU11 - Secuencia: Pasos 1.11, 2.15] MovimientoInventario retorna _movement_to_read(movement): InventoryMovementRead a inventory_routes
 def _movement_to_read(movement: InventoryMovement) -> InventoryMovementRead:
     return InventoryMovementRead.model_validate(movement).model_dump()
 
@@ -239,6 +244,7 @@ def update_minimum_stock(db: Session, payload: InventoryThresholdUpdate, *, tena
 
 
 # [CU11 - Secuencia: Pasos 1.6, 2.10] inventory_routes invoca list_movements(variant_id, branch_id, movement_type, limit, tenant_id) sobre la entidad MovimientoInventario
+# [CU11 - Secuencia: Pasos 1.7, 2.11] MovimientoInventario retorna list_movements(variant_id, branch_id, movement_type, limit, tenant_id): [_movement_to_read(movement) for movement in query.order_... a inventory_routes
 def list_movements(db: Session, variant_id=None, branch_id=None, movement_type: InventoryMovementTypeEnum | None = None, limit: int = 100, *, tenant_id):
     if branch_id is not None:
         _require_branch(db, branch_id, tenant_id)
@@ -257,6 +263,7 @@ def list_movements(db: Session, variant_id=None, branch_id=None, movement_type: 
 
 
 # [CU10 - Secuencia: Paso 4.4] rpa_ingest_routes invoca _add_stock(payload, created_by, tenant_id) sobre la entidad MovimientoInventario
+# [CU10 - Secuencia: Paso 4.5] MovimientoInventario retorna _add_stock(payload, created_by, tenant_id): (movement, inventory) a rpa_ingest_routes
 def _add_stock(db: Session, payload: InventoryMovementCreate, created_by=None, *, tenant_id):
     """Validate and apply one stock income inside the caller's transaction (no commit)."""
     _require_branch(db, payload.branch_id, tenant_id)
@@ -320,7 +327,9 @@ def register_outcome(db: Session, payload: InventoryMovementCreate, created_by=N
 
 
 # [CU09 - Secuencia: Pasos 4.6, 6.6] expert_replenishment_routes invoca _move_stock(payload, created_by, tenant_id) sobre la entidad MovimientoInventario
+# [CU09 - Secuencia: Pasos 4.7, 6.7] MovimientoInventario retorna _move_stock(payload, created_by, tenant_id): ([out_movement, in_movement], [source_inventory, destinat... a expert_replenishment_routes
 # [CU11 - Secuencia: Paso 2.2] inventory_routes invoca _move_stock(payload, created_by, tenant_id) sobre la entidad MovimientoInventario
+# [CU11 - Secuencia: Paso 2.3] MovimientoInventario retorna _move_stock(payload, created_by, tenant_id): ([out_movement, in_movement], [source_inventory, destinat... a inventory_routes
 def _move_stock(db: Session, payload: InventoryTransferCreate, created_by=None, *, tenant_id):
     """Validate and apply one transfer inside the caller's transaction (no commit)."""
     if payload.from_branch_id == payload.to_branch_id:

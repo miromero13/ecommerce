@@ -75,6 +75,28 @@ export interface DashboardInventoryPoint {
   quantity: number;
   reserved_quantity: number;
   available_quantity: number;
+  sku?: string;
+  available?: number;
+  minimum?: number;
+}
+
+export interface DashboardComparison {
+  sales_delta_pct: number | null;
+  orders_delta_pct: number | null;
+  units_delta_pct: number | null;
+  avg_ticket_delta_pct: number | null;
+}
+
+export interface DashboardChannelSplit {
+  channel_label: string;
+  sales: number | string;
+  orders: number;
+}
+
+export interface DashboardTopCategory {
+  category_name: string;
+  units: number;
+  sales: number | string;
 }
 
 export interface DashboardData {
@@ -86,6 +108,9 @@ export interface DashboardData {
   branch_kpis: DashboardBranchKpi[];
   top_products: DashboardProductKpi[];
   low_stock: DashboardInventoryPoint[];
+  comparison?: DashboardComparison | null;
+  channel_split?: DashboardChannelSplit[];
+  top_categories?: DashboardTopCategory[];
 }
 
 export type DashboardResponse = ApiResponse<DashboardData>;

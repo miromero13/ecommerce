@@ -29,7 +29,7 @@ from app.schemas.inventory_schema import InventoryMovementTypeEnum
 from app.schemas.order_schema import FulfillmentStatusEnum, OrderItemRead, OrderRead, OrderStatusEnum, PaymentMethodEnum, PaymentStatusEnum
 from app.schemas.reservation_schema import ReservationStatusEnum
 from app.services.pricing_service import discounted_price, discount_amount
-from app.services.cart_service import refresh_cart_totals, validate_cart_company
+from app.services.cart_service import CART_LOCKED_MESSAGE, pending_order, refresh_cart_totals, validate_cart_company
 from app.services.promotion_service import add_usage, validate_for_user
 from app.services.reservation_service import transition_reservation
 from app.services.recommendation_service import record_completed_order_interactions
@@ -38,7 +38,7 @@ from app.services.payout_service import record_payment
 from app.services import loyalty_service
 
 
-STRIPE_RESERVATION_MINUTES = 30
+STRIPE_RESERVATION_MINUTES = 40
 
 
 def _cart_rows(db: Session, cart_id: UUID):
@@ -56,6 +56,7 @@ def _row_unit_price(row) -> Decimal:
 
 
 # [CU19 - Secuencia: Paso 4.16] wallet_routes invoca _serialize_order(order) sobre la entidad Pedido
+# [CU19 - Secuencia: Paso 4.17] Pedido retorna _serialize_order(order): OrderRead a wallet_routes
 def _serialize_order(db: Session, order: Order) -> OrderRead:
     items = [OrderItemRead.model_validate({
         "id": row.id, "order_id": row.order_id, "variant_id": row.variant_id, "quantity": row.quantity,
@@ -81,7 +82,35 @@ def _serialize_order(db: Session, order: Order) -> OrderRead:
     })
 
 
+def _sync_stripe_order(db: Session, order: Order) -> None:
+    """Fallback when the Stripe webhook did not arrive (e.g. local dev without `stripe listen`):
+    ask Stripe for the PaymentIntent and apply the same transition (and notification) the webhook would."""
+    if (order.payment_method != PaymentMethodEnum.stripe or order.payment_status != PaymentStatusEnum.pending
+            or not order.stripe_payment_intent_id or not settings.stripe_secret_key):
+        return
+    try:
+        import stripe
+
+        stripe.api_key = settings.stripe_secret_key
+        intent = stripe.PaymentIntent.retrieve(order.stripe_payment_intent_id)
+        if intent.status == "succeeded":
+            event_type = "payment_intent.succeeded"
+        elif intent.status == "canceled" or (intent.status == "requires_payment_method" and intent.get("last_payment_error")):
+            event_type = "payment_intent.payment_failed"
+        else:
+            return  # still in progress: wait for the customer or the webhook
+        process_stripe_event(db, {"id": f"sync:{intent.id}:{intent.status}", "type": event_type,
+                                  "data": {"object": intent.to_dict()}})
+    except Exception:
+        db.rollback()
+        import logging
+        logging.getLogger(__name__).exception("Could not sync Stripe status for order %s", order.id)
+
+
 def list_orders(db: Session, user_id: UUID):
+    for order in db.query(Order).filter(Order.user_id == user_id, Order.payment_status == PaymentStatusEnum.pending,
+                                        Order.payment_method == PaymentMethodEnum.stripe).all():  # sync before expiring
+        _sync_stripe_order(db, order)
     expire_due_orders(db)
     return [_serialize_order(db, order).model_dump() for order in db.query(Order).filter(Order.user_id == user_id).order_by(Order.created_at.desc()).all()]
 
@@ -97,8 +126,10 @@ def list_orders_by_branch(db: Session, branch_id: UUID, tenant_id: UUID | None =
 
 
 def get_order(db: Session, user_id: UUID, order_id: UUID):
-    expire_due_orders(db)
     order = db.query(Order).filter(Order.id == order_id, Order.user_id == user_id).first()
+    if order:
+        _sync_stripe_order(db, order)  # before expiring, same reason as list_orders
+    expire_due_orders(db)
     return _serialize_order(db, order).model_dump() if order else None
 
 
@@ -121,6 +152,7 @@ def mark_order_ready(db: Session, order_id: UUID, branch_id: UUID, tenant_id: UU
 
 
 # [CU19 - Secuencia: Paso 4.8] wallet_routes invoca _locked_cart(user_id) sobre la entidad Carrito
+# [CU19 - Secuencia: Paso 4.9] Carrito retorna _locked_cart(user_id): Cart a wallet_routes
 def _locked_cart(db: Session, user_id: UUID) -> Cart:
     cart = db.query(Cart).filter(Cart.user_id == user_id).with_for_update().first()
     if not cart:
@@ -129,7 +161,8 @@ def _locked_cart(db: Session, user_id: UUID) -> Cart:
 
 
 def _reserve_inventory(db: Session, rows, branch_id: UUID, user_id: UUID, tenant_id: UUID, cart_id: UUID) -> None:
-    for row in rows:
+    # Lock order everywhere: Order -> Cart -> (Wallet) -> Inventory (by variant id) -> Reservation.
+    for row in sorted(rows, key=lambda r: str(r.variant_id)):
         inventory = db.query(Inventory).filter(Inventory.variant_id == row.variant_id, Inventory.branch_id == branch_id).with_for_update().first()
         if not inventory or inventory.tenant_id != tenant_id:
             raise ValueError("No hay stock suficiente en la sucursal seleccionada")
@@ -153,9 +186,11 @@ def _reserve_inventory(db: Session, rows, branch_id: UUID, user_id: UUID, tenant
 
 
 # [CU19 - Secuencia: Paso 4.10] wallet_routes invoca _new_order(cart, user_id, branch_id, method, delivery, points_to_redeem) sobre la entidad Pedido
+# [CU19 - Secuencia: Paso 4.11] Pedido retorna _new_order(cart, user_id, branch_id, method, delivery, points_to_redeem): Order a wallet_routes
 # [CU19 - Secuencia: Paso 4.12] wallet_routes invoca _new_order(cart, user_id, branch_id, method, delivery, points_to_redeem) sobre la entidad DetallePedido
+# [CU19 - Secuencia: Paso 4.13] DetallePedido retorna _new_order(cart, user_id, branch_id, method, delivery, points_to_redeem): Order a wallet_routes
 def _new_order(db: Session, cart: Cart, user_id: UUID, branch_id: UUID, method: PaymentMethodEnum, delivery=None,
-               points_to_redeem: int = 0) -> Order:
+               points_to_redeem: int = 0, offline_requested_at=None) -> Order:
     rows = _cart_rows(db, cart.id)
     if not rows:
         raise ValueError("El carrito está vacío")
@@ -175,7 +210,24 @@ def _new_order(db: Session, cart: Cart, user_id: UUID, branch_id: UUID, method: 
     if delivery is not None:
         from app.services.delivery_service import shipping_quote
         quote = shipping_quote(db, branch_id, delivery.latitude, delivery.longitude)
-    _reserve_inventory(db, rows, branch_id, user_id, tenant_id, cart.id)
+    # CU30: a purchase the customer started without internet keeps its place in the offline queue.
+    from app.services import offline_sync_service
+
+    requested_at = offline_sync_service.trusted_time(offline_requested_at)
+    if requested_at:
+        needed = {}
+        for row in rows:
+            if not row.reservation_id:
+                needed[row.variant_id] = needed.get(row.variant_id, 0) + row.quantity
+        inventories = offline_sync_service._lock_inventories(db, branch_id, needed.keys())
+        offline_sync_service.make_room(db, tenant_id, branch_id, needed, inventories, requested_at,
+                                       f"de un cliente en la app ({requested_at:%d/%m %H:%M} UTC)")
+    try:
+        _reserve_inventory(db, rows, branch_id, user_id, tenant_id, cart.id)
+    except ValueError as exc:
+        if offline_requested_at is not None and str(exc) == "No hay stock suficiente en la sucursal seleccionada":
+            raise ValueError("Otra persona compró esta prenda antes que tú. No se te cobró nada.") from exc
+        raise
     subtotal = sum(Decimal(str(row.original_unit_price)) * row.quantity for row in rows)
     discount = Decimal(str(cart.discount_amount or 0))
     # D1: deposits already paid for the reserved lines count toward this order.
@@ -192,6 +244,7 @@ def _new_order(db: Session, cart: Cart, user_id: UUID, branch_id: UUID, method: 
         payment_status=PaymentStatusEnum.pending,
         pickup_branch_id=branch_id,
         pickup_expires_at=expires,
+        offline_requested_at=requested_at,
         promotion_code_id=cart.promotion_code_id,
         pickup_code=secrets.token_urlsafe(9),
         fulfillment_status=FulfillmentStatusEnum.pending_pickup,
@@ -221,11 +274,9 @@ def _new_order(db: Session, cart: Cart, user_id: UUID, branch_id: UUID, method: 
                          line_total=unit_price * row.quantity, product_id=row.product_id,
                          product_name=row.product_name, variant_sku=row.variant_sku, size_id=row.size_id, color_id=row.color_id,
                          image_url=row.image_url, image_public_id=row.image_public_id))
-    # The order keeps its own item snapshot and stock hold, so the cart is freed
-    # right away: a pending pickup never blocks buying from other companies.
-    db.query(CartItem).filter(CartItem.cart_id == cart.id).delete(synchronize_session=False)
-    cart.promotion_code_id = None
-    refresh_cart_totals(db, cart)
+    # The cart keeps its items (locked) until the order is paid or expires; a failed or
+    # cancelled payment gives the customer the same cart back.
+    cart.status = CartStatusEnum.checkout_pending
     return order
 
 
@@ -254,7 +305,8 @@ def create_deposit_stripe_payment(db: Session, user_id: UUID, reservation_id: UU
     return intent.client_secret, intent.id
 
 
-def create_stripe_payment(db: Session, user_id: UUID, pickup_branch_id: UUID, delivery=None, points_to_redeem: int = 0):
+def create_stripe_payment(db: Session, user_id: UUID, pickup_branch_id: UUID, delivery=None, points_to_redeem: int = 0,
+                          offline_requested_at=None):
     try:
         expire_due_orders(db)
         # Fail before emptying the cart; retries of a created order use /stripe/orders/{id}.
@@ -262,14 +314,38 @@ def create_stripe_payment(db: Session, user_id: UUID, pickup_branch_id: UUID, de
             raise ValueError("No se pudo iniciar el pago con Stripe: Stripe no está configurado")
         cart = _locked_cart(db, user_id)
         if cart.status == CartStatusEnum.checkout_pending:
-            raise ValueError("El carrito tiene un checkout pendiente")
-        order = _new_order(db, cart, user_id, pickup_branch_id, PaymentMethodEnum.stripe, delivery, points_to_redeem)
+            pending = pending_order(db, user_id)
+            if pending:
+                # Repeated checkout (double click, app reopened): continue the same order, never a 2nd hold.
+                # A different points_to_redeem is ignored: the pending order keeps the points it already redeemed.
+                if pending.pickup_branch_id != pickup_branch_id:
+                    raise ValueError("Tienes un pedido pendiente de pago en otra sucursal. Págalo o cancélalo primero.")
+                if (pending.payment_method != PaymentMethodEnum.stripe
+                        or (pending.fulfillment_type == "delivery") != (delivery is not None)):
+                    raise ValueError("Tienes un pedido pendiente de pago con otra modalidad de entrega. Págalo o cancélalo primero.")
+                if delivery is not None:
+                    six = Decimal("0.000001")
+                    same_point = all(Decimal(str(old or 0)).quantize(six) == Decimal(str(new)).quantize(six)
+                                     for old, new in ((pending.delivery_latitude, delivery.latitude),
+                                                      (pending.delivery_longitude, delivery.longitude)))
+                    if pending.delivery_address != delivery.address or not same_point:
+                        raise ValueError("Tienes un pedido pendiente de pago con otra dirección de envío. Págalo o cancélalo primero.")
+                db.commit()  # release the cart row lock before delegating
+                return create_stripe_payment_for_order(db, user_id, pending.id)
+            cart.status = CartStatusEnum.active  # stale lock without a pending order
+        order = _new_order(db, cart, user_id, pickup_branch_id, PaymentMethodEnum.stripe, delivery, points_to_redeem,
+                           offline_requested_at=offline_requested_at)
         attempt = PaymentAttempt(order_id=order.id, cart_id=cart.id, status="pending", idempotency_key=secrets.token_urlsafe(24))
         db.add(attempt)
         db.commit()
     except Exception:
         db.rollback()
+        db.info.pop("offline_displaced_sales", None)
+        db.info.pop("offline_displaced_orders", None)
         raise
+    from app.services.offline_sync_service import notify_displaced
+
+    notify_displaced(db)
     try:
         import stripe
         if not settings.stripe_secret_key:
@@ -365,12 +441,22 @@ def create_stripe_payment_for_order(db: Session, user_id: UUID, order_id: UUID):
         raise ValueError(f"No se pudo iniciar el pago con Stripe: {exc}") from exc
 
 
-def _release_order(db: Session, order: Order, payment_status: PaymentStatusEnum, fulfillment_status: FulfillmentStatusEnum) -> None:
+def _holds_cart_lock(db: Session, cart: Cart | None, order: Order) -> bool:
+    """True when the user's cart is locked by this order (not by a newer pending one). On a timestamp tie
+    the other order keeps the lock: the last of them to be paid/released unlocks the cart."""
+    if not cart or cart.status != CartStatusEnum.checkout_pending:
+        return False
+    other = pending_order(db, order.user_id, exclude_order_id=order.id)
+    return other is None or other.created_at < order.created_at
+
+
+def _release_order(db: Session, order: Order, payment_status: PaymentStatusEnum, fulfillment_status: FulfillmentStatusEnum,
+                   empty_cart: bool = False) -> None:
     reservation_ids = {item.reservation_id for item in order.items if item.reservation_id}
-    for item in order.items:
+    cart = db.query(Cart).filter(Cart.user_id == order.user_id).with_for_update().first()  # cart before stock
+    for item in sorted(order.items, key=lambda i: str(i.variant_id)):
         inventory = db.query(Inventory).filter(Inventory.variant_id == item.variant_id, Inventory.branch_id == order.pickup_branch_id).with_for_update().one()
         inventory.reserved_quantity -= item.quantity
-    cart = db.query(Cart).filter(Cart.user_id == order.user_id).with_for_update().first()
     for reservation_id in reservation_ids:
         reservation = db.query(Reservation).filter(Reservation.id == reservation_id).with_for_update().first()
         if reservation and reservation.status == ReservationStatusEnum.purchase_pending:
@@ -379,9 +465,13 @@ def _release_order(db: Session, order: Order, payment_status: PaymentStatusEnum,
     order.payment_status = payment_status
     order.status = OrderStatusEnum.failed if payment_status == PaymentStatusEnum.failed else OrderStatusEnum.cancelled
     order.fulfillment_status = fulfillment_status
-    # Only carts locked by orders created before carts were freed at checkout.
-    if cart and cart.status == CartStatusEnum.checkout_pending:
-        if reservation_ids:
+    # Unlock only the cart this order locked. A failed/cancelled payment keeps the items (except the
+    # lines of the reservations closed above); an expired order (40 min unpaid) empties the cart.
+    if _holds_cart_lock(db, cart, order):
+        if empty_cart:
+            db.query(CartItem).filter(CartItem.cart_id == cart.id).delete(synchronize_session=False)
+            cart.promotion_code_id = None
+        elif reservation_ids:
             db.query(CartItem).filter(CartItem.cart_id == cart.id, CartItem.reservation_id.in_(reservation_ids)).delete(synchronize_session=False)
         cart.status = CartStatusEnum.active
         refresh_cart_totals(db, cart)
@@ -392,6 +482,7 @@ def _release_order(db: Session, order: Order, payment_status: PaymentStatusEnum,
 
 
 # [CU19 - Secuencia: Paso 4.6] wallet_routes invoca expire_due_orders() sobre la entidad Pedido
+# [CU19 - Secuencia: Paso 4.7] Pedido retorna expire_due_orders(): None a wallet_routes
 def expire_due_orders(db: Session) -> None:
     expired = db.query(Order).filter(
         Order.payment_status == PaymentStatusEnum.pending,
@@ -403,7 +494,7 @@ def expire_due_orders(db: Session) -> None:
 
     intent_ids = [order.stripe_payment_intent_id for order in expired if order.stripe_payment_intent_id]
     for order in expired:
-        _release_order(db, order, PaymentStatusEnum.failed, FulfillmentStatusEnum.expired)
+        _release_order(db, order, PaymentStatusEnum.failed, FulfillmentStatusEnum.expired, empty_cart=True)
     db.commit()
     for order in expired:
         notify_order_event(db, order.id, order.user_id, "expired")
@@ -425,9 +516,11 @@ def expire_due_orders(db: Session) -> None:
 
 
 # [CU19 - Secuencia: Paso 4.14] wallet_routes invoca _consume_order(order, collected_by) sobre la entidad MovimientoInventario
+# [CU19 - Secuencia: Paso 4.15] MovimientoInventario retorna _consume_order(order, collected_by): None a wallet_routes
 def _consume_order(db: Session, order: Order, collected_by: UUID | None = None) -> None:
     reservation_ids = {item.reservation_id for item in order.items if item.reservation_id}
-    for item in order.items:
+    cart = db.query(Cart).filter(Cart.user_id == order.user_id).with_for_update().first()  # cart before stock
+    for item in sorted(order.items, key=lambda i: str(i.variant_id)):
         inventory = db.query(Inventory).filter(Inventory.variant_id == item.variant_id, Inventory.branch_id == order.pickup_branch_id).with_for_update().one()
         inventory.quantity -= item.quantity
         inventory.reserved_quantity -= item.quantity
@@ -454,10 +547,8 @@ def _consume_order(db: Session, order: Order, collected_by: UUID | None = None) 
         if reservation and reservation.status == ReservationStatusEnum.purchase_pending:
             transition_reservation(reservation, ReservationStatusEnum.sold)
             reservation.cart_id = None
-    cart = db.query(Cart).filter(Cart.user_id == order.user_id).with_for_update().first()
-    # The current cart may already hold another company's items; only clear a
-    # cart still locked by an order created before carts were freed at checkout.
-    if cart and cart.status == CartStatusEnum.checkout_pending:
+    # Paid: empty the cart this order locked (never a cart locked by a newer order).
+    if _holds_cart_lock(db, cart, order):
         db.query(CartItem).filter(CartItem.cart_id == cart.id).delete(synchronize_session=False)
         cart.status = CartStatusEnum.active
         cart.promotion_code_id = None

@@ -26,14 +26,14 @@ import { AdminBranchService } from '../../admin/services/admin-branch.service';
 type ReportFormat = 'pdf' | 'html' | 'csv';
 type ReportColumn = { key: string; label: string };
 
-interface SpeechRecognitionResultLike { [index: number]: { transcript: string }; }
-interface SpeechRecognitionEventLike extends Event { results: { [index: number]: SpeechRecognitionResultLike }; }
+interface SpeechRecognitionResultLike { isFinal: boolean; [index: number]: { transcript: string }; }
+interface SpeechRecognitionEventLike extends Event { results: { length: number; [index: number]: SpeechRecognitionResultLike }; }
 interface SpeechRecognitionLike {
   lang: string;
   interimResults: boolean;
   continuous: boolean;
   onresult: ((event: SpeechRecognitionEventLike) => void) | null;
-  onerror: (() => void) | null;
+  onerror: ((event: { error: string }) => void) | null;
   onend: (() => void) | null;
   start(): void;
   stop(): void;
@@ -41,6 +41,22 @@ interface SpeechRecognitionLike {
 interface SpeechRecognitionWindow extends Window {
   SpeechRecognition?: new () => SpeechRecognitionLike;
   webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+}
+
+const SPEECH_ERRORS: Record<string, string> = {
+  'not-allowed': 'El navegador bloqueó el micrófono. Permite el acceso en el candado de la barra de direcciones.',
+  'service-not-allowed': 'El navegador bloqueó el micrófono. Permite el acceso en el candado de la barra de direcciones.',
+  'no-speech': 'No se escuchó nada. Presiona el micrófono y habla cerca.',
+  'audio-capture': 'No se encontró un micrófono conectado.',
+  network: 'El dictado necesita internet (Chrome o Edge envían el audio a su servicio de voz).',
+};
+
+interface NaturalResult {
+  title: string;
+  interpretation: string;
+  columns: ReportColumn[];
+  rows: Array<Record<string, unknown>>;
+  summary: Array<{ label: string; value: string }>;
 }
 
 const SALES_REPORT_COLUMNS: ReportColumn[] = [
@@ -97,6 +113,7 @@ export class SalesHistoryPageComponent {
   protected readonly reportLoading = signal(false);
   protected readonly naturalQuery = signal('');
   protected readonly listening = signal(false);
+  protected readonly naturalResult = signal<NaturalResult | null>(null);
   protected readonly isAdmin = () => this.session.user()?.rol === 'administrador';
   protected readonly isManager = () => this.session.user()?.rol === 'encargado';
   protected readonly branchSelectLabel = (branchId: string | null | undefined): string => {
@@ -156,6 +173,7 @@ export class SalesHistoryPageComponent {
     this.mlError.set('');
     this.forecast.set(null);
     this.clusters.set(null);
+    this.naturalResult.set(null);
     this.reportBranchId.set(this.isManager() ? this.selectedBranchId() : '');
     this.reportProductId.set('');
     this.reportFromDate.set('');
@@ -280,13 +298,25 @@ export class SalesHistoryPageComponent {
     const recognition = new SpeechRecognition();
     this.speechRecognition = recognition;
     recognition.lang = 'es-BO';
-    recognition.interimResults = false;
+    recognition.interimResults = true; // show the text while the user speaks
     recognition.continuous = false;
-    recognition.onresult = (event) => this.naturalQuery.set(event.results[0][0].transcript);
-    recognition.onerror = () => toast.error('No se pudo reconocer la voz. Puedes escribir la solicitud.');
-    recognition.onend = () => this.listening.set(false);
+    let finalText = '';
+    recognition.onresult = (event) => {
+      let text = '';
+      for (let i = 0; i < event.results.length; i++) text += event.results[i][0].transcript;
+      this.naturalQuery.set(text);
+      if (event.results[event.results.length - 1].isFinal) finalText = text.trim();
+    };
+    recognition.onerror = (event) => {
+      if (event.error !== 'aborted') toast.error(SPEECH_ERRORS[event.error] ?? 'No se pudo reconocer la voz. Puedes escribir la solicitud.');
+    };
+    recognition.onend = () => {
+      this.listening.set(false);
+      if (finalText && this.reportModalOpen()) void this.generateNaturalReport(); // dictating = asking
+    };
     this.listening.set(true);
-    try { recognition.start(); } catch { this.listening.set(false); }
+    try { recognition.start(); toast.info('Escuchando… habla ahora.'); }
+    catch { this.listening.set(false); toast.error('No se pudo iniciar el micrófono. Puedes escribir la solicitud.'); }
   }
 
   protected async generateNaturalReport(): Promise<void> {
@@ -295,37 +325,55 @@ export class SalesHistoryPageComponent {
       toast.error('Escribe o dicta una solicitud de reporte.');
       return;
     }
+    if (this.reportLoading()) return;
     this.reportLoading.set(true);
+    this.naturalResult.set(null);
     try {
-      const response = await firstValueFrom(this.reportsApi.queryNaturalLanguage(query));
-      const data = response.data;
-      if (!data || data.report_type !== 'sales') {
-        toast.error('Esta pantalla solo puede generar reportes de ventas.');
-        return;
-      }
-      const filters = data.filters;
-      this.reportBranchId.set(filters.branch_id ?? '');
-      this.reportProductId.set(filters.product_id ?? '');
-      this.reportFromDate.set(filters.from_date ?? '');
-      this.reportToDate.set(filters.to_date ?? '');
-      this.reportFormat.set(data.format === 'html' || data.format === 'csv' ? data.format : 'pdf');
-      const requestedColumns = data.columns ?? [];
-      const selectedColumns = requestedColumns.length
-        ? SALES_REPORT_COLUMNS.filter((column) => requestedColumns.includes(column.key))
-        : SALES_REPORT_COLUMNS;
-      const columns = selectedColumns.length ? selectedColumns : SALES_REPORT_COLUMNS;
-      this.reportColumns.set(columns.map((column) => column.key));
-      const rows = this.resolveReportBranchNames((data.report.rows ?? []) as unknown as Array<Record<string, unknown>>);
-      const html = this.reportDocumentHtml(columns, rows);
-      if (this.reportFormat() === 'csv') this.downloadReportCsv(columns, rows);
-      else if (this.reportFormat() === 'html') this.downloadHtmlReport(html);
-      else this.downloadReportPdf(columns, rows);
-      this.closeReportModal();
+      const interpreted = await firstValueFrom(this.reportsApi.interpret(query));
+      if (!interpreted.data) throw new Error('Respuesta vacía');
+      const { data } = await firstValueFrom(this.reportsApi.runAnalytics(interpreted.data.spec));
+      if (!data) throw new Error('Respuesta vacía');
+      const fixed = (value: number | string | null | undefined, type: string) => (type === 'money' && value !== null && value !== undefined && value !== '' ? Number(value).toFixed(2) : value);
+      this.naturalResult.set({
+        title: data.title,
+        interpretation: interpreted.data.interpretation,
+        columns: data.columns.map(({ key, label }) => ({ key, label })),
+        rows: data.rows.map((row) => Object.fromEntries(data.columns.map((column) => [column.key, fixed(row[column.key], column.type)]))),
+        summary: [
+          { label: 'Unidades', value: String(data.totals.units) },
+          { label: 'Ingresos Bs.', value: Number(data.totals.revenue).toFixed(2) },
+          { label: 'Pedidos', value: String(data.totals.orders) },
+          { label: 'Ticket promedio', value: Number(data.totals.avg_ticket).toFixed(2) },
+        ],
+      });
     } catch (error) {
       toast.error(getErrorMessage(error, 'No se pudo interpretar el reporte.'));
     } finally {
       this.reportLoading.set(false);
     }
+  }
+
+  protected downloadNaturalReport(format: ReportFormat): void {
+    const result = this.naturalResult();
+    if (!result) return;
+    if (format === 'csv') this.downloadReportCsv(result.columns, result.rows);
+    else if (format === 'pdf') this.downloadReportPdf(result.columns, result.rows, result.title);
+    else this.downloadHtmlReport(this.reportDocumentHtml(result.columns, result.rows, result.title));
+  }
+
+  protected cellText(row: Record<string, unknown>, key: string): string { return this.reportCellValue(row[key], key); }
+
+  protected weekLabel(point: { week: string | number; week_start?: string | null }): string {
+    if (!point.week_start) return `Semana ${point.week}`;
+    const [year, month, day] = point.week_start.split('-').map(Number);
+    return `Semana del ${new Date(year, month - 1, day).toLocaleDateString('es-BO', { day: 'numeric', month: 'short' })}`;
+  }
+
+  protected trendPercent(fc: DemandForecast): number | null {
+    const recent = fc.recent_weekly_average;
+    if (!recent || !fc.forecast.length) return null;
+    const avg = fc.forecast.reduce((sum, point) => sum + point.predicted_units, 0) / fc.forecast.length;
+    return Math.round(((avg - recent) / recent) * 100);
   }
 
   protected itemSummary(sale: Sale): string {
@@ -356,12 +404,12 @@ export class SalesHistoryPageComponent {
     }
   }
 
-  private reportDocumentHtml(columns: ReportColumn[], rows: Array<Record<string, unknown>>): string {
+  private reportDocumentHtml(columns: ReportColumn[], rows: Array<Record<string, unknown>>, title = 'Reporte de ventas'): string {
     const header = columns.map((column) => `<th>${this.escapeHtml(column.label)}</th>`).join('');
     const body = rows.map((row) => `<tr>${columns.map((column) => `<td>${this.escapeHtml(this.reportCellValue(row[column.key], column.key))}</td>`).join('')}</tr>`).join('');
     const filters = this.reportFilterRows();
     const filterHtml = filters.map(([label, value]) => `<dt>${this.escapeHtml(label)}</dt><dd>${this.escapeHtml(value)}</dd>`).join('');
-    return `<!doctype html><html><head><meta charset="utf-8"><title>Reporte de ventas</title><style>body{font:14px Arial,sans-serif;color:#172033;padding:24px}h1{font-size:20px}dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 12px;margin:18px 0}dt{font-weight:700}dd{margin:0}table{border-collapse:collapse;width:100%}th,td{border:1px solid #cbd5e1;padding:8px;text-align:left}th{background:#e2e8f0}@media print{body{padding:0}}</style></head><body><h1>Reporte de ventas</h1><p>Generado: ${this.escapeHtml(new Date().toLocaleString('es-BO'))}</p><section><h2>Filtros aplicados</h2><dl>${filterHtml}</dl></section><table><thead><tr>${header}</tr></thead><tbody>${body || `<tr><td colspan="${columns.length}">No hay datos para los filtros seleccionados.</td></tr>`}</tbody></table></body></html>`;
+    return `<!doctype html><html><head><meta charset="utf-8"><title>${this.escapeHtml(title)}</title><style>body{font:14px Arial,sans-serif;color:#172033;padding:24px}h1{font-size:20px}dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 12px;margin:18px 0}dt{font-weight:700}dd{margin:0}table{border-collapse:collapse;width:100%}th,td{border:1px solid #cbd5e1;padding:8px;text-align:left}th{background:#e2e8f0}@media print{body{padding:0}}</style></head><body><h1>${this.escapeHtml(title)}</h1><p>Generado: ${this.escapeHtml(new Date().toLocaleString('es-BO'))}</p><section><h2>Filtros aplicados</h2><dl>${filterHtml}</dl></section><table><thead><tr>${header}</tr></thead><tbody>${body || `<tr><td colspan="${columns.length}">No hay datos para los filtros seleccionados.</td></tr>`}</tbody></table></body></html>`;
   }
 
   private downloadReportCsv(columns: ReportColumn[], rows: Array<Record<string, unknown>>): void {
@@ -389,10 +437,10 @@ export class SalesHistoryPageComponent {
     }
   }
 
-  private downloadReportPdf(columns: ReportColumn[], rows: Array<Record<string, unknown>>): void {
+  private downloadReportPdf(columns: ReportColumn[], rows: Array<Record<string, unknown>>, title = 'Reporte de ventas'): void {
     downloadSimplePdf({
       filename: 'sales-report.pdf',
-      title: 'Reporte de ventas',
+      title,
       generatedAt: new Date().toLocaleString('es-BO'),
       filters: this.reportFilterRows(),
       columns: columns.map((column) => column.label),

@@ -13,6 +13,15 @@ export class CheckoutApiService {
     return this.api.post<ApiResponse<{ order_id: string; client_secret: string; payment_intent_id: string; pickup_expires_at: string }>>('/payments/stripe/checkout', payload);
   }
 
+  /** Retoma el pago de un pedido pendiente (misma forma que checkoutStripe). */
+  payPendingOrder(orderId: string) {
+    return this.api.post<ApiResponse<{ order_id: string; client_secret: string; payment_intent_id: string; pickup_expires_at: string }>>(`/payments/stripe/orders/${orderId}`, {});
+  }
+
+  cancelOrder(orderId: string) {
+    return this.api.post<ApiResponse<unknown>>(`/orders/${orderId}/cancel`, {});
+  }
+
   getOrder(orderId: string) {
     return this.api.get<ApiResponse<Order>>(`/orders/${orderId}`);
   }

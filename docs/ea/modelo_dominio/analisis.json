@@ -52,6 +52,8 @@
   ],
   "CU8": [
    "branches",
+   "categories",
+   "inventory",
    "order_items",
    "orders",
    "product_variants",
@@ -59,7 +61,8 @@
    "saas_plans",
    "sale_items",
    "sales",
-   "tenant_subscriptions"
+   "tenant_subscriptions",
+   "users"
   ],
   "CU9": [
    "branches",
@@ -131,6 +134,7 @@
    "cart_items",
    "carts",
    "colors",
+   "orders",
    "product_variants",
    "products",
    "promotion_code_usages",
@@ -274,9 +278,13 @@
    "branches",
    "cart_items",
    "carts",
+   "cash_movements",
+   "cash_sessions",
    "colors",
    "inventory",
    "inventory_movements",
+   "notifications",
+   "offline_sale_conflicts",
    "order_items",
    "orders",
    "product_variants",
@@ -456,12 +464,15 @@
     "branches",
     "cart_items",
     "carts",
+    "cash_movements",
+    "cash_sessions",
     "categories",
     "colors",
     "device_tokens",
     "inventory",
     "inventory_movements",
     "notifications",
+    "offline_sale_conflicts",
     "order_items",
     "orders",
     "product_variants",
@@ -1485,6 +1496,21 @@
     "archivo": "backend/app/services/notification_service.py"
    }
   ],
+  "offline_sale_conflicts": [
+   {
+    "nombre": "serialize_conflict",
+    "params": [
+     "conflict",
+     "cashier_name"
+    ],
+    "tipos": [
+     "OfflineSaleConflict",
+     "str | None"
+    ],
+    "firma": "serialize_conflict(conflict: OfflineSaleConflict, cashier_name: str | None)",
+    "archivo": "backend/app/services/offline_sync_service.py"
+   }
+  ],
   "orders": [
    {
     "nombre": "cancel_order",
@@ -1615,6 +1641,19 @@
     ],
     "firma": "notify_order_event(order_id: UUID, user_id: UUID, status: str)",
     "archivo": "backend/app/services/notification_delivery.py"
+   },
+   {
+    "nombre": "pending_order",
+    "params": [
+     "user_id",
+     "exclude_order_id"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID | None"
+    ],
+    "firma": "pending_order(user_id: UUID, exclude_order_id: UUID | None)",
+    "archivo": "backend/app/services/cart_service.py"
    }
   ],
   "order_items": [
@@ -1626,7 +1665,8 @@
      "branch_id",
      "method",
      "delivery",
-     "points_to_redeem"
+     "points_to_redeem",
+     "offline_requested_at"
     ],
     "tipos": [
      "Cart",
@@ -1634,9 +1674,10 @@
      "UUID",
      "PaymentMethodEnum",
      "",
-     "int"
+     "int",
+     ""
     ],
-    "firma": "_new_order(cart: Cart, user_id: UUID, branch_id: UUID, method: PaymentMethodEnum, delivery, points_to_redeem: int)",
+    "firma": "_new_order(cart: Cart, user_id: UUID, branch_id: UUID, method: PaymentMethodEnum, delivery, points_to_redeem: int, offline_requested_at)",
     "archivo": "backend/app/services/order_service.py"
    }
   ],
@@ -1647,15 +1688,17 @@
      "user_id",
      "pickup_branch_id",
      "delivery",
-     "points_to_redeem"
+     "points_to_redeem",
+     "offline_requested_at"
     ],
     "tipos": [
      "UUID",
      "UUID",
      "",
-     "int"
+     "int",
+     ""
     ],
-    "firma": "create_stripe_payment(user_id: UUID, pickup_branch_id: UUID, delivery, points_to_redeem: int)",
+    "firma": "create_stripe_payment(user_id: UUID, pickup_branch_id: UUID, delivery, points_to_redeem: int, offline_requested_at)",
     "archivo": "backend/app/services/order_service.py"
    },
    {
@@ -2582,6 +2625,21 @@
     "archivo": "backend/app/services/user_service.py"
    },
    {
+    "nombre": "list_conflicts",
+    "params": [
+     "user",
+     "tenant_id",
+     "status"
+    ],
+    "tipos": [
+     "User",
+     "UUID",
+     "str"
+    ],
+    "firma": "list_conflicts(user: User, tenant_id: UUID, status: str)",
+    "archivo": "backend/app/services/offline_sync_service.py"
+   },
+   {
     "nombre": "list_drivers",
     "params": [],
     "tipos": [],
@@ -2609,6 +2667,23 @@
     ],
     "firma": "provision_tenant_onboarding(payload: SubscriptionPurchaseSimulated)",
     "archivo": "backend/app/services/subscription_service.py"
+   },
+   {
+    "nombre": "resolve_conflict",
+    "params": [
+     "user",
+     "tenant_id",
+     "conflict_id",
+     "payload"
+    ],
+    "tipos": [
+     "User",
+     "UUID",
+     "UUID",
+     "ConflictResolveRequest"
+    ],
+    "firma": "resolve_conflict(user: User, tenant_id: UUID, conflict_id: UUID, payload: ConflictResolveRequest)",
+    "archivo": "backend/app/services/offline_sync_service.py"
    },
    {
     "nombre": "set_user_active",
@@ -3562,9 +3637,74 @@
     ],
     "firma": "predict_demand(tenant_id: UUID, request: DemandForecastRequest)",
     "archivo": "backend/app/services/ml/demand_forecast_service.py"
+   },
+   {
+    "nombre": "run_query",
+    "params": [
+     "tenant_id",
+     "query",
+     "today"
+    ],
+    "tipos": [
+     "UUID",
+     "AnalyticsQuery",
+     "date"
+    ],
+    "firma": "run_query(tenant_id: UUID, query: AnalyticsQuery, today: date)",
+    "archivo": "backend/app/services/analytics_service.py"
+   },
+   {
+    "nombre": "sync_batch",
+    "params": [
+     "user",
+     "tenant_id",
+     "branch_id",
+     "operations"
+    ],
+    "tipos": [
+     "User",
+     "UUID",
+     "UUID",
+     "list[OfflineOperationIn]"
+    ],
+    "firma": "sync_batch(user: User, tenant_id: UUID, branch_id: UUID, operations: list[OfflineOperationIn])",
+    "archivo": "backend/app/services/offline_sync_service.py"
    }
   ],
   "sale_items": [
+   {
+    "nombre": "_create_sale",
+    "params": [
+     "tenant_id",
+     "branch_id",
+     "cashier_id",
+     "operation_id",
+     "reference",
+     "grouped",
+     "variants",
+     "subtotal",
+     "discount",
+     "total",
+     "offline_created_at",
+     "offline_details"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID",
+     "UUID",
+     "str",
+     "str",
+     "dict",
+     "dict",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "firma": "_create_sale(tenant_id: UUID, branch_id: UUID, cashier_id: UUID, operation_id: str, reference: str, grouped: dict, variants: dict, subtotal, discount, total, offline_created_at, offline_details)",
+    "archivo": "backend/app/services/offline_sync_service.py"
+   },
    {
     "nombre": "_create_sale_from_items",
     "params": [
@@ -3639,7 +3779,8 @@
      "concept",
      "source_type",
      "source_id",
-     "description"
+     "description",
+     "commit"
     ],
     "tipos": [
      "UUID",
@@ -3647,9 +3788,10 @@
      "str",
      "str | None",
      "UUID | None",
-     "str | None"
+     "str | None",
+     "bool"
     ],
-    "firma": "credit_wallet(user_id: UUID, amount: Decimal, concept: str, source_type: str | None, source_id: UUID | None, description: str | None)",
+    "firma": "credit_wallet(user_id: UUID, amount: Decimal, concept: str, source_type: str | None, source_id: UUID | None, description: str | None, commit: bool)",
     "archivo": "backend/app/services/wallet_service.py"
    },
    {
@@ -3725,7 +3867,8 @@
      "concept",
      "source_type",
      "source_id",
-     "description"
+     "description",
+     "commit"
     ],
     "tipos": [
      "UUID",
@@ -3733,9 +3876,10 @@
      "str",
      "str | None",
      "UUID | None",
-     "str | None"
+     "str | None",
+     "bool"
     ],
-    "firma": "credit_wallet(user_id: UUID, amount: Decimal, concept: str, source_type: str | None, source_id: UUID | None, description: str | None)",
+    "firma": "credit_wallet(user_id: UUID, amount: Decimal, concept: str, source_type: str | None, source_id: UUID | None, description: str | None, commit: bool)",
     "archivo": "backend/app/services/wallet_service.py"
    },
    {

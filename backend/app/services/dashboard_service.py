@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from uuid import UUID
 
@@ -17,7 +17,12 @@ from app.models.sale import Sale
 from app.models.sale_item import SaleItem
 from app.schemas.inventory_schema import InventoryMovementTypeEnum
 from app.schemas.reservation_schema import ReservationStatusEnum
+from app.schemas.analytics_schema import AnalyticsQuery, PeriodSpec
+from app.services.analytics_service import run_query
 from app.schemas.dashboard_schema import (
+    DashboardCategoryPoint,
+    DashboardChannelPoint,
+    DashboardComparison,
     DashboardBranchKpi,
     DashboardBranchMovementPoint,
     DashboardInventoryPoint,
@@ -44,7 +49,39 @@ def _collect_rows(rows, key_field: str) -> dict:
     return {str(getattr(row, key_field)): row._mapping for row in rows}
 
 
+def _engine_metrics(db: Session, filters: DashboardQuery, tenant_id: UUID):
+    today = date.today()
+    # No dates = whole history (as the legacy dashboard); then there is no "previous period" to compare.
+    # The previous period would overflow before year 1, so only compare for sane start dates.
+    bounded = bool(filters.from_date and filters.to_date) and filters.from_date.year >= 2000
+    period = PeriodSpec(preset='custom', from_date=filters.from_date or date(2000, 1, 1),
+                        to_date=filters.to_date or today)
+    if period.from_date > period.to_date:
+        return DashboardComparison(), [], []
+    branches = [filters.branch_id] if filters.branch_id else []
+
+    def query(**kw):
+        return run_query(db, tenant_id, AnalyticsQuery(period=period, branch_ids=branches, **kw), today)
+
+    channels = query(metric='revenue', group_by=['channel'])
+    orders = query(metric='orders', group_by=['channel'])
+    order_map = {r['channel']: r['orders'] for r in orders.rows}
+    categories = query(metric='revenue', group_by=['category'], top_n=5)
+    units = query(metric='units', group_by=['category'])
+    unit_map = {r['category']: r['units'] for r in units.rows}
+    delta = (query(metric='revenue', group_by=[], compare_previous=True).delta_pct or {}) if bounded else {}
+    return (
+        DashboardComparison(sales_delta_pct=delta.get('revenue'), orders_delta_pct=delta.get('orders'),
+                            units_delta_pct=delta.get('units'), avg_ticket_delta_pct=delta.get('avg_ticket')),
+        [DashboardChannelPoint(channel_label=r['channel'], sales=r['revenue'], orders=order_map.get(r['channel'], 0))
+         for r in channels.rows],
+        [DashboardCategoryPoint(category_name=r['category'], units=unit_map.get(r['category'], 0), sales=r['revenue'])
+         for r in categories.rows],
+    )
+
+
 # [CU13 - Secuencia: Pasos 1.2, 2.2] dashboard_routes invoca get_dashboard(filters, tenant_id) sobre la entidad Sucursal
+# [CU13 - Secuencia: Pasos 1.3, 2.3] Sucursal retorna get_dashboard(filters, tenant_id): DashboardResponse a dashboard_routes
 def get_dashboard(db: Session, filters: DashboardQuery, tenant_id: UUID) -> DashboardResponse:
     start, end = _date_range(filters)
 
@@ -83,7 +120,7 @@ def get_dashboard(db: Session, filters: DashboardQuery, tenant_id: UUID) -> Dash
     inventory_aggregate = db.query(
         func.coalesce(func.sum(Inventory.quantity), 0).label('total_stock'),
         func.coalesce(func.sum(Inventory.quantity - Inventory.reserved_quantity), 0).label('total_available_stock'),
-        func.coalesce(func.sum(case((Inventory.quantity <= Inventory.reserved_quantity, 1), else_=0)), 0).label('low_stock_items'),
+        func.coalesce(func.sum(case((Inventory.quantity - Inventory.reserved_quantity <= Inventory.minimum_stock, 1), else_=0)), 0).label('low_stock_items'),
     )
     inventory_aggregate = inventory_aggregate.filter(Inventory.tenant_id == tenant_id)
     if filters.branch_id:
@@ -293,11 +330,14 @@ def get_dashboard(db: Session, filters: DashboardQuery, tenant_id: UUID) -> Dash
             Inventory.quantity.label('quantity'),
             Inventory.reserved_quantity.label('reserved_quantity'),
             (Inventory.quantity - Inventory.reserved_quantity).label('available_quantity'),
+            ProductVariant.sku.label('sku'),
+            (Inventory.quantity - Inventory.reserved_quantity).label('available'),
+            Inventory.minimum_stock.label('minimum'),
         )
         .join(ProductVariant, ProductVariant.id == Inventory.variant_id)
         .join(Product, Product.id == ProductVariant.product_id)
         .outerjoin(Branch, Branch.id == Inventory.branch_id)
-        .filter(Inventory.quantity <= Inventory.reserved_quantity)
+        .filter(Inventory.quantity - Inventory.reserved_quantity <= Inventory.minimum_stock)
     )
     low_stock_rows = low_stock_rows.filter(
         Inventory.tenant_id == tenant_id, Branch.tenant_id == tenant_id,
@@ -305,7 +345,14 @@ def get_dashboard(db: Session, filters: DashboardQuery, tenant_id: UUID) -> Dash
     )
     if filters.branch_id:
         low_stock_rows = low_stock_rows.filter(Inventory.branch_id == filters.branch_id)
-    low_stock_rows = low_stock_rows.order_by(Branch.name.asc().nullslast(), Product.name.asc(), ProductVariant.sku.asc()).limit(8).all()
+    low_stock_rows = low_stock_rows.order_by((Inventory.quantity - Inventory.reserved_quantity).asc(), Product.name.asc(), ProductVariant.sku.asc()).limit(10).all()
+
+    # [CU13 - Secuencia: Paso 1.2] comparison/channel_split/top_categories come from the analytics engine
+    # (completed+paid store sales + paid online orders, days as La Paz midnights UTC-4), unlike summary.*, which
+    # counts every store Sale (no status filter, no online orders) with naive datetime bounds in the DB session
+    # timezone. Near midnight a sale can fall on different days in each; summary's date logic is left as it was.
+    # summary.low_stock_items and low_stock share one criterion: quantity - reserved <= minimum_stock.
+    comparison, channel_split, top_categories = _engine_metrics(db, filters, tenant_id)
 
     summary = DashboardSummary(
         total_sales=total_sales,
@@ -358,4 +405,7 @@ def get_dashboard(db: Session, filters: DashboardQuery, tenant_id: UUID) -> Dash
         branch_kpis=branch_rows,
         top_products=product_rows,
         low_stock=[DashboardInventoryPoint.model_validate(row._mapping) for row in low_stock_rows],
+        comparison=comparison,
+        channel_split=channel_split,
+        top_categories=top_categories,
     )
