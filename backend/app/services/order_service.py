@@ -55,8 +55,8 @@ def _row_unit_price(row) -> Decimal:
     return discounted_price(row.original_unit_price, row.discount_type, row.discount_value)
 
 
-# [CU19 - Secuencia: Paso 4.16] wallet_routes invoca _serialize_order(order) sobre la entidad Pedido
-# [CU19 - Secuencia: Paso 4.17] Pedido retorna _serialize_order(order): OrderRead a wallet_routes
+# [CU19 - Secuencia: Paso 4.18] wallet_routes invoca _serialize_order(order) sobre la entidad Pedido
+# [CU19 - Secuencia: Paso 4.19] Pedido retorna _serialize_order(order): OrderRead a wallet_routes
 def _serialize_order(db: Session, order: Order) -> OrderRead:
     items = [OrderItemRead.model_validate({
         "id": row.id, "order_id": row.order_id, "variant_id": row.variant_id, "quantity": row.quantity,
@@ -185,10 +185,10 @@ def _reserve_inventory(db: Session, rows, branch_id: UUID, user_id: UUID, tenant
             inventory.reserved_quantity += row.quantity
 
 
-# [CU19 - Secuencia: Paso 4.10] wallet_routes invoca _new_order(cart, user_id, branch_id, method, delivery, points_to_redeem) sobre la entidad Pedido
-# [CU19 - Secuencia: Paso 4.11] Pedido retorna _new_order(cart, user_id, branch_id, method, delivery, points_to_redeem): Order a wallet_routes
-# [CU19 - Secuencia: Paso 4.12] wallet_routes invoca _new_order(cart, user_id, branch_id, method, delivery, points_to_redeem) sobre la entidad DetallePedido
-# [CU19 - Secuencia: Paso 4.13] DetallePedido retorna _new_order(cart, user_id, branch_id, method, delivery, points_to_redeem): Order a wallet_routes
+# [CU19 - Secuencia: Paso 4.12] wallet_routes invoca _new_order(cart, user_id, branch_id, method, delivery, points_to_redeem, offline_requested_at) sobre la entidad Pedido
+# [CU19 - Secuencia: Paso 4.13] Pedido retorna _new_order(cart, user_id, branch_id, method, delivery, points_to_redeem, offline_requested_at): Order a wallet_routes
+# [CU19 - Secuencia: Paso 4.14] wallet_routes invoca _new_order(cart, user_id, branch_id, method, delivery, points_to_redeem, offline_requested_at) sobre la entidad DetallePedido
+# [CU19 - Secuencia: Paso 4.15] DetallePedido retorna _new_order(cart, user_id, branch_id, method, delivery, points_to_redeem, offline_requested_at): Order a wallet_routes
 def _new_order(db: Session, cart: Cart, user_id: UUID, branch_id: UUID, method: PaymentMethodEnum, delivery=None,
                points_to_redeem: int = 0, offline_requested_at=None) -> Order:
     rows = _cart_rows(db, cart.id)
@@ -515,8 +515,8 @@ def expire_due_orders(db: Session) -> None:
         pass
 
 
-# [CU19 - Secuencia: Paso 4.14] wallet_routes invoca _consume_order(order, collected_by) sobre la entidad MovimientoInventario
-# [CU19 - Secuencia: Paso 4.15] MovimientoInventario retorna _consume_order(order, collected_by): None a wallet_routes
+# [CU19 - Secuencia: Paso 4.16] wallet_routes invoca _consume_order(order, collected_by) sobre la entidad MovimientoInventario
+# [CU19 - Secuencia: Paso 4.17] MovimientoInventario retorna _consume_order(order, collected_by): None a wallet_routes
 def _consume_order(db: Session, order: Order, collected_by: UUID | None = None) -> None:
     reservation_ids = {item.reservation_id for item in order.items if item.reservation_id}
     cart = db.query(Cart).filter(Cart.user_id == order.user_id).with_for_update().first()  # cart before stock

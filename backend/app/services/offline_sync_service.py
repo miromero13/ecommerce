@@ -66,6 +66,8 @@ def _money(value) -> Decimal:
 
 # ---------------------------------------------------------------- helpers
 
+# [CU30 - Secuencia: Paso 5.19] offline_routes invoca _variants(tenant_id, variant_ids) sobre la entidad VarianteProducto
+# [CU30 - Secuencia: Paso 5.20] VarianteProducto retorna _variants(tenant_id, variant_ids): dict[UUID, ProductVariant] a offline_routes
 def _variants(db: Session, tenant_id: UUID, variant_ids) -> dict[UUID, ProductVariant]:
     rows = (
         db.query(ProductVariant)
@@ -102,6 +104,10 @@ def _group_lines(lines):
     return {vid: (qty, _money(total)) for vid, (qty, total) in grouped.items()}
 
 
+# [CU30 - Secuencia: Paso 5.21] offline_routes invoca _create_sale(tenant_id, branch_id, cashier_id, operation_id, reference, grouped, variants, subtotal, discount, total, offline_created_at, offline_details) sobre la entidad Venta
+# [CU30 - Secuencia: Paso 5.22] Venta retorna _create_sale(tenant_id, branch_id, cashier_id, operation_id, reference, grouped, variants, subtotal, discount, total, offline_created_at, offline_details): Sale a offline_routes
+# [CU30 - Secuencia: Paso 5.23] offline_routes invoca _create_sale(tenant_id, branch_id, cashier_id, operation_id, reference, grouped, variants, subtotal, discount, total, offline_created_at, offline_details) sobre la entidad DetalleVenta
+# [CU30 - Secuencia: Paso 5.24] DetalleVenta retorna _create_sale(tenant_id, branch_id, cashier_id, operation_id, reference, grouped, variants, subtotal, discount, total, offline_created_at, offline_details): Sale a offline_routes
 def _create_sale(db: Session, *, tenant_id: UUID, branch_id: UUID, cashier_id: UUID, operation_id: str,
                  reference: str, grouped: dict, variants: dict, subtotal, discount, total,
                  offline_created_at=None, offline_details=None) -> Sale:
@@ -129,6 +135,8 @@ def _create_sale(db: Session, *, tenant_id: UUID, branch_id: UUID, cashier_id: U
     return sale
 
 
+# [CU30 - Secuencia: Paso 5.25] offline_routes invoca _move_stock(tenant_id, branch_id, variant_id, quantity, movement_type, note, user_id) sobre la entidad MovimientoInventario
+# [CU30 - Secuencia: Paso 5.26] MovimientoInventario retorna _move_stock(tenant_id, branch_id, variant_id, quantity, movement_type, note, user_id): None a offline_routes
 def _move_stock(db: Session, tenant_id: UUID, branch_id: UUID, variant_id: UUID, quantity: int,
                 movement_type: InventoryMovementTypeEnum, note: str, user_id: UUID) -> None:
     db.add(InventoryMovement(tenant_id=tenant_id, variant_id=variant_id, branch_id=branch_id,
@@ -148,6 +156,8 @@ def _sync_drawer(db: Session, cashier: User, session_id: UUID | None, branch_id:
     return usable(cash_session_service.get_open_session(db, cashier.id, lock=True))
 
 
+# [CU30 - Secuencia: Paso 5.7] offline_routes invoca _resolver_drawer(user, conflict) sobre la entidad SesionCaja
+# [CU30 - Secuencia: Paso 5.8] SesionCaja retorna _resolver_drawer(user, conflict): CashSession a offline_routes
 def _resolver_drawer(db: Session, user: User, conflict: OfflineSaleConflict) -> CashSession:
     """Cash moves (refunds, extra charges) only through the resolver's open drawer in the sale's branch."""
     session = cash_session_service.get_open_session(db, user.id, lock=True)
@@ -158,6 +168,8 @@ def _resolver_drawer(db: Session, user: User, conflict: OfflineSaleConflict) -> 
     return session
 
 
+# [CU30 - Secuencia: Paso 5.9] offline_routes invoca _withdraw(amount, reason, source_id) sobre la entidad MovimientoCaja
+# [CU30 - Secuencia: Paso 5.10] MovimientoCaja retorna _withdraw(amount, reason, source_id): None a offline_routes
 def _withdraw(db: Session, session: CashSession, amount: Decimal, reason: str, source_id: UUID) -> None:
     available = cash_session_service.expected_cash(session)
     if amount > available:
@@ -167,6 +179,8 @@ def _withdraw(db: Session, session: CashSession, amount: Decimal, reason: str, s
     db.flush()
 
 
+# [CU30 - Secuencia: Paso 5.11] offline_routes invoca _customer(email) sobre la entidad Usuario
+# [CU30 - Secuencia: Paso 5.12] Usuario retorna _customer(email): User a offline_routes
 def _customer(db: Session, email: str | None) -> User:
     email = (email or "").strip().lower()
     if not email:
@@ -179,6 +193,8 @@ def _customer(db: Session, email: str | None) -> User:
     return customer
 
 
+# [CU30 - Secuencia: Pasos 1.17, 2.18, 5.27] offline_routes invoca _notify_staff(tenant_id, branch_id, title, body, key) sobre la entidad Usuario
+# [CU30 - Secuencia: Pasos 1.18, 2.19, 5.28] Usuario retorna _notify_staff(tenant_id, branch_id, title, body, key): None a offline_routes
 def _notify_staff(db: Session, tenant_id: UUID, branch_id: UUID, title: str, body: str, key: str) -> None:
     from sqlalchemy import or_
 
@@ -192,6 +208,8 @@ def _notify_staff(db: Session, tenant_id: UUID, branch_id: UUID, title: str, bod
         create_notification(db, user_id, title, body, {"type": "offline_conflict"}, dedupe_key=f"{key}:{user_id}")
 
 
+# [CU30 - Secuencia: Pasos 1.9, 1.15, 2.10, 2.16, 4.7, 5.29, 5.38] offline_routes invoca serialize_conflict(conflict, cashier_name) sobre la entidad ConflictoVentaSinConexion
+# [CU30 - Secuencia: Pasos 1.10, 1.16, 2.11, 2.17, 4.8, 5.30, 5.39] ConflictoVentaSinConexion retorna serialize_conflict(conflict, cashier_name): dict a offline_routes
 def serialize_conflict(conflict: OfflineSaleConflict, cashier_name: str | None = None) -> dict:
     return {
         "id": conflict.id, "operation_id": conflict.operation_id, "receipt_number": conflict.receipt_number,
@@ -376,6 +394,10 @@ def _shortage(needed: dict, variants: dict, inventories: dict) -> str | None:
     return None
 
 
+# [CU30 - Secuencia: Pasos 1.11, 2.12] offline_routes invoca _sync_one(op, cashier, tenant_id, branch_id) sobre la entidad MovimientoCaja
+# [CU30 - Secuencia: Pasos 1.12, 2.13] MovimientoCaja retorna _sync_one(op, cashier, tenant_id, branch_id): ('synced', sale, None, drawer is not None) | ('conflict',... a offline_routes
+# [CU30 - Secuencia: Pasos 1.13, 2.14] offline_routes invoca _sync_one(op, cashier, tenant_id, branch_id) sobre la entidad ConflictoVentaSinConexion
+# [CU30 - Secuencia: Pasos 1.14, 2.15] ConflictoVentaSinConexion retorna _sync_one(op, cashier, tenant_id, branch_id): ('synced', sale, None, drawer is not None) | ('conflict',... a offline_routes
 def _sync_one(db: Session, op: OfflineOperationIn, cashier: User, tenant_id: UUID, branch_id: UUID):
     """Returns (result, sale, conflict, has_drawer); result is 'synced' or 'conflict'. Runs in the caller's savepoint."""
     variant_ids = {item.variant_id for item in op.items}
@@ -447,6 +469,8 @@ def _sync_one(db: Session, op: OfflineOperationIn, cashier: User, tenant_id: UUI
     return "conflict", None, conflict, drawer is not None
 
 
+# [CU30 - Secuencia: Pasos 1.7, 2.8] offline_routes invoca sync_batch(user, tenant_id, branch_id, operations) sobre la entidad Venta
+# [CU30 - Secuencia: Pasos 1.8, 2.9] Venta retorna sync_batch(user, tenant_id, branch_id, operations): dict a offline_routes
 def sync_batch(db: Session, user: User, tenant_id: UUID, branch_id: UUID, operations: list[OfflineOperationIn]) -> dict:
     synced_ids, conflicts, rejected, without_drawer = [], [], [], []
     new_conflicts = []
@@ -523,6 +547,8 @@ def sync_batch(db: Session, user: User, tenant_id: UUID, branch_id: UUID, operat
 
 # ---------------------------------------------------------------- conflicts (CU30)
 
+# [CU30 - Secuencia: Pasos 4.5, 5.5, 5.36] offline_routes invoca _conflict_query(user, tenant_id) sobre la entidad ConflictoVentaSinConexion
+# [CU30 - Secuencia: Pasos 4.6, 5.6, 5.37] ConflictoVentaSinConexion retorna _conflict_query(user, tenant_id): query a offline_routes
 def _conflict_query(db: Session, user: User, tenant_id: UUID):
     query = db.query(OfflineSaleConflict).filter(OfflineSaleConflict.tenant_id == tenant_id)
     if user.rol != RolEnum.administrador:
@@ -530,6 +556,8 @@ def _conflict_query(db: Session, user: User, tenant_id: UUID):
     return query
 
 
+# [CU30 - Secuencia: Pasos 4.3, 5.34] offline_routes invoca list_conflicts(user, tenant_id, status) sobre la entidad Usuario
+# [CU30 - Secuencia: Pasos 4.4, 5.35] Usuario retorna list_conflicts(user, tenant_id, status): dict a offline_routes
 def list_conflicts(db: Session, user: User, tenant_id: UUID, status: str = "pending") -> dict:
     query = _conflict_query(db, user, tenant_id)
     if status in {"pending", "resolved"}:
@@ -545,6 +573,8 @@ def list_conflicts(db: Session, user: User, tenant_id: UUID, status: str = "pend
     }
 
 
+# [CU30 - Secuencia: Paso 5.3] offline_routes invoca resolve_conflict(user, tenant_id, conflict_id, payload) sobre la entidad Usuario
+# [CU30 - Secuencia: Paso 5.4] Usuario retorna resolve_conflict(user, tenant_id, conflict_id, payload): dict a offline_routes
 def resolve_conflict(db: Session, user: User, tenant_id: UUID, conflict_id: UUID, payload: ConflictResolveRequest) -> dict:
     try:
         conflict = _conflict_query(db, user, tenant_id).filter(OfflineSaleConflict.id == conflict_id).with_for_update().first()
@@ -614,6 +644,8 @@ def resolve_conflict(db: Session, user: User, tenant_id: UUID, conflict_id: UUID
     return serialize_conflict(conflict)
 
 
+# [CU30 - Secuencia: Paso 5.17] offline_routes invoca _resolve_exchange(user, conflict, payload, paid) sobre la entidad MovimientoCaja
+# [CU30 - Secuencia: Paso 5.18] MovimientoCaja retorna _resolve_exchange(user, conflict, payload, paid): None a offline_routes
 def _resolve_exchange(db: Session, user: User, conflict: OfflineSaleConflict, payload: ConflictResolveRequest,
                       paid: Decimal) -> None:
     if not payload.exchange_items:

@@ -134,11 +134,11 @@ export class OfflineCatalogService {
    * Búsqueda en catálogo local cuando no hay conexión a internet
    */
   // [CU23 - Secuencia: Pasos 2.1, 2.3] CajaPageComponent invoca searchProducts(query, category) en OfflineCatalogService
-  // [CU25 - Secuencia: Pasos 1.4, 1.6] CajaPageComponent invoca searchProducts(query, category) en OfflineCatalogService
+  // [CU25 - Secuencia: Pasos 1.7, 1.9] CajaPageComponent invoca searchProducts(query, category) en OfflineCatalogService
   async searchProducts(query: string = '', category: string = ''): Promise<OfflineCatalogProduct[]> {
     try {
       // [CU23 - Secuencia: Paso 2.2] OfflineCatalogService ejecuta getAll(STORES.CACHED_CATALOG) sobre la entidad local OfflineCatalogProduct (IndexedDB)
-      // [CU25 - Secuencia: Paso 1.5] OfflineCatalogService ejecuta getAll(STORES.CACHED_CATALOG) sobre la entidad local OfflineCatalogProduct (IndexedDB)
+      // [CU25 - Secuencia: Paso 1.8] OfflineCatalogService ejecuta getAll(STORES.CACHED_CATALOG) sobre la entidad local OfflineCatalogProduct (IndexedDB)
       const all = await this.idb.getAll<OfflineCatalogProduct>(STORES.CACHED_CATALOG);
       const cleanQuery = query.trim().toLowerCase();
       const cleanCategory = category.trim().toLowerCase();
@@ -168,8 +168,10 @@ export class OfflineCatalogService {
    * Descuenta del catálogo local las unidades vendidas offline, para que esta misma caja
    * no vuelva a vender la última unidad antes de sincronizar.
    */
+  // [CU25 - Secuencia: Paso 1.4] CajaPageComponent invoca decrementStock(items) en OfflineCatalogService
   async decrementStock(items: Array<{ variant_id: string; quantity: number }>): Promise<void> {
     const sold = new Map(items.map((it) => [it.variant_id, it.quantity]));
+    // [CU25 - Secuencia: Pasos 1.5, 1.8] OfflineCatalogService ejecuta getAll(STORES.CACHED_CATALOG) sobre la entidad local OfflineCatalogProduct (IndexedDB)
     const all = await this.idb.getAll<OfflineCatalogProduct>(STORES.CACHED_CATALOG);
     const changed = all.filter((p) => p.variants.some((v) => sold.has(v.id)));
     for (const product of changed) {
@@ -177,6 +179,7 @@ export class OfflineCatalogService {
         if (sold.has(v.id)) v.available_stock = Math.max(0, v.available_stock - sold.get(v.id)!);
       }
     }
+    // [CU25 - Secuencia: Paso 1.6] OfflineCatalogService ejecuta putItems(STORES.CACHED_CATALOG, changed) sobre la entidad local OfflineCatalogProduct (IndexedDB)
     if (changed.length) await this.idb.putItems(STORES.CACHED_CATALOG, changed);
   }
 

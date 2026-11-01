@@ -26,6 +26,8 @@ from app.services.recommendation_service import ADD_TO_CART, record_interaction
 CART_LOCKED_MESSAGE = "Tienes un pedido pendiente de pago. Págalo o cancélalo para modificar el carrito."
 
 
+# [CU19 - Secuencia: Paso 4.10] wallet_routes invoca pending_order(user_id, exclude_order_id) sobre la entidad Pedido
+# [CU19 - Secuencia: Paso 4.11] Pedido retorna pending_order(user_id, exclude_order_id): Order | None a wallet_routes
 def pending_order(db: Session, user_id: UUID, exclude_order_id: UUID | None = None) -> Order | None:
     """The customer's latest order still waiting for payment (it holds the cart lock)."""
     from app.schemas.order_schema import FulfillmentStatusEnum, PaymentStatusEnum
@@ -69,14 +71,8 @@ def _get_active_cart(db: Session, user_id: UUID) -> Cart:
     return cart
 
 
-# [CU15 - Secuencia: Pasos 3.2, 4.2] cart_routes invoca _get_mutable_cart(user_id) sobre la entidad Carrito
-# [CU15 - Secuencia: Pasos 3.3, 4.3] Carrito retorna _get_mutable_cart(user_id): Cart a cart_routes
 # [CU16 - Secuencia: Paso 4.4] wishlist_routes invoca _get_mutable_cart(user_id) sobre la entidad Carrito
 # [CU16 - Secuencia: Paso 4.5] Carrito retorna _get_mutable_cart(user_id): Cart a wishlist_routes
-# [CU25 - Secuencia: Paso 2.7] cart_routes invoca _get_mutable_cart(user_id) sobre la entidad Carrito
-# [CU25 - Secuencia: Paso 2.8] Carrito retorna _get_mutable_cart(user_id): Cart a cart_routes
-# [CU30 - Secuencia: Paso 3.4] cart_routes invoca _get_mutable_cart(user_id) sobre la entidad Carrito
-# [CU30 - Secuencia: Paso 3.5] Carrito retorna _get_mutable_cart(user_id): Cart a cart_routes
 def _expire_due_orders(db: Session) -> None:
     # Before locking the cart row: an order past its 40 minutes must not keep the cart locked.
     from app.services.order_service import expire_due_orders
@@ -84,6 +80,12 @@ def _expire_due_orders(db: Session) -> None:
     expire_due_orders(db)
 
 
+# [CU15 - Secuencia: Pasos 3.2, 4.2] cart_routes invoca _get_mutable_cart(user_id) sobre la entidad Carrito
+# [CU15 - Secuencia: Pasos 3.3, 4.3] Carrito retorna _get_mutable_cart(user_id): Cart a cart_routes
+# [CU25 - Secuencia: Paso 2.7] cart_routes invoca _get_mutable_cart(user_id) sobre la entidad Carrito
+# [CU25 - Secuencia: Paso 2.8] Carrito retorna _get_mutable_cart(user_id): Cart a cart_routes
+# [CU30 - Secuencia: Paso 3.4] cart_routes invoca _get_mutable_cart(user_id) sobre la entidad Carrito
+# [CU30 - Secuencia: Paso 3.5] Carrito retorna _get_mutable_cart(user_id): Cart a cart_routes
 def _get_mutable_cart(db: Session, user_id: UUID) -> Cart:
     _expire_due_orders(db)
     cart = _get_active_cart(db, user_id)

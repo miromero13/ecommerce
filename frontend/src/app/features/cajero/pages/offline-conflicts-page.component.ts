@@ -214,6 +214,7 @@ export class OfflineConflictsPageComponent {
     void this.load();
   }
 
+  // [CU30 - Secuencia: Paso 4] El Cajero ejecuta setTab(tab) en OfflineConflictsPageComponent
   protected setTab(tab: 'pending' | 'resolved'): void {
     this.tab.set(tab);
     this.activeId.set(null);
@@ -276,6 +277,7 @@ export class OfflineConflictsPageComponent {
     return action ? RESOLUTION_LABELS[action] : '';
   }
 
+  // [CU30 - Secuencia: Paso 5] El Cajero ejecuta resolve(c) en OfflineConflictsPageComponent
   protected async resolve(c: OfflineConflict): Promise<void> {
     const action = this.option();
     if (!action) return;

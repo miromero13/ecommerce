@@ -21,8 +21,8 @@ CUSTOMER = require_roles(RolEnum.cliente)
 
 # [CU19 - Secuencia: Pasos 1.1, 2.7, 3.9] WalletPageComponent llama a balance_route() de wallet_routes (GET /api/wallet/balance)
 # [CU19 - Secuencia: Pasos 1.4, 2.10, 3.12] wallet_routes retorna balance_route(): 200 Saldo de billetera virtual obtenido a WalletPageComponent
-# [CU19 - Secuencia: Paso 4.19] CartPageComponent llama a balance_route() de wallet_routes (GET /api/wallet/balance)
-# [CU19 - Secuencia: Paso 4.22] wallet_routes retorna balance_route(): 200 Saldo de billetera virtual obtenido a CartPageComponent
+# [CU19 - Secuencia: Paso 4.21] CartPageComponent llama a balance_route() de wallet_routes (GET /api/wallet/balance)
+# [CU19 - Secuencia: Paso 4.24] wallet_routes retorna balance_route(): 200 Saldo de billetera virtual obtenido a CartPageComponent
 @router.get("/balance")
 def balance_route(
     db: Session = Depends(get_db),
@@ -88,7 +88,7 @@ def pay_route(
 
 
 # [CU19 - Secuencia: Paso 4.1] CartPageComponent llama a checkout_route(payload) de wallet_routes (POST /api/wallet/checkout)
-# [CU19 - Secuencia: Paso 4.18] wallet_routes retorna checkout_route(payload): 201 Pedido pagado exitosamente con tu Billetera Digital a CartPageComponent
+# [CU19 - Secuencia: Paso 4.20] wallet_routes retorna checkout_route(payload): 201 Pedido pagado exitosamente con tu Billetera Digital a CartPageComponent
 @router.post("/checkout")
 def checkout_route(
     payload: WalletCheckoutRequest,

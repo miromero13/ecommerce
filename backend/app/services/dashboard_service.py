@@ -347,7 +347,7 @@ def get_dashboard(db: Session, filters: DashboardQuery, tenant_id: UUID) -> Dash
         low_stock_rows = low_stock_rows.filter(Inventory.branch_id == filters.branch_id)
     low_stock_rows = low_stock_rows.order_by((Inventory.quantity - Inventory.reserved_quantity).asc(), Product.name.asc(), ProductVariant.sku.asc()).limit(10).all()
 
-    # [CU13 - Secuencia: Paso 1.2] comparison/channel_split/top_categories come from the analytics engine
+    # comparison/channel_split/top_categories come from the analytics engine
     # (completed+paid store sales + paid online orders, days as La Paz midnights UTC-4), unlike summary.*, which
     # counts every store Sale (no status filter, no online orders) with naive datetime bounds in the DB session
     # timezone. Near midnight a sale can fall on different days in each; summary's date logic is left as it was.
