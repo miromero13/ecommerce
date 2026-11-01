@@ -84,7 +84,7 @@
             <div class="flex items-center gap-2">
               <span *ngIf="summary()?.is_trial || summary()?.subscription?.status === 'trialing'" hlmBadge class="gap-1.5 font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
                 <span class="size-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                Prueba Gratuita (Quedan {{ summary()?.trial_days_remaining ?? 90 }} días)
+                Prueba Gratuita (Le quedan {{ trialHumanTime }})
               </span>
               <span *ngIf="!summary()?.is_trial && summary()?.subscription?.status !== 'trialing'" hlmBadge variant="default" class="gap-1 font-bold">
                 <span class="size-1.5 rounded-full bg-primary-foreground animate-pulse"></span>
@@ -113,11 +113,22 @@
               {{ summary()?.plan?.description }}
             </p>
 
-            <div *ngIf="summary()?.is_trial || summary()?.subscription?.status === 'trialing'" class="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-700 dark:text-amber-300 flex items-center gap-2">
-              <ng-icon name="lucideSparkles" class="w-4 h-4 text-amber-500 shrink-0"></ng-icon>
-              <span>
-                Tu empresa está en período de prueba gratuita de 3 meses. El cobro regular de {{ summary()?.subscription?.billing_cycle === 'yearly' ? summary()?.plan?.price_yearly : summary()?.plan?.price_monthly }} Bs. iniciará el {{ summary()?.subscription?.end_date | date:'dd/MM/yyyy' }}.
-              </span>
+            <div *ngIf="summary()?.is_trial || summary()?.subscription?.status === 'trialing'" class="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-2.5">
+              <div class="flex items-center justify-between text-xs text-amber-800 dark:text-amber-200">
+                <span class="font-bold flex items-center gap-1.5">
+                  <ng-icon name="lucideSparkles" class="w-4 h-4 text-amber-500 shrink-0"></ng-icon>
+                  <span>Período de prueba de 3 meses activo</span>
+                </span>
+                <span class="font-extrabold text-sm">{{ trialHumanTime }} restantes</span>
+              </div>
+              <!-- Trial progress bar -->
+              <div class="w-full bg-amber-500/20 rounded-full h-2 overflow-hidden">
+                <div class="bg-amber-500 h-2 rounded-full transition-all duration-500" [style.width.%]="trialPercentElapsed"></div>
+              </div>
+              <div class="flex items-center justify-between text-[11px] text-muted-foreground">
+                <span>Inició el {{ summary()?.subscription?.start_date | date:'dd/MM/yyyy' }}</span>
+                <span>Primer cobro regular ({{ summary()?.subscription?.billing_cycle === 'yearly' ? summary()?.plan?.price_yearly : summary()?.plan?.price_monthly }} Bs.): {{ summary()?.subscription?.end_date | date:'dd/MM/yyyy' }}</span>
+              </div>
             </div>
 
             <div class="flex flex-wrap items-center gap-4 pt-2 text-xs text-muted-foreground">

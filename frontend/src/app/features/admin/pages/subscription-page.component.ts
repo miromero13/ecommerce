@@ -138,6 +138,29 @@ export class SubscriptionPageComponent implements OnInit {
     this.selected.set(choice);
   }
 
+  get trialDaysRemaining(): number {
+    return this.summary()?.trial_days_remaining ?? 90;
+  }
+
+  get trialHumanTime(): string {
+    const days = this.trialDaysRemaining;
+    if (days >= 60) {
+      const months = Math.floor(days / 30);
+      return `${months} meses (${days} días)`;
+    }
+    if (days >= 25) {
+      return `1 mes (${days} días)`;
+    }
+    return `${days} días`;
+  }
+
+  get trialPercentElapsed(): number {
+    const total = this.summary()?.plan?.trial_days || 90;
+    const remaining = this.trialDaysRemaining;
+    const elapsed = Math.max(0, total - remaining);
+    return Math.min(100, Math.round((elapsed / total) * 100));
+  }
+
   selectedPrice(): number {
     const choice = this.selected();
     if (!choice) return 0;
