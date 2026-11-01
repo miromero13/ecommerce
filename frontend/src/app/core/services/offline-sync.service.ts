@@ -87,6 +87,7 @@ export class OfflineSyncService {
    * CU30: Sincronización diferida automática al recuperar la conectividad
    */
   // [CU30 - Secuencia: Paso 1] El sistema dispara triggerAutoSync() en OfflineSyncService (evento del navegador)
+  // [CU30 - Secuencia: Paso 2.1] CajaPageComponent invoca triggerAutoSync() en OfflineSyncService
   async triggerAutoSync(): Promise<void> {
     if (this.session.user()?.rol !== 'cajero' || !navigator.onLine) return;
     await this.queueService.loadQueue();
@@ -120,6 +121,7 @@ export class OfflineSyncService {
     }
   }
 
+  // [CU30 - Secuencia: Pasos 4.1, 5.32] OfflineConflictsPageComponent invoca loadConflicts(status) en OfflineSyncService
   async loadConflicts(
     status: 'pending' | 'resolved' | 'all' = 'pending'
   ): Promise<{ items: OfflineConflict[]; pending_count: number; pending_total: number }> {
@@ -133,7 +135,7 @@ export class OfflineSyncService {
   }
 
   /** Resolves a conflict once (by conflict id). Returns the updated conflict, or null after showing the error. */
-  // [CU30 - Secuencia: Pasos 4.1, 5.1] OfflineConflictsPageComponent invoca resolveConflict(conflictId, body) en OfflineSyncService
+  // [CU30 - Secuencia: Paso 5.1] OfflineConflictsPageComponent invoca resolveConflict(conflictId, body) en OfflineSyncService
   async resolveConflict(conflictId: string, body: ResolveConflictRequest): Promise<OfflineConflict | null> {
     try {
       const res = await firstValueFrom(

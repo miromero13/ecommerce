@@ -12,8 +12,8 @@ from app.models.wallet import UserWallet, WalletTransaction
 from app.schemas.order_schema import PaymentMethodEnum, PaymentStatusEnum
 
 
-# [CU19 - Secuencia: Pasos 1.2, 1.8, 2.8, 2.14, 3.10, 3.16, 4.20] wallet_routes invoca get_or_create_wallet(user_id) sobre la entidad BilleteraUsuario
-# [CU19 - Secuencia: Pasos 1.3, 1.9, 2.9, 2.15, 3.11, 3.17, 4.21] BilleteraUsuario retorna get_or_create_wallet(user_id): UserWallet a wallet_routes
+# [CU19 - Secuencia: Pasos 1.2, 1.8, 2.8, 2.14, 3.10, 3.16, 4.22] wallet_routes invoca get_or_create_wallet(user_id) sobre la entidad BilleteraUsuario
+# [CU19 - Secuencia: Pasos 1.3, 1.9, 2.9, 2.15, 3.11, 3.17, 4.23] BilleteraUsuario retorna get_or_create_wallet(user_id): UserWallet a wallet_routes
 def get_or_create_wallet(db: Session, user_id: UUID) -> UserWallet:
     wallet = db.query(UserWallet).filter(UserWallet.user_id == user_id).first()
     if not wallet:
@@ -313,6 +313,10 @@ def checkout_with_wallet(
     return _serialize_order(db, order).model_dump()
 
 
+# [CU30 - Secuencia: Paso 5.13] offline_routes invoca credit_wallet(user_id, amount, concept, source_type, source_id, description, commit) sobre la entidad BilleteraUsuario
+# [CU30 - Secuencia: Paso 5.14] BilleteraUsuario retorna credit_wallet(user_id, amount, concept, source_type, source_id, description, commit): UserWallet a offline_routes
+# [CU30 - Secuencia: Paso 5.15] offline_routes invoca credit_wallet(user_id, amount, concept, source_type, source_id, description, commit) sobre la entidad MovimientoBilletera
+# [CU30 - Secuencia: Paso 5.16] MovimientoBilletera retorna credit_wallet(user_id, amount, concept, source_type, source_id, description, commit): UserWallet a offline_routes
 def credit_wallet(
     db: Session,
     user_id: UUID,

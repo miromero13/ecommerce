@@ -303,6 +303,10 @@
   },
   {
    "kind": "entity",
+   "name": "ConflictoVentaSinConexion"
+  },
+  {
+   "kind": "entity",
    "name": "Conversacion"
   },
   {
@@ -344,6 +348,10 @@
   {
    "kind": "entity",
    "name": "MovimientoBilletera"
+  },
+  {
+   "kind": "entity",
+   "name": "MovimientoCaja"
   },
   {
    "kind": "entity",
@@ -404,6 +412,10 @@
   {
    "kind": "entity",
    "name": "Rol"
+  },
+  {
+   "kind": "entity",
+   "name": "SesionCaja"
   },
   {
    "kind": "entity",
@@ -4815,31 +4827,31 @@
      366
     ],
     "ent:BilleteraUsuario": [
-     1519.2,
+     1637.0,
      176
     ],
     "ent:MovimientoBilletera": [
-     1519.2,
+     1637.0,
      376
     ],
     "ent:Pedido": [
-     1519.2,
+     1637.0,
      576
     ],
     "ent:MovimientoPuntos": [
-     1519.2,
+     1637.0,
      776
     ],
     "ent:Carrito": [
-     1519.2,
+     1637.0,
      976
     ],
     "ent:DetallePedido": [
-     1519.2,
+     1637.0,
      1176
     ],
     "ent:MovimientoInventario": [
-     1519.2,
+     1637.0,
      1376
     ]
    },
@@ -4928,7 +4940,7 @@
      "num": "1.4",
      "label": "list_transactions(user_id)",
      "sx": 0,
-     "sy": 85
+     "sy": 76
     },
     {
      "from": "act:CL",
@@ -4960,7 +4972,7 @@
      "num": "2.3",
      "label": "redeem_gift_card(user_id, card_code)",
      "sx": 0,
-     "sy": 101
+     "sy": 92
     },
     {
      "from": "bnd:WalletPageComponent",
@@ -4992,7 +5004,7 @@
      "num": "2.7",
      "label": "list_transactions(user_id)",
      "sx": 0,
-     "sy": 117
+     "sy": 108
     },
     {
      "from": "act:CL",
@@ -5024,15 +5036,15 @@
      "num": "3.3",
      "label": "convert_loyalty_points(user_id, tenant_id, points)",
      "sx": 0,
-     "sy": 133
+     "sy": 124
     },
     {
      "from": "ctl:wallet_routes",
      "to": "ent:MovimientoPuntos",
      "num": "3.4",
      "label": "redeem(tenant_id, user_id, points, max_amount, source_type, source_id)",
-     "sx": -113,
-     "sy": -112
+     "sx": 131,
+     "sy": -267
     },
     {
      "from": "bnd:WalletPageComponent",
@@ -5064,7 +5076,7 @@
      "num": "3.8",
      "label": "list_transactions(user_id)",
      "sx": 0,
-     "sy": 149
+     "sy": 140
     },
     {
      "from": "act:CL",
@@ -5096,60 +5108,68 @@
      "num": "4.3",
      "label": "checkout_with_wallet(user_id, pickup_branch_id, delivery, points_to_redeem)",
      "sx": 0,
-     "sy": 165
+     "sy": 156
     },
     {
      "from": "ctl:wallet_routes",
      "to": "ent:Pedido",
      "num": "4.4",
      "label": "expire_due_orders()",
-     "sx": 113,
-     "sy": 87
+     "sx": 218,
+     "sy": 61
     },
     {
      "from": "ctl:wallet_routes",
      "to": "ent:Carrito",
      "num": "4.5",
      "label": "_locked_cart(user_id)",
-     "sx": -140,
-     "sy": 120
+     "sx": -131,
+     "sy": 28
     },
     {
      "from": "ctl:wallet_routes",
      "to": "ent:Pedido",
      "num": "4.6",
-     "label": "_new_order(cart, user_id, branch_id, method, delivery, points_to_redeem)",
-     "sx": 113,
-     "sy": 103
+     "label": "pending_order(user_id, exclude_order_id)",
+     "sx": 218,
+     "sy": 77
+    },
+    {
+     "from": "ctl:wallet_routes",
+     "to": "ent:Pedido",
+     "num": "4.7",
+     "label": "_new_order(cart, user_id, branch_id, method, delivery, points_to_redeem, offline_requested_at)",
+     "sx": 218,
+     "sy": 93
     },
     {
      "from": "ctl:wallet_routes",
      "to": "ent:DetallePedido",
-     "num": "4.7",
-     "label": "_new_order(cart, user_id, branch_id, method, delivery, points_to_redeem)",
-     "sx": -24,
+     "num": "4.8",
+     "label": "_new_order(cart, user_id, branch_id, method, delivery, points_to_redeem, offline_requested_at)",
+     "sx": -26,
      "sy": 0
     },
     {
      "from": "ctl:wallet_routes",
      "to": "ent:MovimientoInventario",
-     "num": "4.8",
+     "num": "4.9",
      "label": "_consume_order(order, collected_by)",
-     "sx": -22,
-     "sy": 0
+     "sx": 151,
+     "sy": 180
     },
     {
      "from": "ctl:wallet_routes",
      "to": "ent:Pedido",
-     "num": "4.9",
+     "num": "4.10",
      "label": "_serialize_order(order)",
-     "sx": 113,
-     "sy": 119
+     "sx": 218,
+     "sy": 109
     },
     {
      "from": "bnd:CartPageComponent",
      "to": "ctl:wallet_routes",
-     "num": "4.10",
+     "num": "4.11",
      "label": "balance_route()",
      "sx": 0,
      "sy": 76
@@ -5157,7 +5177,7 @@
     {
      "from": "ctl:wallet_routes",
      "to": "ent:BilleteraUsuario",
-     "num": "4.11",
+     "num": "4.12",
      "label": "get_or_create_wallet(user_id)",
      "sx": 0,
      "sy": 114
@@ -6644,7 +6664,7 @@
      "from": "bnd:CajaPageComponent",
      "to": "ctl:OfflineCatalogService",
      "num": "1.4",
-     "label": "searchProducts(query, category)",
+     "label": "decrementStock(items)",
      "sx": 0,
      "sy": 128
     },
@@ -6654,7 +6674,23 @@
      "num": "1.5",
      "label": "getAll(STORES.CACHED_CATALOG)",
      "sx": 233,
-     "sy": 0
+     "sy": -8
+    },
+    {
+     "from": "ctl:OfflineCatalogService",
+     "to": "ent:OfflineCatalogProduct",
+     "num": "1.6",
+     "label": "putItems(STORES.CACHED_CATALOG, changed)",
+     "sx": 301,
+     "sy": 8
+    },
+    {
+     "from": "bnd:CajaPageComponent",
+     "to": "ctl:OfflineCatalogService",
+     "num": "1.7",
+     "label": "searchProducts(query, category)",
+     "sx": 0,
+     "sy": 144
     },
     {
      "from": "act:CL",
@@ -7553,28 +7589,16 @@
      "name": "Venta",
      "kind": "entity"
     },
-    "ent:Inventario": {
-     "name": "Inventario",
+    "ent:ConflictoVentaSinConexion": {
+     "name": "ConflictoVentaSinConexion",
      "kind": "entity"
     },
-    "ent:VarianteProducto": {
-     "name": "VarianteProducto",
-     "kind": "entity"
-    },
-    "ent:MovimientoInventario": {
-     "name": "MovimientoInventario",
+    "ent:MovimientoCaja": {
+     "name": "MovimientoCaja",
      "kind": "entity"
     },
     "ent:Usuario": {
      "name": "Usuario",
-     "kind": "entity"
-    },
-    "ent:Empresa": {
-     "name": "Empresa",
-     "kind": "entity"
-    },
-    "ent:DetalleVenta": {
-     "name": "DetalleVenta",
      "kind": "entity"
     },
     "act:CA": {
@@ -7601,6 +7625,10 @@
      "name": "Carrito",
      "kind": "entity"
     },
+    "ent:Inventario": {
+     "name": "Inventario",
+     "kind": "entity"
+    },
     "ent:InteraccionProducto": {
      "name": "InteraccionProducto",
      "kind": "entity"
@@ -7613,6 +7641,10 @@
      "name": "OfflineConflictsPageComponent",
      "kind": "boundary"
     },
+    "ent:SesionCaja": {
+     "name": "SesionCaja",
+     "kind": "entity"
+    },
     "ent:BilleteraUsuario": {
      "name": "BilleteraUsuario",
      "kind": "entity"
@@ -7620,96 +7652,116 @@
     "ent:MovimientoBilletera": {
      "name": "MovimientoBilletera",
      "kind": "entity"
+    },
+    "ent:VarianteProducto": {
+     "name": "VarianteProducto",
+     "kind": "entity"
+    },
+    "ent:DetalleVenta": {
+     "name": "DetalleVenta",
+     "kind": "entity"
+    },
+    "ent:MovimientoInventario": {
+     "name": "MovimientoInventario",
+     "kind": "entity"
     }
    },
    "pos": {
     "ctl:offline_routes": [
-     1636.4,
-     244
+     1281.8,
+     176
     ],
     "ctl:cart_routes": [
-     1636.4,
-     434
+     1281.8,
+     366
     ],
     "act:CA": [
      40,
-     244
+     176
     ],
     "ctl:OfflineSyncService": [
-     1124.0,
-     244
+     775.6,
+     176
     ],
     "ctl:OfflineQueueService": [
-     1124.0,
-     434
+     775.6,
+     366
     ],
     "ent:OfflineOperation": [
-     1124.0,
-     756
+     775.6,
+     624
     ],
     "ctl:OfflineCartService": [
-     1124.0,
-     986
+     775.6,
+     854
     ],
     "ent:PendingCartItem": [
-     1124.0,
-     1216
-    ],
-    "bnd:OfflineConflictsPageComponent": [
-     537.2,
-     244
+     775.6,
+     1084
     ],
     "bnd:CajaPageComponent": [
-     537.2,
-     434
+     350,
+     176
     ],
-    "ent:Venta": [
-     2814.0,
-     244
+    "bnd:OfflineConflictsPageComponent": [
+     350,
+     366
+    ],
+    "ent:ConflictoVentaSinConexion": [
+     2533.8,
+     176
     ],
     "ent:Usuario": [
-     2814.0,
-     444
+     2533.8,
+     376
+    ],
+    "ent:MovimientoCaja": [
+     2533.8,
+     576
+    ],
+    "ent:Venta": [
+     2533.8,
+     776
+    ],
+    "ent:SesionCaja": [
+     2533.8,
+     976
     ],
     "ent:BilleteraUsuario": [
-     2814.0,
-     644
-    ],
-    "ent:Inventario": [
-     2814.0,
-     844
-    ],
-    "ent:VarianteProducto": [
-     2814.0,
-     1044
-    ],
-    "ent:MovimientoInventario": [
-     2814.0,
-     1244
-    ],
-    "ent:Empresa": [
-     2814.0,
-     1444
-    ],
-    "ent:DetalleVenta": [
-     2814.0,
-     1644
+     2533.8,
+     1176
     ],
     "ent:MovimientoBilletera": [
-     2814.0,
-     1844
+     2533.8,
+     1376
+    ],
+    "ent:VarianteProducto": [
+     2533.8,
+     1576
+    ],
+    "ent:DetalleVenta": [
+     2533.8,
+     1776
+    ],
+    "ent:MovimientoInventario": [
+     2533.8,
+     1976
     ],
     "ent:Carrito": [
-     2814.0,
-     2044
+     2533.8,
+     2176
     ],
     "ent:DetalleCarrito": [
-     2814.0,
-     2244
+     2533.8,
+     2376
+    ],
+    "ent:Inventario": [
+     2533.8,
+     2576
     ],
     "ent:InteraccionProducto": [
-     2814.0,
-     2444
+     2533.8,
+     2776
     ]
    },
    "links": [
@@ -7731,27 +7783,15 @@
     ],
     [
      "ctl:offline_routes",
-     "ent:Inventario"
+     "ent:ConflictoVentaSinConexion"
     ],
     [
      "ctl:offline_routes",
-     "ent:VarianteProducto"
-    ],
-    [
-     "ctl:offline_routes",
-     "ent:MovimientoInventario"
+     "ent:MovimientoCaja"
     ],
     [
      "ctl:offline_routes",
      "ent:Usuario"
-    ],
-    [
-     "ctl:offline_routes",
-     "ent:Empresa"
-    ],
-    [
-     "ctl:offline_routes",
-     "ent:DetalleVenta"
     ],
     [
      "act:CA",
@@ -7759,7 +7799,7 @@
     ],
     [
      "bnd:CajaPageComponent",
-     "ctl:OfflineQueueService"
+     "ctl:OfflineSyncService"
     ],
     [
      "ctl:OfflineCartService",
@@ -7799,11 +7839,27 @@
     ],
     [
      "ctl:offline_routes",
+     "ent:SesionCaja"
+    ],
+    [
+     "ctl:offline_routes",
      "ent:BilleteraUsuario"
     ],
     [
      "ctl:offline_routes",
      "ent:MovimientoBilletera"
+    ],
+    [
+     "ctl:offline_routes",
+     "ent:VarianteProducto"
+    ],
+    [
+     "ctl:offline_routes",
+     "ent:DetalleVenta"
+    ],
+    [
+     "ctl:offline_routes",
+     "ent:MovimientoInventario"
     ]
    ],
    "msgs": [
@@ -7819,38 +7875,46 @@
      "from": "ctl:OfflineSyncService",
      "to": "ctl:OfflineQueueService",
      "num": "1.1",
-     "label": "syncBatchNow()",
-     "sx": -12,
-     "sy": -16
+     "label": "loadQueue()",
+     "sx": 121,
+     "sy": -24
     },
     {
      "from": "ctl:OfflineQueueService",
      "to": "ent:OfflineOperation",
      "num": "1.2",
-     "label": "getItem(STORES.PENDING_OPERATIONS_QUEUE, operationId)",
+     "label": "getAll(STORES.PENDING_OPERATIONS_QUEUE)",
      "sx": -12,
-     "sy": -88
+     "sy": -95
     },
     {
-     "from": "ctl:OfflineQueueService",
-     "to": "ent:OfflineOperation",
+     "from": "ctl:OfflineSyncService",
+     "to": "ctl:OfflineQueueService",
      "num": "1.3",
-     "label": "putItem(STORES.PENDING_OPERATIONS_QUEUE, updated)",
-     "sx": -12,
-     "sy": -72
+     "label": "syncBatchNow()",
+     "sx": 140,
+     "sy": -8
     },
     {
      "from": "ctl:OfflineQueueService",
      "to": "ent:OfflineOperation",
      "num": "1.4",
-     "label": "getAll(STORES.PENDING_OPERATIONS_QUEUE)",
+     "label": "getItem(STORES.PENDING_OPERATIONS_QUEUE, operationId)",
      "sx": -12,
-     "sy": -56
+     "sy": -79
+    },
+    {
+     "from": "ctl:OfflineQueueService",
+     "to": "ent:OfflineOperation",
+     "num": "1.5",
+     "label": "putItem(STORES.PENDING_OPERATIONS_QUEUE, updated)",
+     "sx": -12,
+     "sy": -63
     },
     {
      "from": "ctl:OfflineQueueService",
      "to": "ctl:offline_routes",
-     "num": "1.5",
+     "num": "1.6",
      "label": "sync_offline_queue(payload)",
      "sx": 0,
      "sy": 57
@@ -7858,74 +7922,50 @@
     {
      "from": "ctl:offline_routes",
      "to": "ent:Venta",
-     "num": "1.6",
-     "label": "db.query(Sale)",
+     "num": "1.7",
+     "label": "sync_batch(user, tenant_id, branch_id, operations)",
+     "sx": -313,
+     "sy": 408
+    },
+    {
+     "from": "ctl:offline_routes",
+     "to": "ent:ConflictoVentaSinConexion",
+     "num": "1.8",
+     "label": "serialize_conflict(conflict, cashier_name)",
      "sx": 0,
      "sy": 18
     },
     {
      "from": "ctl:offline_routes",
-     "to": "ent:Inventario",
-     "num": "1.7",
-     "label": "db.query(Inventory)",
-     "sx": 177,
-     "sy": -32
-    },
-    {
-     "from": "ctl:offline_routes",
-     "to": "ent:VarianteProducto",
-     "num": "1.8",
-     "label": "db.query(ProductVariant)",
-     "sx": 0,
-     "sy": 82
-    },
-    {
-     "from": "ctl:offline_routes",
-     "to": "ent:MovimientoInventario",
+     "to": "ent:MovimientoCaja",
      "num": "1.9",
-     "label": "InventoryMovement(tenant_id, variant_id, branch_id, quantity, movement_type, reference)",
-     "sx": 177,
-     "sy": -410
-    },
-    {
-     "from": "ctl:offline_routes",
-     "to": "ent:Usuario",
-     "num": "1.10",
-     "label": "db.query(User)",
+     "label": "_sync_one(op, cashier, tenant_id, branch_id)",
      "sx": 0,
-     "sy": 29
+     "sy": 73
     },
     {
      "from": "ctl:offline_routes",
-     "to": "ent:Empresa",
-     "num": "1.11",
-     "label": "db.query(Tenant)",
-     "sx": -36,
-     "sy": -8
-    },
-    {
-     "from": "ctl:offline_routes",
-     "to": "ent:Venta",
-     "num": "1.12",
-     "label": "Sale(tenant_id, branch_id, user_id, status, payment_method, payment_status, cash_reference, subtotal, discount_amount, total_amount, currency)",
+     "to": "ent:ConflictoVentaSinConexion",
+     "num": "1.10",
+     "label": "_sync_one(op, cashier, tenant_id, branch_id)",
      "sx": 0,
      "sy": 34
     },
     {
      "from": "ctl:offline_routes",
-     "to": "ent:DetalleVenta",
-     "num": "1.13",
-     "label": "SaleItem(sale_id, variant_id, quantity, unit_price)",
-     "sx": 262,
-     "sy": -358
+     "to": "ent:Usuario",
+     "num": "1.11",
+     "label": "_notify_staff(tenant_id, branch_id, title, body, key)",
+     "sx": 188,
+     "sy": -75
     },
     {
      "from": "ctl:OfflineQueueService",
      "to": "ent:OfflineOperation",
-     "num": "1.14",
-     "label": "deleteItem(STORES.PENDING_OPERATIONS_QUEUE, operationId)",
+     "num": "1.12",
+     "label": "deleteItem(STORES.PENDING_OPERATIONS_QUEUE, id)",
      "sx": -12,
-     "sy": -40
+     "sy": -47
     },
     {
      "from": "act:CA",
@@ -7933,44 +7973,60 @@
      "num": "2",
      "label": "syncOfflineQueue()",
      "sx": 0,
-     "sy": 42
+     "sy": 18
     },
     {
      "from": "bnd:CajaPageComponent",
-     "to": "ctl:OfflineQueueService",
+     "to": "ctl:OfflineSyncService",
      "num": "2.1",
-     "label": "syncBatchNow()",
+     "label": "triggerAutoSync()",
      "sx": 0,
      "sy": 18
     },
     {
-     "from": "ctl:OfflineQueueService",
-     "to": "ent:OfflineOperation",
+     "from": "ctl:OfflineSyncService",
+     "to": "ctl:OfflineQueueService",
      "num": "2.2",
-     "label": "getItem(STORES.PENDING_OPERATIONS_QUEUE, operationId)",
-     "sx": -12,
-     "sy": -24
+     "label": "loadQueue()",
+     "sx": 121,
+     "sy": 8
     },
     {
      "from": "ctl:OfflineQueueService",
      "to": "ent:OfflineOperation",
      "num": "2.3",
-     "label": "putItem(STORES.PENDING_OPERATIONS_QUEUE, updated)",
+     "label": "getAll(STORES.PENDING_OPERATIONS_QUEUE)",
      "sx": -12,
-     "sy": -8
+     "sy": -31
+    },
+    {
+     "from": "ctl:OfflineSyncService",
+     "to": "ctl:OfflineQueueService",
+     "num": "2.4",
+     "label": "syncBatchNow()",
+     "sx": 140,
+     "sy": 24
     },
     {
      "from": "ctl:OfflineQueueService",
      "to": "ent:OfflineOperation",
-     "num": "2.4",
-     "label": "getAll(STORES.PENDING_OPERATIONS_QUEUE)",
+     "num": "2.5",
+     "label": "getItem(STORES.PENDING_OPERATIONS_QUEUE, operationId)",
      "sx": -12,
-     "sy": 8
+     "sy": -15
+    },
+    {
+     "from": "ctl:OfflineQueueService",
+     "to": "ent:OfflineOperation",
+     "num": "2.6",
+     "label": "putItem(STORES.PENDING_OPERATIONS_QUEUE, updated)",
+     "sx": -12,
+     "sy": 1
     },
     {
      "from": "ctl:OfflineQueueService",
      "to": "ctl:offline_routes",
-     "num": "2.5",
+     "num": "2.7",
      "label": "sync_offline_queue(payload)",
      "sx": 0,
      "sy": 73
@@ -7978,74 +8034,50 @@
     {
      "from": "ctl:offline_routes",
      "to": "ent:Venta",
-     "num": "2.6",
-     "label": "db.query(Sale)",
+     "num": "2.8",
+     "label": "sync_batch(user, tenant_id, branch_id, operations)",
+     "sx": -313,
+     "sy": 424
+    },
+    {
+     "from": "ctl:offline_routes",
+     "to": "ent:ConflictoVentaSinConexion",
+     "num": "2.9",
+     "label": "serialize_conflict(conflict, cashier_name)",
      "sx": 0,
      "sy": 50
     },
     {
      "from": "ctl:offline_routes",
-     "to": "ent:Inventario",
-     "num": "2.7",
-     "label": "db.query(Inventory)",
-     "sx": 177,
-     "sy": -16
-    },
-    {
-     "from": "ctl:offline_routes",
-     "to": "ent:VarianteProducto",
-     "num": "2.8",
-     "label": "db.query(ProductVariant)",
-     "sx": 0,
-     "sy": 98
-    },
-    {
-     "from": "ctl:offline_routes",
-     "to": "ent:MovimientoInventario",
-     "num": "2.9",
-     "label": "InventoryMovement(tenant_id, variant_id, branch_id, quantity, movement_type, reference)",
-     "sx": 177,
-     "sy": -426
-    },
-    {
-     "from": "ctl:offline_routes",
-     "to": "ent:Usuario",
+     "to": "ent:MovimientoCaja",
      "num": "2.10",
-     "label": "db.query(User)",
+     "label": "_sync_one(op, cashier, tenant_id, branch_id)",
      "sx": 0,
-     "sy": 45
+     "sy": 89
     },
     {
      "from": "ctl:offline_routes",
-     "to": "ent:Empresa",
+     "to": "ent:ConflictoVentaSinConexion",
      "num": "2.11",
-     "label": "db.query(Tenant)",
-     "sx": -36,
-     "sy": 8
-    },
-    {
-     "from": "ctl:offline_routes",
-     "to": "ent:Venta",
-     "num": "2.12",
-     "label": "Sale(tenant_id, branch_id, user_id, status, payment_method, payment_status, cash_reference, subtotal, discount_amount, total_amount, currency)",
+     "label": "_sync_one(op, cashier, tenant_id, branch_id)",
      "sx": 0,
      "sy": 66
     },
     {
      "from": "ctl:offline_routes",
-     "to": "ent:DetalleVenta",
-     "num": "2.13",
-     "label": "SaleItem(sale_id, variant_id, quantity, unit_price)",
-     "sx": 262,
-     "sy": -342
+     "to": "ent:Usuario",
+     "num": "2.12",
+     "label": "_notify_staff(tenant_id, branch_id, title, body, key)",
+     "sx": 188,
+     "sy": -91
     },
     {
      "from": "ctl:OfflineQueueService",
      "to": "ent:OfflineOperation",
-     "num": "2.14",
-     "label": "deleteItem(STORES.PENDING_OPERATIONS_QUEUE, operationId)",
+     "num": "2.13",
+     "label": "deleteItem(STORES.PENDING_OPERATIONS_QUEUE, id)",
      "sx": -12,
-     "sy": 24
+     "sy": 17
     },
     {
      "from": "ctl:OfflineCartService",
@@ -8060,72 +8092,72 @@
      "to": "ctl:cart_routes",
      "num": "3.1",
      "label": "add_cart_item_route(payload)",
-     "sx": 242,
-     "sy": 0
+     "sx": 0,
+     "sy": 121
     },
     {
      "from": "ctl:cart_routes",
      "to": "ent:DetalleCarrito",
      "num": "3.2",
      "label": "add_cart_item(user_id, payload)",
-     "sx": -205,
-     "sy": 264
+     "sx": 286,
+     "sy": -510
     },
     {
      "from": "ctl:cart_routes",
      "to": "ent:Carrito",
      "num": "3.3",
      "label": "_get_mutable_cart(user_id)",
-     "sx": 136,
-     "sy": -266
+     "sx": 242,
+     "sy": -24
     },
     {
      "from": "ctl:cart_routes",
      "to": "ent:Carrito",
      "num": "3.4",
      "label": "validate_cart_company(cart, tenant_id)",
-     "sx": 136,
-     "sy": -250
+     "sx": 317,
+     "sy": -8
     },
     {
      "from": "ctl:cart_routes",
      "to": "ent:DetalleCarrito",
      "num": "3.5",
      "label": "transfer_reservation_to_cart(user_id, reservation_id)",
-     "sx": -205,
-     "sy": 280
+     "sx": 286,
+     "sy": -494
     },
     {
      "from": "ctl:cart_routes",
      "to": "ent:Inventario",
      "num": "3.6",
      "label": "_available_quantity(variant_id, tenant_id, branch_id)",
-     "sx": 294,
-     "sy": -180
+     "sx": -21,
+     "sy": 0
     },
     {
      "from": "ctl:cart_routes",
      "to": "ent:InteraccionProducto",
      "num": "3.7",
      "label": "record_interaction(user_id, product_id, interaction_type, order_id, variant_id, branch_id)",
-     "sx": 797,
-     "sy": -302
+     "sx": -20,
+     "sy": 0
     },
     {
      "from": "ctl:cart_routes",
      "to": "ent:Carrito",
      "num": "3.8",
      "label": "refresh_cart_totals(cart)",
-     "sx": 136,
-     "sy": -234
+     "sx": 236,
+     "sy": 8
     },
     {
      "from": "ctl:cart_routes",
      "to": "ent:Carrito",
      "num": "3.9",
      "label": "_serialize_cart(cart)",
-     "sx": 136,
-     "sy": -218
+     "sx": 211,
+     "sy": 24
     },
     {
      "from": "ctl:OfflineCartService",
@@ -8147,23 +8179,23 @@
      "from": "act:CA",
      "to": "bnd:OfflineConflictsPageComponent",
      "num": "4",
-     "label": "resolveWithWallet(operationId, amount, customerEmail)",
+     "label": "setTab(tab)",
      "sx": 0,
-     "sy": 18
+     "sy": 44
     },
     {
      "from": "bnd:OfflineConflictsPageComponent",
      "to": "ctl:OfflineSyncService",
      "num": "4.1",
-     "label": "resolveConflict(operationId, action, amount, customerEmail)",
+     "label": "loadConflicts(status)",
      "sx": 0,
-     "sy": 18
+     "sy": -69
     },
     {
      "from": "ctl:OfflineSyncService",
      "to": "ctl:offline_routes",
      "num": "4.2",
-     "label": "resolve_offline_conflict(operation_id, payload)",
+     "label": "list_offline_conflicts(status_filter)",
      "sx": 0,
      "sy": 18
     },
@@ -8171,79 +8203,47 @@
      "from": "ctl:offline_routes",
      "to": "ent:Usuario",
      "num": "4.3",
-     "label": "db.query(User)",
-     "sx": 0,
-     "sy": 61
+     "label": "list_conflicts(user, tenant_id, status)",
+     "sx": 188,
+     "sy": -107
     },
     {
      "from": "ctl:offline_routes",
-     "to": "ent:BilleteraUsuario",
+     "to": "ent:ConflictoVentaSinConexion",
      "num": "4.4",
-     "label": "db.query(UserWallet)",
-     "sx": 294,
-     "sy": -35
+     "label": "_conflict_query(user, tenant_id)",
+     "sx": 0,
+     "sy": 82
     },
     {
      "from": "ctl:offline_routes",
-     "to": "ent:BilleteraUsuario",
+     "to": "ent:ConflictoVentaSinConexion",
      "num": "4.5",
-     "label": "UserWallet(user_id, currency, balance)",
-     "sx": 294,
-     "sy": -19
-    },
-    {
-     "from": "ctl:offline_routes",
-     "to": "ent:MovimientoBilletera",
-     "num": "4.6",
-     "label": "WalletTransaction(wallet_id, type, amount, balance_after, concept, description, created_at)",
-     "sx": -207,
-     "sy": 232
-    },
-    {
-     "from": "ctl:OfflineSyncService",
-     "to": "ctl:OfflineQueueService",
-     "num": "4.7",
-     "label": "removeOperation(operationId)",
-     "sx": -12,
-     "sy": 0
-    },
-    {
-     "from": "ctl:OfflineQueueService",
-     "to": "ent:OfflineOperation",
-     "num": "4.8",
-     "label": "deleteItem(STORES.PENDING_OPERATIONS_QUEUE, operationId)",
-     "sx": -12,
-     "sy": 40
-    },
-    {
-     "from": "ctl:OfflineQueueService",
-     "to": "ent:OfflineOperation",
-     "num": "4.9",
-     "label": "getAll(STORES.PENDING_OPERATIONS_QUEUE)",
-     "sx": -12,
-     "sy": 56
+     "label": "serialize_conflict(conflict, cashier_name)",
+     "sx": 0,
+     "sy": 98
     },
     {
      "from": "act:CA",
      "to": "bnd:OfflineConflictsPageComponent",
      "num": "5",
-     "label": "resolveWithRefund(operationId, amount)",
+     "label": "resolve(c)",
      "sx": 0,
-     "sy": 34
+     "sy": 60
     },
     {
      "from": "bnd:OfflineConflictsPageComponent",
      "to": "ctl:OfflineSyncService",
      "num": "5.1",
-     "label": "resolveConflict(operationId, action, amount, customerEmail)",
+     "label": "resolveConflict(conflictId, body)",
      "sx": 0,
-     "sy": 34
+     "sy": -85
     },
     {
      "from": "ctl:OfflineSyncService",
      "to": "ctl:offline_routes",
      "num": "5.2",
-     "label": "resolve_offline_conflict(operation_id, payload)",
+     "label": "resolve_offline_conflict(conflict_id, payload)",
      "sx": 0,
      "sy": 34
     },
@@ -8251,57 +8251,137 @@
      "from": "ctl:offline_routes",
      "to": "ent:Usuario",
      "num": "5.3",
-     "label": "db.query(User)",
-     "sx": 0,
-     "sy": 77
+     "label": "resolve_conflict(user, tenant_id, conflict_id, payload)",
+     "sx": 188,
+     "sy": -123
     },
     {
      "from": "ctl:offline_routes",
-     "to": "ent:BilleteraUsuario",
+     "to": "ent:ConflictoVentaSinConexion",
      "num": "5.4",
-     "label": "db.query(UserWallet)",
-     "sx": 294,
-     "sy": -3
+     "label": "_conflict_query(user, tenant_id)",
+     "sx": 0,
+     "sy": 114
+    },
+    {
+     "from": "ctl:offline_routes",
+     "to": "ent:SesionCaja",
+     "num": "5.5",
+     "label": "_resolver_drawer(user, conflict)",
+     "sx": -188,
+     "sy": 30
+    },
+    {
+     "from": "ctl:offline_routes",
+     "to": "ent:MovimientoCaja",
+     "num": "5.6",
+     "label": "_withdraw(amount, reason, source_id)",
+     "sx": 0,
+     "sy": 105
+    },
+    {
+     "from": "ctl:offline_routes",
+     "to": "ent:Usuario",
+     "num": "5.7",
+     "label": "_customer(email)",
+     "sx": 188,
+     "sy": -139
     },
     {
      "from": "ctl:offline_routes",
      "to": "ent:BilleteraUsuario",
-     "num": "5.5",
-     "label": "UserWallet(user_id, currency, balance)",
-     "sx": 294,
-     "sy": 13
+     "num": "5.8",
+     "label": "credit_wallet(user_id, amount, concept, source_type, source_id, description, commit)",
+     "sx": 0,
+     "sy": -238
     },
     {
      "from": "ctl:offline_routes",
      "to": "ent:MovimientoBilletera",
-     "num": "5.6",
-     "label": "WalletTransaction(wallet_id, type, amount, balance_after, concept, description, created_at)",
-     "sx": -207,
-     "sy": 248
+     "num": "5.9",
+     "label": "credit_wallet(user_id, amount, concept, source_type, source_id, description, commit)",
+     "sx": -313,
+     "sy": 17
+    },
+    {
+     "from": "ctl:offline_routes",
+     "to": "ent:MovimientoCaja",
+     "num": "5.10",
+     "label": "_resolve_exchange(user, conflict, payload, paid)",
+     "sx": 0,
+     "sy": 121
+    },
+    {
+     "from": "ctl:offline_routes",
+     "to": "ent:VarianteProducto",
+     "num": "5.11",
+     "label": "_variants(tenant_id, variant_ids)",
+     "sx": -26,
+     "sy": 0
+    },
+    {
+     "from": "ctl:offline_routes",
+     "to": "ent:Venta",
+     "num": "5.12",
+     "label": "_create_sale(tenant_id, branch_id, cashier_id, operation_id, reference, grouped, variants, subtotal, discount, total, offline_created_at, offline_details)",
+     "sx": -313,
+     "sy": 440
+    },
+    {
+     "from": "ctl:offline_routes",
+     "to": "ent:DetalleVenta",
+     "num": "5.13",
+     "label": "_create_sale(tenant_id, branch_id, cashier_id, operation_id, reference, grouped, variants, subtotal, discount, total, offline_created_at, offline_details)",
+     "sx": -213,
+     "sy": 240
+    },
+    {
+     "from": "ctl:offline_routes",
+     "to": "ent:MovimientoInventario",
+     "num": "5.14",
+     "label": "_move_stock(tenant_id, branch_id, variant_id, quantity, movement_type, note, user_id)",
+     "sx": 290,
+     "sy": -450
+    },
+    {
+     "from": "ctl:offline_routes",
+     "to": "ent:Usuario",
+     "num": "5.15",
+     "label": "_notify_staff(tenant_id, branch_id, title, body, key)",
+     "sx": 188,
+     "sy": -155
+    },
+    {
+     "from": "ctl:offline_routes",
+     "to": "ent:ConflictoVentaSinConexion",
+     "num": "5.16",
+     "label": "serialize_conflict(conflict, cashier_name)",
+     "sx": 0,
+     "sy": 130
+    },
+    {
+     "from": "bnd:OfflineConflictsPageComponent",
+     "to": "ctl:OfflineSyncService",
+     "num": "5.17",
+     "label": "loadConflicts(status)",
+     "sx": 0,
+     "sy": -101
     },
     {
      "from": "ctl:OfflineSyncService",
-     "to": "ctl:OfflineQueueService",
-     "num": "5.7",
-     "label": "removeOperation(operationId)",
-     "sx": -12,
-     "sy": 16
+     "to": "ctl:offline_routes",
+     "num": "5.18",
+     "label": "list_offline_conflicts(status_filter)",
+     "sx": 0,
+     "sy": 50
     },
     {
-     "from": "ctl:OfflineQueueService",
-     "to": "ent:OfflineOperation",
-     "num": "5.8",
-     "label": "deleteItem(STORES.PENDING_OPERATIONS_QUEUE, operationId)",
-     "sx": -12,
-     "sy": 72
-    },
-    {
-     "from": "ctl:OfflineQueueService",
-     "to": "ent:OfflineOperation",
-     "num": "5.9",
-     "label": "getAll(STORES.PENDING_OPERATIONS_QUEUE)",
-     "sx": -12,
-     "sy": 88
+     "from": "ctl:offline_routes",
+     "to": "ent:Usuario",
+     "num": "5.19",
+     "label": "list_conflicts(user, tenant_id, status)",
+     "sx": 188,
+     "sy": -171
     }
    ]
   }

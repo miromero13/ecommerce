@@ -127,8 +127,8 @@ def get_offline_catalog_sync(
     )
 
 
-# [CU30 - Secuencia: Pasos 1.5, 2.5] OfflineQueueService llama a sync_offline_queue(payload) de offline_routes (POST /api/offline/queue-sync)
-# [CU30 - Secuencia: Pasos 1.24, 2.24] offline_routes retorna sync_offline_queue(payload): 200 Lote procesado: ... sincronizadas, ... conflictos. a OfflineQueueService
+# [CU30 - Secuencia: Pasos 1.6, 2.7] OfflineQueueService llama a sync_offline_queue(payload) de offline_routes (POST /api/offline/queue-sync)
+# [CU30 - Secuencia: Pasos 1.19, 2.20] offline_routes retorna sync_offline_queue(payload): 200 Lote procesado: ... sincronizadas, ... conflictos. a OfflineQueueService
 @router.post("/queue-sync")
 def sync_offline_queue(
     payload: OfflineQueueSyncRequest,
@@ -149,6 +149,8 @@ def sync_offline_queue(
     )
 
 
+# [CU30 - Secuencia: Pasos 4.2, 5.33] OfflineSyncService llama a list_offline_conflicts(status_filter) de offline_routes (GET /api/offline/conflicts)
+# [CU30 - Secuencia: Pasos 4.9, 5.40] offline_routes retorna list_offline_conflicts(status_filter): 200 Conflictos offline obtenidos exitosamente a OfflineSyncService
 @router.get("/conflicts")
 def list_offline_conflicts(
     status_filter: str = Query("pending", alias="status", pattern="^(pending|resolved|all)$"),
@@ -170,8 +172,8 @@ RESOLUTION_MESSAGES = {
 }
 
 
-# [CU30 - Secuencia: Pasos 4.2, 5.2] OfflineSyncService llama a resolve_offline_conflict(conflict_id, payload) de offline_routes (POST /api/offline/conflicts/{conflict_id}/resolve)
-# [CU30 - Secuencia: Pasos 4.13, 5.13] offline_routes retorna resolve_offline_conflict(conflict_id, payload): 200 Conflicto resuelto a OfflineSyncService
+# [CU30 - Secuencia: Paso 5.2] OfflineSyncService llama a resolve_offline_conflict(conflict_id, payload) de offline_routes (POST /api/offline/conflicts/{conflict_id}/resolve)
+# [CU30 - Secuencia: Paso 5.31] offline_routes retorna resolve_offline_conflict(conflict_id, payload): 200 RESOLUTION_MESSAGES[payload.action] a OfflineSyncService
 @router.post("/conflicts/{conflict_id}/resolve")
 def resolve_offline_conflict(
     conflict_id: UUID,
