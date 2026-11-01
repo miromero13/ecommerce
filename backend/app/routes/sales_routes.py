@@ -60,6 +60,7 @@ async def get_sale_route(
 
 
 # [CU15 - Secuencia: Paso 5.1] CajaPageComponent llama a create_sale_route(payload) de sales_routes (POST /api/sales/)
+# [CU15 - Secuencia: Paso 5.12] sales_routes retorna create_sale_route(payload): 201 Venta registrada exitosamente a CajaPageComponent
 @router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_sale_route(
     payload: SaleCreate,

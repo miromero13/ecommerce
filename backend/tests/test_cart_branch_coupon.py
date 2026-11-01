@@ -64,6 +64,7 @@ def test_db():
         "inventory", "carts", "cart_items", "promotion_codes",
         "promotion_code_usages", "reservations", "sizes", "colors",
         "user_product_interactions", "wishlist_items",
+        "orders",  # reading/changing the cart first expires overdue unpaid orders
     ]
     Base.metadata.create_all(engine, tables=[Base.metadata.tables[name] for name in needed if name in Base.metadata.tables])
     session = Session(engine)

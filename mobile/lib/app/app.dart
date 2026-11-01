@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../core/offline/offline_cart_service.dart';
 import '../features/auth/auth_controller.dart';
+import '../features/cart/cart_api.dart';
 import '../features/auth/login_page.dart';
 import '../features/auth/splash_page.dart';
 import '../features/catalog/catalog_controller.dart';
@@ -40,6 +42,9 @@ class _MobileAppState extends State<MobileApp> {
   late final bool _ownsNotificationController;
   late final NotificationPushService _pushService;
   final _navigatorKey = GlobalKey<NavigatorState>();
+  final _messengerKey = GlobalKey<ScaffoldMessengerState>();
+  Timer? _offlineCartTimer;
+  bool _syncingCart = false;
 
   @override
   void initState() {
@@ -53,11 +58,41 @@ class _MobileAppState extends State<MobileApp> {
     _pushService = widget.pushService ?? NotificationPushService();
     _authController.addListener(_handleAuthChanged);
     _authController.restoreSession();
+    // ponytail: no connectivity plugin; retrying every 20 s detects the connection coming back.
+    _offlineCartTimer = Timer.periodic(const Duration(seconds: 20), (_) => _syncOfflineCart());
+  }
+
+  /// CU30: uploads the garments saved without internet as soon as the server answers again.
+  Future<void> _syncOfflineCart() async {
+    if (_syncingCart || !_authController.isAuthenticated) return;
+    _syncingCart = true;
+    try {
+      final offline = OfflineCartService();
+      final before = (await offline.pending()).length;
+      if (before == 0) return;
+      final rejected = await offline.syncPending(CartApi(
+        tokenProvider: () => _authController.accessToken,
+        onUnauthorized: _authController.handleUnauthorized,
+      ));
+      final added = before - (await offline.pending()).length - rejected.length;
+      final messages = [
+        if (added > 0) 'Volvió la conexión: $added prenda(s) guardadas sin internet se agregaron a tu carrito.',
+        ...rejected,
+      ];
+      if (messages.isNotEmpty) {
+        _messengerKey.currentState?.showSnackBar(SnackBar(content: Text(messages.join('\n'))));
+      }
+    } catch (_) {
+      // Still offline: try again on the next tick.
+    } finally {
+      _syncingCart = false;
+    }
   }
 
   @override
   void dispose() {
     _authController.removeListener(_handleAuthChanged);
+    _offlineCartTimer?.cancel();
     unawaited(_pushService.stop());
     if (_ownsNotificationController) _notificationController.dispose();
     if (_ownsController) {
@@ -71,6 +106,7 @@ class _MobileAppState extends State<MobileApp> {
     return MaterialApp(
       title: 'FashionStore',
       navigatorKey: _navigatorKey,
+      scaffoldMessengerKey: _messengerKey,
       theme: buildAppTheme(),
       darkTheme: buildAppDarkTheme(),
       themeMode: widget.themeMode,

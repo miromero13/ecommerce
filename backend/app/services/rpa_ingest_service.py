@@ -4,6 +4,7 @@ A supplier (or company staff) uploads a delivery note / invoice (PDF or image).
 Gemini reads it into garment lines; SKUs are matched against the company's catalog;
 staff review the draft and a manager or administrator commits it as one stock income.
 Unknown SKUs are reported, never created automatically."""
+import logging
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Callable
@@ -22,14 +23,18 @@ from app.schemas.inventory_schema import InventoryMovementCreate
 from app.schemas.rpa_ingest_schema import ExtractedItem
 from app.services.inventory_service import _add_stock
 
+logger = logging.getLogger(__name__)
 ALLOWED_TYPES = {"application/pdf", "image/png", "image/jpeg", "image/webp"}
 MAX_BYTES = 10 * 1024 * 1024
 NO_ITEMS = "No se pudieron reconocer ítems válidos en el documento suministrado"
+NO_MATCH = "Ninguna prenda del documento coincide con un SKU activo del catálogo de esta empresa"
 PROMPT = (
     "Eres un asistente de recepción de mercadería de una tienda de ropa. Lee el documento adjunto "
     "(nota de remisión, factura o catálogo) y devuelve SOLO las líneas de prendas con: sku (código del "
     "artículo tal como aparece), name, size (talla), color, quantity (unidades, entero positivo) y "
-    "unit_cost (costo unitario, número). Ignora totales, impuestos, datos del proveedor y del cliente."
+    "unit_cost (costo unitario, número). Ignora totales, impuestos, datos del proveedor y del cliente. "
+    "Si el documento NO es un envío o venta de mercadería de un proveedor a la tienda (por ejemplo una "
+    "devolución, un ticket o comprobante de venta a un cliente), devuelve una lista vacía."
 )
 
 
@@ -57,6 +62,7 @@ def validate_upload(content: bytes, content_type: str | None) -> None:
 
 
 # [CU10 - Secuencia: Paso 1.2] rpa_ingest_routes invoca create_job(tenant_id, user_id, filename, content_type) sobre la entidad TrabajoImportacionRPA
+# [CU10 - Secuencia: Paso 1.3] TrabajoImportacionRPA retorna create_job(tenant_id, user_id, filename, content_type): RpaIngestJob a rpa_ingest_routes
 def create_job(db: Session, *, tenant_id: UUID, user_id: UUID, filename: str, content_type: str) -> RpaIngestJob:
     job = RpaIngestJob(tenant_id=tenant_id, uploaded_by=user_id, filename=filename[:255] or "documento",
                        mime_type=content_type, status="processing", extracted_items=[])
@@ -73,7 +79,11 @@ def extract_items(content: bytes, mime_type: str) -> list[dict]:
     from google import genai
     from google.genai import types
 
-    client = genai.Client(api_key=settings.gemini_api_key)
+    # Gemini answers 429 (per-minute quota) or 503 (busy): back off ~75 s in total before failing the document.
+    # It runs in a background task, so waiting does not block the request.
+    retry = types.HttpRetryOptions(attempts=5, initial_delay=5, max_delay=40,
+                                   http_status_codes=[429, 500, 502, 503, 504])
+    client = genai.Client(api_key=settings.gemini_api_key, http_options=types.HttpOptions(retry_options=retry))
     result = client.models.generate_content(
         model=settings.gemini_model,
         contents=[types.Part.from_bytes(data=content, mime_type=mime_type), PROMPT],
@@ -112,12 +122,17 @@ def process_job(session_factory: Callable[[], Session], job_id: UUID, content: b
         job = db.query(RpaIngestJob).filter(RpaIngestJob.id == job_id).one()
         try:
             items = _valid_items(extract_items(content, job.mime_type))
-            if items:
-                job.extracted_items, job.status, job.error_message = _match(db, job.tenant_id, items), "completed", None
-            else:
+            matched = _match(db, job.tenant_id, items) if items else []
+            if not matched:
                 job.status, job.error_message = "failed", NO_ITEMS
+            elif not any(item["recognized"] for item in matched):
+                # Another company's document (or garments not sold here): nothing could ever enter the stock.
+                job.extracted_items, job.status, job.error_message = matched, "failed", NO_MATCH
+            else:
+                job.extracted_items, job.status, job.error_message = matched, "completed", None
         except Exception:
-            # Keep provider/AI details out of the response; the job simply fails.
+            # Keep provider/AI details out of the response (but in the server log); the job simply fails.
+            logger.exception("RPA job %s: AI extraction failed", job_id)
             job.status, job.error_message = "failed", "No se pudo procesar el documento con IA. Intenta nuevamente."
         db.commit()
 
@@ -141,12 +156,14 @@ def get_job(db: Session, job_id: UUID, *, tenant_id: UUID, user_id: UUID, rol: s
 
 
 # [CU10 - Secuencia: Pasos 1.6, 2.6, 4.8] rpa_ingest_routes invoca list_jobs(tenant_id, user_id, rol, branch_id) sobre la entidad TrabajoImportacionRPA
+# [CU10 - Secuencia: Pasos 1.7, 2.7, 4.9] TrabajoImportacionRPA retorna list_jobs(tenant_id, user_id, rol, branch_id): list[RpaIngestJob] a rpa_ingest_routes
 def list_jobs(db: Session, *, tenant_id: UUID, user_id: UUID, rol: str, branch_id: UUID | None = None) -> list[RpaIngestJob]:
     query = _visible(db.query(RpaIngestJob).filter(RpaIngestJob.tenant_id == tenant_id), user_id=user_id, rol=rol, branch_id=branch_id)
     return query.order_by(RpaIngestJob.created_at.desc()).limit(50).all()
 
 
 # [CU10 - Secuencia: Paso 3.2] rpa_ingest_routes invoca correct_items(job, items) sobre la entidad TrabajoImportacionRPA
+# [CU10 - Secuencia: Paso 3.3] TrabajoImportacionRPA retorna correct_items(job, items): RpaIngestJob a rpa_ingest_routes
 def correct_items(db: Session, job: RpaIngestJob, items: list[ExtractedItem]) -> RpaIngestJob:
     if job.status == "committed":
         raise JobConflict("El documento ya fue ingresado al inventario")
@@ -159,6 +176,7 @@ def correct_items(db: Session, job: RpaIngestJob, items: list[ExtractedItem]) ->
 
 
 # [CU10 - Secuencia: Paso 4.2] rpa_ingest_routes invoca commit_job(job, branch_id, user_id) sobre la entidad TrabajoImportacionRPA
+# [CU10 - Secuencia: Paso 4.3] TrabajoImportacionRPA retorna commit_job(job, branch_id, user_id): dict a rpa_ingest_routes
 def commit_job(db: Session, job: RpaIngestJob, *, branch_id: UUID, user_id: UUID) -> dict:
     """All recognized lines enter the branch stock in ONE transaction."""
     if job.status == "committed":
@@ -187,6 +205,7 @@ def commit_job(db: Session, job: RpaIngestJob, *, branch_id: UUID, user_id: UUID
 
 
 # [CU10 - Secuencia: Pasos 1.8, 1.12, 2.2, 2.8, 3.4, 4.10] rpa_ingest_routes invoca serialize(job) sobre la entidad TrabajoImportacionRPA
+# [CU10 - Secuencia: Pasos 1.9, 1.13, 2.3, 2.9, 3.5, 4.11] TrabajoImportacionRPA retorna serialize(job): dict a rpa_ingest_routes
 def serialize(job: RpaIngestJob) -> dict:
     return {"job_id": job.id, "filename": job.filename, "status": job.status,
             "extracted_items": job.extracted_items or [], "error_message": job.error_message,

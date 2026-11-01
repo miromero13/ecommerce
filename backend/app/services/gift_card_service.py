@@ -25,6 +25,7 @@ PENDING_PAYMENT = "pending_payment"
 
 
 # [CU18 - Secuencia: Paso 2.4] gift_card_routes invoca generate_unique_code() sobre la entidad TarjetaRegalo
+# [CU18 - Secuencia: Paso 2.5] TarjetaRegalo retorna generate_unique_code(): str a gift_card_routes
 def generate_unique_code(db: Session) -> str:
     year = datetime.now(timezone.utc).year
     for _ in range(20):
@@ -47,6 +48,7 @@ def _amount_cents(amount: Decimal) -> int:
 
 
 # [CU18 - Secuencia: Paso 2.6] gift_card_routes invoca _currency(tenant_id) sobre la entidad Empresa
+# [CU18 - Secuencia: Paso 2.7] Empresa retorna _currency(tenant_id): str a gift_card_routes
 def _currency(db: Session, tenant_id: UUID | None) -> str:
     """Las tarjetas de regalo se emiten en bolivianos (o en la moneda de la empresa emisora, si se indica)."""
     if tenant_id:
@@ -57,6 +59,7 @@ def _currency(db: Session, tenant_id: UUID | None) -> str:
 
 
 # [CU18 - Secuencia: Paso 2.2] gift_card_routes invoca purchase_gift_card(buyer_id, payload) sobre la entidad TarjetaRegalo
+# [CU18 - Secuencia: Paso 2.3] TarjetaRegalo retorna purchase_gift_card(buyer_id, payload): tuple[GiftCard, str] a gift_card_routes
 def purchase_gift_card(db: Session, buyer_id: UUID, payload: GiftCardPurchaseRequest) -> tuple[GiftCard, str]:
     """Registra la tarjeta pendiente de pago y crea su PaymentIntent de Stripe.
     La tarjeta se activa recién cuando Stripe confirma el cobro (confirm_gift_card_payment o el webhook)."""
@@ -122,6 +125,7 @@ def purchase_gift_card(db: Session, buyer_id: UUID, payload: GiftCardPurchaseReq
 
 
 # [CU18 - Secuencia: Paso 3.4] gift_card_routes invoca activate_paid_gift_card(payment_intent) sobre la entidad TarjetaRegalo
+# [CU18 - Secuencia: Paso 3.5] TarjetaRegalo retorna activate_paid_gift_card(payment_intent): tuple[GiftCard, bool] a gift_card_routes
 def activate_paid_gift_card(db: Session, payment_intent) -> tuple[GiftCard, bool]:
     """Activa la tarjeta del PaymentIntent cobrado. Devuelve (tarjeta, True si se activó en esta llamada)."""
     card = (
@@ -144,6 +148,7 @@ def activate_paid_gift_card(db: Session, payment_intent) -> tuple[GiftCard, bool
 
 
 # [CU18 - Secuencia: Paso 3.2] gift_card_routes invoca confirm_gift_card_payment(buyer_id, card_id) sobre la entidad TarjetaRegalo
+# [CU18 - Secuencia: Paso 3.3] TarjetaRegalo retorna confirm_gift_card_payment(buyer_id, card_id): tuple[GiftCard, bool] a gift_card_routes
 def confirm_gift_card_payment(db: Session, buyer_id: UUID, card_id: UUID) -> tuple[GiftCard, bool]:
     """Consulta a Stripe el PaymentIntent de la tarjeta y la activa si el cobro se completó."""
     card = db.query(GiftCard).filter(GiftCard.id == card_id, GiftCard.buyer_id == buyer_id).first()
@@ -200,6 +205,7 @@ async def send_gift_card_email(card: GiftCard) -> None:
 
 
 # [CU18 - Secuencia: Pasos 1.2, 3.8] gift_card_routes invoca list_my_purchases(buyer_id) sobre la entidad TarjetaRegalo
+# [CU18 - Secuencia: Pasos 1.3, 3.9] TarjetaRegalo retorna list_my_purchases(buyer_id): list[GiftCard] a gift_card_routes
 def list_my_purchases(db: Session, buyer_id: UUID) -> list[GiftCard]:
     return (
         db.query(GiftCard)

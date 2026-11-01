@@ -15,11 +15,28 @@ from app.services.expiration_service import run_daily_expiration
 from app.services.order_service import expire_due_orders
 
 
+def _sync_recent_stripe_payments(db) -> None:
+    """Confirms card payments (and sends their notification) even if the Stripe webhook never
+    arrives and the customer closed the app right after paying."""
+    from app.models.order import Order
+    from app.schemas.order_schema import PaymentMethodEnum, PaymentStatusEnum
+    from app.services.order_service import _sync_stripe_order
+
+    since = datetime.now().astimezone() - timedelta(hours=1)  # PaymentIntents of an order live 40 min
+    pending = db.query(Order).filter(
+        Order.payment_method == PaymentMethodEnum.stripe, Order.payment_status == PaymentStatusEnum.pending,
+        Order.stripe_payment_intent_id.isnot(None), Order.created_at >= since,
+    ).all()
+    for order in pending:
+        _sync_stripe_order(db, order)
+
+
 async def _expire_orders_loop() -> None:
     while True:
         await asyncio.sleep(60)
         db = SessionLocal()
         try:
+            await asyncio.to_thread(_sync_recent_stripe_payments, db)  # network calls: keep the event loop free
             expire_due_orders(db)
         except Exception:
             db.rollback()
@@ -99,6 +116,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Content-Disposition"],
 )
 
 # Demo catalog images (scripts/build_demo_catalog.py --storage local); the deployed demo uses Cloudinary URLs.

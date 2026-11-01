@@ -22,6 +22,7 @@ router = APIRouter(prefix="/notifications", tags=["Notifications"])
 
 
 # [CU12 - Secuencia: Paso 1.5] NotificationPageComponent llama a list_notifications_route(limit) de notification_routes (GET /api/notifications)
+# [CU12 - Secuencia: Paso 1.10] notification_routes retorna list_notifications_route(limit): 200 Notificaciones obtenidas exitosamente a NotificationPageComponent
 @router.get("")
 async def list_notifications_route(
     limit: int = Query(default=100, ge=1, le=200),
@@ -32,6 +33,7 @@ async def list_notifications_route(
 
 
 # [CU12 - Secuencia: Paso 1.11] NotificationPageComponent llama a unread_count_route() de notification_routes (GET /api/notifications/unread-count)
+# [CU12 - Secuencia: Paso 1.14] notification_routes retorna unread_count_route(): 200 Conteo de notificaciones obtenido exitosamente a NotificationPageComponent
 @router.get("/unread-count")
 async def unread_count_route(
     db: Session = Depends(get_db),
@@ -41,6 +43,7 @@ async def unread_count_route(
 
 
 # [CU12 - Secuencia: Paso 3.1] NotificationPageComponent llama a mark_all_read_route() de notification_routes (PATCH /api/notifications/read-all)
+# [CU12 - Secuencia: Paso 3.4] notification_routes retorna mark_all_read_route(): 200 Notificaciones marcadas como leídas a NotificationPageComponent
 @router.patch("/read-all")
 async def mark_all_read_route(
     db: Session = Depends(get_db),
@@ -50,6 +53,7 @@ async def mark_all_read_route(
 
 
 # [CU12 - Secuencia: Paso 2.1] NotificationPageComponent llama a mark_read_route(notification_id) de notification_routes (PATCH /api/notifications/{notification_id}/read)
+# [CU12 - Secuencia: Paso 2.6] notification_routes retorna mark_read_route(notification_id): 200 Notificación marcada como leída a NotificationPageComponent
 @router.patch("/{notification_id}/read")
 async def mark_read_route(
     notification_id: UUID,
@@ -63,6 +67,7 @@ async def mark_read_route(
 
 
 # [CU12 - Secuencia: Paso 1.1] NotificationPageComponent llama a register_token_route(payload) de notification_routes (POST /api/notifications/tokens)
+# [CU12 - Secuencia: Paso 1.4] notification_routes retorna register_token_route(payload): 201 Token registrado exitosamente a NotificationPageComponent
 @router.post("/tokens", status_code=status.HTTP_201_CREATED)
 async def register_token_route(
     payload: DeviceTokenUpsert,
@@ -73,6 +78,7 @@ async def register_token_route(
 
 
 # [CU12 - Secuencia: Paso 4.1] AppShellComponent llama a unregister_token_route(payload) de notification_routes (DELETE /api/notifications/tokens)
+# [CU12 - Secuencia: Paso 4.4] notification_routes retorna unregister_token_route(payload): 200 Token eliminado exitosamente a AppShellComponent
 @router.delete("/tokens")
 async def unregister_token_route(
     payload: DeviceTokenUpsert,

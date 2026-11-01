@@ -32,8 +32,15 @@ class ApiClient {
     String path, {
     Object? data,
     T Function(dynamic value)? parser,
+    Duration? receiveTimeout,
   }) {
-    return _request(method: 'POST', path: path, data: data, parser: parser);
+    return _request(
+      method: 'POST',
+      path: path,
+      data: data,
+      parser: parser,
+      receiveTimeout: receiveTimeout,
+    );
   }
 
   Future<ApiResponse<T>> patch<T>(
@@ -66,6 +73,7 @@ class ApiClient {
     Object? data,
     Map<String, dynamic>? queryParameters,
     T Function(dynamic value)? parser,
+    Duration? receiveTimeout,
   }) async {
     final token = tokenProvider?.call();
     final headers = <String, dynamic>{'Accept': 'application/json'};
@@ -79,7 +87,11 @@ class ApiClient {
         path,
         data: data,
         queryParameters: queryParameters,
-        options: Options(method: method, headers: headers),
+        options: Options(
+          method: method,
+          headers: headers,
+          receiveTimeout: receiveTimeout,
+        ),
       );
       final responseData = response.data;
 

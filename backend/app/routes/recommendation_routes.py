@@ -14,6 +14,7 @@ router = APIRouter(prefix="/recommendations", tags=["Recommendations"])
 
 
 # [CU06 - Secuencia: Paso 1.1] CatalogPageComponent llama a collaborative_recommendations_route(user_id, branch_id) de recommendation_routes (GET /api/recommendations/collaborative/user/{user_id})
+# [CU06 - Secuencia: Paso 1.14] recommendation_routes retorna collaborative_recommendations_route(user_id, branch_id): 200 Recomendaciones obtenidas exitosamente a CatalogPageComponent
 @router.get("/collaborative/user/{user_id}")
 async def collaborative_recommendations_route(
     user_id: UUID,

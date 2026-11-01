@@ -27,7 +27,8 @@ async def stripe_checkout_route(
     current_user: dict = Depends(require_roles(RolEnum.cliente)),
 ):
     try:
-        order, client_secret, payment_intent_id = create_stripe_payment(db, UUID(current_user["sub"]), payload.pickup_branch_id, payload.delivery, payload.points_to_redeem)
+        order, client_secret, payment_intent_id = create_stripe_payment(db, UUID(current_user["sub"]), payload.pickup_branch_id, payload.delivery,
+                                                                         payload.points_to_redeem, payload.offline_requested_at)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return response(

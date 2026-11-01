@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { toast } from '@spartan-ng/brain/sonner';
@@ -36,6 +37,9 @@ export class OfflineCartService {
 
   readonly pending = signal<PendingCartItem[]>([]);
   private syncing = false;
+  /** El carrito está bloqueado por un pedido pendiente: no se reintenta ni se repite el aviso hasta que se desbloquee. */
+  private lockToastShown = false;
+  private lockedAt = 0;
 
   constructor() {
     void this.loadPending().then(() => this.syncPending());
@@ -89,10 +93,18 @@ export class OfflineCartService {
     return true;
   }
 
+  /** El servidor devolvió el carrito sin bloqueo: se pueden reintentar las prendas guardadas. */
+  cartUnlocked(): void {
+    if (!this.lockToastShown) return;
+    this.lockToastShown = false;
+    void this.syncPending(); // ya hay un envío en curso: syncPending lo ignora
+  }
+
   /** CU30: envía al servidor las prendas guardadas sin conexión. Devuelve cuántas se agregaron. */
   // [CU30 - Secuencia: Paso 3] El sistema dispara syncPending() en OfflineCartService (evento del navegador)
   async syncPending(): Promise<number> {
-    if (this.syncing || isOffline() || !this.pending().length) return 0;
+    if (!this.pending().length) this.lockToastShown = false;
+    if (this.syncing || isOffline() || !this.pending().length || (this.lockToastShown && Date.now() - this.lockedAt < 5 * 60_000)) return 0; // pasados 5 min se permite un reintento
     this.syncing = true;
     let added = 0;
     try {
@@ -101,8 +113,16 @@ export class OfflineCartService {
         try {
           await firstValueFrom(this.cartApi.addItem(payload));
           added++;
+          this.lockToastShown = false;
         } catch (error) {
           if (isOffline()) break; // se volvió a cortar: queda pendiente
+          // Carrito bloqueado por un pedido pendiente de pago: la prenda se conserva y se reintenta en la próxima sincronización.
+          if (error instanceof HttpErrorResponse && error.status === 400 && getErrorMessage(error, '').includes('pedido pendiente de pago')) {
+            this.lockedAt = Date.now();
+            if (!this.lockToastShown) toast.info('Tienes un pedido pendiente de pago: tus prendas guardadas se agregarán cuando lo pagues o lo canceles.');
+            this.lockToastShown = true;
+            break;
+          }
           // El servidor la rechazó (sin stock, otra empresa...): se informa y se descarta.
           toast.error(`${product_name} (${variant_label}): ${getErrorMessage(error, 'no se pudo agregar al carrito.')}`);
         }

@@ -3406,20 +3406,16 @@
      "name": "report_routes",
      "kind": "control"
     },
-    "ent:SuscripcionEmpresa": {
-     "name": "SuscripcionEmpresa",
-     "kind": "entity"
-    },
     "ent:Sucursal": {
      "name": "Sucursal",
      "kind": "entity"
     },
-    "ent:VarianteProducto": {
-     "name": "VarianteProducto",
-     "kind": "entity"
-    },
     "ent:Venta": {
      "name": "Venta",
+     "kind": "entity"
+    },
+    "ent:Inventario": {
+     "name": "Inventario",
      "kind": "entity"
     },
     "ent:Pedido": {
@@ -3431,10 +3427,9 @@
     "act:AD",
     "bnd:AdminReportsPageComponent",
     "ctl:report_routes",
-    "ent:SuscripcionEmpresa",
     "ent:Sucursal",
-    "ent:VarianteProducto",
     "ent:Venta",
+    "ent:Inventario",
     "ent:Pedido"
    ],
    "xs": {
@@ -3444,39 +3439,34 @@
      60
     ],
     "bnd:AdminReportsPageComponent": [
-     284,
+     254,
      265,
-     308
+     278
     ],
     "ctl:report_routes": [
-     928,
+     898,
      161,
-     952
-    ],
-    "ent:SuscripcionEmpresa": [
-     1292,
-     204,
-     1316
+     922
     ],
     "ent:Sucursal": [
-     1442,
+     1132,
      118,
-     1466
-    ],
-    "ent:VarianteProducto": [
-     1592,
-     187,
-     1616
+     1156
     ],
     "ent:Venta": [
-     1742,
+     1282,
      92,
-     1766
+     1306
+    ],
+    "ent:Inventario": [
+     1432,
+     135,
+     1456
     ],
     "ent:Pedido": [
-     1892,
+     1582,
      101,
-     1916
+     1606
     ]
    },
    "ys": [
@@ -3505,14 +3495,16 @@
     904,
     939,
     974,
-    1009
+    1009,
+    1044,
+    1079
    ],
-   "fin": 1079,
+   "fin": 1149,
    "msgs": [
     {
      "from": "act:AD",
      "to": "bnd:AdminReportsPageComponent",
-     "label": "generateReport(natural)",
+     "label": "ask()",
      "num": "1",
      "ret": false
     },
@@ -3525,108 +3517,123 @@
     },
     {
      "from": "ctl:report_routes",
-     "to": "ent:SuscripcionEmpresa",
-     "label": "tenant_features(tenant_ids)",
-     "num": "1.2",
-     "ret": false
-    },
-    {
-     "from": "ent:SuscripcionEmpresa",
-     "to": "ctl:report_routes",
-     "label": "dict[UUID, set[str]]",
-     "num": "1.3",
-     "ret": true,
-     "op": "tenant_features(tenant_ids)"
-    },
-    {
-     "from": "ctl:report_routes",
      "to": "ent:Sucursal",
      "label": "_catalog(tenant_id)",
-     "num": "1.4",
+     "num": "1.2",
      "ret": false
     },
     {
      "from": "ent:Sucursal",
      "to": "ctl:report_routes",
-     "label": "tuple[dict[str, str], dict[str, str]]",
-     "num": "1.5",
+     "label": "Catalog",
+     "num": "1.3",
      "ret": true,
      "op": "_catalog(tenant_id)"
     },
     {
      "from": "ctl:report_routes",
-     "to": "ent:VarianteProducto",
-     "label": "_validate_filters(interpretation, branches, products, today, tenant_id)",
-     "num": "1.6",
-     "ret": false
-    },
-    {
-     "from": "ent:VarianteProducto",
-     "to": "ctl:report_routes",
-     "label": "ReportQuery",
-     "num": "1.7",
-     "ret": true,
-     "op": "_validate_filters(interpretation, branches, products, today, tenant_id)"
-    },
-    {
-     "from": "ctl:report_routes",
      "to": "bnd:AdminReportsPageComponent",
      "label": "200 Reporte interpretado exitosamente",
-     "num": "1.8",
+     "num": "1.4",
      "ret": true,
      "op": "natural_report_route()"
     },
     {
      "from": "bnd:AdminReportsPageComponent",
      "to": "ctl:report_routes",
-     "label": "top_products_route()",
-     "num": "1.9",
+     "label": "analytics_route(spec)",
+     "num": "1.5",
      "ret": false
     },
     {
      "from": "ctl:report_routes",
+     "to": "ent:Venta",
+     "label": "run_query(tenant_id, query, today)",
+     "num": "1.6",
+     "ret": false
+    },
+    {
+     "from": "ent:Venta",
+     "to": "ctl:report_routes",
+     "label": "AnalyticsResult",
+     "num": "1.7",
+     "ret": true,
+     "op": "run_query(tenant_id, query, today)"
+    },
+    {
+     "from": "ctl:report_routes",
+     "to": "ent:Inventario",
+     "label": "_stock_query(tenant_id, query, today)",
+     "num": "1.8",
+     "ret": false
+    },
+    {
+     "from": "ent:Inventario",
+     "to": "ctl:report_routes",
+     "label": "AnalyticsResult",
+     "num": "1.9",
+     "ret": true,
+     "op": "_stock_query(tenant_id, query, today)"
+    },
+    {
+     "from": "ctl:report_routes",
      "to": "bnd:AdminReportsPageComponent",
-     "label": "200 Ranking de productos obtenido exitosamente",
+     "label": "200 Reporte generado exitosamente",
      "num": "1.10",
      "ret": true,
-     "op": "top_products_route()"
+     "op": "analytics_route(spec)"
     },
     {
      "from": "act:AD",
      "to": "bnd:AdminReportsPageComponent",
-     "label": "exportReport(format)",
+     "label": "exportAnalytics(format)",
      "num": "2",
      "ret": false
     },
     {
      "from": "bnd:AdminReportsPageComponent",
      "to": "ctl:report_routes",
-     "label": "excel_export_route(type)",
+     "label": "analytics_export_route(spec, format)",
      "num": "2.1",
      "ret": false
     },
     {
      "from": "ctl:report_routes",
-     "to": "bnd:AdminReportsPageComponent",
-     "label": "_export_file",
+     "to": "ent:Venta",
+     "label": "run_query(tenant_id, query, today)",
      "num": "2.2",
-     "ret": true,
-     "op": "excel_export_route(type)"
+     "ret": false
     },
     {
-     "from": "bnd:AdminReportsPageComponent",
+     "from": "ent:Venta",
      "to": "ctl:report_routes",
-     "label": "pdf_export_route(type)",
+     "label": "AnalyticsResult",
      "num": "2.3",
+     "ret": true,
+     "op": "run_query(tenant_id, query, today)"
+    },
+    {
+     "from": "ctl:report_routes",
+     "to": "ent:Inventario",
+     "label": "_stock_query(tenant_id, query, today)",
+     "num": "2.4",
      "ret": false
+    },
+    {
+     "from": "ent:Inventario",
+     "to": "ctl:report_routes",
+     "label": "AnalyticsResult",
+     "num": "2.5",
+     "ret": true,
+     "op": "_stock_query(tenant_id, query, today)"
     },
     {
      "from": "ctl:report_routes",
      "to": "bnd:AdminReportsPageComponent",
-     "label": "_export_file",
-     "num": "2.4",
+     "label": "Response",
+     "num": "2.6",
      "ret": true,
-     "op": "pdf_export_route(type)"
+     "op": "analytics_export_route(spec, format)"
     },
     {
      "from": "act:AD",
@@ -3705,80 +3712,46 @@
    ],
    "frames": [
     {
-     "id": "1bnd:AdminReportsPageComponent|AdminReportsPageComponent.generateReport:551",
-     "kind": "alt",
-     "start": 1,
-     "end": 10,
-     "depth": 0,
-     "operands": [
-      {
-       "guard": "natural",
-       "start": 1
-      },
-      {
-       "guard": "else",
-       "start": 9
-      }
-     ],
-     "left": "bnd:AdminReportsPageComponent",
-     "R": 213.8,
-     "rect": [
-      94,
-      145,
-      1956,
-      498
-     ],
-     "seps": [
-      432
-     ]
-    },
-    {
-     "id": "2bnd:AdminReportsPageComponent|AdminReportsPageComponent.exportReport:227",
-     "kind": "alt",
-     "start": 12,
-     "end": 15,
-     "depth": 0,
-     "operands": [
-      {
-       "guard": "format === 'excel'",
-       "start": 12
-      },
-      {
-       "guard": "else",
-       "start": 14
-      }
-     ],
-     "left": "bnd:AdminReportsPageComponent",
-     "R": 135.60000000000002,
-     "rect": [
-      172,
-      530,
-      1956,
-      673
-     ],
-     "seps": [
-      607
-     ]
-    },
-    {
-     "id": "1.1|routes.report_routes.natural_report_route:94:4",
+     "id": "1.3|1|services.analytics_service.run_query:213:4",
      "kind": "opt",
-     "start": 2,
-     "end": 3,
-     "depth": 1,
+     "start": 8,
+     "end": 9,
+     "depth": 0,
      "operands": [
       {
-       "guard": "current_tenant_id is not None",
-       "start": 2
+       "guard": "query.kind != 'sales'",
+       "start": 8
       }
      ],
      "left": "bnd:AdminReportsPageComponent",
-     "R": 203.8,
+     "R": 154.20000000000002,
      "rect": [
-      104,
-      185,
-      1946,
-      248
+      124,
+      390,
+      1646,
+      463
+     ],
+     "seps": []
+    },
+    {
+     "id": "2.1|1|services.analytics_service.run_query:213:4",
+     "kind": "opt",
+     "start": 15,
+     "end": 16,
+     "depth": 0,
+     "operands": [
+      {
+       "guard": "query.kind != 'sales'",
+       "start": 15
+      }
+     ],
+     "left": "bnd:AdminReportsPageComponent",
+     "R": 154.20000000000002,
+     "rect": [
+      124,
+      635,
+      1646,
+      708
      ],
      "seps": []
     }

@@ -169,6 +169,26 @@ class _LoginPageState extends State<LoginPage> {
                         }),
                   expand: true,
                 ),
+                if (!_registering) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    'Accesos directos (cuentas demo)',
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  for (final demo in _demoClients)
+                    Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: ListTile(
+                        leading: const Text('🛍️', style: TextStyle(fontSize: 24)),
+                        title: Text(demo.name),
+                        subtitle: Text('${demo.badge}\n${demo.description}'),
+                        isThreeLine: true,
+                        enabled: !_submitting,
+                        onTap: () => _loginAsDemo(demo),
+                      ),
+                    ),
+                ],
                 if (widget.showGuestButton) ...[
                   const SizedBox(height: 8),
                   AppButton(
@@ -184,6 +204,12 @@ class _LoginPageState extends State<LoginPage> {
         ),
       ),
     );
+  }
+
+  void _loginAsDemo(_DemoClient demo) {
+    _emailController.text = demo.email;
+    _passwordController.text = 'Cliente2026!';
+    _submit();
   }
 
   void _continueAsGuest() {
@@ -268,3 +294,27 @@ class _LoginPageState extends State<LoginPage> {
     };
   }
 }
+
+/// Mismos clientes demo que los accesos directos del login web.
+typedef _DemoClient = ({String name, String badge, String email, String description});
+
+const List<_DemoClient> _demoClients = [
+  (
+    name: 'María Quispe',
+    badge: 'Cliente · La Paz',
+    email: 'maria.quispe@clientes.demo.bo',
+    description: 'Historial de compras, puntos y pedidos delivery.',
+  ),
+  (
+    name: 'Camila Roca',
+    badge: 'Cliente · Santa Cruz',
+    email: 'camila.roca@clientes.demo.bo',
+    description: 'Prendas favoritas en Kantuta Equipetrol.',
+  ),
+  (
+    name: 'Daniela Ruiz',
+    badge: 'Cliente · Cochabamba',
+    email: 'daniela.ruiz@clientes.demo.bo',
+    description: 'Vestidor virtual con IA y cupones de descuento.',
+  ),
+];

@@ -57,6 +57,7 @@ def earn(db: Session, tenant_id: UUID, user_id: UUID, amount: Decimal, source_ty
 
 
 # [CU19 - Secuencia: Paso 3.6] wallet_routes invoca redeem(tenant_id, user_id, points, max_amount, source_type, source_id) sobre la entidad MovimientoPuntos
+# [CU19 - Secuencia: Paso 3.7] MovimientoPuntos retorna redeem(tenant_id, user_id, points, max_amount, source_type, source_id): Decimal a wallet_routes
 def redeem(db: Session, tenant_id: UUID, user_id: UUID, points: int, max_amount: Decimal,
            source_type: str, source_id: UUID) -> Decimal:
     """Spend points on a purchase; returns the discount in money."""
@@ -88,6 +89,7 @@ def refund_redeem(db: Session, source_type: str, source_id: UUID) -> None:
 
 
 # [CU17 - Secuencia: Pasos 1.4, 2.6] loyalty_routes invoca _serialize(account, tenant) sobre la entidad CuentaFidelizacion
+# [CU17 - Secuencia: Pasos 1.5, 2.7] CuentaFidelizacion retorna _serialize(account, tenant): dict a loyalty_routes
 def _serialize(account: LoyaltyAccount | None, tenant: Tenant) -> dict:
     balance = account.points_balance if account else 0
     lifetime = account.lifetime_points if account else 0
@@ -96,6 +98,7 @@ def _serialize(account: LoyaltyAccount | None, tenant: Tenant) -> dict:
 
 
 # [CU17 - Secuencia: Paso 1.2] loyalty_routes invoca list_balances(user_id) sobre la entidad CuentaFidelizacion
+# [CU17 - Secuencia: Paso 1.3] CuentaFidelizacion retorna list_balances(user_id): list[dict] a loyalty_routes
 def list_balances(db: Session, user_id: UUID) -> list[dict]:
     rows = (db.query(LoyaltyAccount, Tenant).join(Tenant, Tenant.id == LoyaltyAccount.tenant_id)
             .filter(LoyaltyAccount.user_id == user_id).order_by(Tenant.name).all())
@@ -103,6 +106,7 @@ def list_balances(db: Session, user_id: UUID) -> list[dict]:
 
 
 # [CU17 - Secuencia: Paso 2.4] loyalty_routes invoca balance_for(tenant_id, user_id) sobre la entidad Empresa
+# [CU17 - Secuencia: Paso 2.5] Empresa retorna balance_for(tenant_id, user_id): dict a loyalty_routes
 def balance_for(db: Session, tenant_id: UUID, user_id: UUID) -> dict:
     tenant = db.query(Tenant).filter(Tenant.id == tenant_id).one()
     account = db.query(LoyaltyAccount).filter(LoyaltyAccount.tenant_id == tenant_id, LoyaltyAccount.user_id == user_id).first()
@@ -110,6 +114,7 @@ def balance_for(db: Session, tenant_id: UUID, user_id: UUID) -> dict:
 
 
 # [CU17 - Secuencia: Paso 1.8] loyalty_routes invoca list_transactions(user_id, limit) sobre la entidad MovimientoPuntos
+# [CU17 - Secuencia: Paso 1.9] MovimientoPuntos retorna list_transactions(user_id, limit): list[dict] a loyalty_routes
 def list_transactions(db: Session, user_id: UUID, limit: int = 100) -> list[dict]:
     rows = (db.query(LoyaltyLedger, Tenant.name)
             .join(LoyaltyAccount, LoyaltyAccount.id == LoyaltyLedger.account_id)

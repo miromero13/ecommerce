@@ -9,9 +9,12 @@
  * Crea el paquete "Arquitectura - FashionStore SaaS" con un subpaquete por diagrama:
  *   1) Diseño lógico: paquetes en tres capas (Vista, Controlador, Modelo) y Persistencia, con los 6 paquetes de
  *      casos de uso; dependencias verticales dentro de cada paquete.
- *   2) Integración general de componentes: frontend web, app móvil y backend unidos por la API REST, con la base
- *      de datos, los almacenamientos locales y cada servicio externo conectado solo con quien lo usa.
- *   3) Componentes del backend FastAPI, 4) del frontend Angular PWA y 5) de la app móvil Flutter, por capas.
+ *   2) Diagrama de componentes general del sistema: filas Vista («Componente:Vista»), Control
+ *      («Componente:Control»), Modelo («Componente:Model») y Conexión («conexion»: PostgreSQL, almacenamientos
+ *      locales y APIs externas).
+ *   3) Componentes del backend FastAPI, 4) del frontend web Angular PWA y 5) de la app móvil Flutter, con el
+ *      mismo estilo por filas: Vista, Control, Modelo y Conexión.
+ *   6..11) Diagrama de componentes de cada módulo M1-M6, con el mismo estilo que el general.
  * Cada línea tiene su recorrido calculado: ninguna pasa sobre una caja ni se encima con otra.
  * Si el paquete ya existe (de una ejecución anterior) lo borra y lo crea de nuevo.
  * ===================================================================================================== */

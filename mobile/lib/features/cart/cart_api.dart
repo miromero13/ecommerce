@@ -26,10 +26,15 @@ class CartApi {
   Future<CartOperationResult> addItem({
     required String variantId,
     required int quantity,
+    String? offlineRequestedAt, // CU30: when it was added without internet (offline queue)
   }) async {
     final response = await _client.post<Cart>(
       'cart/items',
-      data: {'variant_id': variantId, 'quantity': quantity},
+      data: {
+        'variant_id': variantId,
+        'quantity': quantity,
+        'offline_requested_at': ?offlineRequestedAt,
+      },
       parser: _parseCart,
     );
     return _result(response.data, response.message);

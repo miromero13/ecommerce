@@ -1450,6 +1450,273 @@
   ],
   "cascade_from": []
  },
+ "offline_sale_conflicts": {
+  "class": "OfflineSaleConflict",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "tenant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "tenants",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "branch_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "branches",
+    "ondelete": ""
+   },
+   {
+    "column": "cashier_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "users",
+    "ondelete": ""
+   },
+   {
+    "column": "cash_session_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "cash_sessions",
+    "ondelete": "SET NULL"
+   },
+   {
+    "column": "operation_id",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": true,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "receipt_number",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "reason",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "items",
+    "type": "JSON",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "subtotal",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "discount",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "total",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "cash_received",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "change_returned",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "customer_name",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "customer_phone",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "customer_email",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "offline_created_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "status",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "resolution",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "refund_amount",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "wallet_credit_amount",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "extra_charged",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "sale_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "sales",
+    "ondelete": "SET NULL"
+   },
+   {
+    "column": "refund_receipt_number",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "resolution_notes",
+    "type": "Text",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "resolved_by",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "users",
+    "ondelete": ""
+   },
+   {
+    "column": "resolved_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "created_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ },
  "orders": {
   "class": "Order",
   "columns": [

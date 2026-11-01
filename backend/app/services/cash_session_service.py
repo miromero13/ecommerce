@@ -3,7 +3,7 @@
 - selling at the till (cash or QR) requires the cashier's open session; web orders are always paid online;
 - a cash payment records what the customer handed over and the change returned;
 - deposits and withdrawals need a reason; a withdrawal cannot take more cash than the drawer holds;
-- expected cash = opening + cash sales + deposits - withdrawals (QR never enters the drawer);
+- expected cash = opening + cash sales + deposits + held offline cash - withdrawals (QR never enters the drawer);
 - closing stores the counted cash and the difference (counted - expected).
 record_sale takes part in the sale's transaction: it flushes but never commits."""
 from datetime import date, datetime, time, timedelta, timezone
@@ -121,6 +121,8 @@ def _totals(session: CashSession) -> dict:
         "qr_sales": total(type="sale", method="qr"),
         "deposits": total(type="deposit"),
         "withdrawals": total(type="withdrawal"),
+        # CU30: cash of offline sales in conflict, physically in the drawer until resolved.
+        "held": total(type="held"),
         "change_given": _money(sum((m.change_given or 0 for m in session.movements), Decimal("0"))),
         "sales_count": sum(1 for m in session.movements if m.type == "sale"),
     }

@@ -315,6 +315,7 @@ export class AppShellComponent {
                { label: 'Suscripción y Plan', route: '/app/admin/subscription', icon: 'lucideShield' },
                { label: 'Comprobantes', route: '/app/admin/receipts', icon: 'lucideClipboardList' },
                { label: 'Cobros y Liquidaciones', route: '/app/admin/payouts', icon: 'lucideShoppingCart' },
+               { label: 'Conflictos offline', route: '/app/cajero/offline-conflicts', icon: 'lucideRotateCcw' },
             ],
           },
         ];
@@ -352,6 +353,7 @@ export class AppShellComponent {
                { label: 'Ingesta RPA', route: '/app/encargado/rpa-ingest', icon: 'lucidePackageSearch' },
               { label: 'Promociones', route: '/app/encargado/promotions', icon: 'lucideTicket' },
               { label: 'Ventas', route: '/app/encargado/sales', icon: 'lucideShoppingCart' },
+              { label: 'Conflictos offline', route: '/app/cajero/offline-conflicts', icon: 'lucideRotateCcw' },
             ],
           },
         ];
@@ -365,6 +367,7 @@ export class AppShellComponent {
               { label: 'Comprobantes', route: '/app/cajero/receipts', icon: 'lucideClipboardList' },
               { label: 'Pedidos web', route: '/app/cajero/orders', icon: 'lucideClipboardList' },
               { label: 'Ventas', route: '/app/cajero/sales', icon: 'lucideShoppingCart' },
+              { label: 'Conflictos offline', route: '/app/cajero/offline-conflicts', icon: 'lucideRotateCcw' },
             ],
           },
         ];

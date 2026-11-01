@@ -26,6 +26,13 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-3.6-flash"
     gemini_garment_model: str | None = None
     gemini_timeout_seconds: int = Field(default=30, ge=5, le=120)
+    # Respaldo opcional de CU08 (reportes): solo traduce frases que el intérprete local no entiende.
+    groq_api_key: str | None = None
+    groq_model: str = "openai/gpt-oss-20b"
+    groq_base_url: str = "https://api.groq.com/openai/v1"
+    groq_timeout_seconds: int = Field(default=8, ge=2, le=30)
+    groq_max_calls_per_tenant_hour: int = Field(default=20, ge=1, le=1000)
+    groq_max_calls_per_hour_global: int = Field(default=200, ge=1, le=10000)
     huggingface_api_token: str | None = None
     vton_space: str = "yisol/IDM-VTON"
     vton_timeout_seconds: int = Field(default=120, ge=10, le=300)

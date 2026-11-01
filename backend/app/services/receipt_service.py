@@ -113,7 +113,9 @@ def issue_deposit_receipt(db: Session, reservation, currency: str) -> PaymentRec
 
 
 # [CU01 - Secuencia: Paso 3.12] subscription_routes invoca issue_subscription_receipt(subscription, plan) sobre la entidad ComprobantePago
+# [CU01 - Secuencia: Paso 3.13] ComprobantePago retorna issue_subscription_receipt(subscription, plan): PaymentReceipt a subscription_routes
 # [CU27 - Secuencia: Paso 2.12] subscription_routes invoca issue_subscription_receipt(subscription, plan) sobre la entidad ComprobantePago
+# [CU27 - Secuencia: Paso 2.13] ComprobantePago retorna issue_subscription_receipt(subscription, plan): PaymentReceipt a subscription_routes
 def issue_subscription_receipt(db: Session, subscription, plan) -> PaymentReceipt:
     from app.models.tenant import Tenant
 

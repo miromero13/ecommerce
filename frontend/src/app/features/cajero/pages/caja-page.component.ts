@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, signal, untracked } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
 import { toast } from '@spartan-ng/brain/sonner';
@@ -28,6 +28,7 @@ import { OfflineCatalogProduct, OfflineCatalogService } from '../../../core/serv
 import { OfflineOperation, OfflineQueueService, OfflineSaleItem } from '../../../core/services/offline-queue.service';
 import { OfflineProvisionalReceiptDialogComponent } from '../components/offline-provisional-receipt-dialog.component';
 import { OfflineQueueModalComponent } from '../components/offline-queue-modal.component';
+import { OfflineSyncService } from '../../../core/services/offline-sync.service';
 
 type SelectedSaleItem = {
   variant_id: string;
@@ -65,20 +66,14 @@ export class CajaPageComponent {
   protected readonly offlineQueue = inject(OfflineQueueService);
   protected readonly lastOfflineOperation = signal<OfflineOperation | null>(null);
   protected readonly showQueueModal = signal<boolean>(false);
+  private readonly offlineSync = inject(OfflineSyncService);
+  // Offline the customer must be reachable (name + phone or email) in case the sale ends in a stock conflict.
+  protected readonly customerName = signal('');
+  protected readonly customerPhone = signal('');
 
   // [CU30 - Secuencia: Paso 2] El Cajero ejecuta syncOfflineQueue() en CajaPageComponent
   protected async syncOfflineQueue(): Promise<void> {
-    toast.info('Iniciando sincronización del lote offline...');
-    const result = await this.offlineQueue.syncBatchNow();
-    if (result.synced > 0) {
-      toast.success(`${result.synced} operaciones sincronizadas con éxito.`);
-    }
-    if (result.conflicts > 0) {
-      toast.warning(`${result.conflicts} operaciones presentaron conflictos de inventario.`);
-    }
-    if (result.failed > 0 && result.synced === 0) {
-      toast.error('No se pudo conectar con el servidor central para sincronizar el lote.');
-    }
+    await this.offlineSync.triggerAutoSync();
   }
   // A QR is issued for an exact total: any change to the items invalidates it.
   private readonly resetQrOnItemsChange = effect(() => {
@@ -116,7 +111,20 @@ export class CajaPageComponent {
   constructor() {
     void this.searchProducts();
     void this.syncOfflineCatalog();
+    // Other tills and the web store sell the same stock: refresh it while online.
+    // ponytail: 20 s polling; switch to server push (WebSocket) if it ever needs to be instant.
+    const timer = setInterval(() => {
+      if (!this.offlineCatalog.isOffline() && !this.submitting()) void this.searchProducts();
+    }, 20000);
+    inject(DestroyRef).onDestroy(() => clearInterval(timer));
   }
+
+  // Connection back (or a sync just landed): reload the real stock instead of the offline copy.
+  private readonly reloadOnNetworkChange = effect(() => {
+    this.offlineCatalog.isOffline();
+    this.offlineSync.stockChanged();
+    untracked(() => void this.searchProducts());
+  });
 
   // [CU23 - Secuencia: Paso 1] El Cajero ejecuta syncOfflineCatalog(manual) en CajaPageComponent
   protected async syncOfflineCatalog(manual: boolean = false): Promise<void> {
@@ -273,6 +281,25 @@ export class CajaPageComponent {
         this.paymentMethod.set('cash');
         toast.warning('En contingencia offline el cobro se registra en Efectivo/Contado.');
       }
+      // Offline sales still belong to an open drawer: the last one seen online by this cashier.
+      const cashSessionId = this.cash.current()?.id ?? this.cash.offlineSessionId();
+      if (!cashSessionId) {
+        toast.warning('Abre tu caja antes de vender sin conexión');
+        return;
+      }
+      const customerName = this.customerName().trim();
+      const customerPhone = this.customerPhone().trim();
+      const customerEmail = this.customerEmail().trim();
+      if (!customerName || (!customerPhone && !customerEmail)) {
+        toast.warning('Sin conexión registra el nombre del cliente y su teléfono o correo.');
+        return;
+      }
+      const total = Number(this.total());
+      const cashReceived = this.cashReceived() !== '' ? Number(this.cashReceived()) : total;
+      if (!(cashReceived >= total)) {
+        toast.warning('El efectivo recibido no cubre el total de la venta.');
+        return;
+      }
 
       this.submitting.set(true);
       try {
@@ -297,16 +324,20 @@ export class CajaPageComponent {
           branch_id: branchId,
           cashier_id: cashier?.id,
           cashier_name: cashierName || 'Cajero',
-          customer_name: this.customerEmail() || 'Cliente Mostrador',
-          customer_email: this.customerEmail() || null,
+          cash_session_id: cashSessionId,
+          customer_name: customerName,
+          customer_phone: customerPhone || null,
+          customer_email: customerEmail || null,
           items,
           subtotal: Number(this.subtotal()),
           discount: Number(this.discount()),
-          total: Number(this.total()),
-          cash_received: this.cashReceived() !== '' ? Number(this.cashReceived()) : Number(this.total()),
-          change_returned: this.estimatedChange() > 0 ? this.estimatedChange() : 0,
+          total,
+          cash_received: cashReceived,
+          change_returned: Number((cashReceived - total).toFixed(2)),
           notes: this.cashReference() || 'Venta de contingencia offline',
         });
+        // So this till cannot sell the same last unit twice before syncing.
+        await this.offlineCatalog.decrementStock(items);
 
         this.lastOfflineOperation.set(op);
         this.selectedItems.set([]);
@@ -314,9 +345,12 @@ export class CajaPageComponent {
         this.cashReceived.set('');
         this.couponCode.set('');
         this.customerEmail.set('');
+        this.customerName.set('');
+        this.customerPhone.set('');
         this.pointsToRedeem.set(0);
         this.customerPoints.set(null);
         this.saleQr.set(null);
+        void this.searchProducts();
         toast.success(`Venta en contingencia registrada exitosamente (${op.receipt_number})`);
       } catch (err) {
         toast.error('Error al guardar la venta offline en el almacenamiento local.');

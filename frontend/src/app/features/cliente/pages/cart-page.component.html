@@ -11,6 +11,16 @@
       </div>
     </header>
 
+    @if (locked()) {
+      <section class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <p aria-live="polite" class="min-w-0 flex-1 font-medium">Tienes un pedido pendiente de pago. Vence a las {{ pendingTime() }} (en {{ pendingMinutes() }} min).</p>
+        <div class="flex flex-wrap gap-2">
+          <button hlmBtn type="button" size="sm" aria-label="Continuar el pago del pedido pendiente" (click)="continuePendingPayment()" [disabled]="checkingOut() || !!stripeCheckout()">Continuar pago</button>
+          <button hlmBtn type="button" size="sm" variant="outline" aria-label="Cancelar el pedido pendiente" (click)="cancelPendingOrder()" [disabled]="checkingOut()">Cancelar pedido</button>
+        </div>
+      </section>
+    }
+
     @if (!online()) {
       <p class="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
         Estás sin conexión. Puedes seguir agregando prendas: se guardan en este dispositivo y pasan a tu carrito al volver la conexión. El pago con tarjeta (Stripe) requiere internet.
@@ -75,14 +85,14 @@
                    </td>
                   <td class="px-4 py-3 text-right">
                     <div class="inline-flex items-center gap-2 rounded-full border border-slate-200 px-2 py-1">
-                      <button type="button" hlmBtn variant="ghost" class="h-7 w-7 rounded-full p-0" (click)="decrease(item.id, item.quantity)" [disabled]="updatingItemId() === item.id">-</button>
+                      <button type="button" hlmBtn variant="ghost" class="h-7 w-7 rounded-full p-0" (click)="decrease(item.id, item.quantity)" [disabled]="locked() || updatingItemId() === item.id">-</button>
                       <span class="min-w-6 text-center text-sm font-medium">{{ item.quantity }}</span>
-                      <button type="button" hlmBtn variant="ghost" class="h-7 w-7 rounded-full p-0" (click)="increase(item.id, item.quantity)" [disabled]="updatingItemId() === item.id">+</button>
+                      <button type="button" hlmBtn variant="ghost" class="h-7 w-7 rounded-full p-0" (click)="increase(item.id, item.quantity)" [disabled]="locked() || updatingItemId() === item.id">+</button>
                     </div>
                   </td>
                   <td class="px-4 py-3 text-right font-semibold">{{ lineTotal(item) }}</td>
                   <td class="px-4 py-3 text-right">
-                    <button hlmBtn type="button" variant="outline" (click)="remove(item.id)" [disabled]="updatingItemId() === item.id">Eliminar</button>
+                    <button hlmBtn type="button" variant="outline" (click)="remove(item.id)" [disabled]="locked() || updatingItemId() === item.id">Eliminar</button>
                   </td>
                 </tr>
               } @empty {
@@ -160,13 +170,13 @@
               @if (cart()?.promotion_code) {
                 <div class="flex items-center justify-between text-sm">
                   <span>Cupón aplicado: <strong>{{ cart()?.promotion_code }}</strong></span>
-                  <button hlmBtn type="button" variant="outline" size="sm" (click)="removeCoupon()">Retirar</button>
+                  <button hlmBtn type="button" variant="outline" size="sm" (click)="removeCoupon()" [disabled]="locked()">Retirar</button>
                 </div>
               } @else {
                 <label class="text-xs font-medium text-slate-600" for="coupon-code">Código promocional</label>
                 <div class="flex gap-2">
                   <input id="coupon-code" hlmInput class="min-w-0 flex-1" [value]="couponCode()" (input)="couponCode.set($any($event.target).value)" placeholder="Ej. VERANO10" />
-                  <button hlmBtn type="button" variant="outline" (click)="applyCoupon()">Aplicar</button>
+                  <button hlmBtn type="button" variant="outline" (click)="applyCoupon()" [disabled]="locked()">Aplicar</button>
                 </div>
               }
             </div>
@@ -182,7 +192,7 @@
             }
 
             <div class="pt-2 flex gap-2">
-              <button hlmBtn variant="outline" type="button" class="flex-1 text-xs" (click)="clear()" [disabled]="!(cart()?.items?.length)">Vaciar carrito</button>
+              <button hlmBtn variant="outline" type="button" class="flex-1 text-xs" (click)="clear()" [disabled]="locked() || !(cart()?.items?.length)">Vaciar carrito</button>
               <button hlmBtn type="button" class="flex-1 text-xs font-bold" (click)="goToStep('entrega')" [disabled]="!(cart()?.items?.length)">
                 Continuar a Entrega →
               </button>
@@ -212,7 +222,7 @@
                 <ng-icon name="lucideMapPin" class="text-slate-700" />
                 {{ fulfillment() === 'delivery' ? 'Sucursal que despacha el pedido' : 'Sucursal de retiro' }}
               </label>
-              <select id="pickup-branch" class="flex h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm cursor-pointer" [value]="pickupBranchId()" (change)="onBranchChange($any($event.target).value)">
+              <select id="pickup-branch" class="flex h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm cursor-pointer" [value]="pickupBranchId()" (change)="onBranchChange($any($event.target).value)" [disabled]="locked()">
                 <option value="">Selecciona una sucursal</option>
                 @for (branch of branches(); track branch.id) {
                   <option [value]="branch.id" [selected]="branch.id === pickupBranchId()">{{ branch.name }} - {{ branch.city }}</option>
@@ -334,7 +344,7 @@
               <button hlmBtn variant="outline" type="button" class="w-1/3 text-xs" (click)="goToStep('entrega')">
                 ← Volver
               </button>
-              <button hlmBtn type="button" class="w-2/3 text-xs font-bold" (click)="checkout()" [disabled]="checkingOut() || !(cart()?.items?.length) || (paymentMethod() === 'stripe' && !!stripeCheckout())">
+              <button hlmBtn type="button" class="w-2/3 text-xs font-bold" (click)="checkout()" [disabled]="locked() || checkingOut() || !(cart()?.items?.length) || (paymentMethod() === 'stripe' && !!stripeCheckout())">
                 {{ checkingOut() ? 'Procesando...' : (paymentMethod() === 'wallet' ? 'Pagar con Billetera Digital' : 'Pagar con tarjeta') }}
               </button>
             </div>

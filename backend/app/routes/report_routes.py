@@ -1,4 +1,7 @@
+import re
+import unicodedata
 from datetime import date
+from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -16,11 +19,12 @@ from app.services.report_service import (
     get_inventory_report,
     get_movements_report,
     get_sales_report,
-    get_top_products_report,
-    get_branch_comparison_report,
-    get_critical_inventory_report,
+    get_top_products_report, get_branch_comparison_report,
+    get_critical_inventory_report, _customers_report,  # compact: keeps CU08 diagram line refs stable
 )
-from app.services.natural_report_service import NaturalReportError, generate_natural_report
+from app.schemas.analytics_schema import AnalyticsQuery
+from app.services.analytics_service import run_query
+from app.services.natural_report_service import NaturalReportError, _validate_filters, interpret_query
 from app.services.subscription_service import tenant_has_feature
 from app.utils.response import response
 
@@ -34,6 +38,7 @@ SMART_REPORTS = {
     "top_products": (get_top_products_report, "Top 10 productos", ["product_name", "quantity_sold", "gross_sales"]),
     "branch_comparison": (get_branch_comparison_report, "Comparativa de sucursales", ["branch_name", "quantity_sold", "gross_sales"]),
     "critical_inventory": (get_critical_inventory_report, "Inventario crítico", ["branch_name", "product_name", "variant_sku", "available_quantity", "minimum_stock"]),
+    "customers": (_customers_report, "Clientes", ["customer_name", "customer_email", "orders_count", "total_spent", "last_purchase"]),
 }
 
 
@@ -51,6 +56,7 @@ def _ml_tenant(
 
 
 # [CU08 - Secuencia: Paso 3.1] AdminReportsPageComponent llama a predict_demand_route() de report_routes (POST /api/reports/ml/predict-demand)
+# [CU08 - Secuencia: Paso 3.4] report_routes retorna predict_demand_route(): 200 Predicción de demanda con modelo supervisado generada exitosamente a AdminReportsPageComponent
 @router.post("/ml/predict-demand")
 def predict_demand_route(
     request: DemandForecastRequest,
@@ -69,6 +75,7 @@ def predict_demand_route(
 
 
 # [CU08 - Secuencia: Paso 4.1] AdminReportsPageComponent llama a customer_clusters_route() de report_routes (POST /api/reports/ml/customer-clusters)
+# [CU08 - Secuencia: Paso 4.4] report_routes retorna customer_clusters_route(): 200 Segmentación de clientes con modelo no supervisado generada a AdminReportsPageComponent
 @router.post("/ml/customer-clusters")
 def customer_clusters_route(
     request: CustomerClustersRequest | None = None,
@@ -83,26 +90,96 @@ def customer_clusters_route(
     return response(status_code=200, message="Segmentación de clientes con modelo no supervisado generada", data=data)
 
 
+def _report_tenant(db: Session, tenant_id: UUID | None, feature: str | None = None) -> UUID:
+    if tenant_id is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Usuario sin empresa asociada")
+    if feature and not tenant_has_feature(db, tenant_id, feature):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tu plan actual no incluye reportes con Inteligencia Artificial. Actualizá tu suscripción al plan Profesional o Enterprise.",
+        )
+    return tenant_id
+
+
+def _scoped_spec(spec: AnalyticsQuery, current_user: dict) -> AnalyticsQuery:
+    branch_id = _manager_branch_id(current_user)
+    return spec if branch_id is None else spec.model_copy(update={"branch_ids": [branch_id]})
+
+
 # [CU08 - Secuencia: Paso 1.1] AdminReportsPageComponent llama a natural_report_route() de report_routes (POST /api/reports/query)
+# [CU08 - Secuencia: Paso 1.4] report_routes retorna natural_report_route(): 200 Reporte interpretado exitosamente a AdminReportsPageComponent
 @router.post("/query")
-async def natural_report_route(
+def natural_report_route(
     request: NaturalReportRequest,
     db: Session = Depends(get_db),
-    _: dict = Depends(require_roles(RolEnum.administrador)),
+    current_user: dict = Depends(require_permission("reports:read")),
     current_tenant_id: UUID | None = Depends(get_current_tenant_id),
 ):
-    if current_tenant_id is not None:
-        if not tenant_has_feature(db, current_tenant_id, "ai_text_reports"):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Tu plan actual no incluye reportes con Inteligencia Artificial. Actualizá tu suscripción al plan Profesional o Enterprise.",
-            )
-
+    tenant_id = _report_tenant(db, current_tenant_id, "ai_text_reports")
     try:
-        data = await generate_natural_report(db, request.query, current_tenant_id)
+        spec, interpretation, interpreted_by, warnings = interpret_query(db, tenant_id, request.query, date.today())
     except NaturalReportError as error:
         return response(status_code=error.status_code, message=error.detail, error=error.detail)
+    data = {"spec": _scoped_spec(spec, current_user).model_dump(mode="json"), "interpretation": interpretation,
+            "interpreted_by": interpreted_by, "warnings": warnings}
     return response(status_code=status.HTTP_200_OK, message="Reporte interpretado exitosamente", data=data)
+
+
+# [CU08 - Secuencia: Paso 1.5] AdminReportsPageComponent llama a analytics_route(spec) de report_routes (POST /api/reports/analytics)
+# [CU08 - Secuencia: Paso 1.10] report_routes retorna analytics_route(spec): 200 Reporte generado exitosamente a AdminReportsPageComponent
+@router.post("/analytics")
+def analytics_route(
+    spec: AnalyticsQuery,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_permission("reports:read")),
+    current_tenant_id: UUID | None = Depends(get_current_tenant_id),
+):
+    tenant_id = _report_tenant(db, current_tenant_id)
+    today = date.today()
+    try:
+        _validate_filters(db, tenant_id, spec, today)
+    except NaturalReportError as error:
+        return response(status_code=error.status_code, message=error.detail, error=error.detail)
+    result = run_query(db, tenant_id, _scoped_spec(spec, current_user), today)
+    return response(status_code=status.HTTP_200_OK, message="Reporte generado exitosamente", data=result.model_dump())
+
+
+def _slug(title: str) -> str:
+    ascii_title = unicodedata.normalize("NFKD", title).encode("ascii", "ignore").decode()
+    return re.sub(r"[^a-z0-9]+", "-", ascii_title.lower()).strip("-")[:60].strip("-") or "analitico"
+
+
+# [CU08 - Secuencia: Paso 2.1] AdminReportsPageComponent llama a analytics_export_route(spec, format) de report_routes (POST /api/reports/analytics/export)
+# [CU08 - Secuencia: Paso 2.6] report_routes retorna analytics_export_route(spec, format): Response a AdminReportsPageComponent
+@router.post("/analytics/export")
+def analytics_export_route(
+    spec: AnalyticsQuery,
+    format: Literal["pdf", "excel"] = Query(...),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_permission("reports:read")),
+    current_tenant_id: UUID | None = Depends(get_current_tenant_id),
+):
+    from app.models.tenant import Tenant
+    from app.models.user import User
+    from app.services.report_export_service import analytics_to_excel, analytics_to_pdf
+
+    tenant_id = _report_tenant(db, current_tenant_id)
+    today = date.today()
+    try:
+        _validate_filters(db, tenant_id, spec, today)
+    except NaturalReportError as error:
+        return response(status_code=error.status_code, message=error.detail, error=error.detail)
+    result = run_query(db, tenant_id, _scoped_spec(spec, current_user), today)  # same scope as the screen
+    company = db.query(Tenant.name).filter(Tenant.id == tenant_id).scalar() or ""
+    author = db.query(User.name).filter(User.id == UUID(current_user["sub"])).scalar() or ""
+    if format == "excel":
+        content, extension = analytics_to_excel(result, company, author), "xlsx"
+        media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    else:
+        content, extension, media_type = analytics_to_pdf(result, company, author), "pdf", "application/pdf"
+    filename = f"reporte-{_slug(result.title)}-{today:%Y-%m-%d}.{extension}"
+    return Response(content=content, media_type=media_type,
+                    headers={"Content-Disposition": f'attachment; filename="{filename}"'})
 
 
 def _filters(
@@ -132,20 +209,23 @@ def _csv_response(filename: str, rows: list[dict], headers: list[str]):
     )
 
 
-def _scoped_filters(db: Session, filters: ReportQuery, current_user: dict) -> ReportQuery:
-    # Services constrain tenant data; preserve successful empty-filter queries
-    # and the existing rule that an encargado cannot replace their own branch.
+def _manager_branch_id(current_user: dict) -> UUID | None:
+    # The existing rule: an encargado cannot replace their own branch.
     if current_user.get("rol") != RolEnum.encargado.value:
-        return filters
-
+        return None
     branch_id = current_user.get("branch_id")
     if not branch_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="El encargado no tiene sucursal asignada")
     try:
-        manager_branch_id = UUID(branch_id)
+        return UUID(branch_id)
     except (TypeError, ValueError):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="La sucursal asignada no es válida")
-    return filters.model_copy(update={"branch_id": manager_branch_id})
+
+
+def _scoped_filters(db: Session, filters: ReportQuery, current_user: dict) -> ReportQuery:
+    # Services constrain tenant data; preserve successful empty-filter queries.
+    branch_id = _manager_branch_id(current_user)
+    return filters if branch_id is None else filters.model_copy(update={"branch_id": branch_id})
 
 
 def _smart_report(db: Session, filters: ReportQuery, current_user: dict, report_type: str):
@@ -156,7 +236,6 @@ def _smart_report(db: Session, filters: ReportQuery, current_user: dict, report_
     return function(db, filters, UUID(current_user["tenant_id"]))
 
 
-# [CU08 - Secuencia: Paso 1.9] AdminReportsPageComponent llama a top_products_route() de report_routes (GET /api/reports/top-products)
 @router.get("/top-products")
 def top_products_route(
     db: Session = Depends(get_db), filters: ReportQuery = Depends(_filters),
@@ -194,7 +273,6 @@ def _export_file(db: Session, filters: ReportQuery, current_user: dict, report_t
                     headers={"Content-Disposition": f'attachment; filename="{report_type}-report.{extension}"'})
 
 
-# [CU08 - Secuencia: Paso 2.1] AdminReportsPageComponent llama a excel_export_route(type) de report_routes (GET /api/reports/export/excel)
 @router.get("/export/excel")
 def excel_export_route(
     type: SmartReportType = Query(default="sales"),
@@ -204,7 +282,6 @@ def excel_export_route(
     return _export_file(db, filters, current_user, type, "excel")
 
 
-# [CU08 - Secuencia: Paso 2.3] AdminReportsPageComponent llama a pdf_export_route(type) de report_routes (GET /api/reports/export/pdf)
 @router.get("/export/pdf")
 def pdf_export_route(
     type: SmartReportType = Query(default="sales"),
@@ -215,6 +292,7 @@ def pdf_export_route(
 
 
 # [CU14 - Secuencia: Paso 1.1] SalesHistoryPageComponent llama a sales_report_route() de report_routes (GET /api/reports/sales)
+# [CU14 - Secuencia: Paso 1.2] report_routes retorna sales_report_route(): 200 Reporte de ventas obtenido exitosamente a SalesHistoryPageComponent
 @router.get("/sales")
 async def sales_report_route(
     db: Session = Depends(get_db),
@@ -241,6 +319,7 @@ async def sales_report_export_route(
 
 
 # [CU14 - Secuencia: Paso 2.1] AdminInventoryPageComponent llama a inventory_report_route() de report_routes (GET /api/reports/inventory)
+# [CU14 - Secuencia: Paso 2.2] report_routes retorna inventory_report_route(): 200 Reporte de inventario obtenido exitosamente a AdminInventoryPageComponent
 @router.get("/inventory")
 async def inventory_report_route(
     db: Session = Depends(get_db),
@@ -267,6 +346,7 @@ async def inventory_report_export_route(
 
 
 # [CU14 - Secuencia: Paso 2.3] AdminInventoryPageComponent llama a movements_report_route() de report_routes (GET /api/reports/movements)
+# [CU14 - Secuencia: Paso 2.4] report_routes retorna movements_report_route(): 200 Reporte de movimientos obtenido exitosamente a AdminInventoryPageComponent
 @router.get("/movements")
 async def movements_report_route(
     db: Session = Depends(get_db),

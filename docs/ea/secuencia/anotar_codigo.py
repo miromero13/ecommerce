@@ -2,7 +2,13 @@
 
     # [CU01 - Secuencia: Paso 1.1] TenantManagementPageComponent llama a list_tenants_route(...) de tenant_routes (GET /api/tenants)
 
-Uso (desde la raiz del repo):  python docs/ea/secuencia/anotar_codigo.py
+Los retornos (flechas punteadas) se escriben junto a la misma funcion que atiende la llamada, con el texto del diagrama:
+
+    # [CU10 - Secuencia: Paso 1.3] TrabajoImportacionRPA retorna create_job(...): RpaIngestJob a rpa_ingest_routes
+
+Uso (desde la raiz del repo):  python docs/ea/secuencia/anotar_codigo.py [--only CU8]
+  --only CUn: solo borra y reescribe las anotaciones de ese caso de uso ([CU08 - ...] o [CU8 - ...]) y solo comprueba
+              ese diagrama; las anotaciones de los demas casos de uso quedan como estan.
 
 - Antes de anotar borra todas las anotaciones anteriores ("- Secuencia: Paso"), asi se puede volver a ejecutar
   cada vez que se regeneran los diagramas y las anotaciones nunca quedan desfasadas.
@@ -25,6 +31,9 @@ ROOT = HERE.parents[2]
 APP = ROOT / "backend" / "app"
 FRONT = ROOT / "frontend" / "src" / "app"
 MARCA = "- Secuencia: Paso"
+# --only CU8: solo borra y vuelve a escribir las anotaciones de ese caso de uso (CU08 / CU8); las demas no se tocan
+ONLY = sys.argv[sys.argv.index("--only") + 1] if "--only" in sys.argv else None
+CU_RX = rf"CU0*{int(ONLY[2:])}" if ONLY else r"CU\d+"
 
 # ----------------------------------------------------------------------------- 1. quitar anotaciones anteriores
 for path in list(APP.rglob("*.py")) + list(FRONT.rglob("*.ts")) + list(FRONT.rglob("*.html")):
@@ -33,15 +42,17 @@ for path in list(APP.rglob("*.py")) + list(FRONT.rglob("*.ts")) + list(FRONT.rgl
         continue
     lines = raw.splitlines(keepends=True)
     # toda anotacion [CUxx - Secuencia: ...] anterior (tambien las escritas a mano, que pueden estar desfasadas)
-    keep = [ln for ln in lines if not (re.match(r"\s*(#|//|<!--)\s*\[CU\d+ - Secuencia:", ln))]
-    path.write_bytes("".join(keep).encode("utf-8"))
+    keep = [ln for ln in lines if not (re.match(rf"\s*(#|//|<!--)\s*\[{CU_RX} - Secuencia:", ln))]
+    if len(keep) != len(lines):
+        path.write_bytes("".join(keep).encode("utf-8"))
 
 # ----------------------------------------------------------------------------- 2. rastreo (mismo que el diagrama)
 sys.path.insert(0, str(HERE))
 with contextlib.redirect_stdout(io.StringIO()):
     import generar_secuencia as S  # noqa: E402
 G, T, AC, NOMBRE = S.G, S.T, S.AC, S.NOMBRE
-SEQ = {d["cu"]: d for d in json.loads((HERE / "secuencia.json").read_text(encoding="utf-8"))["diagrams"]}
+SEQ = {d["cu"]: d for d in json.loads((HERE / "secuencia.json").read_text(encoding="utf-8"))["diagrams"]
+       if not ONLY or d["cu"] == ONLY}
 ROUTE = {r["key"]: r for r in T.ROUTES}
 
 # mensajes control -> entidad de cada ruta, con la funcion (o la linea ORM) que los produce
@@ -111,10 +122,12 @@ for cu, mdl in modelos.items():   # el rastreo debe dar exactamente los mensajes
 
 # ----------------------------------------------------------------------------- 3. ubicar cada mensaje en el codigo
 NOTAS = OrderedDict()   # (archivo, linea_1) -> {(cu, texto): [pasos]}
+UBICACION = {}          # (cu, paso de la llamada) -> [(archivo, linea_1)]: ahi mismo va el comentario de su retorno
 
 
 def anotar(path, line, cu, num, texto):
     NOTAS.setdefault((Path(path), line), OrderedDict()).setdefault((cu, texto), []).append(num)
+    UBICACION.setdefault((cu, num), []).append((Path(path), line))
 
 
 def ts_linea_metodo(cls, meth):
@@ -212,6 +225,17 @@ for cu in sorted(SEQ, key=lambda c: int(c[2:])):
                    f"{nombre(fr)} {verbo} {lab} sobre la entidad {nombre(to)}")
         else:
             raise SystemExit(f"{cu} {num}: mensaje sin regla de ubicacion: {fr} -> {to}")
+
+    # retornos (flechas punteadas): junto a la misma funcion que atiende la llamada que responden
+    msgs = SEQ[cu]["msgs"]
+    for i, m in enumerate(msgs):
+        if not m["ret"] or not m["num"]:
+            continue
+        llamada = next(c for c in reversed(msgs[:i]) if not c["ret"] and c["num"] and c["from"] == m["to"]
+                       and c["to"] == m["from"] and c["label"] == m["op"])
+        for path, line in UBICACION[(cu, llamada["num"])]:
+            NOTAS.setdefault((path, line), OrderedDict()).setdefault(
+                (cu, f"{nombre(m['from'])} retorna {m['op']}: {m['label']} a {nombre(m['to'])}"), []).append(m["num"])
 
 # ----------------------------------------------------------------------------- 4. escribir los comentarios
 PROHIBIDO = re.compile(r"""['"`{}]|this\.|(?<![\w.])(if|for|while)\s*\(""")

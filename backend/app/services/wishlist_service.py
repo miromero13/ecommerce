@@ -25,6 +25,7 @@ class AlreadySaved(RuntimeError):
 
 
 # [CU16 - Secuencia: Pasos 2.8, 5.8] wishlist_routes invoca _active_variants(product_id) sobre la entidad VarianteProducto
+# [CU16 - Secuencia: Pasos 2.9, 5.9] VarianteProducto retorna _active_variants(product_id): db.query(ProductVariant, Size.name, Color.name).outerjoin... a wishlist_routes
 def _active_variants(db: Session, product_id: UUID):
     """Active variants of a product with their size and color names."""
     return (db.query(ProductVariant, Size.name, Color.name)
@@ -35,6 +36,7 @@ def _active_variants(db: Session, product_id: UUID):
 
 
 # [CU16 - Secuencia: Pasos 1.4, 2.16, 3.12, 4.16, 5.16] wishlist_routes invoca _serialize(item) sobre la entidad ProductoFavorito
+# [CU16 - Secuencia: Pasos 1.5, 2.17, 3.13, 4.17, 5.17] ProductoFavorito retorna _serialize(item): dict a wishlist_routes
 def _serialize(db: Session, item: WishlistItem) -> dict:
     product = db.query(Product).filter(Product.id == item.product_id).one()
     rows = _active_variants(db, product.id)
@@ -88,12 +90,14 @@ def _serialize(db: Session, item: WishlistItem) -> dict:
 
 
 # [CU16 - Secuencia: Pasos 1.2, 2.14, 3.10, 4.14, 5.14] wishlist_routes invoca list_items(user_id) sobre la entidad ProductoFavorito
+# [CU16 - Secuencia: Pasos 1.3, 2.15, 3.11, 4.15, 5.15] ProductoFavorito retorna list_items(user_id): list[dict] a wishlist_routes
 def list_items(db: Session, user_id: UUID) -> list[dict]:
     items = db.query(WishlistItem).filter(WishlistItem.user_id == user_id).order_by(WishlistItem.created_at.desc()).all()
     return [_serialize(db, item) for item in items]
 
 
 # [CU16 - Secuencia: Pasos 2.6, 5.6] wishlist_routes invoca add_item(user_id, product_id) sobre la entidad ProductoFavorito
+# [CU16 - Secuencia: Pasos 2.7, 5.7] ProductoFavorito retorna add_item(user_id, product_id): WishlistItem a wishlist_routes
 def add_item(db: Session, user_id: UUID, product_id: UUID) -> WishlistItem:
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product or not _active_variants(db, product.id):
@@ -113,6 +117,7 @@ def add_item(db: Session, user_id: UUID, product_id: UUID) -> WishlistItem:
 
 
 # [CU16 - Secuencia: Pasos 2.2, 3.4, 5.2] wishlist_routes invoca _owned(user_id, product_id) sobre la entidad ProductoFavorito
+# [CU16 - Secuencia: Pasos 2.3, 3.5, 5.3] ProductoFavorito retorna _owned(user_id, product_id): WishlistItem a wishlist_routes
 def _owned(db: Session, user_id: UUID, product_id: UUID) -> WishlistItem:
     item = db.query(WishlistItem).filter(WishlistItem.user_id == user_id, WishlistItem.product_id == product_id).first()
     if not item:
@@ -126,6 +131,7 @@ def remove_item(db: Session, user_id: UUID, product_id: UUID) -> None:
 
 
 # [CU16 - Secuencia: Paso 3.2] wishlist_routes invoca move_to_cart(user_id, product_id, variant_id, branch_id, quantity) sobre la entidad VarianteProducto
+# [CU16 - Secuencia: Paso 3.3] VarianteProducto retorna move_to_cart(user_id, product_id, variant_id, branch_id, quantity): cart a wishlist_routes
 def move_to_cart(db: Session, user_id: UUID, product_id: UUID, variant_id: UUID, branch_id: UUID | None, quantity: int):
     item_id = _owned(db, user_id, product_id).id
     variant = db.query(ProductVariant).filter(ProductVariant.id == variant_id, ProductVariant.product_id == product_id).first()
@@ -143,6 +149,7 @@ def move_to_cart(db: Session, user_id: UUID, product_id: UUID, variant_id: UUID,
 
 
 # [CU16 - Secuencia: Paso 4.2] wishlist_routes invoca move_all_to_cart(user_id, tenant_id, branch_id, clear_conflict) sobre la entidad Sucursal
+# [CU16 - Secuencia: Paso 4.3] Sucursal retorna move_all_to_cart(user_id, tenant_id, branch_id, clear_conflict): (get_current_cart(db, user_id), moved_count) a wishlist_routes
 def move_all_to_cart(db: Session, user_id: UUID, tenant_id: UUID, branch_id: UUID, clear_conflict: bool = True):
     branch = db.query(Branch).filter(Branch.id == branch_id, Branch.tenant_id == tenant_id).first()
     if not branch:

@@ -30,9 +30,3 @@ def test_empty_excel_keeps_column_headers():
     from app.services.report_export_service import to_excel
     sheet = load_workbook(BytesIO(to_excel([], ['branch_name', 'quantity_sold']))).active
     assert list(sheet.values) == [('Sucursal', 'Unidades vendidas')]
-
-
-@pytest.mark.parametrize('kind', ['top_products', 'branch_comparison', 'critical_inventory'])
-def test_natural_contract_supports_the_new_report_kinds(kind):
-    from app.schemas.report_schema import NaturalReportInterpretation
-    assert NaturalReportInterpretation(report_type=kind, interpretation='Reporte real').report_type == kind

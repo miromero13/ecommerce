@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 @pragma('vm:entry-point')
@@ -34,7 +35,23 @@ class NotificationPushService {
     required void Function() onForegroundMessage,
   }) async {
     if (_started) return;
+    if (_messaging == null && Firebase.apps.isEmpty) {
+      debugPrint(
+        'Push desactivado: Firebase no se inicializó. Falta '
+        'android/app/google-services.json del proyecto Firebase del backend.',
+      );
+      return;
+    }
     _started = true;
+    // A failed backend call must not stop listening; the next refresh retries.
+    Future<void> register(String token) async {
+      try {
+        await onToken(token);
+      } catch (error) {
+        debugPrint('No se pudo registrar el token push en el backend: $error');
+      }
+    }
+
     try {
       final messaging = _messaging ??= FirebaseMessaging.instance;
       try {
@@ -42,10 +59,17 @@ class NotificationPushService {
       } catch (_) {
         // A local-notification failure must not disable FCM token registration.
       }
-      await messaging.requestPermission(alert: true, badge: true, sound: true);
+      final permission = await messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+      if (permission.authorizationStatus == AuthorizationStatus.denied) {
+        debugPrint('Push: el usuario negó el permiso de notificaciones.');
+      }
       final token = await messaging.getToken();
-      if (token != null && token.isNotEmpty) await onToken(token);
-      _tokenSubscription = messaging.onTokenRefresh.listen(onToken);
+      if (token != null && token.isNotEmpty) await register(token);
+      _tokenSubscription = messaging.onTokenRefresh.listen(register);
       _messageSubscription = FirebaseMessaging.onMessage.listen((message) {
         unawaited(_showForegroundNotification(message));
         onForegroundMessage();
@@ -58,7 +82,8 @@ class NotificationPushService {
       if (initialMessage != null) {
         onTap(initialMessage.data.map((key, value) => MapEntry(key, '$value')));
       }
-    } catch (_) {
+    } catch (error) {
+      debugPrint('No se pudo iniciar el servicio de notificaciones push: $error');
       await stop();
     }
   }

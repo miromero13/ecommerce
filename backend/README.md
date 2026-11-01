@@ -272,13 +272,16 @@ solo desvincula su asociación transitoria con el carrito: conserva la reserva,
 su estado y su stock retenido. Si quedan otras líneas de esa reserva, mantiene
 la asociación. Volver a transferirla reconstruye sus líneas una sola vez;
 también permite usar el carrito vacío con una reserva de otra empresa.
-El checkout copia las líneas al pedido y vacía el carrito en ese momento: un
-pedido pendiente de pago (efectivo hasta 24 h, Stripe 30 min) no impide comprar
-en otra empresa. Cobrar ese pedido no toca el carrito nuevo, y una reserva incluida
-en un pedido pendiente no puede volver al carrito. Cancelar el pedido cierra la
-reserva como `not_sold` y libera su retención una sola vez, sin eliminar el
-historial; las líneas no vuelven al carrito. Reintentar el pago con Stripe de un
-pedido ya creado usa `POST /api/payments/stripe/orders/{id}`.
+El checkout copia las líneas al pedido y bloquea el carrito conservando sus ítems
+(`checkout_pending`, con `pending_order_id`/`pending_order_expires_at`): se vacía
+solo cuando el pedido se paga o cuando pasan 40 min sin pago (Stripe). Si el pago
+falla o el cliente cancela el pedido, el carrito vuelve a ser editable con sus
+ítems. Repetir el checkout en la misma sucursal reutiliza el pedido pendiente, y
+una reserva incluida en un pedido pendiente no puede volver al carrito. Cancelar
+el pedido cierra la reserva como `not_sold` y libera su retención una sola vez,
+sin eliminar el historial; las líneas de la reserva no vuelven al carrito.
+Reintentar el pago con Stripe de un pedido ya creado usa
+`POST /api/payments/stripe/orders/{id}`.
 Los cupones ajenos reciben el mismo error que un código no disponible:
 `El código promocional no existe, está inactivo o fuera de vigencia`.
 

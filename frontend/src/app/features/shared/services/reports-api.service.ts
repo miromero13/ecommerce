@@ -1,8 +1,12 @@
+import { HttpResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 
 import { ApiResponse } from '../../../core/models/api.model';
 import { ApiService } from '../../../core/services/api.service';
 import {
+  AnalyticsInterpretation,
+  AnalyticsQuery,
+  AnalyticsResult,
   CustomerClusters,
   DemandForecast,
   DemandForecastRequest,
@@ -10,7 +14,6 @@ import {
   SmartReportType,
   InventoryReportResponse,
   MovementsReportResponse,
-  NaturalReportResponse,
   ReportQuery,
   SalesReportResponse,
   ReportType,
@@ -32,8 +35,16 @@ export class ReportsApiService {
     return this.api.get<MovementsReportResponse>(`/reports/movements${this.query(filters)}`);
   }
 
-  queryNaturalLanguage(query: string) {
-    return this.api.post<NaturalReportResponse>('/reports/query', { query });
+  interpret(query: string) {
+    return this.api.post<ApiResponse<AnalyticsInterpretation>>('/reports/query', { query });
+  }
+
+  runAnalytics(spec: AnalyticsQuery) {
+    return this.api.post<ApiResponse<AnalyticsResult>>('/reports/analytics', spec);
+  }
+
+  exportAnalytics(spec: AnalyticsQuery, format: 'pdf' | 'excel') {
+    return this.api.post<HttpResponse<Blob>>(`/reports/analytics/export?format=${format}`, spec, { responseType: 'blob' as const, observe: 'response' as const });
   }
 
   exportReport(type: ReportType, filters: ReportQuery) {

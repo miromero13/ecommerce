@@ -52,6 +52,35 @@ void main() {
     expect(cart.items.single.colorName, 'Negro');
   });
 
+  test('carrito bloqueado por pedido pendiente de pago', () {
+    Map<String, dynamic> json(Map<String, dynamic> extra) => {
+      'id': 'cart-id',
+      'user_id': 'user-id',
+      'status': 'active',
+      'subtotal': 10,
+      'discount_amount': 0,
+      'total_amount': 10,
+      'item_count': 1,
+      'created_at': '2026-01-01T10:00:00Z',
+      'items': [],
+      ...extra,
+    };
+
+    final free = Cart.fromJson(json({}));
+    expect(free.isLocked, isFalse);
+    expect(free.pendingOrderId, isNull);
+    expect(free.pendingOrderExpiresAt, isNull);
+
+    final locked = Cart.fromJson(json({
+      'status': 'checkout_pending',
+      'pending_order_id': 'order-id',
+      'pending_order_expires_at': '2026-01-01T10:40:00Z',
+    }));
+    expect(locked.isLocked, isTrue);
+    expect(locked.pendingOrderId, 'order-id');
+    expect(locked.pendingOrderExpiresAt, DateTime.utc(2026, 1, 1, 10, 40));
+  });
+
   test('rechaza un estado de carrito desconocido', () {
     expect(
       () => CartStatus.fromJson('unknown'),

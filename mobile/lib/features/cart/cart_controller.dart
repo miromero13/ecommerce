@@ -10,6 +10,8 @@ enum CartControllerStatus { idle, loading, ready, error }
 class CartController extends ChangeNotifier {
   CartController({CartApi? api}) : _api = api ?? CartApi();
 
+  static const lockedMessageFragment = OfflineCartService.lockedMessageFragment;
+
   final CartApi _api;
 
   CartControllerStatus status = CartControllerStatus.idle;
@@ -58,6 +60,7 @@ class CartController extends ChangeNotifier {
     try {
       final result = await operation();
       cart = result.cart;
+      if (!cart!.isLocked) OfflineCartService.resetLockNotice(); // sync of saved garments resumes
       feedbackMessage = result.message;
       status = CartControllerStatus.ready;
     } catch (error) {
@@ -65,7 +68,16 @@ class CartController extends ChangeNotifier {
       errorMessage = error is ApiException
           ? error.message
           : 'No se pudo sincronizar el carrito.';
+      // The cart got locked by a pending order: show the server state (no retry).
+      if (error is ApiException && error.message.contains(lockedMessageFragment)) {
+        try {
+          cart = (await _api.getCurrent()).cart;
+        } catch (_) {}
+      }
     }
     notifyListeners();
   }
+
+  /// Re-reads the cart from the server (after any checkout attempt); never clears it locally.
+  Future<void> reload() => _run(_api.getCurrent);
 }

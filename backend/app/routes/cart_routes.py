@@ -34,7 +34,9 @@ async def get_current_cart_route(
 
 
 # [CU25 - Secuencia: Paso 2.4] OfflineCartService llama a add_cart_item_route(payload) de cart_routes (POST /api/cart/items)
+# [CU25 - Secuencia: Paso 2.21] cart_routes retorna add_cart_item_route(payload): 201 Producto agregado al carrito a OfflineCartService
 # [CU30 - Secuencia: Paso 3.1] OfflineCartService llama a add_cart_item_route(payload) de cart_routes (POST /api/cart/items)
+# [CU30 - Secuencia: Paso 3.18] cart_routes retorna add_cart_item_route(payload): 201 Producto agregado al carrito a OfflineCartService
 @router.post("/items", status_code=status.HTTP_201_CREATED)
 async def add_cart_item_route(
     payload: CartItemCreate,
@@ -102,6 +104,7 @@ async def clear_cart_route(
 
 
 # [CU15 - Secuencia: Paso 3.1] CartPageComponent llama a apply_coupon_route(payload) de cart_routes (POST /api/cart/coupon)
+# [CU15 - Secuencia: Paso 3.18] cart_routes retorna apply_coupon_route(payload): 200 Cupón aplicado al carrito a CartPageComponent
 @router.post("/coupon")
 async def apply_coupon_route(
     payload: PromotionCodeApply,
@@ -116,6 +119,7 @@ async def apply_coupon_route(
 
 
 # [CU15 - Secuencia: Paso 4.1] CartPageComponent llama a remove_coupon_route() de cart_routes (DELETE /api/cart/coupon)
+# [CU15 - Secuencia: Paso 4.8] cart_routes retorna remove_coupon_route(): 200 Cupón retirado del carrito a CartPageComponent
 @router.delete("/coupon")
 async def remove_coupon_route(
     db: Session = Depends(get_db),

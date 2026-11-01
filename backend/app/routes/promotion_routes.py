@@ -15,6 +15,7 @@ router = APIRouter(prefix="/promotions", tags=["Promotions"])
 
 
 # [CU15 - Secuencia: Pasos 1.1, 2.5] PromotionsPageComponent llama a get_promotion_codes() de promotion_routes (GET /api/promotions)
+# [CU15 - Secuencia: Pasos 1.4, 2.8] promotion_routes retorna get_promotion_codes(): 200 Códigos promocionales obtenidos a PromotionsPageComponent
 @router.get("")
 async def get_promotion_codes(
     db: Session = Depends(get_db),
@@ -26,6 +27,7 @@ async def get_promotion_codes(
 
 
 # [CU15 - Secuencia: Paso 2.1] PromotionsPageComponent llama a create_promotion_code(payload) de promotion_routes (POST /api/promotions)
+# [CU15 - Secuencia: Paso 2.4] promotion_routes retorna create_promotion_code(payload): 201 Código promocional creado a PromotionsPageComponent
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_promotion_code(
     payload: PromotionCodeCreate,

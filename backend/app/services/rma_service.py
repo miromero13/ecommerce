@@ -33,7 +33,7 @@ from app.schemas.rma_schema import (
     SameProductVariant,
 )
 from app.services.inventory_service import _get_or_create_inventory, _inventory_available
-from app.services.notification_service import create_notification
+from app.services.notification_service import create_notification, _notify_rma_event
 
 
 def get_month_end_date() -> datetime:
@@ -119,7 +119,9 @@ def _serialize_rma_item(item: RmaRequestItem) -> RmaItemRead:
 
 
 # [CU21 - Secuencia: Pasos 2.6, 2.12, 3.4, 4.12, 4.18, 5.12] rma_routes invoca _serialize_rma_request(rma) sobre la entidad SolicitudDevolucion
+# [CU21 - Secuencia: Pasos 2.7, 2.13, 3.5, 4.13, 4.19, 5.13] SolicitudDevolucion retorna _serialize_rma_request(rma): RmaRequestRead a rma_routes
 # [CU24 - Secuencia: Paso 1.12] rma_routes invoca _serialize_rma_request(rma) sobre la entidad SolicitudDevolucion
+# [CU24 - Secuencia: Paso 1.13] SolicitudDevolucion retorna _serialize_rma_request(rma): RmaRequestRead a rma_routes
 def _serialize_rma_request(rma: RmaRequest) -> RmaRequestRead:
     cust_name = rma.user.name if rma.user and rma.user.name else rma.user.email
     order_num = f"PED-{str(rma.order_id)[:8].upper()}"
@@ -142,6 +144,7 @@ def _serialize_rma_request(rma: RmaRequest) -> RmaRequestRead:
 
 
 # [CU21 - Secuencia: Paso 1.2] rma_routes invoca list_eligible_orders(user, tenant_id) sobre la entidad Pedido
+# [CU21 - Secuencia: Paso 1.3] Pedido retorna list_eligible_orders(user, tenant_id): list[EligibleOrderRead] a rma_routes
 def list_eligible_orders(db: Session, user: User, tenant_id: UUID | None = None) -> list[EligibleOrderRead]:
     """List orders delivered within the last 30 days and itemize eligible garments with exchange options."""
     now = datetime.now(timezone.utc)
@@ -250,7 +253,9 @@ def list_eligible_orders(db: Session, user: User, tenant_id: UUID | None = None)
 
 
 # [CU21 - Secuencia: Paso 2.2] rma_routes invoca create_rma_request(user, payload, tenant_id) sobre la entidad SolicitudDevolucion
+# [CU21 - Secuencia: Paso 2.3] SolicitudDevolucion retorna create_rma_request(user, payload, tenant_id): RmaRequestRead a rma_routes
 # [CU21 - Secuencia: Paso 2.4] rma_routes invoca create_rma_request(user, payload, tenant_id) sobre la entidad DetalleSolicitudDevolucion
+# [CU21 - Secuencia: Paso 2.5] DetalleSolicitudDevolucion retorna create_rma_request(user, payload, tenant_id): RmaRequestRead a rma_routes
 def create_rma_request(db: Session, user: User, payload: RmaRequestCreate, tenant_id: UUID | None = None) -> RmaRequestRead:
     query = db.query(Order).filter(Order.id == payload.order_id, Order.user_id == user.id)
     if tenant_id is not None:
@@ -336,13 +341,14 @@ def create_rma_request(db: Session, user: User, payload: RmaRequestCreate, tenan
             status="pending",
         )
         db.add(rma_item)
-
     db.commit()
     db.refresh(rma)
+    _notify_rma_event(db, rma.id, "requested")
     return _serialize_rma_request(rma)
 
 
 # [CU21 - Secuencia: Pasos 2.10, 3.2, 4.16, 5.10] rma_routes invoca list_rma_requests(user, tenant_id, status_filter) sobre la entidad SolicitudDevolucion
+# [CU21 - Secuencia: Pasos 2.11, 3.3, 4.17, 5.11] SolicitudDevolucion retorna list_rma_requests(user, tenant_id, status_filter): list[RmaRequestRead] a rma_routes
 def list_rma_requests(
     db: Session,
     user: User,
@@ -379,7 +385,9 @@ def get_rma_request(db: Session, rma_id: UUID, user: User, tenant_id: UUID | Non
 
 
 # [CU21 - Secuencia: Paso 4.2] rma_routes invoca review_rma_item(rma_id, item_id, payload, reviewer, tenant_id) sobre la entidad MovimientoInventario
+# [CU21 - Secuencia: Paso 4.3] MovimientoInventario retorna review_rma_item(rma_id, item_id, payload, reviewer, tenant_id): RmaRequestRead a rma_routes
 # [CU24 - Secuencia: Paso 1.2] rma_routes invoca review_rma_item(rma_id, item_id, payload, reviewer, tenant_id) sobre la entidad MovimientoInventario
+# [CU24 - Secuencia: Paso 1.3] MovimientoInventario retorna review_rma_item(rma_id, item_id, payload, reviewer, tenant_id): RmaRequestRead a rma_routes
 def review_rma_item(
     db: Session,
     rma_id: UUID,
@@ -521,7 +529,6 @@ def review_rma_item(
     else:
         item.status = "rejected"
         item.action = "return_to_customer"
-
     # Update parent RMA status
     all_items = db.query(RmaRequestItem).filter(RmaRequestItem.rma_id == rma.id).all()
     statuses = [it.status for it in all_items]
@@ -536,11 +543,14 @@ def review_rma_item(
 
     db.commit()
     db.refresh(rma)
+    if item.status == "rejected": _notify_rma_event(db, rma.id, "rejected", item.id)  # noqa: E701 (keeps diagram line refs)
     return _serialize_rma_request(rma)
 
 
 # [CU21 - Secuencia: Paso 5.2] rma_routes invoca settle_monthly_wallets() sobre la entidad BilleteraUsuario
+# [CU21 - Secuencia: Paso 5.3] BilleteraUsuario retorna settle_monthly_wallets(): dict a rma_routes
 # [CU21 - Secuencia: Paso 5.4] rma_routes invoca settle_monthly_wallets() sobre la entidad MovimientoBilletera
+# [CU21 - Secuencia: Paso 5.5] MovimientoBilletera retorna settle_monthly_wallets(): dict a rma_routes
 def settle_monthly_wallets(db: Session) -> dict:
     """Processes pending month-end wallet refunds whose settlement date has arrived."""
     now = datetime.now(timezone.utc)

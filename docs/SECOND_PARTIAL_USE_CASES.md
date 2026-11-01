@@ -898,14 +898,74 @@ GET /api/chatbot/messages
 ---
 
 #### CU8 – Generar reportes inteligentes con IA
-* **Rama de IA:** **Procesamiento de Lenguaje Natural (PLN)** + **IA Generativa** (*Text-to-Filters* con Gemini) + **Machine Learning** (Supervisado y No Supervisado con Scikit-Learn)
+* **Rama de IA:** **Procesamiento de Lenguaje Natural (PLN)** con un **intérprete local en español basado en reglas** (sin IA generativa, sin tokens ni cuotas), con respaldo opcional de Groq + **Machine Learning** (Supervisado y No Supervisado con Scikit-Learn)
 * **Actor Principal:** Administrador
-* **Estado:** **Hecho** (NLP, regresión, K-Means, cuatro reportes y exportaciones con pruebas automatizadas; falta solo el ensayo en vivo con micrófono) | **Plataforma:** Web
-* **Descripción Funcional:** Motor analítico avanzado para la generación de reportes empresariales inteligentes acorde al Desafío V del examen. Permite a usuarios autorizados formular solicitudes en lenguaje natural escrito o por voz (Web Speech API), interpretando intenciones para generar tanto reportes convencionales como reportes predictivos y de patrones:
-  1. **Reportes Descriptivos e Históricos (NLP con Gemini):** Traducción de consultas en lenguaje natural a filtros SQL parametrizados y seguros contra datos reales de PostgreSQL, garantizando la demostración de al menos cuatro tipos de reportes (ventas por sucursal, ranking de productos más vendidos, existencias críticas/inventario bajo, y comparativas de ventas entre sucursales).
+* **Estado:** **Hecho** (intérprete local, motor analítico, regresión, K-Means y exportaciones con pruebas automatizadas; falta solo el ensayo en vivo con micrófono en el navegador) | **Plataforma:** Web
+* **Descripción Funcional:** Motor analítico para la generación de reportes empresariales inteligentes acorde al Desafío V del examen. Permite a usuarios autorizados formular solicitudes en lenguaje natural escrito o por voz. **Los reportes ya no usan Gemini**: Gemini permanece solo en el chatbot (CU7) y en el lector de documentos del RPA (CU10). El **intérprete local va primero**; **Groq (capa gratuita, API compatible con OpenAI) es un respaldo opcional** con `GROQ_API_KEY` configurada (`GROQ_MODEL`, por defecto `openai/gpt-oss-20b`, y `GROQ_TIMEOUT_SECONDS`, por defecto 8, también son variables de entorno). Se consulta en dos casos: (a) cuando el intérprete local no entiende la frase y (b) cuando lo local entendió pero ignoró palabras (si Groq falla, se mantiene la interpretación local con la advertencia). A Groq solo se envían la frase, la fecha de hoy y los nombres e ids de sucursales, categorías y productos de la propia empresa (nunca ventas, clientes ni precios); solo traduce a la especificación, nunca escribe SQL, y su resultado pasa por la misma validación de tenant que el intérprete local (un id ajeno da 422). El modelo devuelve `{"unsupported": true}` para pedidos no soportados (estaciones o temporadas, ganancia, varios reportes a la vez, etc.). Se usan `max_tokens` 1500 y `reasoning_effort: low` para modelos `openai/gpt-oss*` (con 500 tokens el modelo de razonamiento cortaba el JSON y Groq respondía 400), y ejemplos de pocos disparos con fechas calculadas desde el día de hoy. Hay un tope por empresa de 20 llamadas por hora (`GROQ_MAX_CALLS_PER_TENANT_HOUR`) y uno global de 200 por hora (`GROQ_MAX_CALLS_PER_HOUR_GLOBAL`), ambos por proceso, porque todas las empresas comparten la clave gratuita; el catálogo enviado se limita a 60 entradas por lista. Cualquier fallo (sin clave, tiempo de espera, HTTP 400/429/5xx, JSON inválido) degrada al aviso con ejemplos, nunca un error al usuario, sin reintentos. `python -m scripts.check_groq` verifica la clave y lista los modelos vigentes (con `--phrases ARCHIVO` prueba frases). La respuesta de `/reports/query` incluye `interpreted_by` (`local` o `groq`) y la página lo muestra junto a la interpretación.
+  * **Despliegue:** definir `GROQ_API_KEY` (y opcionalmente `GROQ_MODEL`) como variables de entorno del servicio backend en Coolify; sin ella el sistema funciona solo con el intérprete local.
+  1. **Reportes Analíticos (intérprete local + motor analítico):** la consulta se traduce con reglas y el catálogo de la empresa (sucursales, productos, categorías) a una **especificación** estructurada y editable; luego el motor la ejecuta con consultas parametrizadas sobre datos reales de PostgreSQL (ventas de tienda unificadas con ventas en línea).
   2. **Reportes Predictivos con Machine Learning Supervisado:** Invocación de un modelo de regresión real de Scikit-Learn (por defecto con los datos reales de la empresa, completados con sintéticos si faltan muestras; el interruptor «Modo demostración» entrena solo con datos sintéticos reproducibles en memoria) para predecir variables objetivo como la demanda de prendas o la proyección de ventas de la próxima temporada, reportando métricas de evaluación ($R^2$, MSE).
   3. **Reportes de Patrones con Machine Learning No Supervisado:** Invocación de un modelo de clustering (K-Means) para descubrir patrones de compra o segmentar clientes según frecuencia y volumen de compra, reportando métricas de calidad (Silhouette Score).
-  4. **Exportación Dinámica:** Capacidad de visualizar resultados en tablas o gráficos dinámicos y exportar los reportes generados a archivos formateados de **Excel (.xlsx)** y **PDF**.
+  4. **Exportación Dinámica:** resultados en tablas y gráficos, exportables a **Excel (.xlsx)** y **PDF** volviendo a ejecutar la misma especificación, sin IA.
+
+##### Secuencia del reporte analítico
+1. **1** El administrador ejecuta `ask()`. **1.1** `AdminReportsPageComponent` llama a `POST /api/reports/query` con `{query}` (`natural_report_route`, permiso `reports:read`; la prestación `ai_text_reports` del plan sigue habilitándola: 403 «Tu plan actual no incluye reportes con IA…» si falta).
+2. **1.2–1.3** `_catalog(tenant_id)` lee el catálogo de la empresa (Sucursal, con categorías y productos). El intérprete local (`report_interpreter.py`) resuelve la frase con reglas y ese catálogo; si no la entiende (o ignoró palabras) y hay clave, `report_llm_fallback.py` pide a Groq la traducción. **No ejecuta la consulta.**
+3. **1.4** Se retorna `{spec, interpretation, interpreted_by, warnings}`.
+4. **1.5** `ask()` continúa con `run()`: la página llama a `POST /api/reports/analytics` con la especificación (editable mediante chips por tipo de reporte: métrica, agrupar por, top N, período, canal, sucursal, comparar; cada cambio vuelve a ejecutar el análisis sin reinterpretar).
+5. **1.6–1.7** `run_query` (`analytics_service.py`) calcula el resultado sobre Venta (ventas de tienda unidas a pedidos en línea); **1.8–1.9** fragmento `opt [query.kind != 'sales']`: `_stock_query` arma los reportes de inventario, stock crítico o movimientos. **1.10** Se retorna `AnalyticsResult`.
+6. **2–2.6** Exportar (`exportAnalytics(format)`): `POST /api/reports/analytics/export?format=pdf|excel` ejecuta de nuevo la misma especificación (**2.2–2.5**, igual que 1.6–1.9) y genera el archivo (`analytics_to_pdf` / `analytics_to_excel`).
+
+Los pasos 3 (predicción de demanda) y 4 (segmentación de clientes con K-Means) no cambian.
+
+##### Motor analítico: métricas, dimensiones y reglas
+* **Tipos de reporte (`kind`):** `sales` (ventas, por defecto), `inventory` (existencias), `critical_stock` (stock crítico) y `movements` (movimientos de inventario; usa el período, en La Paz). Los tres últimos ignoran métrica, agrupación, canal, método de pago y comparación (el intérprete solo envía sucursal y producto).
+* **Métricas:** `units` (unidades), `revenue` (ingresos), `orders` (pedidos), `avg_ticket` (ticket promedio), `customers` (clientes distintos).
+* **Agrupaciones (hasta 2):** `product`, `variant`, `category`, `branch`, `size`, `color`, `channel`, `payment_method`, `customer`, `day`, `week`, `month`. No se repite una dimensión y solo se admite una dimensión de tiempo. `customer` cuenta solo ventas con cliente identificado (pedidos en línea y ventas en tienda con cliente registrado); nunca aparece un grupo «desconocido».
+* **Top N** por grupo (1 a 50), orden `desc` (más vendidos) o `asc` (menos vendidos).
+* **Períodos:** `today`, `yesterday`, `this_week`, `last_week`, `last_n_days`, `this_month`, `last_month`, `last_n_months` (n hasta 36), `this_quarter`, `last_quarter`, `this_year`, `last_year`, `custom` (fechas; el intérprete también produce `custom` para meses con nombre, rangos como «del 1 al 15 de octubre» y días de la semana). Opción de **comparar con el período anterior** (`delta_pct`). Hora de referencia America/La_Paz.
+* **Canal:** `all`, `store` o `online`. **Método de pago** (`payment_methods`): efectivo, tarjeta, QR, billetera.
+* **Seguridad:** el tenant sale del JWT; el encargado queda forzado a su propia sucursal; los identificadores de una especificación enviada a mano deben pertenecer a la empresa (422 si no); se rechazan fechas anteriores al año 2000 (422 «Las fechas están fuera de un rango razonable»); el texto de la consulta se limita a 500 caracteres; una frase no entendida devuelve 422 con ejemplos («No entendí la consulta. Prueba con: …»).
+
+##### Cómo entiende el lenguaje el intérprete local
+* **Normalización:** sin tildes, números en palabras («tres meses»), se descartan muletillas y cortesías.
+* **Abreviaturas de teléfono:** `vtas`, `suc`, `x`, `prod`, `xfa`.
+* **Frases largas** con la petición escondida: se segmentan en cláusulas y se descartan las que son pura conversación.
+* **Errores de escritura o dictado de una letra**, con salvaguardas: nunca cambia el final de la palabra y nunca «corrige» palabras como contador, cajero, tarde o ventana.
+* **Catálogo:** singular/plural de nombres de productos y categorías; nombres parciales de sucursal si son únicos («sur», «el alto», «cochabamba»).
+* **Ranking y comparaciones:** «cuál/qué» + verbo de venta equivale a top 1; rankings de más/menos vendidos; comparación con el período anterior.
+* **Regla de oro:** si una parte reconocida de la frase no se puede resolver (mes que no se sabe convertir, «hace dos semanas», «quincena», «navidad», partes del día, ganancia/utilidad/costos, método de pago o canal desconocido, comparación con un período no consecutivo, personas/vendedores, montos, ventas al por mayor, ventas individuales), el sistema responde «No entendí…» (422) en lugar de adivinar.
+* **Regla de ancla:** una petición necesita un ancla (qué medir, un tipo de reporte, o un ranking con una entidad concreta); una agrupación, un ranking o un tiempo sueltos no bastan.
+* **Advertencias:** las palabras toleradas pero NO aplicadas se devuelven en `warnings` (p. ej. «No apliqué estas palabras: «zapatos».») y la pantalla las muestra como alerta ámbar.
+
+##### Frases de ejemplo que el intérprete resuelve
+| Frase | Especificación resultante |
+|---|---|
+| Mostrar los 10 productos más vendidos durante los últimos 3 meses agrupados por sucursal | unidades, por sucursal y producto, top 10, últimos 3 meses |
+| ingresos por mes este año | ingresos, por mes, este año |
+| ventas online vs tienda de esta semana | por canal, esta semana |
+| ticket promedio por sucursal el mes pasado comparado con el anterior | ticket promedio, por sucursal, mes pasado, comparar período anterior |
+| los 5 productos menos vendidos del mes pasado | unidades, por producto, top 5 ascendente, mes pasado |
+| ventas de hoy | ingresos, por día, hoy |
+| ventas por categoría de los últimos 30 días | ingresos, por categoría, últimos 30 días |
+| ventas por talla de la categoría Blusas | ingresos, por talla, filtrada a la categoría Blusas |
+| categorías más vendidas | unidades, por categoría, orden descendente |
+| inventario | tipo `inventory` (existencias) |
+| stock crítico | tipo `critical_stock` |
+| movimientos de inventario de octubre | tipo `movements`, 1 al 31 de octubre (`custom`) |
+| mejores clientes | ingresos, por cliente |
+| ventas con tarjeta | ingresos, método de pago tarjeta, últimos 30 días |
+| ventas de octubre | ingresos, por día, 1 al 31 de octubre (`custom`) |
+| ventas de la semana pasada | ingresos, por día, `last_week` |
+| cuántos clientes compraron este mes | clientes distintos, este mes |
+| ventas de zapatos de hoy | ingresos, hoy; `warnings`: «zapatos» no se aplicó |
+| ganancia del mes | 422 «No entendí…» (la ganancia no se calcula) |
+
+(Ejemplos verificados ejecutando el intérprete con el catálogo de `backend/tests/corpus_eval.py` y hoy = 2026-11-11. Las unidades se piden con «vendidos» o «unidades»; «ventas por…» mide ingresos.)
+
+**Límites honestos:** el entendimiento por reglas cubre muchas formas de hablar y errores de dedo, pero no es comprensión libre del lenguaje; las frases muy libres o que piden datos que no existen se rechazan con un 422 y ejemplos. La medición con corpus de frases se cita como evidencia: conjunto de desarrollo de 220 frases al 100 %; dos conjuntos ocultos con 98,2 % y 91,7 % en la primera medición. **La cifra honesta es la de la primera medición de los conjuntos ocultos**, no la del conjunto de desarrollo (con el que se ajustaron las reglas).
+
+**Voz:** el navegador transcribe con la Web Speech API (`es-BO`, con respaldo `es-ES`) en el componente reutilizable `voice-input-button.component.ts`; el texto sigue el mismo camino que el escrito, por lo que no consume tokens.
 
 ##### Endpoints Backend
 ```http
@@ -913,31 +973,73 @@ POST /api/reports/query
 Headers: Authorization: Bearer <admin_jwt>
 Request Body:
 {
-  "query": "Cuánto vendimos de blusas en la sucursal Centro la semana pasada"
+  "query": "Mostrar los 10 productos más vendidos durante los últimos 3 meses agrupados por sucursal"
 }
 Response 200 OK:
 {
   "statusCode": 200,
   "message": "Reporte interpretado exitosamente",
   "data": {
-    "report_type": "sales",
-    "format": "pdf",
-    "columns": ["branch_name", "quantity_sold", "gross_sales"],
-    "filters": { "from_date": "2026-04-01", "to_date": "2026-04-07" },
-    "interpretation": "Ventas de la semana solicitada",
-    "report": {
-      "summary": { "total_sales": "3450.00", "total_units": 23 },
-      "rows": [ ... ]
-    }
+    "spec": {
+      "kind": "sales",
+      "metric": "units",
+      "group_by": ["branch", "product"],
+      "top_n": 10,
+      "order": "desc",
+      "period": { "preset": "last_n_months", "n": 3 },
+      "branch_ids": [],
+      "product_ids": [],
+      "category_ids": [],
+      "channel": "all",
+      "payment_methods": [],
+      "compare_previous": false,
+      "chart": null
+    },
+    "interpretation": "...",
+    "interpreted_by": "local",
+    "warnings": []
   }
 }
+(`interpreted_by`: "local" | "groq". `warnings`: palabras toleradas pero no aplicadas, p. ej.
+ ["No apliqué estas palabras: «zapatos»."]; la pantalla las muestra como alerta ámbar.)
 
 Response 422 Unprocessable Entity:
 {
   "statusCode": 422,
-  "message": "No se pudo interpretar el comando. Por favor especificá el período o la sucursal.",
-  "error": "HTTPException"
+  "message": "No entendí la consulta. Prueba con: …",
+  "error": "No entendí la consulta. Prueba con: …"
 }
+```
+```http
+POST /api/reports/analytics
+Headers: Authorization: Bearer <admin_jwt>
+Request Body: (la especificación devuelta por /query, editable)
+{ "metric": "units", "group_by": ["branch", "product"], "top_n": 10, "order": "desc",
+  "period": { "preset": "last_n_months", "n": 3 }, "channel": "all", "compare_previous": false }
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Reporte generado exitosamente",
+  "data": {
+    "title": "...",
+    "period": { "from_date": "...", "to_date": "...", "label": "..." },
+    "columns": [ { "key": "branch", "label": "Sucursal", "type": "text" }, ... ],
+    "rows": [ ... ],
+    "totals": { ... },
+    "previous_totals": null,
+    "delta_pct": null,
+    "chart": "bar",
+    "message": null
+  }
+}
+
+Response 422: fechas fuera de rango razonable o identificadores que no pertenecen a la empresa.
+```
+```http
+POST /api/reports/analytics/export?format=pdf|excel
+Headers: Authorization: Bearer <admin_jwt>
+Request Body: la misma especificación
+Response 200 OK: archivo adjunto (application/pdf o .xlsx) "reporte-<titulo>-<fecha>.<ext>"
 ```
 ```http
 POST /api/reports/ml/predict-demand
@@ -986,27 +1088,35 @@ GET /api/reports/export/excel?type=sales&from_date=2026-04-01&to_date=2026-04-10
 GET /api/reports/export/pdf?type=sales&from_date=2026-04-01&to_date=2026-04-10
 ```
 
-**Contrato vigente y métricas:** `/query` conserva `{report_type, format, columns, filters, interpretation, report: {summary, rows}}`; los ejemplos omiten campos secundarios por brevedad. Los identificadores son UUID reales. Los modelos agregan `data_source: {mode, real_samples, synthetic_samples, notice}`. La página usa **datos reales por defecto** (`use_synthetic_data: false`). El interruptor «Modo demostración (solo datos sintéticos)» envía `use_synthetic_data: true`: entrenamiento real de Scikit-Learn solo con datos sintéticos reproducibles en memoria, sin consultar ventas/clientes ni insertar datos o modelos; en ese modo la página avisa que no es un pronóstico del negocio y `data_source` declara `mode: "synthetic"`, `real_samples: 0`. La API mantiene `use_synthetic_data: false` por defecto si se omite: lee datos del tenant y completa con sintéticos cuando faltan muestras (menos de 26 semanas observadas o 30 clientes/3 perfiles distintos). En automático, demanda sigue admitiendo `branch_id` UUID opcional y clusters acepta `{}` o ningún cuerpo. Los ejemplos numéricos de respuesta son ilustrativos, no métricas garantizadas ni prefijadas. Descriptivos, NLP y exportaciones siguen usando datos reales. La evaluación cronológica usa el último 20 %; R² puede ser negativo. Intervalos ±1.96·RMSE aproximados, no garantías. El historial excluye la semana en curso. RFM usa pedidos pagados por cliente, nunca el cajero `Sale.user_id`; los segmentos distinguen clientes reales y sintéticos. Silhouette usa hasta 2000 muestras reproducibles.
+**Contrato vigente y métricas:** los identificadores son UUID reales. Los modelos agregan `data_source: {mode, real_samples, synthetic_samples, notice}`. La página usa **datos reales por defecto** (`use_synthetic_data: false`). El interruptor «Modo demostración (solo datos sintéticos)» envía `use_synthetic_data: true`: entrenamiento real de Scikit-Learn solo con datos sintéticos reproducibles en memoria, sin consultar ventas/clientes ni insertar datos o modelos; en ese modo la página avisa que no es un pronóstico del negocio y `data_source` declara `mode: "synthetic"`, `real_samples: 0`. La API mantiene `use_synthetic_data: false` por defecto si se omite: lee datos del tenant y completa con sintéticos cuando faltan muestras (menos de 26 semanas observadas o 30 clientes/3 perfiles distintos). Demanda admite `branch_id` UUID opcional y clusters acepta `{}` o ningún cuerpo. Los ejemplos numéricos son ilustrativos. La evaluación cronológica usa el último 20 %; R² puede ser negativo. Intervalos ±1.96·RMSE aproximados. El historial excluye la semana en curso. RFM usa pedidos pagados por cliente, nunca el cajero `Sale.user_id`. Silhouette usa hasta 2000 muestras reproducibles.
 
-Los endpoints ML exigen administrador y `ai_ml_smart_reports` (403 sin prestación); NLP conserva `ai_text_reports`. Nuevos GET: `/api/reports/top-products`, `/branch-comparison`, `/critical-inventory`. Exportación `type=sales|inventory|movements|top_products|branch_comparison|critical_inventory`; filtros `branch_id`, `product_id`, `variant_id`, `from_date`, `to_date`, `q`. Exporta reportes descriptivos y conserva el alcance del encargado. Top 10/comparativa cuentan operaciones completadas y pagadas; stock crítico compara disponible con el mínimo de la sucursal. JSON/CSV anteriores no cambian. Excel trata nombres/SKU como texto, no fórmulas.
+Los endpoints ML exigen administrador y `ai_ml_smart_reports` (403 sin prestación); `/query` conserva `ai_text_reports`. Nuevos GET: `/api/reports/top-products`, `/branch-comparison`, `/critical-inventory`. Exportación `type=sales|inventory|movements|top_products|branch_comparison|critical_inventory`; filtros `branch_id`, `product_id`, `variant_id`, `from_date`, `to_date`, `q`. Exporta reportes descriptivos y conserva el alcance del encargado. Top 10/comparativa cuentan operaciones completadas y pagadas; stock crítico compara disponible con el mínimo de la sucursal. JSON/CSV anteriores no cambian. Excel trata nombres/SKU como texto, no fórmulas.
 
 ##### Ubicación en Frontend (Angular)
-* **Página y Vista:** `frontend/src/app/features/admin/pages/admin-reports-page.component.ts` (`admin-reports-page.component.html`)
+* **Página y Vista:** `frontend/src/app/features/admin/pages/admin-reports-page.component.ts` (`admin-reports-page.component.html`): caja de consulta con micrófono; panel «¿Qué puedo preguntar?» con ejemplos por categoría (dictado incluido); línea «Entendí:» con la frase interpretada y su origen (reglas locales o IA); alerta ámbar de advertencias; chips editables según el tipo de reporte (métrica, agrupar por, top N, período, canal, sucursal, comparar); sugerencias clicables cuando no entiende, tarjetas de totales con variación ▲/▼, gráficos, tabla agrupada con subtotales, exportación PDF/Excel y soporte de `?q=`.
+* **Componente de voz:** `frontend/src/app/features/shared/components/voice-input-button.component.ts`
 * **Servicio API:** `frontend/src/app/features/shared/services/reports-api.service.ts`
 * **Ruta Angular:** `/app/admin/reports`
-* **Mensajes en UI:** El toast proyecta `res.message`: `"Reporte interpretado exitosamente"` y los mensajes de estado del modelo. Las tablas NLP respetan las columnas solicitadas; las descargas descriptivas usan columnas estándar por tipo.
+* **Otras pantallas:** la página de inventario reemplazó su caja de texto libre por el enlace «Preguntar en Reportes»; el historial de ventas adaptó su caja de lenguaje natural al nuevo contrato.
+
+##### Ubicación en Backend
+* `backend/app/routes/report_routes.py` (`/query`, `/analytics`, `/analytics/export`, ML y exportaciones descriptivas), `backend/app/services/report_interpreter.py`, `backend/app/services/report_language/` (`lexicon.py`, `periods.py`, `fuzzy.py`), `backend/app/services/report_llm_fallback.py`, `backend/scripts/check_groq.py`, `backend/app/services/analytics_service.py`, `backend/app/services/report_export_service.py`, `backend/app/schemas/analytics_schema.py`.
+* Pruebas: `backend/tests/test_report_interpreter.py`, `test_analytics_engine.py`, `test_analytics_query.py`, `test_analytics_routes.py`, `test_analytics_export.py`, `test_report_interpreter_corpus.py` (corpus de frases), `backend/tests/corpus_eval.py` (medición) y `backend/tests/data/report_phrases_dev.json` (220 frases de desarrollo).
 
 ##### Checklist de Implementación
-- [x] Backend: Servicio `natural_report_service.py` con prompt estructurado JSON hacia Gemini para interpretar intenciones.
-- [x] Backend: Endpoint `/api/reports/query` con ejecución de consultas dinámicas de ventas, inventario y movimientos.
-- [x] Frontend: Barra de consulta por voz/texto en `admin-reports-page` con Web Speech API.
-- [x] Backend (Datos Sintéticos): Implementar generador de datos sintéticos (`synthetic_data_generator.py`) para entrenamiento y validación de los modelos de Machine Learning.
-- [x] Backend (ML Supervisado): Desarrollar y entrenar modelo supervisado de regresión para proyección de demanda y ventas con cálculo de métricas ($R^2$ / MSE).
-- [x] Backend (ML No Supervisado): Desarrollar y entrenar modelo no supervisado de clustering (K-Means) para segmentación de clientes y detección de patrones de compra con Silhouette Score.
-- [x] Backend (Exportación Excel/PDF): Implementar generación y exportación de reportes dinámicos a Excel (.xlsx con `openpyxl`) y PDF formateado.
-- [x] Backend (4 Tipos de Reportes): Probar y asegurar la demostración de los 4 tipos de reportes obligatorios con datos reales (ventas por sucursal, top 10 productos, inventario con menor stock, y comparativa temporal/proyección).
-- [x] Frontend: Visualización de gráficos para clusters y proyecciones en `admin-reports-page` y botones de exportación a Excel y PDF.
-- [ ] Verificación: Ejecutar en vivo consultas por voz y texto demostrando reportes históricos de PostgreSQL, reportes predictivos de ML supervisado y segmentaciones de ML no supervisado.
+- [x] Backend: Intérprete local en español `report_interpreter.py` (reglas + catálogo de la empresa), sin Gemini.
+- [x] Backend: Motor analítico `run_query` (métricas, hasta 2 agrupaciones, top N, períodos, comparación con el período anterior, tienda + en línea).
+- [x] Backend: Intérprete ampliado (tipos de reporte, cliente, métodos de pago, períodos nuevos, tolerancia a errores, regla de oro y ancla, `warnings`) con corpus de frases automatizado.
+- [x] Backend: Respaldo Groq con tope por hora y degradación segura; `check_groq` para verificar la clave.
+- [x] Backend: Endpoints `/api/reports/query`, `/api/reports/analytics` y `/api/reports/analytics/export` con tenant del JWT, alcance del encargado y validación de identificadores/fechas.
+- [x] Frontend: Barra de consulta por voz/texto (Web Speech API) y chips editables en `admin-reports-page`.
+- [x] Backend (Datos Sintéticos): generador (`synthetic_data_generator.py`) para entrenamiento y validación de los modelos de Machine Learning.
+- [x] Backend (ML Supervisado): regresión para proyección de demanda y ventas con métricas ($R^2$ / MSE).
+- [x] Backend (ML No Supervisado): K-Means para segmentación de clientes con Silhouette Score.
+- [x] Backend (Exportación Excel/PDF): exportación del reporte analítico y de los reportes descriptivos (`openpyxl` y PDF).
+- [x] Frontend: gráficos, tabla con subtotales y botones de exportación a Excel y PDF.
+- [ ] Verificación: pantalla en navegador (panel de ayuda, «Entendí:», alerta de advertencias, chips) sin prueba automática.
+- [ ] Verificación: ensayo en vivo en el navegador con micrófono y texto demostrando reportes históricos, predictivos y de segmentación.
 
 ---
 
@@ -1279,43 +1389,47 @@ PATCH /api/notifications/{notification_id}/read
 #### CU13 – Consultar dashboard de métricas comerciales
 * **Módulo:** M4: Business Intelligence
 * **Actor Principal:** Administrador
-* **Estado:** **Hecho** (Implementado en `backend/app/routes/dashboard_routes.py` y `admin-home-page`) | **Plataforma:** Web
-* **Descripción Funcional:** Tablero visual interactivo con KPIs comerciales: facturación total, prendas vendidas, ranking de productos y nivel de inventario por sucursal y fechas.
+* **Estado:** **Hecho** (Implementado en `backend/app/routes/dashboard_routes.py` y `admin-home-page`; solo administrador, `/app/admin/*` protegido por rol) | **Plataforma:** Web
+* **Descripción Funcional:** Tablero visual interactivo con KPIs comerciales: facturación total, prendas vendidas, ranking de productos, nivel de inventario por sucursal y fechas (por defecto, los últimos 30 días). Incluye: variación porcentual contra el período anterior de igual duración (tienda + en línea), reparto por canal (Tienda vs En línea), top 5 de categorías y tabla de stock crítico. La caja «Pregunta rápida» (escrita o por voz) abre la página de reportes (CU8) con `?q=`.
+* **Nota:** los valores de las tarjetas (`summary.*`) cuentan solo ventas de tienda, mientras que la variación (`comparison`) usa tienda + en línea.
 
 ##### Endpoints Backend
 ```http
-GET /api/dashboard/kpis?branch_id=all&period=month
+GET /api/dashboard?branch_id=<uuid>&from_date=2026-10-11&to_date=2026-11-10&period=day
 Headers: Authorization: Bearer <admin_jwt>
 Response 200 OK:
 {
   "statusCode": 200,
-  "message": "Métricas del dashboard obtenidas",
+  "message": "Dashboard obtenido exitosamente",
   "data": {
-    "total_revenue": 128450.00,
-    "units_sold": 842,
-    "average_ticket": 152.55,
-    "top_products": [ ... ]
+    "filters": { ... },
+    "summary": { "total_sales": "128450.00", "total_orders": 842, "total_units_sold": 1200, "average_ticket": "152.55", "low_stock_items": 4, ... },
+    "sales_series": [ ... ],
+    "movement_series": [ ... ],
+    "movement_by_branch": [ ... ],
+    "branch_kpis": [ ... ],
+    "top_products": [ ... ],
+    "low_stock": [ { "branch_name": "...", "product_name": "...", "variant_sku": "...", "available": 2, "minimum": 5, ... } ],
+    "comparison": { "sales_delta_pct": 12.5, "orders_delta_pct": 8.0, "units_delta_pct": 10.2, "avg_ticket_delta_pct": null },
+    "channel_split": [ { "channel_label": "Tienda", "sales": "100000.00", "orders": 600 }, { "channel_label": "En línea", "sales": "28450.00", "orders": 242 } ],
+    "top_categories": [ { "category_name": "Blusas", "units": 120, "sales": "9000.00" } ]
   }
 }
-
-Response 403 Forbidden:
-{
-  "statusCode": 403,
-  "message": "No tienes permisos para visualizar métricas globales de otras sucursales",
-  "error": "HTTPException"
-}
 ```
+* `comparison`: variación % contra el período previo de igual duración (`null` si no hay base).
+* `low_stock`: criterio disponible <= stock mínimo, máximo 10 filas; `summary.low_stock_items` usa el mismo criterio.
+* `top_categories`: máximo 5. `period` admite `day`, `week` o `month` para agrupar la serie de ventas.
 
 ##### Ubicación en Frontend (Angular)
-* **Página y Vista:** `frontend/src/app/features/admin/pages/admin-home-page.component.ts` (`admin-home-page.component.html`)
+* **Página y Vista:** `frontend/src/app/features/admin/pages/admin-home-page.component.ts` (`admin-home-page.component.html`): tarjetas con insignias ▲/▼, gráfico de dona por canal, barras de categorías, tabla «Stock crítico» y caja «Pregunta rápida».
 * **Servicio API:** `frontend/src/app/features/shared/services/dashboard-api.service.ts`
 * **Ruta Angular:** `/app/admin`
 * **Mensajes en UI:** Muestra datos analíticos y el mensaje de estado de carga proveniente del backend.
 
 ##### Checklist de Implementación
-- [x] Backend: Endpoints de agregación SQL optimizados en `dashboard_routes.py`.
-- [x] Frontend: Tarjetas de KPIs y gráficos analíticos en `admin-home-page`.
-- [x] Verificación: Filtrar métricas por sucursal específica y verificar coincidencia con ventas reales.
+- [x] Backend: Endpoint de agregación `GET /api/dashboard` en `dashboard_routes.py`, con `comparison`, `channel_split`, `top_categories` y `low_stock`.
+- [x] Frontend: Tarjetas de KPIs con variación, dona de canales, barras de categorías, stock crítico y «Pregunta rápida» (texto o voz) en `admin-home-page`.
+- [x] Verificación: pruebas automatizadas en `backend/tests/test_dashboard_metrics.py`.
 
 ---
 
@@ -2196,111 +2310,75 @@ Response 200 OK:
 
 ---
 
-#### CU25 – Registrar ventas y reservas sin conexión (POS Offline)
+#### CU25 – Registrar ventas sin conexión (POS Offline)
 * **Módulo:** M6: Logística y Posventa
-* **Actor Principal:** Cajero (Terminal POS), Cliente
-* **Estado:** Hecho | **Plataforma:** Ambas (Web y Móvil)
-* **Descripción Funcional:** Circuito transaccional de contingencia en terminal de punto de venta (POS) y aplicación móvil ante pérdida total de conexión a internet.
-  1. **Detección y Advertencia:** Escucha reactiva de conectividad. Al perder la red, la interfaz de caja (`caja-page.component.ts`) despliega un banner de advertencia superior en color ámbar (`OfflineIndicatorBannerComponent`): *"Estás trabajando en modo sin conexión. Tus ventas se guardan localmente."*
-  2. **Restricción Estricta de Medios de Pago:** Se bloquean pasarelas externas, transferencias o tarjetas online. Se habilita de manera exclusiva el cobro en **Efectivo / Contado** y la emisión de **Reservas presenciales** de prendas.
-  3. **Persistencia Local Idempotente:** Se genera un identificador local universal (`operation_id` UUIDv4) y la venta o reserva se almacena en el store `pending_operations_queue` de **IndexedDB** (en Web) y **SQLite** (en Móvil) con estado `local_pending`.
-  4. **Comprobante Provisional:** La caja imprime o despliega un comprobante provisional de contingencia con la leyenda oficial: *"Comprobante emitido en contingencia - Pendiente de sincronización"*.
+* **Actor Principal:** Cajero
+* **Estado:** Hecho | **Plataforma:** Web (caja). La app móvil es exclusiva para clientes: allí el cliente puede iniciar una compra sin conexión (ver CU30).
+* **Precondiciones:** El cajero inició sesión y tiene su **caja abierta** (la sesión de caja se guarda localmente para usarla sin red); el catálogo de su sucursal fue descargado (CU23).
+* **Flujo normal:**
+  1. Sin red, la caja muestra el aviso de modo sin conexión. Solo se cobra en **Efectivo / Contado**: las pasarelas (Stripe, QR) necesitan internet y no se guardan datos de tarjeta en el dispositivo.
+  2. El cajero agrega prendas (limitadas por el stock local), registra **nombre del cliente y teléfono o correo** (obligatorios, para ubicarlo si hay que devolverle el dinero) y el efectivo recibido (≥ total).
+  3. Se genera un `operation_id` (UUID v4, clave de idempotencia) y la venta se guarda con estado `local_pending` en IndexedDB `pending_operations_queue` (Web) o en el almacenamiento seguro del dispositivo (Móvil), junto con la sesión de caja, el cajero, las prendas con el precio cobrado, los montos y el cliente.
+  4. Se descuenta el stock local para que la misma caja no venda dos veces la última unidad.
+  5. Se entrega un **comprobante provisional** con la leyenda: *"Sujeto a confirmación de stock. Si no hubiera disponibilidad se le devolverá el importe o se le acreditará en su billetera."*
+* **Postcondición:** la venta queda en la cola local y el dinero en el cajón; nada se pierde aunque se cierre el navegador o la app.
+* **Flujos alternativos:** sin caja abierta → *"Abre tu caja antes de vender sin conexión"*; efectivo insuficiente → no se registra; no se puede cerrar la caja con ventas offline pendientes de sincronizar.
 
-##### Ubicación en Frontend y Móvil
-* **Módulo de Caja POS (Web):** `frontend/src/app/features/cajero/pages/caja-page.component.ts`
-* **Banner de Conexión:** `frontend/src/app/features/shared/components/offline-indicator-banner.component.ts`
-* **Móvil Flutter:** Módulo de contingencia en `mobile/lib/features/cajero/` y `mobile/lib/features/orders/`.
-* **Mensajes en UI:** Banner: `"Estás trabajando en modo sin conexión. Tus ventas se guardan localmente."` Comprobante: `"Comprobante emitido en contingencia"`.
+##### Ubicación
+* **Web:** `frontend/src/app/features/cajero/pages/caja-page.component.ts`, `core/services/offline-queue.service.ts`, `core/services/offline-catalog.service.ts`, `features/cajero/components/offline-provisional-receipt-dialog.component.ts`
+* **Móvil (cliente):** `mobile/lib/core/offline/offline_cart_service.dart`, `mobile/lib/core/offline/offline_checkout_service.dart`, `mobile/lib/features/orders/checkout_page.dart`
 
 ---
 
 #### CU29 – Gestionar cola de operaciones pendientes (Offline Queue)
 * **Módulo:** M6: Logística y Posventa
-* **Actor Principal:** Cajero, Administrador
-* **Estado:** Hecho | **Plataforma:** Ambas (Web y Móvil)
-* **Descripción Funcional:** Panel de control y auditoría de las transacciones retenidas en el almacenamiento local de la terminal o dispositivo (`pending_operations_queue`).
-  1. **Persistencia Garantizada (RNF03 y RNF06):** Los datos en cola sobreviven al reinicio de la computadora, cierre intempestivo del navegador o reinicio de la app móvil.
-  2. **Panel Visual de Cola:** Indicador en la barra superior de la caja con badge de contador: *"X transacciones pendientes de sincronización"*.
-  3. **Detalle de Auditoría:** Modal o vista donde el cajero puede revisar el listado de operaciones offline: `operation_id`, tipo (`sale` o `reservation`), hora de emisión, prendas, cliente y total cobrado en efectivo.
-  4. **Disparador Manual:** Botón "Sincronizar ahora" para forzar el reintento de envío si el cajero observa que la conexión ya responde.
-
-##### Ubicación en Frontend y Móvil
-* **Componente Modal de Cola (Web):** `frontend/src/app/features/cajero/components/offline-queue-modal.component.ts`
-* **Móvil Flutter:** Modal de cola pendiente en `mobile/lib/features/cajero/offline_queue_sheet.dart`.
-* **Mensajes en UI:** Badge: `"{count} pendientes de sincronizar"`. Botón: `"Sincronizar ahora"`.
+* **Actor Principal:** Cajero
+* **Estado:** Hecho | **Plataforma:** Web (caja)
+* **Descripción Funcional:** Panel con las ventas retenidas localmente: comprobante, hora, prendas, cliente, total y estado (`local_pending` pendiente, `rejected` rechazada por el servidor con su motivo). Botón **"Sincronizar ahora"** para forzar el envío. La cola sobrevive a reinicios del navegador o de la app.
+* **Ubicación:** Web `frontend/src/app/features/cajero/components/offline-queue-modal.component.ts`; Móvil `mobile/lib/features/management/offline_queue_page.dart`.
 
 ---
 
-#### CU30 – Sincronizar operaciones offline y resolver conflictos de inventario
+#### CU30 – Sincronizar ventas offline y resolver conflictos de inventario
 * **Módulo:** M6: Logística y Posventa
-* **Actor Principal:** Cajero, Administrador, Sistema, Cliente
-* **Estado:** Hecho | **Plataforma:** Ambas (Web y Móvil)
-* **Descripción Funcional:** Circuito transaccional de sincronización en lote, detección de colisiones de inventario y protocolos de compensación.
-  1. **Despacho Automático e Idempotente (`POST /api/offline/queue-sync`):** Al detectar restablecimiento de red (`online`), el despachador background envía el lote de transacciones acumuladas. El backend valida cada `operation_id` para garantizar idempotencia y descontar stock atómicamente.
-  2. **Detección de Colisión de Stock:** Si mientras la caja estuvo desconectada el inventario de una prenda fue vendido por la web o en otra sucursal, el servidor rechaza esa operación con código `conflict_rejected` / `inventory_collision`, procesando las restantes operaciones válidas del lote.
-  3. **Consola de Resolución para el Cajero (`/app/cajero/offline-conflicts`):** Vista especializada que resalta las ventas rechazadas en rojo con diagnóstico del quiebre.
-  4. **Protocolos de Compensación (`POST /api/offline/conflicts/{operation_id}/resolve`):** El cajero selecciona una de las 3 vías oficiales:
-     * **Vía A (Devolución física de efectivo):** Se anula la orden y se emite recibo de egreso de caja.
-     * **Vía B (Acreditación en Store Wallet + Bono 10%):** Se acredita el 100% de lo pagado en la billetera virtual del cliente con un 10% de cortesía compensatoria.
-     * **Vía C (Ajuste por rotura de stock):** Si la prenda ya fue entregada físicamente antes de reconectar, se registra un ajuste forzado de stock negativo para control del Administrador.
-  5. **Notificación Multicanal:** Despacho de alerta por correo y push al cliente informando la solución adoptada.
+* **Actores:** Cajero, Encargado, Administrador
+* **Estado:** Hecho | **Plataforma:** Web (caja y consola de conflictos) y Móvil (compra del cliente sin conexión)
+* **Disparadores:** evento `online` del navegador y arranque de la app web; en el celular, al volver la conexión la app reenvía el carrito guardado y abre el pago; botón "Sincronizar ahora".
 
-##### Endpoints Backend
-```http
-POST /api/offline/queue-sync
-Headers: Authorization: Bearer <jwt>
-Request Body:
-{
-  "queued_operations": [
-    {
-      "operation_id": "op_local_01",
-      "entity": "sale",
-      "action": "create",
-      "payload": {
-        "branch_id": "b1",
-        "items": [{ "variant_id": "v1", "quantity": 1, "unit_price": 180.0 }],
-        "total_amount": 180.0,
-        "payment_method": "cash",
-        "created_at_offline": "2026-04-10T11:20:00Z"
-      }
-    }
-  ]
-}
-Response 200 OK:
-{
-  "statusCode": 200,
-  "message": "Sincronización completada. Se procesaron 1 operaciones locales.",
-  "data": { "processed_count": 1, "conflicts": [] }
-}
-```
-```http
-POST /api/offline/conflicts/{operation_id}/resolve
-Headers: Authorization: Bearer <cajero_jwt>
-Request Body:
-{
-  "resolution_type": "store_credit",
-  "refund_amount": 180.0,
-  "client_id": "usr_9912",
-  "reason": "inventory_collision_out_of_stock",
-  "notes": "Cliente aceptó acreditación en billetera virtual con 10% adicional"
-}
-Response 200 OK:
-{
-  "statusCode": 200,
-  "message": "Conflicto resuelto. Saldo compensatorio acreditado y notificación enviada al cliente.",
-  "data": {
-    "operation_id": "op_98124",
-    "status": "resolved_compensated",
-    "wallet_credited": 198.0
-  }
-}
-```
+##### Regla: ¿quién se lleva la última prenda?
+**Una cola ordenada por la hora en que ocurrió cada operación offline**, no por quién recupera internet primero:
+* Caja: la hora en que el cajero cobró. Celular: la hora en que el cliente presionó "Comprar" (y en que agregó la prenda al carrito) sin conexión.
+* Si una operación más temprana llega y la prenda ya no está, **la recupera de quien la tomó más tarde** sin conexión:
+  * una venta de caja posterior se convierte en **conflicto** ("Desplazada…") y su cajero devuelve o compensa al cliente; el efectivo pasa de "venta" a "retenido" en la misma caja;
+  * un pedido del celular posterior y **todavía sin pagar** se cancela: **no se le cobra nada** y recibe la notificación *"Otra persona compró antes que tú"*.
+* Si el cliente del celular fue el segundo, al reconectar no se abre el pago: ve *"Otra persona compró esta prenda antes que tú. No se te cobró nada."*
+* **Lo pagado en línea con Stripe en tiempo real es definitivo**: nunca se desplaza; la operación offline queda en conflicto.
+* El backend bloquea las filas de inventario (`SELECT … FOR UPDATE`). Solo se confía en horas del dispositivo entre *ahora − 2 días* y *ahora + 5 min*; fuera de ese rango la operación no tiene prioridad.
 
-##### Ubicación en Frontend y Móvil
-* **Servicio de Sincronización:** `frontend/src/app/core/services/offline-sync.service.ts`
-* **Consola de Conflictos Web:** `frontend/src/app/features/cajero/pages/offline-conflicts-page.component.ts`
-* **Móvil Flutter:** `mobile/lib/features/cajero/offline_conflicts_page.dart`
-* **Mensajes en UI:** Toast: `"Sincronización completada. Se procesaron 1 operaciones locales."`. Alerta: `"Se detectaron colisiones de inventario. Abrir consola de resolución."`
+##### Flujo de sincronización (`POST /api/offline/queue-sync`, rol cajero)
+1. Por cada venta (en su propia transacción): si su `operation_id` ya existe como venta o conflicto, no se repite (**idempotencia**, columna única `sales.offline_operation_id`).
+2. Se valida que la sucursal sea la del cajero, que las prendas sean de la empresa, que el total = Σ precio cobrado × cantidad y que el efectivo recibido cubra el total.
+3. **Hay stock:** se crea la venta (efectivo, pagada), se descuenta el inventario, se registra el movimiento y el cobro entra a la **sesión de caja** donde se hizo la venta.
+4. **No hay stock (o datos inconsistentes):** se guarda un **conflicto** en `offline_sale_conflicts` con el monto, las prendas, el cliente y el motivo. El efectivo entra a la caja como movimiento **`held` (retenido)**, para que el arqueo cuadre con el dinero físico. Se notifica al administrador y al encargado.
+5. Respuesta: `synced_ids`, `conflicts`, `rejected` (otra sucursal o tipo no soportado), `without_drawer`.
+
+##### Resolución (`POST /api/offline/conflicts/{id}/resolve`, una sola vez)
+Primera pregunta: **"¿La prenda ya fue entregada al cliente?"**
+
+| Vía | Cuándo | Qué registra el sistema |
+|---|---|---|
+| **Entregada** (`delivered`) | El cliente ya se llevó la prenda (había 2 físicas) | Se crea la venta; inventario: ajuste `income` +1 y `outcome` −1 (neto 0); aviso al administrador para conteo físico |
+| **Devolver efectivo** (`cash_refund`) | No se entregó; el cliente quiere su dinero | Retiro de la caja abierta del que resuelve (misma sucursal, con efectivo suficiente) y comprobante `DEV-<comprobante>` |
+| **Billetera +10 %** (`wallet_credit`) | No se entregó; acepta saldo | 110 % acreditado a la billetera del cliente registrado (por correo); el efectivo queda en caja |
+| **Cambio** (`exchange`) | Hay otra prenda disponible | Venta con la prenda nueva; si es más cara se cobra la diferencia en efectivo, si es más barata se devuelve en efectivo o billetera |
+
+Un conflicto ya resuelto devuelve 409 *"Este conflicto ya fue resuelto"*. `GET /api/offline/conflicts?status=pending|resolved|all` lista los conflictos y el **dinero pendiente de resolución** (`pending_total`).
+
+##### Ubicación
+* **Backend:** `backend/app/services/offline_sync_service.py`, `backend/app/routes/offline_routes.py`, `backend/app/models/offline_conflict.py`, migración `0055_offline_sale_conflicts.py`
+* **Web:** `frontend/src/app/core/services/offline-sync.service.ts`, `frontend/src/app/features/cajero/pages/offline-conflicts-page.component.ts`
+* **Móvil (cliente):** `mobile/lib/core/offline/offline_cart_service.dart` y `mobile/lib/features/orders/checkout_page.dart` envían `offline_requested_at`; backend `order_service._new_order` y `cart_service.add_cart_item` aplican la cola.
+* **Pruebas:** `backend/tests/test_offline_routes.py` (15 pruebas: última unidad en dos cajas, la venta más temprana recupera la prenda aunque sincronice después, pedido del celular primero o segundo, pedido pagado en línea es definitivo, hora fuera de rango, idempotencia, cada vía de resolución y el cuadre de caja)
 
 ---
 

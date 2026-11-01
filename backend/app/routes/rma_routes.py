@@ -25,6 +25,7 @@ router = APIRouter(prefix="/rma", tags=["RMA - Cambios y Devoluciones"])
 
 
 # [CU21 - Secuencia: Paso 1.1] RmaHistoryPageComponent llama a get_eligible_orders_endpoint() de rma_routes (GET /api/rma/eligible-orders)
+# [CU21 - Secuencia: Paso 1.4] rma_routes retorna get_eligible_orders_endpoint(): 200 Órdenes elegibles para cambio o devolución obtenidas a RmaHistoryPageComponent
 @router.get("/eligible-orders")
 async def get_eligible_orders_endpoint(
     db: Session = Depends(get_db),
@@ -41,6 +42,7 @@ async def get_eligible_orders_endpoint(
 
 
 # [CU21 - Secuencia: Paso 2.1] RmaHistoryPageComponent llama a create_rma_request_endpoint(payload) de rma_routes (POST /api/rma/requests)
+# [CU21 - Secuencia: Paso 2.8] rma_routes retorna create_rma_request_endpoint(payload): 201 Solicitud de cambio/devolución registrada exitosamente a RmaHistoryPageComponent
 @router.post("/requests", status_code=status.HTTP_201_CREATED)
 async def create_rma_request_endpoint(
     payload: RmaRequestCreate,
@@ -58,7 +60,9 @@ async def create_rma_request_endpoint(
 
 
 # [CU21 - Secuencia: Paso 2.9] RmaHistoryPageComponent llama a list_rma_requests_endpoint(status_filter) de rma_routes (GET /api/rma/requests)
+# [CU21 - Secuencia: Paso 2.14] rma_routes retorna list_rma_requests_endpoint(status_filter): 200 Solicitudes de devolución obtenidas a RmaHistoryPageComponent
 # [CU21 - Secuencia: Pasos 3.1, 4.15, 5.9] RmaReviewPageComponent llama a list_rma_requests_endpoint(status_filter) de rma_routes (GET /api/rma/requests)
+# [CU21 - Secuencia: Pasos 3.6, 4.20, 5.14] rma_routes retorna list_rma_requests_endpoint(status_filter): 200 Solicitudes de devolución obtenidas a RmaReviewPageComponent
 @router.get("/requests")
 async def list_rma_requests_endpoint(
     status_filter: str | None = Query(None, alias="status"),
@@ -92,6 +96,7 @@ async def get_rma_request_endpoint(
 
 
 # [CU21 - Secuencia: Paso 2.15] RmaHistoryPageComponent llama a download_rma_pdf_endpoint(rma_id) de rma_routes (GET /api/rma/requests/{rma_id}/pdf)
+# [CU21 - Secuencia: Paso 2.20] rma_routes retorna download_rma_pdf_endpoint(rma_id): Response a RmaHistoryPageComponent
 @router.get("/requests/{rma_id}/pdf")
 async def download_rma_pdf_endpoint(
     rma_id: UUID,
@@ -122,7 +127,9 @@ async def download_rma_pdf_endpoint(
 
 
 # [CU21 - Secuencia: Paso 4.1] RmaReviewPageComponent llama a review_rma_item_endpoint(rma_id, rma_item_id, payload) de rma_routes (PATCH /api/rma/requests/{rma_id}/items/{rma_item_id}/review)
+# [CU21 - Secuencia: Paso 4.14] rma_routes retorna review_rma_item_endpoint(rma_id, rma_item_id, payload): 200 Ítem de RMA dictaminado exitosamente a RmaReviewPageComponent
 # [CU24 - Secuencia: Paso 1.1] RmaReviewPageComponent llama a review_rma_item_endpoint(rma_id, rma_item_id, payload) de rma_routes (PATCH /api/rma/requests/{rma_id}/items/{rma_item_id}/review)
+# [CU24 - Secuencia: Paso 1.14] rma_routes retorna review_rma_item_endpoint(rma_id, rma_item_id, payload): 200 Ítem de RMA dictaminado exitosamente a RmaReviewPageComponent
 @router.patch("/requests/{rma_id}/items/{rma_item_id}/review")
 async def review_rma_item_endpoint(
     rma_id: UUID,
@@ -150,6 +157,7 @@ async def review_rma_item_endpoint(
 
 
 # [CU21 - Secuencia: Paso 5.1] RmaReviewPageComponent llama a settle_monthly_wallets_endpoint() de rma_routes (POST /api/rma/settle-monthly-wallets)
+# [CU21 - Secuencia: Paso 5.8] rma_routes retorna settle_monthly_wallets_endpoint(): 200 Liquidación mensual de billeteras procesada exitosamente a RmaReviewPageComponent
 @router.post("/settle-monthly-wallets")
 async def settle_monthly_wallets_endpoint(
     db: Session = Depends(get_db),

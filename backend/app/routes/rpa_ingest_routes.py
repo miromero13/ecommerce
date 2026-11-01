@@ -30,6 +30,7 @@ def _job(db: Session, job_id: UUID, user: dict, tenant_id: UUID):
 
 
 # [CU10 - Secuencia: Paso 1.1] ProviderRpaIngestPageComponent llama a upload_document_route(background, file) de rpa_ingest_routes (POST /api/rpa/ingest/upload-document)
+# [CU10 - Secuencia: Paso 1.4] rpa_ingest_routes retorna upload_document_route(background, file): 202 Documento recibido. Extracción RPA en proceso. a ProviderRpaIngestPageComponent
 @router.post("/upload-document", status_code=status.HTTP_202_ACCEPTED)
 async def upload_document_route(
     background: BackgroundTasks,
@@ -52,6 +53,7 @@ async def upload_document_route(
 
 
 # [CU10 - Secuencia: Pasos 1.5, 2.5, 4.7] ProviderRpaIngestPageComponent llama a list_jobs_route() de rpa_ingest_routes (GET /api/rpa/ingest/jobs)
+# [CU10 - Secuencia: Pasos 1.10, 2.10, 4.12] rpa_ingest_routes retorna list_jobs_route(): 200 Documentos obtenidos a ProviderRpaIngestPageComponent
 @router.get("/jobs")
 def list_jobs_route(db: Session = Depends(get_db), user: dict = Depends(UPLOADERS),
                     tenant_id: UUID = Depends(get_current_tenant_id)):
@@ -61,6 +63,7 @@ def list_jobs_route(db: Session = Depends(get_db), user: dict = Depends(UPLOADER
 
 
 # [CU10 - Secuencia: Pasos 1.11, 2.1] ProviderRpaIngestPageComponent llama a get_job_route(job_id) de rpa_ingest_routes (GET /api/rpa/ingest/jobs/{job_id})
+# [CU10 - Secuencia: Pasos 1.14, 2.4] rpa_ingest_routes retorna get_job_route(job_id): 200 Resultado de extracción obtenido a ProviderRpaIngestPageComponent
 @router.get("/jobs/{job_id}")
 def get_job_route(job_id: UUID, db: Session = Depends(get_db), user: dict = Depends(UPLOADERS),
                   tenant_id: UUID = Depends(get_current_tenant_id)):
@@ -71,6 +74,7 @@ def get_job_route(job_id: UUID, db: Session = Depends(get_db), user: dict = Depe
 
 
 # [CU10 - Secuencia: Paso 3.1] ProviderRpaIngestPageComponent llama a correct_items_route(job_id, payload) de rpa_ingest_routes (PATCH /api/rpa/ingest/jobs/{job_id}/items)
+# [CU10 - Secuencia: Paso 3.6] rpa_ingest_routes retorna correct_items_route(job_id, payload): 200 Ítems del documento actualizados a ProviderRpaIngestPageComponent
 @router.patch("/jobs/{job_id}/items")
 def correct_items_route(job_id: UUID, payload: ItemsCorrection, db: Session = Depends(get_db),
                         user: dict = Depends(UPLOADERS), tenant_id: UUID = Depends(get_current_tenant_id)):
@@ -85,6 +89,7 @@ def correct_items_route(job_id: UUID, payload: ItemsCorrection, db: Session = De
 
 
 # [CU10 - Secuencia: Paso 4.1] ProviderRpaIngestPageComponent llama a commit_job_route(job_id, payload) de rpa_ingest_routes (POST /api/rpa/ingest/jobs/{job_id}/commit)
+# [CU10 - Secuencia: Paso 4.6] rpa_ingest_routes retorna commit_job_route(job_id, payload): 201 Mercadería ingresada al inventario y catálogo sincronizado exitosamente a ProviderRpaIngestPageComponent
 @router.post("/jobs/{job_id}/commit", status_code=status.HTTP_201_CREATED)
 def commit_job_route(job_id: UUID, payload: JobCommit, db: Session = Depends(get_db),
                      user: dict = Depends(COMMITTERS), tenant_id: UUID = Depends(get_current_tenant_id)):

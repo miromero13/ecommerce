@@ -1,5 +1,6 @@
 enum CartStatus {
   active('active'),
+  checkoutPending('checkout_pending'),
   checkedOut('checked_out'),
   cancelled('cancelled');
 
@@ -92,6 +93,8 @@ class Cart {
     this.branchId,
     this.branchName,
     this.updatedAt,
+    this.pendingOrderId,
+    this.pendingOrderExpiresAt,
   });
 
   final String id;
@@ -110,6 +113,11 @@ class Cart {
   final String? tenantName;
   final String? branchId;
   final String? branchName;
+  final String? pendingOrderId;
+  final DateTime? pendingOrderExpiresAt;
+
+  /// An order is waiting for payment: the server rejects any cart change.
+  bool get isLocked => status == CartStatus.checkoutPending;
 
   factory Cart.fromJson(Map<String, dynamic> json) {
     final rawItems = json['items'];
@@ -133,6 +141,8 @@ class Cart {
       tenantName: _optionalString(json, 'tenant_name'),
       branchId: _optionalString(json, 'branch_id'),
       branchName: _optionalString(json, 'branch_name'),
+      pendingOrderId: _optionalString(json, 'pending_order_id'),
+      pendingOrderExpiresAt: _optionalDateTime(json, 'pending_order_expires_at'),
       items: rawItems
           .map((item) {
             if (item is! Map) {

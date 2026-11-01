@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, ElementRef, ViewChild, inject, signal } from '@angular/core';
+import { Component, DestroyRef, ElementRef, ViewChild, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { Stripe, StripeElements, StripePaymentElement, loadStripe } from '@stripe/stripe-js';
@@ -108,7 +108,26 @@ export class CartPageComponent {
   // Wizard steps on right aside (web only): resumen | entrega | pago
   protected readonly checkoutStep = signal<'resumen' | 'entrega' | 'pago'>('resumen');
 
+  // Carrito bloqueado por un pedido pendiente de pago (el servidor es la fuente de verdad).
+  protected readonly locked = computed(() => this.cart()?.status === 'checkout_pending');
+  private readonly now = signal(Date.now());
+  protected readonly pendingMinutes = computed(() => {
+    const expires = this.cart()?.pending_order_expires_at;
+    return expires ? Math.max(0, Math.ceil((new Date(expires).getTime() - this.now()) / 60000)) : 0;
+  });
+  protected readonly pendingTime = computed(() => {
+    const expires = this.cart()?.pending_order_expires_at;
+    return expires ? new Date(expires).toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
+  });
+
   constructor() {
+    // Cuenta regresiva del pedido pendiente: se actualiza cada 30 s y, al vencer, se recarga el carrito.
+    const timer = setInterval(() => {
+      this.now.set(Date.now());
+      const expires = this.cart()?.pending_order_expires_at;
+      if (this.locked() && expires && new Date(expires).getTime() <= Date.now()) void this.loadCart();
+    }, 30000);
+    inject(DestroyRef).onDestroy(() => clearInterval(timer));
     // Pickup branches belong to the cart's company, so they load after the cart.
     void this.loadCart().then(() => this.loadBranches());
     window.addEventListener('offline', this.onConnectionChange);
@@ -181,8 +200,8 @@ export class CartPageComponent {
         { loading: 'Eliminando item...', success: 'Item eliminado.', error: 'No se pudo eliminar el item.' },
       );
       this.cart.set(response.data ?? null);
-    } catch {
-      // toast handled by requestWithToast
+    } catch (error) {
+      this.reloadIfLocked(error); // toast handled by requestWithToast
     } finally {
       this.updatingItemId.set(null);
     }
@@ -196,8 +215,8 @@ export class CartPageComponent {
       );
       this.clearCartBranch();
       this.cart.set(response.data ?? null);
-    } catch {
-      // toast handled by requestWithToast
+    } catch (error) {
+      this.reloadIfLocked(error); // toast handled by requestWithToast
     }
   }
 
@@ -214,8 +233,8 @@ export class CartPageComponent {
         { loading: 'Aplicando cupón...', success: 'Cupón aplicado.', error: 'No se pudo aplicar el cupón.' },
       );
       this.cart.set(response.data ?? null);
-    } catch {
-      // toast handled by requestWithToast
+    } catch (error) {
+      this.reloadIfLocked(error); // toast handled by requestWithToast
     }
   }
 
@@ -227,8 +246,8 @@ export class CartPageComponent {
         { loading: 'Retirando cupón...', success: 'Cupón retirado.', error: 'No se pudo retirar el cupón.' },
       );
       this.cart.set(response.data ?? null);
-    } catch {
-      // toast handled by requestWithToast
+    } catch (error) {
+      this.reloadIfLocked(error); // toast handled by requestWithToast
     }
   }
 
@@ -267,7 +286,7 @@ export class CartPageComponent {
         await this.loadCart();
         void this.loadWallet();
       } else {
-        await this.startStripeCheckout(pickupBranchId, delivery);
+        await this.startStripeCheckout(() => this.checkoutApi.checkoutStripe({ pickup_branch_id: pickupBranchId, delivery, points_to_redeem: this.pointsToRedeem() }));
         await this.loadCart();
       }
     } catch {
@@ -429,6 +448,40 @@ export class CartPageComponent {
     } finally {
       this.checkingOut.set(false);
     }
+    await this.loadCart(); // el servidor vacía el carrito si se pagó o lo desbloquea si falló
+  }
+
+  /** Reanuda el pago del pedido pendiente: misma confirmación Stripe que un checkout nuevo. */
+  protected async continuePendingPayment(): Promise<void> {
+    const orderId = this.cart()?.pending_order_id;
+    if (!orderId || !this.requireConnection()) return;
+    this.checkingOut.set(true);
+    try {
+      await this.startStripeCheckout(() => this.checkoutApi.payPendingOrder(orderId));
+      if (this.stripeCheckout()) this.checkoutStep.set('pago');
+    } catch {
+      // requestWithToast already showed the error.
+    } finally {
+      this.checkingOut.set(false);
+    }
+    await this.loadCart();
+  }
+
+  protected async cancelPendingOrder(): Promise<void> {
+    const orderId = this.cart()?.pending_order_id;
+    if (!orderId || !confirm('¿Cancelar el pedido pendiente? Tu carrito se conserva.')) return;
+    try {
+      await requestWithToast(this.checkoutApi.cancelOrder(orderId), { loading: 'Cancelando pedido...', success: 'Pedido cancelado', error: 'No se pudo cancelar el pedido.' });
+      this.clearStripeCheckout();
+    } catch {
+      // requestWithToast already showed the error.
+    }
+    await this.loadCart();
+  }
+
+  /** Si el servidor rechazó la edición por el bloqueo de pedido pendiente, se recarga para reflejarlo (sin reintentar). */
+  private reloadIfLocked(error: unknown): void {
+    if (getErrorMessage(error, '').includes('pedido pendiente de pago')) void this.loadCart();
   }
 
   private async loadCart(): Promise<void> {
@@ -437,6 +490,7 @@ export class CartPageComponent {
       await this.offlineCart.syncPending(); // CU30: primero se envían las prendas guardadas sin conexión
       const response = await firstValueFrom(this.cartApi.getCurrentCart());
       this.cart.set(response.data ?? null);
+      if (!this.locked()) this.offlineCart.cartUnlocked();
       void this.loadPoints();
     } catch (error) {
       // Sin conexión se conserva el último carrito cargado y se muestran las prendas pendientes.
@@ -504,7 +558,7 @@ export class CartPageComponent {
         : (branchList.some((b) => b.id === this.cartBranchId()) ? this.cartBranchId() : '');
       const chosen = preferred || (branchList.length === 1 ? branchList[0].id : '');
       this.pickupBranchId.set(chosen);
-      if (chosen && chosen !== this.cart()?.branch_id) {
+      if (chosen && chosen !== this.cart()?.branch_id && !this.locked()) {
         void this.syncCartBranch(chosen, false);
       }
     } catch (error) {
@@ -534,6 +588,7 @@ export class CartPageComponent {
       }
     } catch (error) {
       toast.error(getErrorMessage(error, 'No se pudo actualizar la sucursal del carrito.'));
+      this.reloadIfLocked(error);
     }
   }
 
@@ -572,7 +627,7 @@ export class CartPageComponent {
     this.pickupBranchId.set('');
   }
 
-  private async startStripeCheckout(pickupBranchId: string, delivery?: DeliveryAddress): Promise<void> {
+  private async startStripeCheckout(start: () => ReturnType<CheckoutApiService['checkoutStripe']>): Promise<void> {
     if (!environment.stripePublishableKey) {
       toast.error('Stripe no está configurado para esta aplicación.');
       return;
@@ -588,7 +643,7 @@ export class CartPageComponent {
       return;
     }
     const response = await requestWithToast(
-      this.checkoutApi.checkoutStripe({ pickup_branch_id: pickupBranchId, delivery, points_to_redeem: this.pointsToRedeem() }),
+      start(),
       { loading: 'Iniciando Stripe...', success: 'Completa los datos de tu tarjeta.', error: 'No se pudo iniciar Stripe.' },
     );
     const checkout = response.data;
@@ -620,8 +675,8 @@ export class CartPageComponent {
         { loading: 'Actualizando carrito...', success: 'Carrito actualizado.', error: 'No se pudo actualizar el carrito.' },
       );
       this.cart.set(response.data ?? null);
-    } catch {
-      // toast handled by requestWithToast
+    } catch (error) {
+      this.reloadIfLocked(error); // toast handled by requestWithToast
     } finally {
       this.updatingItemId.set(null);
     }

@@ -209,6 +209,8 @@ REVISADOS = {
     "services.notification_delivery.deliver_notification": "Notification",  # entrega por push esa notificacion
     "services.notification_delivery.notify_low_stock": "Inventory",         # evalua el stock de ese inventario
     "services.replenishment_service._read_request": "ReplenishmentRequest",  # arma la lectura de esa solicitud
+    "services.analytics_service.run_query": "Sale",            # agrega las ventas (Sale UNION Order) del periodo
+    "services.analytics_service._stock_query": "Inventory",    # reportes de existencias / stock critico / movimientos
 }
 
 

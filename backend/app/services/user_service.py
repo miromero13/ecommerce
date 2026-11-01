@@ -59,6 +59,7 @@ def create_user(db: Session, user: UserCreate) -> User:
 
 
 # [CU03 - Secuencia: Paso 3.4] user_routes invoca _validate_staff_branch(branch_id, tenant_id) sobre la entidad Sucursal
+# [CU03 - Secuencia: Paso 3.5] Sucursal retorna _validate_staff_branch(branch_id, tenant_id): None a user_routes
 def _validate_staff_branch(db: Session, branch_id: UUID, tenant_id: UUID) -> None:
     branch = db.query(Branch).filter(
         Branch.id == branch_id, Branch.is_active.is_(True), Branch.tenant_id == tenant_id,
@@ -68,6 +69,7 @@ def _validate_staff_branch(db: Session, branch_id: UUID, tenant_id: UUID) -> Non
 
 
 # [CU03 - Secuencia: Paso 3.2] user_routes invoca create_admin_user(user, tenant_id) sobre la entidad Usuario
+# [CU03 - Secuencia: Paso 3.3] Usuario retorna create_admin_user(user, tenant_id): User a user_routes
 def create_admin_user(db: Session, user: AdminUserCreate, tenant_id: UUID | None = None) -> User:
     scoped_roles = {RolEnum.encargado, RolEnum.cajero}
     if user.rol == RolEnum.delivery:

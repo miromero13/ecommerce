@@ -1,4 +1,5 @@
 from enum import Enum
+from datetime import datetime
 
 from uuid import UUID
 
@@ -16,6 +17,8 @@ class StripePaymentRequest(BaseModel):
     pickup_branch_id: UUID
     delivery: DeliveryAddress | None = None
     points_to_redeem: int = Field(default=0, ge=0)
+    # CU30: when the customer pressed "Comprar" without internet (place in the offline queue).
+    offline_requested_at: datetime | None = None
 
 
 class StripeCheckoutResponse(BaseModel):

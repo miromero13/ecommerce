@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
 class AppVariantOption {
-  const AppVariantOption({required this.id, required this.label});
+  const AppVariantOption({required this.id, required this.label, this.enabled = true});
 
   final String id;
   final String label;
+  final bool enabled; // false = sold out in this branch: visible but not selectable
 }
 
 class AppVariantSelector extends StatelessWidget {
@@ -34,13 +35,13 @@ class AppVariantSelector extends StatelessWidget {
                     .toDouble(),
               ),
               child: Text(
-                option.label,
+                option.enabled ? option.label : '${option.label} · Agotado',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
             selected: option.id == selectedId,
-            onSelected: (_) => onChanged(option.id),
+            onSelected: option.enabled ? (_) => onChanged(option.id) : null,
           ),
       ],
     );

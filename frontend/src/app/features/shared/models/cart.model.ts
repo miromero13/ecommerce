@@ -27,7 +27,10 @@ export interface Cart {
   tenant_name?: string | null;
   branch_id?: string | null;
   branch_name?: string | null;
-  status: 'active' | 'checked_out' | 'cancelled';
+  status: 'active' | 'checkout_pending' | 'checked_out' | 'cancelled';
+  /** Pedido pendiente de pago: mientras exista, el carrito está bloqueado. */
+  pending_order_id?: string | null;
+  pending_order_expires_at?: string | null;
   subtotal: string;
   discount_amount: string;
   promotion_code_id?: string | null;

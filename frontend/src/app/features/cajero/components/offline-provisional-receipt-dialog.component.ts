@@ -61,6 +61,22 @@ import { OfflineOperation } from '../../../core/services/offline-queue.service';
                 <span class="font-medium">{{ operation.cashier_name || 'Cajero' }}</span>
               </div>
               <div class="flex justify-between">
+                <span class="text-zinc-500">Cliente:</span>
+                <span class="font-medium">{{ operation.customer_name }}</span>
+              </div>
+              @if (operation.customer_phone) {
+                <div class="flex justify-between">
+                  <span class="text-zinc-500">Teléfono:</span>
+                  <span>{{ operation.customer_phone }}</span>
+                </div>
+              }
+              @if (operation.customer_email) {
+                <div class="flex justify-between">
+                  <span class="text-zinc-500">Correo:</span>
+                  <span>{{ operation.customer_email }}</span>
+                </div>
+              }
+              <div class="flex justify-between">
                 <span class="text-zinc-500">Modalidad:</span>
                 <span class="font-bold text-emerald-600 dark:text-emerald-400 uppercase">
                   {{ operation.type === 'cash_sale' ? 'Venta al Contado (Efectivo)' : 'Reserva Presencial' }}
@@ -126,6 +142,7 @@ import { OfflineOperation } from '../../../core/services/offline-queue.service';
             <!-- Leyenda legal de contingencia -->
             <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-900 dark:text-amber-200 leading-relaxed">
               <strong>Aviso de Contingencia:</strong> Este documento acredita la operación comercial realizada fuera de línea. La transacción ha quedado resguardada de forma inmutable en la cola local de esta terminal y será sincronizada y consolidada con el servidor central de FashionStore al restablecer la red.
+              <p class="mt-1.5 font-semibold">Sujeto a confirmación de stock. Si no hubiera disponibilidad se le devolverá el importe o se le acreditará en su billetera.</p>
             </div>
           </div>
 

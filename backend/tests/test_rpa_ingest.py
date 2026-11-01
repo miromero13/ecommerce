@@ -73,6 +73,13 @@ def test_document_without_items_fails_with_422(rpa, api_db, market):
              "No se pudieron reconocer ítems válidos en el documento suministrado")
 
 
+def test_document_without_company_skus_fails_with_422(rpa, api_db, market):
+    market.extracted = market.extracted[1:]  # only a SKU this company does not sell
+    job_id = upload(rpa, market.supplier).json()["data"]["job_id"]
+    rejected(rpa, api_db, market.supplier, "GET", f"/rpa/ingest/jobs/{job_id}", 422,
+             "Ninguna prenda del documento coincide con un SKU activo del catálogo de esta empresa")
+
+
 def test_manager_commits_recognized_items_once(rpa, api_db, market):
     job_id = upload(rpa, market.supplier).json()["data"]["job_id"]
     before = stock(api_db, market)

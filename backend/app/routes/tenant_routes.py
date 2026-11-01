@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 # [CU01 - Secuencia: Pasos 1.1, 3.15, 4.7, 6.11] TenantManagementPageComponent llama a list_tenants_route(skip, limit, search, status_filter) de tenant_routes (GET /api/saas/tenants/)
+# [CU01 - Secuencia: Pasos 1.6, 3.20, 4.12, 6.16] tenant_routes retorna list_tenants_route(skip, limit, search, status_filter): 200 Empresas obtenidas exitosamente a TenantManagementPageComponent
 @router.get("/")
 async def list_tenants_route(
     skip: int = Query(0, ge=0),
@@ -124,6 +125,7 @@ async def get_tenant_route(
 
 
 # [CU01 - Secuencia: Paso 6.1] TenantManagementPageComponent llama a register_tenant_admin_route(tenant_id, payload) de tenant_routes (POST /api/saas/tenants/{tenant_id}/admin)
+# [CU01 - Secuencia: Paso 6.10] tenant_routes retorna register_tenant_admin_route(tenant_id, payload): 201 Administrador registrado exitosamente a TenantManagementPageComponent
 @router.post("/{tenant_id}/admin", status_code=status.HTTP_201_CREATED)
 async def register_tenant_admin_route(
     tenant_id: UUID,
@@ -141,6 +143,7 @@ async def register_tenant_admin_route(
 
 
 # [CU01 - Secuencia: Paso 5.1] TenantManagementPageComponent llama a open_tenant_panel_route(tenant_id) de tenant_routes (POST /api/saas/tenants/{tenant_id}/panel-session)
+# [CU01 - Secuencia: Paso 5.8] tenant_routes retorna open_tenant_panel_route(tenant_id): 200 Ingresaste al panel de ... a TenantManagementPageComponent
 @router.post("/{tenant_id}/panel-session")
 async def open_tenant_panel_route(
     tenant_id: UUID,
@@ -161,6 +164,7 @@ async def open_tenant_panel_route(
 
 
 # [CU26 - Secuencia: Pasos 1.1, 4.1] TenantBrandingEditorComponent llama a update_tenant_route(tenant_id, payload) de tenant_routes (PATCH /api/saas/tenants/{tenant_id})
+# [CU26 - Secuencia: Pasos 1.6, 4.6] tenant_routes retorna update_tenant_route(tenant_id, payload): 200 Empresa actualizada exitosamente a TenantBrandingEditorComponent
 @router.patch("/{tenant_id}")
 async def update_tenant_route(
     tenant_id: UUID,
@@ -190,6 +194,7 @@ async def update_tenant_route(
 
 
 # [CU01 - Secuencia: Paso 4.1] TenantManagementPageComponent llama a update_tenant_status_route(tenant_id, payload) de tenant_routes (PATCH /api/saas/tenants/{tenant_id}/status)
+# [CU01 - Secuencia: Paso 4.6] tenant_routes retorna update_tenant_status_route(tenant_id, payload): 200 Estado de empresa actualizado exitosamente a TenantManagementPageComponent
 @router.patch("/{tenant_id}/status")
 async def update_tenant_status_route(
     tenant_id: UUID,
@@ -227,6 +232,7 @@ async def _save_logo(db: Session, tenant_id: UUID, file: UploadFile) -> dict:
 
 
 # [CU26 - Secuencia: Pasos 1.13, 2.1, 3.1, 4.13] TenantBrandingEditorComponent llama a get_branding_route(tenant_id) de tenant_routes (GET /api/saas/tenants/{tenant_id}/branding)
+# [CU26 - Secuencia: Pasos 1.18, 2.6, 3.6, 4.18] tenant_routes retorna get_branding_route(tenant_id): 200 Marca de la empresa obtenida a TenantBrandingEditorComponent
 @router.get("/{tenant_id}/branding")
 async def get_branding_route(tenant_id: UUID, db: Session = Depends(get_db)):
     branding = get_branding(db, tenant_id)
@@ -236,6 +242,7 @@ async def get_branding_route(tenant_id: UUID, db: Session = Depends(get_db)):
 
 
 # [CU26 - Secuencia: Pasos 1.7, 4.7] TenantBrandingEditorComponent llama a update_my_branding_route(payload) de tenant_routes (PUT /api/saas/tenants/me/branding)
+# [CU26 - Secuencia: Pasos 1.12, 4.12] tenant_routes retorna update_my_branding_route(payload): 200 Marca de la empresa actualizada a TenantBrandingEditorComponent
 @router.put("/me/branding")
 async def update_my_branding_route(
     payload: TenantBrandingUpdate,
@@ -248,6 +255,7 @@ async def update_my_branding_route(
 
 
 # [CU26 - Secuencia: Paso 2.7] TenantBrandingEditorComponent llama a upload_my_logo_route(file) de tenant_routes (POST /api/saas/tenants/me/logo)
+# [CU26 - Secuencia: Paso 2.8] tenant_routes retorna upload_my_logo_route(file): 200 Logo de la empresa actualizado a TenantBrandingEditorComponent
 @router.post("/me/logo")
 async def upload_my_logo_route(
     file: UploadFile = File(...),
@@ -271,6 +279,7 @@ async def upload_tenant_logo_route(
 
 
 # [CU26 - Secuencia: Paso 3.7] TenantBrandingEditorComponent llama a delete_my_logo_route() de tenant_routes (DELETE /api/saas/tenants/me/logo)
+# [CU26 - Secuencia: Paso 3.12] tenant_routes retorna delete_my_logo_route(): 200 Logo de la empresa eliminado a TenantBrandingEditorComponent
 @router.delete("/me/logo")
 async def delete_my_logo_route(
     db: Session = Depends(get_db),

@@ -1,6 +1,8 @@
 """Genera FashionStore_secuencia.js: un diagrama de secuencia (ICONIX / UML 2.5) por caso de uso (CU1-CU30).
 
-Uso (desde la raiz del repo):  python docs/ea/secuencia/generar_secuencia.py
+Uso (desde la raiz del repo):  python docs/ea/secuencia/generar_secuencia.py [--only CU8]
+  --only CUn: regenera solo ese caso de uso y lo une a secuencia.json (los demas diagramas no cambian); el .js se
+              vuelve a escribir desde el JSON unido.
 
 Mismas acciones (SPEC) y mismo rastreo del codigo que los diagramas de comunicacion:
   actor -> interfaz : metodo del componente Angular que dispara el actor
@@ -669,8 +671,10 @@ def geometria(model, life, xs, frames):
 
 
 if __name__ == "__main__":
+    # --only CU8: regenera solo ese caso de uso y lo une al secuencia.json existente (los demas quedan intactos)
+    only = sys.argv[sys.argv.index("--only") + 1] if "--only" in sys.argv else None
     diagrams, classifiers, problemas = [], {}, []
-    for cu in [f"CU{i}" for i in range(1, 31)]:
+    for cu in [only] if only else [f"CU{i}" for i in range(1, 31)]:
         m = build(cu)
         frames = fragmentos(m)
         life = lineas(m)
@@ -694,6 +698,9 @@ if __name__ == "__main__":
     for p in problemas:
         print("  PROBLEMA:", p)
     model = {"classifiers": [{"kind": k, "name": n} for k, n in sorted(classifiers)], "diagrams": diagrams}
+    if only:
+        previo = json.loads((HERE / "secuencia.json").read_text(encoding="utf-8"))
+        model["diagrams"], model["classifiers"] = G.unir(only, diagrams[0], previo)
     (HERE / "secuencia.json").write_text(json.dumps(model, ensure_ascii=False, indent=1), encoding="utf-8")
     tpl = HERE / "plantilla_secuencia.js"
     if tpl.exists():

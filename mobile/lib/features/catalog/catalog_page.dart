@@ -1306,7 +1306,11 @@ class _CatalogPageState extends State<CatalogPage> {
     String? preferredBranchId,
   }) async {
     final variants = product.variants ?? const [];
-    final primaryVariant = variants.isEmpty ? null : variants.first;
+    final primaryVariant = variants.where((v) => (v.branchQuantity ?? 1) > 0).firstOrNull;
+    if (variants.isNotEmpty && primaryVariant == null) {
+      AppSnackBar.show(context, 'Esta prenda está agotada en todas sus tallas.', tone: AppSnackBarTone.warning);
+      return;
+    }
     if (primaryVariant == null) {
       _openProduct(product, preferredBranchId: preferredBranchId);
       return;
@@ -1394,7 +1398,11 @@ class _CatalogPageState extends State<CatalogPage> {
     String? preferredBranchId,
   }) async {
     final variants = product.variants ?? const [];
-    final primaryVariant = variants.isEmpty ? null : variants.first;
+    final primaryVariant = variants.where((v) => (v.branchQuantity ?? 1) > 0).firstOrNull;
+    if (variants.isNotEmpty && primaryVariant == null) {
+      AppSnackBar.show(context, 'Esta prenda está agotada en todas sus tallas.', tone: AppSnackBarTone.warning);
+      return;
+    }
     if (primaryVariant == null) {
       _openProduct(product, preferredBranchId: preferredBranchId);
       return;
