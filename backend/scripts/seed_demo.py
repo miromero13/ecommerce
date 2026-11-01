@@ -66,7 +66,10 @@ EVENT_COLUMNS = [
 class Seeder:
     def __init__(self, db, assets_base_url: str, days: int):
         self.db = db
-        self.assets = assets_base_url.rstrip("/") + "/demo-assets/"
+        assets_base = assets_base_url.rstrip("/")
+        if not assets_base.endswith("/demo-assets"):
+            assets_base += "/demo-assets"
+        self.assets = assets_base + "/"
         self.today = datetime.now(LOCAL_TZ).date()
         self.start = self.today - timedelta(days=days)
         self.catalog = json.loads(CATALOG.read_text(encoding="utf-8"))
@@ -795,7 +798,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--reset", action="store_true", help="Borrar las empresas actuales y sus datos")
     parser.add_argument("--database-url", help="Base destino (por defecto, DATABASE_URL del .env)")
-    parser.add_argument("--assets-base-url", default="http://localhost:8000", help="Dónde sirve el backend /demo-assets")
+    parser.add_argument("--assets-base-url", default="/demo-assets", help="Dónde sirve el backend /demo-assets")
     parser.add_argument("--days", type=int, default=60, help="Días de historial a simular (por defecto 60)")
     args = parser.parse_args()
 

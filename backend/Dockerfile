@@ -26,6 +26,7 @@ COPY --from=builder /opt/venv /opt/venv
 COPY --chown=app:app main.py alembic.ini ./
 COPY --chown=app:app alembic ./alembic
 COPY --chown=app:app app ./app
+COPY --chown=app:app demo_assets ./demo_assets
 
 USER app
 

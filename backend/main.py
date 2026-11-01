@@ -128,6 +128,8 @@ app.add_middleware(
 DEMO_ASSETS = Path(__file__).parent / "demo_assets"
 if DEMO_ASSETS.is_dir():
     app.mount("/demo-assets", StaticFiles(directory=DEMO_ASSETS), name="demo-assets")
+    if (DEMO_ASSETS / "catalog").is_dir():
+        app.mount("/catalog", StaticFiles(directory=DEMO_ASSETS / "catalog"), name="demo-catalog")
 
 # Routers
 api_router = APIRouter(prefix="/api")

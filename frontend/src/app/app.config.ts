@@ -6,12 +6,13 @@ import { provideNativeDateAdapter } from '@spartan-ng/brain/date-time';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './features/shared/interceptors/auth.interceptor';
+import { assetUrlInterceptor } from './core/interceptors/asset-url.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
-    provideHttpClient(withInterceptors([authInterceptor])),
+    provideHttpClient(withInterceptors([authInterceptor, assetUrlInterceptor])),
     provideNativeDateAdapter(),
     provideServiceWorker('ngsw-worker.js', {
       enabled: !isDevMode(),
