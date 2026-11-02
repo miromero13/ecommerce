@@ -1,4 +1,4 @@
-<div class="p-4 sm:p-6 max-w-4xl mx-auto space-y-6 font-sans bg-background text-foreground">
+<div class="p-4 sm:p-6 max-w-6xl mx-auto space-y-6 font-sans bg-background text-foreground">
   <!-- Page Header -->
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-border">
     <div>
@@ -285,64 +285,62 @@
     </div>
 
     <!-- TAB 4: Cambiar Plan -->
-    <div *ngIf="activeTab() === 'plans'" class="space-y-4 animate-in fade-in duration-200">
-      <section hlmCard class="p-5 space-y-4">
-        <app-pricing-table
-          [currentPlanId]="summary()?.plan?.id ?? null"
-          [showComparison]="true"
-          (selectPlan)="choosePlan($event)"
-        ></app-pricing-table>
+    <div *ngIf="activeTab() === 'plans'" class="space-y-6 animate-in fade-in duration-200">
+      <app-pricing-table
+        [currentPlanId]="summary()?.plan?.id ?? null"
+        [showComparison]="true"
+        (selectPlan)="choosePlan($event)"
+      ></app-pricing-table>
 
-        <!-- Checkout Confirmation Form for Selected Plan with Spartan Card & Inputs -->
-        <div *ngIf="selected() as choice" hlmCard class="p-5 border-2 border-primary/30 bg-muted/20 space-y-4">
-          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-border pb-3">
-            <div>
-              <h3 class="font-bold text-foreground text-base">Confirmar cambio al plan {{ choice.plan.name }}</h3>
-              <p class="text-xs text-muted-foreground">
-                Facturación {{ choice.billingCycle === 'yearly' ? 'anual' : 'mensual' }}. El nuevo período empieza hoy y reemplaza al plan actual.
-              </p>
-            </div>
-            <div class="text-xl font-black text-foreground">{{ selectedPrice() }} Bs.</div>
+      <!-- Checkout Confirmation Form for Selected Plan with Spartan Card & Inputs -->
+      <div *ngIf="selected() as choice" hlmCard class="p-5 border-2 border-primary/30 bg-muted/20 space-y-4 max-w-2xl mx-auto">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-border pb-3">
+          <div>
+            <h3 class="font-bold text-foreground text-base">Confirmar cambio al plan {{ choice.plan.name }}</h3>
+            <p class="text-xs text-muted-foreground">
+              Facturación {{ choice.billingCycle === 'yearly' ? 'anual' : 'mensual' }}. El nuevo período empieza hoy y reemplaza al plan actual.
+            </p>
           </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <label class="space-y-1 text-xs font-semibold text-foreground">
-              Número de tarjeta
-              <input hlmInput type="text" [(ngModel)]="cardNumber" autocomplete="off" class="font-mono text-xs" />
-            </label>
-            <label class="space-y-1 text-xs font-semibold text-foreground">
-              Titular
-              <input hlmInput type="text" [(ngModel)]="cardHolder" autocomplete="off" class="text-xs" />
-            </label>
-            <label class="space-y-1 text-xs font-semibold text-foreground">
-              Vencimiento
-              <input hlmInput type="text" [(ngModel)]="cardExp" autocomplete="off" class="font-mono text-xs" />
-            </label>
-            <label class="space-y-1 text-xs font-semibold text-foreground">
-              CVV
-              <input hlmInput type="text" [(ngModel)]="cardCvv" autocomplete="off" class="font-mono text-xs" />
-            </label>
-          </div>
-          <p class="text-[11px] text-muted-foreground">Pago simulado (sandbox): no se realiza ningún cobro real.</p>
-
-          <div class="flex justify-end gap-2 pt-2">
-            <button hlmBtn variant="outline" size="sm" type="button" (click)="selected.set(null)">
-              Cancelar
-            </button>
-            <button
-              hlmBtn
-              size="sm"
-              type="button"
-              (click)="confirmChange()"
-              [disabled]="changing()"
-              class="gap-1.5"
-            >
-              <ng-icon name="lucideCreditCard" class="w-3.5 h-3.5"></ng-icon>
-              {{ changing() ? 'Procesando pago...' : 'Pagar y activar plan' }}
-            </button>
-          </div>
+          <div class="text-xl font-black text-foreground">{{ selectedPrice() }} Bs.</div>
         </div>
-      </section>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <label class="space-y-1 text-xs font-semibold text-foreground">
+            Número de tarjeta
+            <input hlmInput type="text" [(ngModel)]="cardNumber" autocomplete="off" class="font-mono text-xs" />
+          </label>
+          <label class="space-y-1 text-xs font-semibold text-foreground">
+            Titular
+            <input hlmInput type="text" [(ngModel)]="cardHolder" autocomplete="off" class="text-xs" />
+          </label>
+          <label class="space-y-1 text-xs font-semibold text-foreground">
+            Vencimiento
+            <input hlmInput type="text" [(ngModel)]="cardExp" autocomplete="off" class="font-mono text-xs" />
+          </label>
+          <label class="space-y-1 text-xs font-semibold text-foreground">
+            CVV
+            <input hlmInput type="text" [(ngModel)]="cardCvv" autocomplete="off" class="font-mono text-xs" />
+          </label>
+        </div>
+        <p class="text-[11px] text-muted-foreground">Pago simulado (sandbox): no se realiza ningún cobro real.</p>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button hlmBtn variant="outline" size="sm" type="button" (click)="selected.set(null)">
+            Cancelar
+          </button>
+          <button
+            hlmBtn
+            size="sm"
+            type="button"
+            (click)="confirmChange()"
+            [disabled]="changing()"
+            class="gap-1.5"
+          >
+            <ng-icon name="lucideCreditCard" class="w-3.5 h-3.5"></ng-icon>
+            {{ changing() ? 'Procesando pago...' : 'Pagar y activar plan' }}
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </div>

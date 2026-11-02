@@ -1,6 +1,6 @@
-<div class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="w-full max-w-7xl mx-auto py-2 sm:py-4">
   <!-- Cycle Selector -->
-  <div class="flex justify-center mb-12">
+  <div class="flex justify-center mb-6">
     <div class="inline-flex items-center p-1.5 bg-muted rounded-full border border-border">
       <button
         type="button"
@@ -31,12 +31,12 @@
   </div>
 
   <!-- Plans Loading Skeleton -->
-  <div *ngIf="loading()" class="grid grid-cols-1 md:grid-cols-3 gap-8">
-    <div *ngFor="let item of [1, 2, 3]" class="h-96 rounded-2xl bg-muted/50 animate-pulse border border-border p-8"></div>
+  <div *ngIf="loading()" class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+    <div *ngFor="let item of [1, 2, 3]" class="h-96 rounded-2xl bg-muted/50 animate-pulse border border-border p-6"></div>
   </div>
 
   <!-- Plans Grid -->
-  <div *ngIf="!loading()" class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
+  <div *ngIf="!loading()" class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 items-stretch">
     <!-- Plan Card Loop -->
     <div
       *ngFor="let plan of plans(); let i = index"
@@ -54,9 +54,9 @@
         </span>
       </div>
 
-      <div class="p-8 flex-1 flex flex-col">
+      <div class="p-5 sm:p-6 flex-1 flex flex-col">
         <!-- Header -->
-        <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center justify-between mb-3">
           <h3 class="text-xl font-bold text-foreground">{{ plan.name }}</h3>
           <span
             *ngIf="plan.id === 'plan_enterprise'"
@@ -67,31 +67,31 @@
           </span>
         </div>
 
-        <p class="text-sm text-muted-foreground mb-6 min-h-[40px]">{{ plan.description }}</p>
+        <p class="text-xs sm:text-sm text-muted-foreground mb-4 min-h-[36px]">{{ plan.description }}</p>
 
         <!-- Price -->
-        <div class="mb-8 pb-6 border-b border-border">
+        <div class="mb-5 pb-4 border-b border-border">
           <div class="flex items-baseline gap-1">
-            <span class="text-4xl font-extrabold text-foreground">{{ getPrice(plan) }} Bs.</span>
-            <span class="text-sm font-medium text-muted-foreground">
+            <span class="text-3xl sm:text-4xl font-extrabold text-foreground">{{ getPrice(plan) }} Bs.</span>
+            <span class="text-xs sm:text-sm font-medium text-muted-foreground">
               / {{ billingCycle() === 'yearly' ? 'año' : 'mes' }}
             </span>
           </div>
-          <p class="text-xs text-muted-foreground mt-1">Facturación en Bolivianos (Bs.)</p>
+          <p class="text-[11px] text-muted-foreground mt-0.5">Facturación en Bolivianos (Bs.)</p>
         </div>
 
         <!-- Limits Highlights -->
-        <div class="space-y-3 mb-6 bg-muted/40 p-4 rounded-xl border border-border">
-          <div class="flex items-center justify-between text-sm">
-            <span class="text-muted-foreground font-medium flex items-center gap-2">
-              <ng-icon name="lucideStore" class="w-4 h-4 text-primary"></ng-icon>
+        <div class="space-y-2.5 mb-5 bg-muted/40 p-3.5 rounded-xl border border-border">
+          <div class="flex items-center justify-between text-xs sm:text-sm">
+            <span class="text-muted-foreground font-medium flex items-center gap-1.5">
+              <ng-icon name="lucideStore" class="w-3.5 h-3.5 text-primary"></ng-icon>
               Sucursales permitidas:
             </span>
             <span class="font-bold text-foreground">Hasta {{ plan.max_branches }}</span>
           </div>
-          <div class="flex items-center justify-between text-sm">
-            <span class="text-muted-foreground font-medium flex items-center gap-2">
-              <ng-icon name="lucideZap" class="w-4 h-4 text-primary"></ng-icon>
+          <div class="flex items-center justify-between text-xs sm:text-sm">
+            <span class="text-muted-foreground font-medium flex items-center gap-1.5">
+              <ng-icon name="lucideZap" class="w-3.5 h-3.5 text-primary"></ng-icon>
               Capacidad de catálogo:
             </span>
             <span class="font-bold text-foreground">{{ plan.max_garments | number }} prendas</span>
@@ -148,9 +148,9 @@
   </div>
 
   <!-- Full comparison: every limit and module, side by side -->
-  <section *ngIf="!loading() && showComparison && plans().length" class="mt-16">
-    <h3 class="text-2xl font-extrabold text-foreground text-center">Compará los planes en detalle</h3>
-    <p class="text-sm text-muted-foreground text-center mt-2 mb-8">Todo lo que incluye cada plan, para que elijas el que le conviene a tu marca.</p>
+  <section *ngIf="!loading() && showComparison && plans().length" class="mt-10">
+    <h3 class="text-xl sm:text-2xl font-extrabold text-foreground text-center">Compará los planes en detalle</h3>
+    <p class="text-xs sm:text-sm text-muted-foreground text-center mt-1 mb-6">Todo lo que incluye cada plan, para que elijas el que le conviene a tu marca.</p>
 
     <div class="overflow-x-auto rounded-2xl border border-border bg-card">
       <table class="w-full min-w-[640px] text-sm">
