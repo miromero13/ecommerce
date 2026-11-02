@@ -12,6 +12,7 @@ export interface UsuarioAuth {
   branch_id: string | null;
   is_active?: boolean;
   permissions?: string[];
+  custom_roles?: Array<{ id: string; name: string; code: string }>;
 }
 
 export interface LoginRequest {

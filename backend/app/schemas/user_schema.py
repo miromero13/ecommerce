@@ -18,6 +18,7 @@ class AdminUserCreate(BaseModel):
     password: str = Field(min_length=8)
     gender: GenderEnum
     rol: RolEnum
+    role_id: UUID | None = None
     tenant_id: UUID | None = None
     branch_id: UUID | None = None
     is_active: bool = True
@@ -43,6 +44,16 @@ class UserOut(BaseModel):
     class Config:
         from_attributes = True
 
+class CustomRoleBrief(BaseModel):
+    id: UUID
+    code: str
+    name: str
+
+    model_config = {
+        "from_attributes": True
+    }
+
+
 #  Para paginación de usuarios (si aplicas en /users)
 class UserRead(BaseModel):
     id: UUID
@@ -54,6 +65,7 @@ class UserRead(BaseModel):
     branch_id: UUID | None = None
     is_active: bool
     permissions: list[str] = Field(default_factory=list)
+    custom_roles: list[CustomRoleBrief] = Field(default_factory=list)
 
     model_config = {
         "from_attributes": True
@@ -77,6 +89,8 @@ class UserUpdate(BaseModel):
     name: str
     email: EmailStr
     gender: GenderEnum
+    rol: RolEnum | None = None
+    role_id: UUID | None = None
     tenant_id: UUID | None = None
     branch_id: UUID | None = None
     is_active: bool = True

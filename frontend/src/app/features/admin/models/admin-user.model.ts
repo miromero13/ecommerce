@@ -9,12 +9,15 @@ export interface AdminUsuario {
   rol: RolUsuario;
   branch_id: string | null;
   is_active: boolean;
+  custom_roles?: Array<{ id: string; name: string; code: string }>;
 }
 
 export interface UpdateUsuarioRequest {
   name: string;
   email: string;
   gender: GeneroUsuario;
+  rol?: Exclude<RolUsuario, 'cliente' | 'proveedor'>;
+  role_id?: string | null;
   branch_id?: string | null;
   is_active: boolean;
 }
@@ -25,6 +28,7 @@ export interface CreateUsuarioRequest {
   password: string;
   gender: GeneroUsuario;
   rol: Exclude<RolUsuario, 'cliente' | 'proveedor'>;
+  role_id?: string | null;
   branch_id?: string | null;
   is_active: boolean;
 }

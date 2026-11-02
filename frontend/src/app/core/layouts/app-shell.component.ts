@@ -187,7 +187,81 @@ export class AppShellComponent {
     exact: true,
   };
 
+  private readonly customRoleSections = computed<SidebarSection[]>(() => {
+    const rolesList = this.session.customRoles();
+    const roleTitle = rolesList.length > 0
+      ? `Rol: ${rolesList.map((r) => r.name).join(', ')}`
+      : 'Perfil Personalizado';
+
+    const items: SidebarItem[] = [this.homeItem()];
+
+    if (this.session.hasPermission('sales:create')) {
+      items.push({ label: 'Caja', route: '/app/cajero/caja', icon: 'lucideShoppingCart' });
+    }
+
+    if (this.session.hasPermission('sales:create') || this.session.hasPermission('sales:read')) {
+      items.push({ label: 'Comprobantes', route: '/app/cajero/receipts', icon: 'lucideClipboardList' });
+    }
+
+    if (this.session.hasPermission('sales:read')) {
+      items.push({ label: 'Ventas', route: '/app/encargado/sales', icon: 'lucideShoppingCart' });
+    }
+
+    if (
+      this.session.hasPermission('inventory:read') ||
+      this.session.hasPermission('inventory:adjust') ||
+      this.session.hasPermission('inventory:transfer')
+    ) {
+      items.push({ label: 'Inventario', route: '/app/encargado/inventory', icon: 'lucidePackageSearch' });
+    }
+
+    if (this.session.hasPermission('orders:manage')) {
+      items.push({ label: 'Pedidos', route: '/app/encargado/orders', icon: 'lucideClipboardList' });
+    }
+
+    if (this.session.hasPermission('reservations:manage')) {
+      items.push({ label: 'Reservas', route: '/app/encargado/reservations', icon: 'lucideCalendarDays' });
+    }
+
+    if (this.session.hasPermission('promotions:manage')) {
+      items.push({ label: 'Promociones', route: '/app/encargado/promotions', icon: 'lucideTicket' });
+    }
+
+    if (this.session.hasPermission('replenishment:manage')) {
+      items.push({ label: 'Solicitudes', route: '/app/encargado/replenishment', icon: 'lucideClipboardList' });
+    }
+
+    if (this.session.hasPermission('catalog:manage')) {
+      items.push({ label: 'Productos', route: '/app/proveedor/products', icon: 'lucidePackageSearch' });
+      items.push({ label: 'Ingesta RPA', route: '/app/proveedor/rpa-ingest', icon: 'lucidePackageSearch' });
+    }
+
+    if (this.session.hasPermission('users:manage')) {
+      items.push({ label: 'Proveedores', route: '/app/encargado/providers', icon: 'lucideUsers' });
+      items.push({ label: 'Usuarios', route: '/app/admin/user', icon: 'lucideUsers' });
+    }
+
+    if (this.session.hasPermission('reports:read') || this.session.hasPermission('reports:ai')) {
+      items.push({ label: 'Reportes IA', route: '/app/admin/reports', icon: 'lucideClipboardList' });
+    }
+
+    if (this.session.hasPermission('rbac:manage')) {
+      items.push({ label: 'Roles y Permisos', route: '/app/admin/roles', icon: 'lucideShield' });
+    }
+
+    return [
+      {
+        title: roleTitle,
+        items,
+      },
+    ];
+  });
+
   protected readonly sidebarSections = computed<SidebarSection[]>(() => {
+    if (this.session.hasCustomRoles()) {
+      return this.customRoleSections();
+    }
+
     switch (this.userRole()) {
       case 'superadministrador':
         return [

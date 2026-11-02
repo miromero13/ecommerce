@@ -4,7 +4,7 @@
     <div>
       <h1 class="text-2xl font-bold tracking-tight text-foreground">Gestión de Roles y Permisos (RBAC)</h1>
       <p class="text-sm text-muted-foreground mt-1">
-        Crea perfiles a medida asignando permisos granulares por módulo o consulta los roles del sistema.
+        Administra los roles de la organización y configura los permisos de cada perfil.
       </p>
     </div>
     <div class="flex items-center gap-3">
@@ -13,7 +13,7 @@
           <line x1="12" y1="5" x2="12" y2="19"></line>
           <line x1="5" y1="12" x2="19" y2="12"></line>
         </svg>
-        Nuevo Rol Personalizado
+        Nuevo Rol
       </button>
     </div>
   </div>
@@ -33,7 +33,7 @@
                 </span>
               } @else {
                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
-                  Personalizado
+                  Organización
                 </span>
               }
             </div>
@@ -46,8 +46,11 @@
               </div>
               <div class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pt-1">
                 @for (perm of role.permissions; track perm.id) {
-                  <span class="inline-block px-2 py-0.5 text-[11px] font-mono rounded bg-secondary text-secondary-foreground border border-border/50">
-                    {{ perm.name }}
+                  <span
+                    class="inline-block px-2 py-0.5 text-[11px] rounded bg-secondary text-secondary-foreground border border-border/50"
+                    [title]="perm.name"
+                  >
+                    {{ perm.description }}
                   </span>
                 }
               </div>
@@ -68,69 +71,6 @@
     </div>
   </div>
 
-  <!-- User Assignment Section -->
-  <div class="rounded-xl border border-border bg-card p-6 shadow-sm">
-    <div class="mb-4">
-      <h2 class="text-lg font-semibold text-foreground">Asignación de Roles Personalizados a Empleados</h2>
-      <p class="text-sm text-muted-foreground mt-0.5">
-        Asigna perfiles a medida a encargados, cajeros y proveedores. Los roles personalizados <strong>reemplazan</strong> los permisos por defecto del rol: el empleado solo podrá hacer lo que permitan sus roles. Sin roles personalizados conserva los permisos de su rol base.
-      </p>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-      <!-- Select user -->
-      <div class="space-y-3">
-        <label class="block text-sm font-medium text-foreground">Seleccionar Usuario / Empleado</label>
-        <select
-          class="w-full h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-          [value]="selectedUserId()"
-          (change)="onSelectUser($any($event.target).value)"
-        >
-          <option value="">-- Selecciona un usuario --</option>
-          @for (user of users(); track user.id) {
-            <option [value]="user.id">{{ user.name }} ({{ user.email }}) - Rol: {{ user.rol }}</option>
-          }
-        </select>
-      </div>
-
-      <!-- Select roles -->
-      @if (selectedUserId()) {
-        <div class="space-y-4">
-          <label class="block text-sm font-medium text-foreground">Roles Personalizados Disponibles</label>
-          <div class="space-y-2 max-h-48 overflow-y-auto p-3 rounded-md border border-border bg-muted/20">
-            @for (role of roles(); track role.id) {
-              @if (!role.is_system) {
-                <label class="flex items-center gap-3 text-sm cursor-pointer hover:bg-muted/50 p-1.5 rounded">
-                  <input
-                    type="checkbox"
-                    class="rounded border-input text-primary focus:ring-primary w-4 h-4"
-                    [checked]="selectedUserRoles().has(role.id)"
-                    (change)="toggleUserRole(role.id)"
-                  />
-                  <div>
-                    <span class="font-medium text-foreground">{{ role.name }}</span>
-                    <span class="text-xs text-muted-foreground ml-2">({{ role.code }})</span>
-                  </div>
-                </label>
-              }
-            }
-          </div>
-
-          <div class="flex justify-end">
-            <button
-              hlmBtn
-              variant="default"
-              [disabled]="isAssigning()"
-              (click)="saveUserRoles()"
-            >
-              {{ isAssigning() ? 'Guardando...' : 'Guardar Asignación de Roles' }}
-            </button>
-          </div>
-        </div>
-      }
-    </div>
-  </div>
-
   <!-- Modal Create/Edit Role -->
   @if (isModalOpen()) {
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
@@ -139,7 +79,7 @@
         <div class="flex items-center justify-between border-b border-border pb-4 mb-4">
           <div>
             <h3 class="text-lg font-bold text-foreground">
-              {{ modalMode() === 'create' ? 'Crear Nuevo Rol Personalizado' : 'Editar Rol' }}
+              {{ modalMode() === 'create' ? 'Crear Nuevo Rol' : 'Editar Rol' }}
             </h3>
             <p class="text-xs text-muted-foreground">
               Define el nombre, código y selecciona los permisos asignados a este perfil.
@@ -210,8 +150,8 @@
                           (change)="togglePermission(perm.id)"
                         />
                         <div class="flex-1 leading-tight">
-                          <span class="font-mono text-xs font-semibold text-foreground block">{{ perm.name }}</span>
-                          <span class="text-xs text-muted-foreground block mt-0.5">{{ perm.description }}</span>
+                          <span class="text-xs font-medium text-foreground block">{{ perm.description }}</span>
+                          <span class="font-mono text-[10px] text-muted-foreground block mt-0.5">({{ perm.name }})</span>
                         </div>
                       </label>
                     }

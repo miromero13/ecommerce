@@ -181,6 +181,9 @@ export class SessionService {
     return user.permissions?.includes(permission) ?? false;
   }
 
+  readonly hasCustomRoles = computed(() => (this.userSignal()?.custom_roles?.length ?? 0) > 0);
+  readonly customRoles = computed(() => this.userSignal()?.custom_roles ?? []);
+
   private normalizeUser(user: Partial<UsuarioAuth>): UsuarioAuth {
     return {
       id: user.id ?? '',
@@ -192,6 +195,7 @@ export class SessionService {
       branch_id: user.branch_id ?? null,
       is_active: user.is_active ?? true,
       permissions: user.permissions ?? [],
+      custom_roles: user.custom_roles ?? [],
     };
   }
 

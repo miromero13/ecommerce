@@ -98,11 +98,17 @@ def list_permissions(db: Session) -> list[Permission]:
     return db.query(Permission).order_by(Permission.module.asc(), Permission.name.asc()).all()
 
 
+TENANT_EXCLUDED_SYSTEM_ROLES = {"superadministrador", "cliente", "delivery"}
+
+
 def list_roles(db: Session, tenant_id: UUID | None) -> list[Role]:
     seed_rbac_if_empty(db)
     query = db.query(Role).options(joinedload(Role.permissions))
     if tenant_id:
-        query = query.filter((Role.tenant_id == tenant_id) | (Role.tenant_id.is_(None)))
+        query = query.filter(
+            (Role.tenant_id == tenant_id)
+            | (Role.tenant_id.is_(None) & ~Role.code.in_(TENANT_EXCLUDED_SYSTEM_ROLES))
+        )
     else:
         query = query.filter(Role.tenant_id.is_(None))
     return query.order_by(Role.is_system.desc(), Role.name.asc()).all()

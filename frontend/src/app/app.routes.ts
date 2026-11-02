@@ -157,28 +157,28 @@ export const routes: Routes = [
       },
       {
         path: 'encargado/inventory',
-        canActivate: [roleGuard(['encargado'])],
+        canActivate: [roleGuard(['encargado'], 'inventory:read')],
         loadComponent: () =>
           import('./features/admin/pages/admin-inventory-page.component').then((m) => m.AdminInventoryPageComponent),
       },
       {
         path: 'encargado/orders',
-        canActivate: [roleGuard(['encargado'])],
+        canActivate: [roleGuard(['encargado'], 'orders:manage')],
         loadComponent: () => import('./features/encargado/pages/orders-page.component').then((m) => m.EncargadoOrdersPageComponent),
       },
       {
         path: 'encargado/promotions',
-        canActivate: [roleGuard(['encargado'])],
+        canActivate: [roleGuard(['encargado'], 'promotions:manage')],
         loadComponent: () => import('./features/shared/pages/promotions-page.component').then((m) => m.PromotionsPageComponent),
       },
       {
         path: 'encargado/replenishment',
-        canActivate: [roleGuard(['encargado'])],
+        canActivate: [roleGuard(['encargado'], 'replenishment:manage')],
         loadComponent: () => import('./features/shared/pages/replenishment-page.component').then((m) => m.ReplenishmentPageComponent),
       },
       {
         path: 'encargado/providers',
-        canActivate: [roleGuard(['encargado'])],
+        canActivate: [roleGuard(['encargado'], 'users:manage')],
         loadComponent: () => import('./features/admin/pages/admin-provider-page.component').then((m) => m.AdminProviderPageComponent),
       },
       {
@@ -188,7 +188,7 @@ export const routes: Routes = [
       },
       {
         path: 'encargado/sales',
-        canActivate: [roleGuard(['encargado'])],
+        canActivate: [roleGuard(['encargado'], 'sales:read')],
         loadComponent: () => import('./features/shared/pages/sales-history-page.component').then((m) => m.SalesHistoryPageComponent),
       },
       {
@@ -199,23 +199,23 @@ export const routes: Routes = [
       },
       {
         path: 'cajero/receipts',
-        canActivate: [roleGuard(['cajero'])],
+        canActivate: [roleGuard(['cajero'], 'sales:read')],
         loadComponent: () => import('./features/shared/pages/receipts-page.component').then((m) => m.ReceiptsPageComponent),
       },
       {
         path: 'cajero/caja',
-        canActivate: [roleGuard(['cajero'])],
+        canActivate: [roleGuard(['cajero'], 'sales:create')],
         loadComponent: () =>
           import('./features/cajero/pages/caja-page.component').then((m) => m.CajaPageComponent),
       },
       {
         path: 'cajero/orders',
-        canActivate: [roleGuard(['cajero'])],
+        canActivate: [roleGuard(['cajero'], 'orders:manage')],
         loadComponent: () => import('./features/encargado/pages/orders-page.component').then((m) => m.EncargadoOrdersPageComponent),
       },
       {
         path: 'cajero/sales',
-        canActivate: [roleGuard(['cajero'])],
+        canActivate: [roleGuard(['cajero'], 'sales:read')],
         loadComponent: () => import('./features/shared/pages/sales-history-page.component').then((m) => m.SalesHistoryPageComponent),
       },
       {

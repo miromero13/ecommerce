@@ -1,10 +1,11 @@
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import select
 from app.models.user import User
 from app.models.provider import Provider
 from app.models.product import Product
 from app.models.branch import Branch
+from app.models.rbac import Role
 from app.schemas.user_schema import AdminUserCreate, UserCreate, UserUpdateRol, UserUpdateBranch, UserProfileUpdate
 from app.schemas.enums import RolEnum
 from uuid import UUID  
@@ -90,6 +91,10 @@ def create_admin_user(db: Session, user: AdminUserCreate, tenant_id: UUID | None
         tenant_id=tenant_id,
         is_active=user.is_active,
     )
+    if user.role_id and tenant_id:
+        custom_role = db.query(Role).filter(Role.id == user.role_id, Role.tenant_id == tenant_id).first()
+        if custom_role:
+            db_user.custom_roles = [custom_role]
     db.add(db_user)
     try:
         db.commit()
@@ -100,7 +105,7 @@ def create_admin_user(db: Session, user: AdminUserCreate, tenant_id: UUID | None
         raise ValueError("El correo ya está registrado")
 
 def _staff_query(db: Session, tenant_id: UUID, branch_id: UUID | None = None):
-    query = db.query(User).filter(
+    query = db.query(User).options(joinedload(User.custom_roles)).filter(
         User.tenant_id == tenant_id,
         User.rol.notin_([RolEnum.cliente, RolEnum.superadministrador]),
     )
@@ -166,6 +171,11 @@ def update_user_full(db: Session, user_id: UUID, update_data, tenant_id: UUID) -
     if not user:
         return None
 
+    if update_data.rol is not None:
+        if update_data.rol == RolEnum.delivery:
+            raise ValueError("Los repartidores son de la plataforma; los registra el superadministrador")
+        user.rol = update_data.rol
+
     if user.rol in {RolEnum.encargado, RolEnum.cajero, RolEnum.delivery} and update_data.branch_id is None:
         raise ValueError("Este usuario debe tener una sucursal asignada")
     if update_data.branch_id is not None:
@@ -176,6 +186,13 @@ def update_user_full(db: Session, user_id: UUID, update_data, tenant_id: UUID) -
     user.gender = update_data.gender
     user.branch_id = None if user.rol == RolEnum.administrador else update_data.branch_id
     user.is_active = update_data.is_active
+
+    if hasattr(update_data, "role_id"):
+        if update_data.role_id:
+            custom_role = db.query(Role).filter(Role.id == update_data.role_id, Role.tenant_id == tenant_id).first()
+            user.custom_roles = [custom_role] if custom_role else []
+        else:
+            user.custom_roles = []
 
     try:
         db.commit()

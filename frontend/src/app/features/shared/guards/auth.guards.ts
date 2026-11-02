@@ -27,7 +27,7 @@ export const publicOnlyGuard: CanActivateFn = () => {
   return true;
 };
 
-export function roleGuard(roles: RolUsuario[]): CanActivateFn {
+export function roleGuard(roles: RolUsuario[], requiredPermission?: string): CanActivateFn {
   return () => {
     const session = inject(SessionService);
     const router = inject(Router);
@@ -35,6 +35,19 @@ export function roleGuard(roles: RolUsuario[]): CanActivateFn {
 
     if (!user) {
       return router.createUrlTree(['/auth/login']);
+    }
+
+    // Si el usuario tiene roles personalizados y la ruta exige un permiso específico:
+    if (session.hasCustomRoles() && requiredPermission) {
+      if (session.hasPermission(requiredPermission)) {
+        return true;
+      }
+      return router.createUrlTree([getDefaultRouteForRole(user.rol)]);
+    }
+
+    // Si el usuario tiene roles personalizados y navega a una ruta operativa de staff:
+    if (session.hasCustomRoles() && ['encargado', 'cajero', 'proveedor'].some((r) => roles.includes(r as RolUsuario))) {
+      return true;
     }
 
     if (!roles.includes(user.rol)) {

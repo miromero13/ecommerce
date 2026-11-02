@@ -43,7 +43,7 @@
               <p>{{ user.email }}</p>
             </td>
             <td class="px-4 py-3 text-sm text-black">
-              {{ labelRol(user.rol) }}
+              {{ getUserRoleLabel(user) }}
             </td>
             <td class="px-4 py-3 text-sm text-black">
               {{ branchName(user.branch_id, user.rol) }}
@@ -105,22 +105,19 @@
               </hlm-select-content>
             </div>
           </div>
-          @if (isCreateMode()) {
-            <div hlmField>
-              <label hlmFieldLabel for="user-role">Rol</label>
-              <div hlmSelect formControlName="rol" [itemToString]="roleSelectLabel">
-                <hlm-select-trigger buttonId="user-role">
-                  <span hlmSelectValue placeholder="Rol"></span>
-                </hlm-select-trigger>
-                <hlm-select-content>
-                  <hlm-select-item value="administrador">Administrador</hlm-select-item>
-                  <hlm-select-item value="encargado">Encargado</hlm-select-item>
-                  <hlm-select-item value="cajero">Cajero</hlm-select-item>
-                  <hlm-select-item value="delivery">Delivery</hlm-select-item>
-                </hlm-select-content>
-              </div>
+          <div hlmField>
+            <label hlmFieldLabel for="user-role">Rol</label>
+            <div hlmSelect formControlName="selected_role" [itemToString]="roleSelectLabel">
+              <hlm-select-trigger buttonId="user-role">
+                <span hlmSelectValue placeholder="Rol"></span>
+              </hlm-select-trigger>
+              <hlm-select-content>
+                @for (opt of roleOptions(); track opt.id) {
+                  <hlm-select-item [value]="opt.id">{{ opt.name }}</hlm-select-item>
+                }
+              </hlm-select-content>
             </div>
-          }
+          </div>
           @if (roleRequiresBranch()) {
             <div hlmField>
               <label hlmFieldLabel for="user-branch">Sucursal</label>

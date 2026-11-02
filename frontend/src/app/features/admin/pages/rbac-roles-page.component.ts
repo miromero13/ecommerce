@@ -35,7 +35,6 @@ export class RbacRolesPageComponent implements OnInit {
 
   protected readonly roles = signal<Role[]>([]);
   protected readonly permissions = signal<Permission[]>([]);
-  protected readonly users = signal<AdminUsuario[]>([]);
   protected readonly isLoading = signal(false);
 
   // Modal create/edit role
@@ -43,11 +42,6 @@ export class RbacRolesPageComponent implements OnInit {
   protected readonly modalMode = signal<'create' | 'edit'>('create');
   protected readonly editingRoleId = signal<string | null>(null);
   protected readonly selectedPermissionIds = signal<Set<string>>(new Set());
-
-  // User assignment section
-  protected readonly selectedUserId = signal<string>('');
-  protected readonly selectedUserRoles = signal<Set<string>>(new Set());
-  protected readonly isAssigning = signal(false);
 
   protected readonly roleForm = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(100)]],
@@ -76,16 +70,13 @@ export class RbacRolesPageComponent implements OnInit {
   async loadData(): Promise<void> {
     this.isLoading.set(true);
     try {
-      const [permsRes, rolesRes, usersRes] = await Promise.all([
+      const [permsRes, rolesRes] = await Promise.all([
         firstValueFrom(this.rbacApi.getPermissions()),
         firstValueFrom(this.rbacApi.getRoles()),
-        firstValueFrom(this.userApi.listUsuarios()),
       ]);
 
       this.permissions.set(permsRes.data ?? []);
       this.roles.set(rolesRes.data ?? []);
-      // Only company staff can get custom roles (administrators already have every permission).
-      this.users.set((usersRes.data ?? []).filter((user) => ['encargado', 'cajero', 'proveedor'].includes(user.rol)));
     } catch (err) {
       toast.error(getErrorMessage(err, 'No se pudo cargar la información de roles y permisos'));
     } finally {
@@ -184,44 +175,6 @@ export class RbacRolesPageComponent implements OnInit {
       await this.loadData();
     } catch (err) {
       toast.error(getErrorMessage(err, 'Error al guardar el rol'));
-    }
-  }
-
-  onSelectUser(userId: string): void {
-    this.selectedUserId.set(userId);
-    // User custom roles
-    const user = this.users().find((u) => u.id === userId);
-    // Find matching roles from custom_roles if available, or reset
-    this.selectedUserRoles.set(new Set());
-  }
-
-  toggleUserRole(roleId: string): void {
-    const updated = new Set(this.selectedUserRoles());
-    if (updated.has(roleId)) {
-      updated.delete(roleId);
-    } else {
-      updated.add(roleId);
-    }
-    this.selectedUserRoles.set(updated);
-  }
-
-  async saveUserRoles(): Promise<void> {
-    const userId = this.selectedUserId();
-    if (!userId) {
-      toast.error('Selecciona un usuario primero');
-      return;
-    }
-    this.isAssigning.set(true);
-    try {
-      const roleIds = Array.from(this.selectedUserRoles());
-      const res = await firstValueFrom(
-        this.rbacApi.assignUserRoles(userId, { role_ids: roleIds })
-      );
-      toast.success(res.message);
-    } catch (err) {
-      toast.error(getErrorMessage(err, 'Error al asignar roles al usuario'));
-    } finally {
-      this.isAssigning.set(false);
     }
   }
 

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 
@@ -9,6 +9,8 @@ import { AdminActionMenuComponent } from '../components/admin-action-menu.compon
 import { AdminUsuario } from '../models/admin-user.model';
 import { AdminUserService } from '../services/admin-user.service';
 import { SessionService } from '../../shared/services/session.service';
+import { RbacApiService } from '../../shared/services/rbac-api.service';
+import { Role } from '../../shared/models/rbac.model';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
 import { requestWithToast } from '../../../core/utils/request-toast.util';
 import { HlmTable } from '@spartan-ng/helm/table';
@@ -21,6 +23,14 @@ import { HlmFieldImports } from '../../../components/field/src';
 import { HlmInput } from '../../../components/input/src';
 import { HlmSelectImports } from '../../../components/select/src';
 
+export interface RoleOption {
+  id: string;
+  name: string;
+  baseRol: Exclude<AdminUsuario['rol'], 'cliente' | 'proveedor'>;
+  customRoleId?: string;
+  requiresBranch: boolean;
+}
+
 @Component({
   selector: 'app-admin-user-page',
   standalone: true,
@@ -31,11 +41,13 @@ export class AdminUserPageComponent {
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(AdminUserService);
   private readonly branchApi = inject(AdminBranchService);
+  private readonly rbacApi = inject(RbacApiService);
   private readonly session = inject(SessionService);
 
   protected readonly usuarios = signal<AdminUsuario[]>([]);
   protected readonly usuariosFiltrados = signal<AdminUsuario[]>([]);
   protected readonly branches = signal<AdminBranch[]>([]);
+  protected readonly availableRoles = signal<Role[]>([]);
   protected readonly filtroRol = signal<'' | AdminUsuario['rol']>('');
   protected readonly currentUserId = signal(this.session.user()?.id ?? '');
   protected readonly openMenuId = signal<string | null>(null);
@@ -46,12 +58,37 @@ export class AdminUserPageComponent {
   protected readonly deleteConfirmOpen = signal(false);
   protected readonly deletingUser = signal<AdminUsuario | null>(null);
 
+  protected readonly roleOptions = computed<RoleOption[]>(() => {
+    const options: RoleOption[] = [
+      { id: 'administrador', name: 'Administrador', baseRol: 'administrador', requiresBranch: false },
+      { id: 'encargado', name: 'Encargado de Sucursal', baseRol: 'encargado', requiresBranch: true },
+      { id: 'cajero', name: 'Cajero', baseRol: 'cajero', requiresBranch: true },
+    ];
+
+    for (const r of this.availableRoles()) {
+      if (!r.is_system) {
+        options.push({
+          id: r.id,
+          name: r.name,
+          baseRol: 'cajero',
+          customRoleId: r.id,
+          requiresBranch: true,
+        });
+      }
+    }
+    return options;
+  });
+
   protected readonly genderSelectLabel = (gender: string | null | undefined): string => {
     if (!gender) return 'Género';
     return this.labelGenero(gender as AdminUsuario['gender']);
   };
 
-  protected readonly roleSelectLabel = (role: string | null | undefined): string => this.labelRol(role as AdminUsuario['rol']);
+  protected readonly roleSelectLabel = (roleKey: string | null | undefined): string => {
+    if (!roleKey) return 'Selecciona un rol';
+    const match = this.roleOptions().find((opt) => opt.id === roleKey);
+    return match ? match.name : roleKey;
+  };
 
   protected readonly branchSelectLabel = (branchId: string | null | undefined): string => {
     if (!branchId) return 'Sin sucursal';
@@ -66,7 +103,7 @@ export class AdminUserPageComponent {
     email: ['', [Validators.required, Validators.email]],
     password: [''],
     gender: ['masculino', [Validators.required]],
-    rol: ['administrador' as Exclude<AdminUsuario['rol'], 'cliente' | 'proveedor'>, [Validators.required]],
+    selected_role: ['administrador', [Validators.required]],
     branch_id: [''],
     is_active: [true],
   });
@@ -102,7 +139,7 @@ export class AdminUserPageComponent {
       email: '',
       password: '',
       gender: 'masculino',
-      rol: 'administrador',
+      selected_role: 'administrador',
       branch_id: '',
       is_active: true,
     });
@@ -117,12 +154,15 @@ export class AdminUserPageComponent {
     this.modalMode.set('edit');
     this.editingUserId.set(user.id);
     this.editingUser.set(user);
+    const selectedRole = user.custom_roles && user.custom_roles.length > 0
+      ? user.custom_roles[0].id
+      : user.rol;
     this.userForm.reset({
       name: user.name,
       email: user.email,
       password: '',
       gender: user.gender,
-      rol: user.rol as Exclude<AdminUsuario['rol'], 'cliente' | 'proveedor'>,
+      selected_role: selectedRole,
       branch_id: user.rol === 'administrador' ? '' : (user.branch_id || ''),
       is_active: user.is_active,
     });
@@ -197,6 +237,10 @@ export class AdminUserPageComponent {
 
     try {
       const payload = this.userForm.getRawValue();
+      const roleOpt = this.roleOptions().find((opt) => opt.id === payload.selected_role);
+      const baseRol = roleOpt?.baseRol ?? 'cajero';
+      const customRoleId = roleOpt?.customRoleId ?? null;
+
       if (this.modalMode() === 'create') {
         if (payload.password.length < 8) {
           toast.error('La contraseña debe tener al menos 8 caracteres.');
@@ -209,7 +253,8 @@ export class AdminUserPageComponent {
             email: payload.email.trim().toLowerCase(),
             password: payload.password,
             gender: payload.gender as AdminUsuario['gender'],
-            rol: payload.rol,
+            rol: baseRol,
+            role_id: customRoleId,
             branch_id: this.roleRequiresBranch() ? (payload.branch_id || null) : null,
             is_active: payload.is_active,
           }),
@@ -221,7 +266,9 @@ export class AdminUserPageComponent {
             name: payload.name,
             email: payload.email.trim().toLowerCase(),
             gender: payload.gender as AdminUsuario['gender'],
-            branch_id: payload.branch_id || null,
+            rol: baseRol,
+            role_id: customRoleId,
+            branch_id: this.roleRequiresBranch() ? (payload.branch_id || null) : null,
             is_active: payload.is_active,
           }),
           { loading: 'Guardando usuario...', success: 'Usuario actualizado correctamente.', error: 'No se pudo actualizar el usuario.' },
@@ -239,7 +286,9 @@ export class AdminUserPageComponent {
   }
 
   protected roleRequiresBranch(): boolean {
-    return ['encargado', 'cajero', 'delivery'].includes(this.userForm.controls.rol.value);
+    const currentKey = this.userForm.controls.selected_role.value;
+    const match = this.roleOptions().find((opt) => opt.id === currentKey);
+    return match ? match.requiresBranch : false;
   }
 
   protected branchName(branchId: string | null, role?: AdminUsuario['rol']): string {
@@ -256,13 +305,15 @@ export class AdminUserPageComponent {
 
   private async loadData(): Promise<void> {
     try {
-      const [usersResponse, branchesResponse] = await Promise.all([
+      const [usersResponse, branchesResponse, rolesResponse] = await Promise.all([
         firstValueFrom(this.api.listUsuarios()),
         firstValueFrom(this.branchApi.listBranches()),
+        firstValueFrom(this.rbacApi.getRoles()),
       ]);
 
       this.usuarios.set(usersResponse.data ?? []);
       this.branches.set(branchesResponse.data ?? []);
+      this.availableRoles.set(rolesResponse.data ?? []);
       this.applyFiltro();
     } catch (error) {
       toast.error(getErrorMessage(error, 'No se pudieron cargar los usuarios.'));
@@ -273,6 +324,13 @@ export class AdminUserPageComponent {
     const filtro = this.filtroRol();
     const all = this.usuarios();
     this.usuariosFiltrados.set(filtro ? all.filter((u) => u.rol === filtro) : all);
+  }
+
+  protected getUserRoleLabel(user: AdminUsuario): string {
+    if (user.custom_roles && user.custom_roles.length > 0) {
+      return user.custom_roles[0].name;
+    }
+    return this.labelRol(user.rol);
   }
 
   protected labelRol(rol: AdminUsuario['rol']): string {
