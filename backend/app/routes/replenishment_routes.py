@@ -1,7 +1,7 @@
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from app.auth.dependencies import get_current_tenant_id, require_roles
+from app.auth.dependencies import get_current_tenant_id, require_roles, require_permission
 from app.core.database import get_db
 from app.schemas.enums import RolEnum
 from app.schemas.replenishment_schema import ReplenishmentRequestCreate, ReplenishmentStatusUpdate
@@ -9,7 +9,7 @@ from app.services.replenishment_service import create_request, list_requests, se
 from app.utils.response import response
 
 router = APIRouter(prefix="/replenishment", tags=["Replenishment"])
-ALL = require_roles(RolEnum.administrador, RolEnum.proveedor, RolEnum.encargado)
+ALL = require_permission("replenishment:manage")
 
 @router.get("/requests")
 def get_requests(db: Session = Depends(get_db), current_user: dict = Depends(ALL), tenant_id: UUID = Depends(get_current_tenant_id)):
@@ -17,7 +17,7 @@ def get_requests(db: Session = Depends(get_db), current_user: dict = Depends(ALL
     return response(200, "Solicitudes obtenidas exitosamente", serialize_requests(db, list_requests(db, current_user["rol"], UUID(current_user["sub"]), branch_id, tenant_id=tenant_id)))
 
 @router.post("/requests", status_code=status.HTTP_201_CREATED)
-def post_request(payload: ReplenishmentRequestCreate, db: Session = Depends(get_db), current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)), tenant_id: UUID = Depends(get_current_tenant_id)):
+def post_request(payload: ReplenishmentRequestCreate, db: Session = Depends(get_db), current_user: dict = Depends(ALL), tenant_id: UUID = Depends(get_current_tenant_id)):
     if current_user["rol"] == RolEnum.encargado.value:
         branch_id = current_user.get("branch_id")
         if not branch_id:

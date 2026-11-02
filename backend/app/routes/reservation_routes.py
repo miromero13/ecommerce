@@ -3,7 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.auth.dependencies import get_current_branch_id, require_roles
+from app.auth.dependencies import get_current_branch_id, require_roles, require_permission
 from app.core.database import get_db
 from app.models.branch import Branch
 from app.schemas.enums import RolEnum
@@ -54,7 +54,7 @@ async def list_branch_reservations_route(
     db: Session = Depends(get_db),
     branch_id: UUID | None = Query(default=None),
     current_branch_id: UUID | None = Depends(get_current_branch_id),
-    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado, RolEnum.cajero)),
+    current_user: dict = Depends(require_permission("reservations:manage")),
 ):
     resolved_branch_id = _resolve_staff_branch(db, branch_id, current_branch_id, current_user)
     reservations = list_reservations_by_branch(db, resolved_branch_id)
@@ -67,7 +67,7 @@ async def get_branch_reservation_route(
     db: Session = Depends(get_db),
     branch_id: UUID | None = Query(default=None),
     current_branch_id: UUID | None = Depends(get_current_branch_id),
-    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado, RolEnum.cajero)),
+    current_user: dict = Depends(require_permission("reservations:manage")),
 ):
     resolved_branch_id = _resolve_staff_branch(db, branch_id, current_branch_id, current_user)
     reservation = list_reservations_by_branch(db, resolved_branch_id)
@@ -155,7 +155,7 @@ async def confirm_reservation_arrival_route(
     db: Session = Depends(get_db),
     branch_id: UUID | None = Query(default=None),
     current_branch_id: UUID | None = Depends(get_current_branch_id),
-    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
+    current_user: dict = Depends(require_permission("reservations:manage")),
 ):
     resolved_branch_id = _resolve_staff_branch(db, branch_id, current_branch_id, current_user)
     try:
@@ -174,7 +174,7 @@ async def attend_reservation_route(
     db: Session = Depends(get_db),
     branch_id: UUID | None = Query(default=None),
     current_branch_id: UUID | None = Depends(get_current_branch_id),
-    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
+    current_user: dict = Depends(require_permission("reservations:manage")),
 ):
     resolved_branch_id = _resolve_staff_branch(db, branch_id, current_branch_id, current_user)
     try:
@@ -193,7 +193,7 @@ async def cancel_branch_reservation_route(
     db: Session = Depends(get_db),
     branch_id: UUID | None = Query(default=None),
     current_branch_id: UUID | None = Depends(get_current_branch_id),
-    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
+    current_user: dict = Depends(require_permission("reservations:manage")),
 ):
     resolved_branch_id = _resolve_staff_branch(db, branch_id, current_branch_id, current_user)
     try:

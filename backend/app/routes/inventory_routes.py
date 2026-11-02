@@ -63,7 +63,7 @@ async def branch_stock_route(
     branch_id: UUID,
     db: Session = Depends(get_db),
     tenant_id: UUID = Depends(get_current_tenant_id),
-    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado, RolEnum.cajero)),
+    current_user: dict = Depends(require_permission("inventory:read")),
 ):
     _require_branch_access(current_user, branch_id)
     stock = get_branch_stock(db, branch_id, tenant_id=tenant_id)
@@ -78,7 +78,7 @@ async def movements_route(
     branch_id: UUID | None = None,
     movement_type: InventoryMovementTypeEnum | None = None,
     limit: int = Query(default=100, ge=1, le=500),
-    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
+    current_user: dict = Depends(require_permission("inventory:read")),
 ):
     branch_id = _movement_branch_filter(current_user, branch_id)
     movements = list_movements(db, variant_id=variant_id, branch_id=branch_id, movement_type=movement_type, limit=limit, tenant_id=tenant_id)
@@ -108,7 +108,7 @@ async def income_route(
     payload: InventoryMovementCreate,
     db: Session = Depends(get_db),
     tenant_id: UUID = Depends(get_current_tenant_id),
-    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
+    current_user: dict = Depends(require_permission("inventory:adjust")),
 ): 
     _require_branch_access(current_user, payload.branch_id)
     try:
@@ -128,7 +128,7 @@ async def outcome_route(
     payload: InventoryMovementCreate,
     db: Session = Depends(get_db),
     tenant_id: UUID = Depends(get_current_tenant_id),
-    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
+    current_user: dict = Depends(require_permission("inventory:adjust")),
 ): 
     _require_branch_access(current_user, payload.branch_id)
     try:

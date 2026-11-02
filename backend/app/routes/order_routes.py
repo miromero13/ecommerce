@@ -3,7 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.auth.dependencies import get_current_branch_id, get_current_tenant_id, get_current_user, require_roles
+from app.auth.dependencies import get_current_branch_id, get_current_tenant_id, get_current_user, require_roles, require_permission
 from app.core.database import get_db
 from app.schemas.enums import RolEnum
 from app.models.branch import Branch
@@ -31,7 +31,7 @@ async def list_branch_orders_route(
     db: Session = Depends(get_db),
     current_branch_id: UUID | None = Depends(get_current_branch_id),
     current_tenant_id: UUID | None = Depends(get_current_tenant_id),
-    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado, RolEnum.cajero)),
+    current_user: dict = Depends(require_permission("orders:manage")),
 ):
     if current_user["rol"] == RolEnum.administrador.value:
         # The administrator looks at one branch of their own company at a time.
@@ -79,6 +79,7 @@ async def mark_order_ready_route(
     current_branch_id: UUID | None = Depends(get_current_branch_id),
     current_tenant_id: UUID | None = Depends(get_current_tenant_id),
     _: dict = Depends(require_roles(RolEnum.encargado)),
+    __: dict = Depends(require_permission("orders:manage")),
 ):
     if current_branch_id is None:
         raise HTTPException(status_code=422, detail="El encargado no tiene sucursal asignada")
@@ -99,6 +100,7 @@ async def hand_over_order_route(
     db: Session = Depends(get_db),
     staff: User = Depends(get_current_user),
     _: dict = Depends(require_roles(RolEnum.cajero, RolEnum.encargado)),
+    __: dict = Depends(require_permission("orders:manage")),
 ):
     try:
         order = hand_over_order(db, order_id, payload.pickup_code, staff.branch_id, staff.tenant_id)

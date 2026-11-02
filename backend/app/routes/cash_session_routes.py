@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.auth.dependencies import get_current_user, require_roles
+from app.auth.dependencies import get_current_user, require_roles, require_permission
 from app.core.database import get_db
 from app.models.user import User
 from app.schemas.cash_session_schema import CashMovementCreate, CashSessionClose, CashSessionOpen
@@ -36,7 +36,7 @@ def current_route(db: Session = Depends(get_db), user: User = Depends(get_curren
 
 @router.post("/open", status_code=status.HTTP_201_CREATED)
 def open_route(payload: CashSessionOpen, db: Session = Depends(get_db), user: User = Depends(get_current_user),
-               _: dict = Depends(CASHIER)):
+               _: dict = Depends(CASHIER), __: dict = Depends(require_permission("sales:create"))):
     try:
         session = service.open_session(db, user, payload.opening_amount)
     except service.CashSessionConflict as exc:

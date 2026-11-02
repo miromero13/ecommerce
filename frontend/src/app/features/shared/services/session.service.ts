@@ -46,7 +46,7 @@ export class SessionService {
     this.loadingSignal.set(true);
     try {
       const response = await firstValueFrom(this.userApi.getMe());
-      const user = response.data ?? null;
+      const user = response.data ? this.normalizeUser(response.data) : null;
       this.userSignal.set(user);
       if (user) {
         localStorage.setItem(USER_KEY, JSON.stringify(user));
@@ -84,7 +84,7 @@ export class SessionService {
 
   async refreshMe(): Promise<void> {
     const response = await firstValueFrom(this.userApi.getMe());
-    const user = response.data ?? null;
+    const user = response.data ? this.normalizeUser(response.data) : null;
     this.userSignal.set(user);
     if (user) {
       localStorage.setItem(USER_KEY, JSON.stringify(user));

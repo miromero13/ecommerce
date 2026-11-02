@@ -3,7 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.auth.dependencies import get_current_branch_id, get_current_tenant_id, require_roles
+from app.auth.dependencies import get_current_branch_id, get_current_tenant_id, require_roles, require_permission
 from app.core.database import get_db
 from app.schemas.enums import RolEnum
 from app.schemas.sales_schema import SaleCreate
@@ -20,7 +20,7 @@ async def list_branch_sales_route(
     branch_id: UUID | None = Query(default=None),
     current_branch_id: UUID | None = Depends(get_current_branch_id),
     current_tenant_id: UUID | None = Depends(get_current_tenant_id),
-    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado, RolEnum.cajero)),
+    current_user: dict = Depends(require_permission("sales:read")),
 ):
     is_admin = current_user.get("rol") == RolEnum.administrador.value
     resolved_branch_id = branch_id if is_admin else current_branch_id
@@ -42,7 +42,7 @@ async def get_sale_route(
     branch_id: UUID | None = Query(default=None),
     current_branch_id: UUID | None = Depends(get_current_branch_id),
     current_tenant_id: UUID | None = Depends(get_current_tenant_id),
-    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado, RolEnum.cajero)),
+    current_user: dict = Depends(require_permission("sales:read")),
 ):
     is_admin = current_user.get("rol") == RolEnum.administrador.value
     resolved_branch_id = branch_id if is_admin else current_branch_id
@@ -66,6 +66,7 @@ async def create_sale_route(
     current_branch_id: UUID | None = Depends(get_current_branch_id),
     current_tenant_id: UUID | None = Depends(get_current_tenant_id),
     current_user: dict = Depends(require_roles(RolEnum.cajero)),
+    _: dict = Depends(require_permission("sales:create")),
 ):
     if current_branch_id is None:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="branch_id es requerido")

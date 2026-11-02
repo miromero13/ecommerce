@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import Response, StreamingResponse
 from sqlalchemy.orm import Session
 
-from app.auth.dependencies import get_current_tenant_id, require_roles
+from app.auth.dependencies import get_current_tenant_id, require_roles, require_permission
 from app.core.database import get_db
 from app.schemas.enums import RolEnum
 from app.schemas.report_schema import (
@@ -156,7 +156,7 @@ def _smart_report(db: Session, filters: ReportQuery, current_user: dict, report_
 @router.get("/top-products")
 def top_products_route(
     db: Session = Depends(get_db), filters: ReportQuery = Depends(_filters),
-    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
+    current_user: dict = Depends(require_permission("reports:read")),
 ):
     return response(status_code=200, message="Ranking de productos obtenido exitosamente", data=_smart_report(db, filters, current_user, "top_products"))
 
@@ -164,7 +164,7 @@ def top_products_route(
 @router.get("/branch-comparison")
 def branch_comparison_route(
     db: Session = Depends(get_db), filters: ReportQuery = Depends(_filters),
-    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
+    current_user: dict = Depends(require_permission("reports:read")),
 ):
     return response(status_code=200, message="Comparativa de sucursales obtenida exitosamente", data=_smart_report(db, filters, current_user, "branch_comparison"))
 
@@ -172,7 +172,7 @@ def branch_comparison_route(
 @router.get("/critical-inventory")
 def critical_inventory_route(
     db: Session = Depends(get_db), filters: ReportQuery = Depends(_filters),
-    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
+    current_user: dict = Depends(require_permission("reports:read")),
 ):
     return response(status_code=200, message="Inventario crítico obtenido exitosamente", data=_smart_report(db, filters, current_user, "critical_inventory"))
 
@@ -194,7 +194,7 @@ def _export_file(db: Session, filters: ReportQuery, current_user: dict, report_t
 def excel_export_route(
     type: SmartReportType = Query(default="sales"),
     db: Session = Depends(get_db), filters: ReportQuery = Depends(_filters),
-    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
+    current_user: dict = Depends(require_permission("reports:read")),
 ):
     return _export_file(db, filters, current_user, type, "excel")
 
@@ -203,7 +203,7 @@ def excel_export_route(
 def pdf_export_route(
     type: SmartReportType = Query(default="sales"),
     db: Session = Depends(get_db), filters: ReportQuery = Depends(_filters),
-    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
+    current_user: dict = Depends(require_permission("reports:read")),
 ):
     return _export_file(db, filters, current_user, type, "pdf")
 
@@ -212,7 +212,7 @@ def pdf_export_route(
 async def sales_report_route(
     db: Session = Depends(get_db),
     filters: ReportQuery = Depends(_filters),
-    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
+    current_user: dict = Depends(require_permission("reports:read")),
 ):
     filters = _scoped_filters(db, filters, current_user)
     return response(status_code=status.HTTP_200_OK, message="Reporte de ventas obtenido exitosamente", data=get_sales_report(db, filters, UUID(current_user["tenant_id"])))
@@ -222,7 +222,7 @@ async def sales_report_route(
 async def sales_report_export_route(
     db: Session = Depends(get_db),
     filters: ReportQuery = Depends(_filters),
-    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
+    current_user: dict = Depends(require_permission("reports:read")),
 ):
     filters = _scoped_filters(db, filters, current_user)
     report = get_sales_report(db, filters, UUID(current_user["tenant_id"]))
@@ -237,7 +237,7 @@ async def sales_report_export_route(
 async def inventory_report_route(
     db: Session = Depends(get_db),
     filters: ReportQuery = Depends(_filters),
-    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
+    current_user: dict = Depends(require_permission("reports:read")),
 ):
     filters = _scoped_filters(db, filters, current_user)
     return response(status_code=status.HTTP_200_OK, message="Reporte de inventario obtenido exitosamente", data=get_inventory_report(db, filters, UUID(current_user["tenant_id"])))
@@ -247,7 +247,7 @@ async def inventory_report_route(
 async def inventory_report_export_route(
     db: Session = Depends(get_db),
     filters: ReportQuery = Depends(_filters),
-    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
+    current_user: dict = Depends(require_permission("reports:read")),
 ):
     filters = _scoped_filters(db, filters, current_user)
     report = get_inventory_report(db, filters, UUID(current_user["tenant_id"]))
@@ -262,7 +262,7 @@ async def inventory_report_export_route(
 async def movements_report_route(
     db: Session = Depends(get_db),
     filters: ReportQuery = Depends(_filters),
-    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
+    current_user: dict = Depends(require_permission("reports:read")),
 ):
     filters = _scoped_filters(db, filters, current_user)
     return response(status_code=status.HTTP_200_OK, message="Reporte de movimientos obtenido exitosamente", data=get_movements_report(db, filters, UUID(current_user["tenant_id"])))
@@ -272,7 +272,7 @@ async def movements_report_route(
 async def movements_report_export_route(
     db: Session = Depends(get_db),
     filters: ReportQuery = Depends(_filters),
-    current_user: dict = Depends(require_roles(RolEnum.administrador, RolEnum.encargado)),
+    current_user: dict = Depends(require_permission("reports:read")),
 ):
     filters = _scoped_filters(db, filters, current_user)
     report = get_movements_report(db, filters, UUID(current_user["tenant_id"]))

@@ -6,9 +6,10 @@ from app.schemas.user_schema import AdminUserCreate, UserCreate, UserRead, Users
 from app.services.user_service import create_admin_user, create_user, get_user, get_users, get_users_count, update_user_rol, update_user_branch, update_user_full, delete_user, set_user_active, update_user_profile
 from app.core.database import get_db
 from app.utils.response import response
-from app.auth.dependencies import get_current_user, get_current_branch_id, get_current_tenant_id, require_roles
+from app.auth.dependencies import get_current_user, get_current_branch_id, get_current_tenant_id, require_roles, require_permission
 from app.models.user import User
 from app.schemas.enums import RolEnum
+from app.services.rbac_service import effective_permissions
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -48,9 +49,13 @@ async def create_admin_user_route(
 
 # ✅ GET /users/me → DEBE IR ANTES que /{user_id}
 @router.get("/me")
-async def get_me_route(current_user: User = Depends(get_current_user)):
-    # Valida con Pydantic y serializa:
+async def get_me_route(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    perms = effective_permissions(db, current_user)
     user_data = UserRead.model_validate(current_user).model_dump()
+    user_data["permissions"] = perms
     return response(
         status_code=200,
         message="Perfil obtenido correctamente",
@@ -69,10 +74,13 @@ async def update_me_route(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
+    perms = effective_permissions(db, db_user)
+    user_data = UserRead.model_validate(db_user).model_dump()
+    user_data["permissions"] = perms
     return response(
         status_code=200,
         message="Perfil actualizado exitosamente",
-        data=UserRead.model_validate(db_user).model_dump(),
+        data=user_data,
     )
 
 # ✅ GET /users/{user_id}
@@ -80,7 +88,7 @@ async def update_me_route(
 async def get_user_route(
     user_id: UUID,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_roles(RolEnum.administrador)),
+    current_user: dict = Depends(require_permission("users:manage")),
     current_branch_id: UUID | None = Depends(get_current_branch_id),
     current_tenant_id: UUID | None = Depends(get_current_tenant_id),
 ):
@@ -104,7 +112,7 @@ async def get_users_route(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, gt=0, le=100),
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_roles(RolEnum.administrador)),
+    current_user: dict = Depends(require_permission("users:manage")),
     current_branch_id: UUID | None = Depends(get_current_branch_id),
     current_tenant_id: UUID | None = Depends(get_current_tenant_id),
 ):
@@ -124,7 +132,7 @@ async def update_user_rol_route(
     user_id: UUID,
     update_data: UserUpdateRol,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_roles(RolEnum.administrador)),
+    current_user: dict = Depends(require_permission("users:manage")),
     current_branch_id: UUID | None = Depends(get_current_branch_id),
     current_tenant_id: UUID | None = Depends(get_current_tenant_id),
 ):
@@ -158,7 +166,7 @@ async def update_user_branch_route(
     user_id: UUID,
     update_data: UserUpdateBranch,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_roles(RolEnum.administrador)),
+    current_user: dict = Depends(require_permission("users:manage")),
     current_branch_id: UUID | None = Depends(get_current_branch_id),
     current_tenant_id: UUID | None = Depends(get_current_tenant_id),
 ):
@@ -190,7 +198,7 @@ async def update_user_full_route(
     user_id: UUID,
     update_data: UserUpdate,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_roles(RolEnum.administrador)),
+    current_user: dict = Depends(require_permission("users:manage")),
     current_branch_id: UUID | None = Depends(get_current_branch_id),
     current_tenant_id: UUID | None = Depends(get_current_tenant_id),
 ):
@@ -222,7 +230,7 @@ async def update_user_active_route(
     user_id: UUID,
     update_data: UserActiveUpdate,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_roles(RolEnum.administrador)),
+    current_user: dict = Depends(require_permission("users:manage")),
     current_branch_id: UUID | None = Depends(get_current_branch_id),
     current_tenant_id: UUID | None = Depends(get_current_tenant_id),
 ):
@@ -249,7 +257,7 @@ async def update_user_active_route(
 async def delete_user_route(
     user_id: UUID,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_roles(RolEnum.administrador)),
+    current_user: dict = Depends(require_permission("users:manage")),
     current_branch_id: UUID | None = Depends(get_current_branch_id),
     current_tenant_id: UUID | None = Depends(get_current_tenant_id),
 ):
