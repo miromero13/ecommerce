@@ -321,7 +321,7 @@ previos: requieren la base de desarrollo sembrada, no el contenedor desechable.
 
 - `alembic/versions/` contiene el historial canónico de migraciones.
 - El esquema no se crea automáticamente al arrancar la app: siempre `python -m alembic upgrade head`.
-- Los datos de demostración vigentes son los de **«Datos de demostración»** (más abajo). `seed.py` es el seeder antiguo
+- Los datos de demostración vigentes son los de **«Datos de demostración»** (más abajo) generados por `python -m scripts.seed_demo --reset`.
   (catálogo Myntra) y queda solo como referencia; no ejecutarlo sobre datos reales.
 
 ## Datos de demostración
@@ -385,7 +385,7 @@ con la opción A. Termina con 12 verificaciones de coherencia (stock, comprobant
 `python -m scripts.build_demo_catalog --package ... --storage cloudinary` las sube y el catálogo usa esas URLs
 (necesario para el vestidor del móvil, que usa un servicio externo y no alcanza `localhost`).
 
-Nota: si `which alembic` apunta a `/opt/homebrew/bin/alembic`, usa `python -m alembic` para evitar el binario global roto. `python` sí puede salir del `venv`, así que `seed.py` funciona con ese intérprete.
+Nota: si `which alembic` apunta a `/opt/homebrew/bin/alembic`, usa `python -m alembic` para evitar el binario global roto. `python` sí puede salir del `venv`, así que `python -m scripts.seed_demo` funciona con ese intérprete.
 
 ### Comandos de Alembic
 

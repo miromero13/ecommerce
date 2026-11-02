@@ -18,7 +18,38 @@ from app.services.recommendation_service import (
     VIEW,
     WEIGHTS,
 )
-from seed import RECOMMENDATION_DEMO_INTERACTIONS
+RECOMMENDATION_DEMO_INTERACTIONS = (
+    (0, VIEW, (0, 1, 2)),
+    (0, ADD_TO_CART, (0, 2)),
+    (0, COMPLETED_ORDER, (0, 1)),
+    (1, VIEW, (0, 1, 2, 4)),
+    (1, ADD_TO_CART, (0, 1, 2)),
+    (1, COMPLETED_ORDER, (0, 1, 2)),
+    (2, VIEW, (0, 1, 2, 4)),
+    (2, ADD_TO_CART, (0, 1, 2)),
+    (2, COMPLETED_ORDER, (0, 1, 2)),
+    (3, VIEW, (0, 1, 2, 4)),
+    (3, ADD_TO_CART, (0, 1, 2)),
+    (3, COMPLETED_ORDER, (0, 1, 2)),
+    (4, VIEW, (0, 1, 3, 5)),
+    (4, ADD_TO_CART, (0, 3, 5)),
+    (4, COMPLETED_ORDER, (0, 1, 3)),
+    (5, VIEW, (0, 1, 3, 5)),
+    (5, ADD_TO_CART, (0, 3, 5)),
+    (5, COMPLETED_ORDER, (0, 1, 3)),
+    (6, VIEW, (0, 1, 3, 6)),
+    (6, ADD_TO_CART, (0, 3, 6)),
+    (6, COMPLETED_ORDER, (0, 1, 3)),
+    (7, VIEW, (0, 1, 3, 6)),
+    (7, ADD_TO_CART, (0, 3, 6)),
+    (7, COMPLETED_ORDER, (0, 1, 3)),
+    (8, VIEW, (0, 2, 3, 7)),
+    (8, ADD_TO_CART, (2, 3, 7)),
+    (8, COMPLETED_ORDER, (2, 3)),
+    (9, VIEW, (0, 2, 3, 7)),
+    (9, ADD_TO_CART, (2, 3, 7)),
+    (9, COMPLETED_ORDER, (2, 3)),
+)
 
 
 def test_aggregate_interactions_groups_weights_by_parent_product():

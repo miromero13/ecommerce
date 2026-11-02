@@ -51,7 +51,9 @@ def seeded_db():
     engine.dispose()
     root = Path(__file__).parents[1]
     command.upgrade(Config(str(root / "alembic.ini")), "head")
-    importlib.import_module("seed").main()
+    from scripts.seed_demo import run_seed
+
+    run_seed(guarded_url(), reset=True, days=0)
 
 
 @pytest.fixture(scope="session")

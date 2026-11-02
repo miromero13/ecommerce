@@ -734,22 +734,16 @@ class Seeder:
             raise SystemExit("La verificación encontró inconsistencias.")
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--reset", action="store_true", help="Borrar las empresas actuales y sus datos")
-    parser.add_argument("--database-url", help="Base destino (por defecto, DATABASE_URL del .env)")
-    parser.add_argument("--assets-base-url", default="http://localhost:8000", help="Dónde sirve el backend /demo-assets")
-    parser.add_argument("--days", type=int, default=200, help="Días de historial a simular")
-    args = parser.parse_args()
-
+def run_seed(database_url: str | None = None, reset: bool = True, days: int = 200, assets_base_url: str = "http://localhost:8000") -> Seeder:
     from app.core.config import settings
 
-    engine = create_engine(args.database_url or settings.database_url)
+    target_url = database_url or settings.database_url
+    engine = create_engine(target_url)
     db = sessionmaker(bind=engine, autoflush=False)()
-    seeder = Seeder(db, args.assets_base_url, args.days)
+    seeder = Seeder(db, assets_base_url, days)
     try:
         print("1/6 Reinicio")
-        seeder.reset(args.reset)
+        seeder.reset(reset)
         indexes = [f"CREATE INDEX IF NOT EXISTS seed_tmp_{t}_{k} ON {t} ({k})" for t, k, _ in EVENT_COLUMNS]
         for statement in indexes:  # the per-operation date moves stay fast while tables grow
             db.execute(text(statement))
@@ -761,8 +755,11 @@ def main() -> None:
         print("3/6 Catálogo, stock y cupones")
         seeder.catalog_and_stock()
         seeder.coupons()
-        print(f"4/6 Historial de {args.days} días")
-        seeder.simulate()
+        if days > 0:
+            print(f"4/6 Historial de {days} días")
+            seeder.simulate()
+        else:
+            print("4/6 Historial omitido (days=0)")
         print("5/6 Estado de hoy")
         seeder.today_state()
         print("6/6 Verificación")
@@ -772,6 +769,18 @@ def main() -> None:
             db.execute(text(f"DROP INDEX IF EXISTS seed_tmp_{table}_{key}"))
         db.commit()
         db.close()
+    return seeder
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--reset", action="store_true", help="Borrar las empresas actuales y sus datos")
+    parser.add_argument("--database-url", help="Base destino (por defecto, DATABASE_URL del .env)")
+    parser.add_argument("--assets-base-url", default="http://localhost:8000", help="Dónde sirve el backend /demo-assets")
+    parser.add_argument("--days", type=int, default=200, help="Días de historial a simular")
+    args = parser.parse_args()
+
+    seeder = run_seed(database_url=args.database_url, reset=args.reset, days=args.days, assets_base_url=args.assets_base_url)
     print("\nResumen:")
     for key, value in sorted(seeder.stats.items()):
         print(f"  {key}: {value}")

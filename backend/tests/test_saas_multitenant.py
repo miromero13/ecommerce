@@ -8,11 +8,12 @@ from app.models.branch import Branch
 from app.core.database import SessionLocal
 
 client = TestClient(app)
-pytestmark = pytest.mark.usefixtures("seeded_db")  # logs in with backend/seed.py accounts
+pytestmark = pytest.mark.usefixtures("seeded_db")  # logs in with seed_demo accounts
 
-TENANT_1_ID = "11111111-1111-1111-1111-111111111111"
-TENANT_2_ID = "22222222-2222-2222-2222-222222222222"
-TENANT_3_ID = "33333333-3333-3333-3333-333333333333"
+
+def _get_tenant_by_slug(slug: str) -> Tenant:
+    with SessionLocal() as db:
+        return db.query(Tenant).filter_by(slug=slug).one()
 
 
 def test_superadmin_unified_login_and_tenant_crud():
@@ -33,17 +34,19 @@ def test_superadmin_unified_login_and_tenant_crud():
     assert res_list.status_code == 200
     tenants = res_list.json()["data"]
     tenant_names = [t["name"] for t in tenants]
-    assert "Aura Moda" in tenant_names
-    assert "UrbanStyle" in tenant_names
-    assert "NovaWear" in tenant_names
+    assert "Ayni Moda" in tenant_names
+    assert "Kantuta Boutique" in tenant_names
+    assert "Urbana Denim" in tenant_names
+    assert "Luna Satén" in tenant_names
 
     # 2.1. Listar tenants públicos
     res_public = client.get("/api/saas/tenants/public")
     assert res_public.status_code == 200
     public_names = [t["name"] for t in res_public.json()["data"]]
-    assert "Aura Moda" in public_names
-    assert "UrbanStyle" in public_names
-    assert "NovaWear" in public_names
+    assert "Ayni Moda" in public_names
+    assert "Kantuta Boutique" in public_names
+    assert "Urbana Denim" in public_names
+    assert "Luna Satén" in public_names
 
     # 3. Crear nuevo tenant
     new_slug = f"test-brand-{uuid.uuid4().hex[:6]}"
@@ -81,15 +84,18 @@ def test_superadmin_unified_login_and_tenant_crud():
 
 
 def test_admin_and_cashier_tenant_isolation():
-    # 1. Login Admin Aura Moda (Tenant 1)
+    ayni_tenant = _get_tenant_by_slug("ayni-moda")
+    kantuta_tenant = _get_tenant_by_slug("kantuta-boutique")
+
+    # 1. Login Admin Ayni Moda (Tenant 1)
     res_admin = client.post(
         "/api/auth/login",
-        json={"email": "admin.global@fashionstore.bo", "password": "Fashion123!"},
+        json={"email": "carolina.quiroga@ayni-moda.demo.bo", "password": "Fashion2026!"},
     )
     assert res_admin.status_code == 200
     admin_body = res_admin.json()["data"]
     assert admin_body["user"]["rol"] == "administrador"
-    assert admin_body["user"]["tenant_id"] == TENANT_1_ID
+    assert admin_body["user"]["tenant_id"] == str(ayni_tenant.id)
     admin_token = admin_body["access_token"]
     admin_headers = {"Authorization": f"Bearer {admin_token}"}
 
@@ -97,18 +103,18 @@ def test_admin_and_cashier_tenant_isolation():
     res_forbidden = client.get("/api/saas/tenants/", headers=admin_headers)
     assert res_forbidden.status_code == 403
 
-    # 3. El administrador solo ve sucursales de su empresa (Tenant 1)
+    # 3. El administrador solo ve sucursales de su empresa (Ayni Moda)
     res_branches = client.get("/api/branches/", headers=admin_headers)
     assert res_branches.status_code == 200
     branches = res_branches.json()["data"]
     assert len(branches) >= 3
 
-    # Crear una sucursal en Tenant 2 (UrbanStyle) directamente en DB para probar aislamiento
+    # Crear una sucursal en Tenant 2 (Kantuta) directamente en DB para probar aislamiento
     with SessionLocal() as db:
         branch_t2 = Branch(
-            name=f"Sucursal UrbanStyle {uuid.uuid4().hex[:6]}",
+            name=f"Sucursal Kantuta {uuid.uuid4().hex[:6]}",
             city="Santa Cruz",
-            tenant_id=uuid.UUID(TENANT_2_ID),
+            tenant_id=kantuta_tenant.id,
             is_active=True,
         )
         db.add(branch_t2)
@@ -116,12 +122,12 @@ def test_admin_and_cashier_tenant_isolation():
         db.refresh(branch_t2)
         branch_t2_id = branch_t2.id
 
-    # El admin de Tenant 1 consulta sus sucursales y NO ve la sucursal de Tenant 2
+    # El admin de Ayni Moda consulta sus sucursales y NO ve la sucursal de Kantuta
     res_branches_check = client.get("/api/branches/", headers=admin_headers)
     branch_ids = [b["id"] for b in res_branches_check.json()["data"]]
     assert str(branch_t2_id) not in branch_ids
 
-    # El admin de Tenant 1 intenta modificar o eliminar la sucursal de Tenant 2 -> 404 (no encontrada en su empresa)
+    # El admin de Ayni Moda intenta modificar o eliminar la sucursal de Kantuta -> 404
     res_update_alien = client.put(
         f"/api/branches/{branch_t2_id}",
         json={"name": "Hack Branch", "city": "La Paz", "is_default": False, "is_active": True},
@@ -132,15 +138,15 @@ def test_admin_and_cashier_tenant_isolation():
     res_delete_alien = client.delete(f"/api/branches/{branch_t2_id}", headers=admin_headers)
     assert res_delete_alien.status_code == 404
 
-    # 4. Login Cajera La Paz (Tenant 1)
+    # 4. Login Cajera La Paz (Ayni Moda)
     res_cashier = client.post(
         "/api/auth/login",
-        json={"email": "cajera.lp@fashionstore.bo", "password": "Fashion123!"},
+        json={"email": "lucia.apaza@ayni-moda.demo.bo", "password": "Fashion2026!"},
     )
     assert res_cashier.status_code == 200
     cashier_body = res_cashier.json()["data"]
     assert cashier_body["user"]["rol"] == "cajero"
-    assert cashier_body["user"]["tenant_id"] == TENANT_1_ID
+    assert cashier_body["user"]["tenant_id"] == str(ayni_tenant.id)
     assert cashier_body["user"]["branch_id"] is not None
     cashier_token = cashier_body["access_token"]
     cashier_headers = {"Authorization": f"Bearer {cashier_token}"}
@@ -155,10 +161,12 @@ def test_admin_and_cashier_tenant_isolation():
 
 
 def test_global_client_unified_experience():
+    ayni_tenant = _get_tenant_by_slug("ayni-moda")
+
     # 1. Login cliente global
     res_client = client.post(
         "/api/auth/login",
-        json={"email": "cliente01.demo@fashionstore.bo", "password": "Fashion123!"},
+        json={"email": "maria.quispe@clientes.demo.bo", "password": "Cliente2026!"},
     )
     assert res_client.status_code == 200
     client_body = res_client.json()["data"]
@@ -178,7 +186,7 @@ def test_global_client_unified_experience():
     assert len(res_public.json()["data"]) >= 3
 
     # 4. Cliente puede filtrar sucursales por tenant
-    res_filtered = client.get(f"/api/branches/public?tenant_id={TENANT_1_ID}")
+    res_filtered = client.get(f"/api/branches/public?tenant_id={ayni_tenant.id}")
     assert res_filtered.status_code == 200
     assert len(res_filtered.json()["data"]) >= 3
 
