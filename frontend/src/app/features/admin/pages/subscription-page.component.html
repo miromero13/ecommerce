@@ -52,23 +52,23 @@
       </div>
     </div>
 
-    <!-- Spartan Compact Navigation Tabs (fit-content, not full-width) -->
+    <!-- Spartan Compact Navigation Tabs -->
     <hlm-tabs [tab]="activeTab()" class="w-full" (tabActivated)="selectTab($event)">
       <div class="flex items-center justify-between border-b border-border pb-3">
-        <hlm-tabs-list class="inline-flex h-9 w-fit items-center justify-start rounded-lg bg-muted p-1 text-muted-foreground border border-border" aria-label="Secciones de suscripción">
-          <button hlmTabsTrigger="plan" type="button" class="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-xs sm:text-sm font-medium ring-offset-background transition-all">
+        <hlm-tabs-list class="!inline-flex !w-fit !flex-row !flex-wrap !items-center !gap-1 !rounded-lg !bg-muted !p-1 !text-muted-foreground !border !border-border !min-h-0 !h-auto" aria-label="Secciones de suscripción">
+          <button [hlmTabsTrigger]="'plan'" type="button" class="!inline-flex !flex-row !min-h-0 !h-8 !items-center !justify-center !whitespace-nowrap !rounded-md !px-3.5 !py-1 text-xs sm:text-sm font-semibold !leading-none transition-all cursor-pointer">
             <span>Plan y Cuotas</span>
           </button>
 
-          <button hlmTabsTrigger="branding" type="button" class="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-xs sm:text-sm font-medium ring-offset-background transition-all">
+          <button [hlmTabsTrigger]="'branding'" type="button" class="!inline-flex !flex-row !min-h-0 !h-8 !items-center !justify-center !whitespace-nowrap !rounded-md !px-3.5 !py-1 text-xs sm:text-sm font-semibold !leading-none transition-all cursor-pointer">
             <span>Marca y Logo</span>
           </button>
 
-          <button hlmTabsTrigger="payments" type="button" class="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-xs sm:text-sm font-medium ring-offset-background transition-all">
+          <button [hlmTabsTrigger]="'payments'" type="button" class="!inline-flex !flex-row !min-h-0 !h-8 !items-center !justify-center !whitespace-nowrap !rounded-md !px-3.5 !py-1 text-xs sm:text-sm font-semibold !leading-none transition-all cursor-pointer">
             <span>Historial de Pagos</span>
           </button>
 
-          <button hlmTabsTrigger="plans" type="button" class="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-xs sm:text-sm font-medium ring-offset-background transition-all">
+          <button [hlmTabsTrigger]="'plans'" type="button" class="!inline-flex !flex-row !min-h-0 !h-8 !items-center !justify-center !whitespace-nowrap !rounded-md !px-3.5 !py-1 text-xs sm:text-sm font-semibold !leading-none transition-all cursor-pointer">
             <span>Cambiar Plan</span>
           </button>
         </hlm-tabs-list>

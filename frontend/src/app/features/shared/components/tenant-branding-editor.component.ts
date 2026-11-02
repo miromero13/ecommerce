@@ -25,26 +25,75 @@ const LOGO_MAX_BYTES = 2 * 1024 * 1024;
     <section class="space-y-4 rounded-2xl border border-border bg-card p-5">
       <div>
         <h2 class="text-base font-bold text-foreground">Marca de la empresa</h2>
-        <p class="text-sm text-muted-foreground">Logo y color que ve tu personal en el panel y que se imprimen en comprobantes y notas de venta.</p>
+        <p class="text-xs sm:text-sm text-muted-foreground">Logo y color que ve tu personal en el panel y que se imprimen en comprobantes y notas de venta.</p>
       </div>
+
       <div class="flex flex-col gap-4 sm:flex-row sm:items-center">
+        <!-- Logo Preview Box -->
         <div class="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-muted">
           @if (branding()?.logo_url) {
-            <img [src]="branding()!.logo_url" alt="Logo de la empresa" class="size-full object-contain" />
+            <img [src]="branding()!.logo_url" alt="Logo de la empresa" class="size-full object-contain p-1" />
           } @else {
             <span class="text-xs text-muted-foreground">Sin logo</span>
           }
         </div>
+
         <div class="flex flex-1 flex-col gap-3">
-          <label class="inline-flex w-fit cursor-pointer items-center gap-2 text-sm font-medium text-foreground">
-            <input type="file" class="hidden" accept="image/png,image/jpeg,image/webp" [disabled]="saving()" (change)="uploadLogo($event)" />
-            <span class="rounded-lg border border-border px-3 py-2 hover:bg-muted">{{ branding()?.logo_url ? 'Cambiar logo' : 'Subir logo' }}</span>
-            <span class="text-xs text-muted-foreground">PNG, JPG o WEBP · máx. 2 MB</span>
-          </label>
-          <div class="flex items-center gap-3">
-            <input type="color" class="h-9 w-14 cursor-pointer rounded border border-border bg-transparent" [value]="color()" (input)="color.set($any($event.target).value)" aria-label="Color principal" />
-            <span class="font-mono text-xs text-muted-foreground">{{ color() }}</span>
-            <button hlmBtn type="button" variant="outline" [disabled]="saving()" (click)="saveColor()">Guardar color</button>
+          <!-- Logo Actions: Upload, Change and Remove -->
+          <div class="flex flex-wrap items-center gap-2">
+            <label class="inline-flex w-fit cursor-pointer items-center gap-2 text-xs font-medium text-foreground">
+              <input type="file" class="hidden" accept="image/png,image/jpeg,image/webp" [disabled]="saving()" (change)="uploadLogo($event)" />
+              <span class="rounded-lg border border-border px-3 py-1.5 hover:bg-muted font-semibold transition-colors cursor-pointer">
+                {{ branding()?.logo_url ? 'Cambiar logo' : 'Subir logo' }}
+              </span>
+            </label>
+
+            @if (branding()?.logo_url) {
+              <button
+                hlmBtn
+                type="button"
+                variant="outline"
+                size="sm"
+                class="text-xs text-destructive hover:bg-destructive/10 cursor-pointer"
+                [disabled]="saving()"
+                (click)="removeLogo()"
+              >
+                Dejar sin foto
+              </button>
+            }
+            <span class="text-[11px] text-muted-foreground block w-full sm:w-auto">PNG, JPG o WEBP · máx. 2 MB</span>
+          </div>
+
+          <!-- Color Actions: Picker, Hex, Save and Reset to System Default -->
+          <div class="flex flex-wrap items-center gap-2 pt-1 border-t border-border/50">
+            <div class="flex items-center gap-2">
+              <input
+                type="color"
+                class="size-8 cursor-pointer rounded-md border border-border bg-transparent p-0.5"
+                [value]="color()"
+                (input)="color.set($any($event.target).value)"
+                aria-label="Color principal"
+              />
+              <span class="font-mono text-xs text-muted-foreground">{{ color() }}</span>
+            </div>
+
+            <button hlmBtn type="button" variant="default" size="sm" [disabled]="saving()" (click)="saveColor()" class="cursor-pointer">
+              Guardar color
+            </button>
+
+            @if (branding()?.primary_color) {
+              <button
+                hlmBtn
+                type="button"
+                variant="ghost"
+                size="sm"
+                [disabled]="saving()"
+                (click)="resetColor()"
+                class="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+              >
+                Reestablecer al color del sistema
+              </button>
+            }
           </div>
         </div>
       </div>
@@ -75,12 +124,18 @@ export class TenantBrandingEditorComponent implements OnInit {
     await this.run(request as Observable<ApiResponse<unknown>>, 'No se pudo guardar el color.');
   }
 
+  protected async resetColor(): Promise<void> {
+    const request = this.tenantId
+      ? this.api.updateTenant(this.tenantId, { primary_color: null })
+      : this.api.updateMyBranding(null);
+    await this.run(request as Observable<ApiResponse<unknown>>, 'No se pudo reestablecer el color.');
+  }
+
   protected async uploadLogo(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     input.value = '';
     if (!file) return;
-    // Same limits as the backend, checked first for immediate feedback.
     if (!LOGO_TYPES.includes(file.type)) {
       toast.error('El logo debe ser una imagen PNG, JPG o WEBP');
       return;
@@ -92,13 +147,16 @@ export class TenantBrandingEditorComponent implements OnInit {
     await this.run(this.api.uploadLogo(file, this.tenantId), 'No se pudo subir el logo.');
   }
 
+  protected async removeLogo(): Promise<void> {
+    await this.run(this.api.deleteLogo(this.tenantId), 'No se pudo quitar el logo.');
+  }
+
   private async run(request: Observable<ApiResponse<unknown>>, fallback: string): Promise<void> {
     this.saving.set(true);
     try {
       const response = await firstValueFrom(request);
       toast.success(response.message);
       const id = this.tenantId ?? this.currentTenantId ?? this.branding()?.tenant_id;
-      // Reload the public branding so the panel and receipts pick up the change.
       if (id) {
         const fresh = await firstValueFrom(this.api.getBranding(id));
         if (fresh.data) {
@@ -115,6 +173,6 @@ export class TenantBrandingEditorComponent implements OnInit {
 
   private show(branding: TenantBranding | null): void {
     this.branding.set(branding);
-    if (branding?.primary_color) this.color.set(branding.primary_color);
+    this.color.set(branding?.primary_color || '#111827');
   }
 }
