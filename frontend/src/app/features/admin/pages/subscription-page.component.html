@@ -14,26 +14,23 @@
       <button
         type="button"
         (click)="togglePlans()"
-        [attr.aria-expanded]="showPlans()"
         class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm shadow-xs transition-all cursor-pointer"
       >
-        <span>{{ showPlans() ? 'Ocultar planes' : (summary()?.has_active_subscription ? 'Cambiar plan' : 'Elegir plan') }}</span>
-        <ng-icon [name]="showPlans() ? 'lucideX' : 'lucideArrowUpRight'" class="w-4 h-4"></ng-icon>
+        <span>{{ activeTab() === 'plans' ? 'Ver mi plan' : (summary()?.has_active_subscription ? 'Cambiar plan' : 'Elegir plan') }}</span>
+        <ng-icon [name]="activeTab() === 'plans' ? 'lucideShieldCheck' : 'lucideArrowUpRight'" class="w-4 h-4"></ng-icon>
       </button>
     </div>
   </div>
 
   <!-- Loading Skeleton -->
   <div *ngIf="loading()" class="space-y-6">
+    <div class="h-12 rounded-xl bg-muted/40 animate-pulse border border-border"></div>
     <div class="h-48 rounded-2xl bg-muted/40 animate-pulse border border-border"></div>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div class="h-40 rounded-2xl bg-muted/40 animate-pulse border border-border"></div>
       <div class="h-40 rounded-2xl bg-muted/40 animate-pulse border border-border"></div>
     </div>
   </div>
-
-  <!-- CU1 branding: logo and color of the company -->
-  <app-tenant-branding-editor [currentTenantId]="tenantId" />
 
   <!-- Error State -->
   <div *ngIf="!loading() && error()" class="p-6 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive">
@@ -46,253 +43,304 @@
     </div>
   </div>
 
-  <!-- Content -->
-  <div *ngIf="!loading() && summary()" class="space-y-8">
-    <!-- No current plan: limits and AI modules are blocked until the company subscribes -->
+  <!-- Main Content with Tabs -->
+  <div *ngIf="!loading() && summary()" class="space-y-6">
+    <!-- Alert when no active subscription exists -->
     <div *ngIf="!summary()?.has_active_subscription" role="alert" class="p-6 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive flex items-start gap-3">
-      <ng-icon name="lucideShieldAlert" class="w-6 h-6 shrink-0"></ng-icon>
+      <ng-icon name="lucideShieldAlert" class="w-6 h-6 shrink-0 mt-0.5"></ng-icon>
       <div>
         <h3 class="font-bold text-base">Tu empresa no tiene una suscripción activa</h3>
         <p class="text-sm mt-0.5">No podés crear sucursales ni prendas, y los módulos de IA están desactivados. Elegí un plan para continuar.</p>
       </div>
     </div>
 
-    <!-- Plan change: choose a tier, then confirm the simulated payment -->
-    <div *ngIf="showPlans()" class="bg-card text-card-foreground rounded-3xl border border-border shadow-xs">
-      <app-pricing-table
-        [currentPlanId]="summary()?.plan?.id ?? null"
-        [showComparison]="true"
-        (selectPlan)="choosePlan($event)"
-      ></app-pricing-table>
+    <!-- Navigation Tabs -->
+    <hlm-tabs [tab]="activeTab()" class="w-full" (tabActivated)="selectTab($event)">
+      <hlm-tabs-list class="grid w-full grid-cols-2 sm:grid-cols-4 gap-1 p-1 bg-muted/60 rounded-2xl border border-border" aria-label="Secciones de suscripción">
+        <button hlmTabsTrigger="plan" type="button" class="flex items-center justify-center gap-2 py-2.5 text-xs sm:text-sm font-bold transition-all">
+          <ng-icon name="lucideShieldCheck" class="w-4 h-4"></ng-icon>
+          <span>Plan y Cuotas</span>
+        </button>
 
-      <div *ngIf="selected() as choice" class="mx-4 sm:mx-8 mb-8 p-6 rounded-2xl border-2 border-primary/30 bg-muted/30 space-y-4">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <button hlmTabsTrigger="branding" type="button" class="flex items-center justify-center gap-2 py-2.5 text-xs sm:text-sm font-bold transition-all">
+          <ng-icon name="lucideBuilding2" class="w-4 h-4"></ng-icon>
+          <span>Marca y Logo</span>
+        </button>
+
+        <button hlmTabsTrigger="payments" type="button" class="flex items-center justify-center gap-2 py-2.5 text-xs sm:text-sm font-bold transition-all">
+          <ng-icon name="lucideCreditCard" class="w-4 h-4"></ng-icon>
+          <span>Historial de Pagos</span>
+        </button>
+
+        <button hlmTabsTrigger="plans" type="button" class="flex items-center justify-center gap-2 py-2.5 text-xs sm:text-sm font-bold transition-all">
+          <ng-icon name="lucideSparkles" class="w-4 h-4"></ng-icon>
+          <span>Cambiar Plan</span>
+        </button>
+      </hlm-tabs-list>
+    </hlm-tabs>
+
+    <!-- TAB 1: Plan y Cuotas -->
+    <div *ngIf="activeTab() === 'plan'" class="space-y-8 animate-in fade-in duration-300">
+      <!-- Active Plan Overview Banner -->
+      <div *ngIf="summary()?.has_active_subscription" class="bg-card text-card-foreground rounded-3xl p-8 border-2 border-primary/30 shadow-md relative overflow-hidden">
+        <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <h3 class="font-extrabold text-foreground text-lg">Confirmar cambio al plan {{ choice.plan.name }}</h3>
-            <p class="text-xs text-muted-foreground">
-              Facturación {{ choice.billingCycle === 'yearly' ? 'anual' : 'mensual' }}. El nuevo período empieza hoy y reemplaza al plan actual.
+            <div class="flex items-center gap-3 mb-3">
+              <span class="bg-primary/10 text-primary border border-primary/20 text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wider flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+                {{ summary()?.subscription?.status === 'active' ? 'Suscripción Activa' : summary()?.subscription?.status }}
+              </span>
+              <span class="bg-muted text-foreground text-xs px-3 py-1 rounded-full font-semibold border border-border">
+                Ciclo {{ summary()?.subscription?.billing_cycle === 'yearly' ? 'Anual' : 'Mensual' }}
+              </span>
+            </div>
+
+            <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight flex items-center gap-3 text-foreground">
+              <span>{{ summary()?.plan?.name }}</span>
+              <ng-icon
+                *ngIf="summary()?.plan?.id === 'plan_enterprise'"
+                name="lucideCrown"
+                class="w-7 h-7 text-primary"
+              ></ng-icon>
+              <ng-icon
+                *ngIf="summary()?.plan?.id === 'plan_pro'"
+                name="lucideSparkles"
+                class="w-7 h-7 text-primary"
+              ></ng-icon>
+            </h2>
+
+            <p class="text-muted-foreground text-sm mt-2 max-w-xl">
+              {{ summary()?.plan?.description }}
             </p>
+
+            <div class="flex items-center gap-6 mt-6 text-xs text-muted-foreground">
+              <div class="flex items-center gap-2">
+                <ng-icon name="lucideCalendar" class="w-4 h-4 text-primary"></ng-icon>
+                <span>Inicio: {{ summary()?.subscription?.start_date | date:'dd/MM/yyyy' }}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <ng-icon name="lucideCreditCard" class="w-4 h-4 text-primary"></ng-icon>
+                <span>Vencimiento: {{ summary()?.subscription?.end_date | date:'dd/MM/yyyy' }}</span>
+              </div>
+            </div>
           </div>
-          <div class="text-2xl font-black text-foreground">{{ selectedPrice() }} Bs.</div>
-        </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <label class="space-y-1.5 text-xs font-bold text-foreground">
-            Número de tarjeta
-            <input type="text" [(ngModel)]="cardNumber" autocomplete="off" class="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring" />
-          </label>
-          <label class="space-y-1.5 text-xs font-bold text-foreground">
-            Titular
-            <input type="text" [(ngModel)]="cardHolder" autocomplete="off" class="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
-          </label>
-          <label class="space-y-1.5 text-xs font-bold text-foreground">
-            Vencimiento
-            <input type="text" [(ngModel)]="cardExp" autocomplete="off" class="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring" />
-          </label>
-          <label class="space-y-1.5 text-xs font-bold text-foreground">
-            CVV
-            <input type="text" [(ngModel)]="cardCvv" autocomplete="off" class="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring" />
-          </label>
-        </div>
-        <p class="text-xs text-muted-foreground">Pago simulado (sandbox): no se realiza ningún cobro real.</p>
-
-        <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
-          <button type="button" (click)="selected.set(null)" class="px-5 py-2.5 rounded-xl border border-border bg-secondary text-secondary-foreground font-bold text-sm cursor-pointer">
-            Cancelar
-          </button>
-          <button
-            type="button"
-            (click)="confirmChange()"
-            [disabled]="changing()"
-            class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            <ng-icon name="lucideCreditCard" class="w-4 h-4"></ng-icon>
-            {{ changing() ? 'Procesando pago...' : 'Pagar y activar plan' }}
-          </button>
+          <div class="text-right md:border-l md:border-border md:pl-8">
+            <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Importe Actual</span>
+            <div class="text-4xl font-black text-foreground mt-1">
+              {{ summary()?.subscription?.billing_cycle === 'yearly' ? summary()?.plan?.price_yearly : summary()?.plan?.price_monthly }} Bs.
+            </div>
+            <span class="text-xs text-muted-foreground block mt-0.5">
+              / {{ summary()?.subscription?.billing_cycle === 'yearly' ? 'año' : 'mes' }}
+            </span>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Active Plan Overview Banner -->
-    <div *ngIf="summary()?.has_active_subscription" class="bg-card text-card-foreground rounded-3xl p-8 border-2 border-primary/30 shadow-md relative overflow-hidden">
-      <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <div class="flex items-center gap-3 mb-3">
-            <span class="bg-primary/10 text-primary border border-primary/20 text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wider flex items-center gap-1.5">
-              <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-              {{ summary()?.subscription?.status === 'active' ? 'Suscripción Activa' : summary()?.subscription?.status }}
-            </span>
-            <span class="bg-muted text-foreground text-xs px-3 py-1 rounded-full font-semibold border border-border">
-              Ciclo {{ summary()?.subscription?.billing_cycle === 'yearly' ? 'Anual' : 'Mensual' }}
-            </span>
+      <!-- Usage Quotas & Limits Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Sucursales Quota -->
+        <div class="bg-card text-card-foreground rounded-2xl p-6 border border-border shadow-xs flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-2.5">
+                <div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                  <ng-icon name="lucideStore" class="w-5 h-5"></ng-icon>
+                </div>
+                <div>
+                  <h3 class="font-bold text-foreground text-base">Sucursales Físicas</h3>
+                  <span class="text-xs text-muted-foreground">Límite operativo de tiendas</span>
+                </div>
+              </div>
+              <span class="text-lg font-black text-foreground">
+                {{ summary()?.usage?.branches_count }} / {{ summary()?.usage?.branches_max ?? '—' }}
+              </span>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="w-full bg-muted rounded-full h-3 mb-2 overflow-hidden border border-border">
+              <div
+                class="h-3 rounded-full transition-all duration-500 bg-primary"
+                [style.width.%]="getBranchPercentage()"
+              ></div>
+            </div>
           </div>
 
-          <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight flex items-center gap-3 text-foreground">
-            <span>{{ summary()?.plan?.name }}</span>
-            <ng-icon
-              *ngIf="summary()?.plan?.id === 'plan_enterprise'"
-              name="lucideCrown"
-              class="w-7 h-7 text-primary"
-            ></ng-icon>
-            <ng-icon
-              *ngIf="summary()?.plan?.id === 'plan_pro'"
-              name="lucideSparkles"
-              class="w-7 h-7 text-primary"
-            ></ng-icon>
-          </h2>
-
-          <p class="text-muted-foreground text-sm mt-2 max-w-xl">
-            {{ summary()?.plan?.description }}
+          <p class="text-xs text-muted-foreground mt-4">
+            Has utilizado el <strong class="text-foreground">{{ getBranchPercentage() }}%</strong> de las sucursales permitidas en tu plan.
           </p>
-
-          <div class="flex items-center gap-6 mt-6 text-xs text-muted-foreground">
-            <div class="flex items-center gap-2">
-              <ng-icon name="lucideCalendar" class="w-4 h-4 text-primary"></ng-icon>
-              <span>Inicio: {{ summary()?.subscription?.start_date | date:'dd/MM/yyyy' }}</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <ng-icon name="lucideCreditCard" class="w-4 h-4 text-primary"></ng-icon>
-              <span>Vencimiento: {{ summary()?.subscription?.end_date | date:'dd/MM/yyyy' }}</span>
-            </div>
-          </div>
         </div>
 
-        <div class="text-right md:border-l md:border-border md:pl-8">
-          <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Importe Actual</span>
-          <div class="text-4xl font-black text-foreground mt-1">
-            {{ summary()?.subscription?.billing_cycle === 'yearly' ? summary()?.plan?.price_yearly : summary()?.plan?.price_monthly }} Bs.
-          </div>
-          <span class="text-xs text-muted-foreground block mt-0.5">
-            / {{ summary()?.subscription?.billing_cycle === 'yearly' ? 'año' : 'mes' }}
-          </span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Usage Quotas & Limits Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <!-- Sucursales Quota -->
-      <div class="bg-card text-card-foreground rounded-2xl p-6 border border-border shadow-xs flex flex-col justify-between">
-        <div>
-          <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center gap-2.5">
-              <div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                <ng-icon name="lucideStore" class="w-5 h-5"></ng-icon>
-              </div>
-              <div>
-                <h3 class="font-bold text-foreground text-base">Sucursales Físicas</h3>
-                <span class="text-xs text-muted-foreground">Límite operativo de tiendas</span>
-              </div>
-            </div>
-            <span class="text-lg font-black text-foreground">
-              {{ summary()?.usage?.branches_count }} / {{ summary()?.usage?.branches_max ?? '—' }}
-            </span>
-          </div>
-
-          <!-- Progress Bar -->
-          <div class="w-full bg-muted rounded-full h-3 mb-2 overflow-hidden border border-border">
-            <div
-              class="h-3 rounded-full transition-all duration-500 bg-primary"
-              [style.width.%]="getBranchPercentage()"
-            ></div>
-          </div>
-        </div>
-
-        <p class="text-xs text-muted-foreground mt-4">
-          Has utilizado el <strong class="text-foreground">{{ getBranchPercentage() }}%</strong> de las sucursales permitidas en tu plan.
-        </p>
-      </div>
-
-      <!-- Prendas Quota -->
-      <div class="bg-card text-card-foreground rounded-2xl p-6 border border-border shadow-xs flex flex-col justify-between">
-        <div>
-          <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center gap-2.5">
-              <div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                <ng-icon name="lucideZap" class="w-5 h-5"></ng-icon>
-              </div>
-              <div>
-                <h3 class="font-bold text-foreground text-base">Capacidad de Prendas</h3>
-                <span class="text-xs text-muted-foreground">Catálogo de productos activos</span>
-              </div>
-            </div>
-            <span class="text-lg font-black text-foreground">
-              {{ summary()?.usage?.garments_count }} / {{ (summary()?.usage?.garments_max | number) ?? '—' }}
-            </span>
-          </div>
-
-          <!-- Progress Bar -->
-          <div class="w-full bg-muted rounded-full h-3 mb-2 overflow-hidden border border-border">
-            <div
-              class="h-3 rounded-full transition-all duration-500 bg-primary"
-              [style.width.%]="getGarmentPercentage()"
-            ></div>
-          </div>
-        </div>
-
-        <p class="text-xs text-muted-foreground mt-4">
-          Has cargado <strong class="text-foreground">{{ summary()?.usage?.garments_count }}</strong> prendas de las <strong class="text-foreground">{{ summary()?.usage?.garments_max | number }}</strong> disponibles.
-        </p>
-      </div>
-    </div>
-
-    <!-- CU2 payment history: one row per paid period (plan purchase or change) -->
-    <div class="bg-card text-card-foreground rounded-3xl p-8 border border-border shadow-xs space-y-4">
-      <div class="flex flex-col gap-1 pb-4 border-b border-border">
-        <h3 class="text-lg font-extrabold text-foreground">Historial de pagos</h3>
-        <p class="text-xs text-muted-foreground">Cada compra o cambio de plan es un pago que inicia un nuevo período. Para cambiar de plan usa el botón «{{ summary()?.has_active_subscription ? 'Cambiar plan' : 'Elegir plan' }}».</p>
-      </div>
-      <div class="overflow-x-auto" *ngIf="payments().length; else noPayments">
-        <table class="w-full text-sm">
-          <thead class="text-left text-xs uppercase text-muted-foreground">
-            <tr><th class="py-2 pr-4">Fecha</th><th class="py-2 pr-4">Plan</th><th class="py-2 pr-4">Facturación</th><th class="py-2 pr-4">Período</th><th class="py-2 pr-4">Medio de pago</th><th class="py-2 pr-4 text-right">Monto</th><th class="py-2 pr-4">Estado</th><th class="py-2">Comprobante</th></tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let payment of payments()" class="border-t border-border">
-              <td class="py-2 pr-4">{{ payment.paid_at | date: 'dd/MM/yyyy HH:mm' }}</td>
-              <td class="py-2 pr-4 font-semibold text-foreground">{{ payment.plan_name }}</td>
-              <td class="py-2 pr-4">{{ payment.billing_cycle === 'yearly' ? 'Anual' : 'Mensual' }}</td>
-              <td class="py-2 pr-4">{{ payment.start_date | date: 'dd/MM/yyyy' }} – {{ payment.end_date | date: 'dd/MM/yyyy' }}</td>
-              <td class="py-2 pr-4">{{ payment.payment_method_label }}</td>
-              <td class="py-2 pr-4 text-right font-semibold">{{ payment.amount === null ? '—' : (payment.amount | number: '1.2-2') + ' Bs.' }}</td>
-              <td class="py-2">
-                <span class="rounded-full px-2 py-0.5 text-xs font-medium"
-                  [class.bg-emerald-100]="payment.status === 'Vigente'" [class.text-emerald-800]="payment.status === 'Vigente'"
-                  [class.bg-muted]="payment.status !== 'Vigente'" [class.text-muted-foreground]="payment.status !== 'Vigente'">{{ payment.status }}</span>
-              </td>
-              <td class="py-2"><app-receipt-actions kind="subscription" [sourceId]="payment.id" /></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <ng-template #noPayments><p class="text-sm text-muted-foreground">Aún no hay pagos registrados.</p></ng-template>
-    </div>
-
-    <!-- Active Capabilities Details -->
-    <div class="bg-card text-card-foreground rounded-3xl p-8 border border-border shadow-xs space-y-6">
-      <h3 class="text-lg font-extrabold text-foreground pb-4 border-b border-border">
-        Capacidades Tecnológicas de tu Plan
-      </h3>
-
-      <ul class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <li *ngFor="let feature of features" class="p-4 rounded-2xl border border-border bg-muted/30 flex items-start gap-3">
-          <ng-icon
-            [name]="hasFeature(feature.key) ? 'lucideCheckCircle2' : 'lucideX'"
-            [class.text-primary]="hasFeature(feature.key)"
-            [class.text-muted-foreground]="!hasFeature(feature.key)"
-            class="w-5 h-5 shrink-0 mt-0.5"
-          ></ng-icon>
+        <!-- Prendas Quota -->
+        <div class="bg-card text-card-foreground rounded-2xl p-6 border border-border shadow-xs flex flex-col justify-between">
           <div>
-            <h4 class="font-bold text-sm" [class.text-foreground]="hasFeature(feature.key)" [class.text-muted-foreground]="!hasFeature(feature.key)">
-              {{ feature.label }}
-              <span *ngIf="feature.comingSoon" class="ml-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border border-border rounded px-1.5 py-0.5">Próximamente</span>
-            </h4>
-            <p class="text-xs text-muted-foreground mt-1 leading-relaxed">
-              {{ hasFeature(feature.key) ? feature.description : 'No incluido en tu plan. Disponible en planes superiores.' }}
-            </p>
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-2.5">
+                <div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                  <ng-icon name="lucideZap" class="w-5 h-5"></ng-icon>
+                </div>
+                <div>
+                  <h3 class="font-bold text-foreground text-base">Capacidad de Prendas</h3>
+                  <span class="text-xs text-muted-foreground">Catálogo de productos activos</span>
+                </div>
+              </div>
+              <span class="text-lg font-black text-foreground">
+                {{ summary()?.usage?.garments_count }} / {{ (summary()?.usage?.garments_max | number) ?? '—' }}
+              </span>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="w-full bg-muted rounded-full h-3 mb-2 overflow-hidden border border-border">
+              <div
+                class="h-3 rounded-full transition-all duration-500 bg-primary"
+                [style.width.%]="getGarmentPercentage()"
+              ></div>
+            </div>
           </div>
-        </li>
-      </ul>
+
+          <p class="text-xs text-muted-foreground mt-4">
+            Has cargado <strong class="text-foreground">{{ summary()?.usage?.garments_count }}</strong> prendas de las <strong class="text-foreground">{{ summary()?.usage?.garments_max | number }}</strong> disponibles.
+          </p>
+        </div>
+      </div>
+
+      <!-- Active Capabilities Details -->
+      <div class="bg-card text-card-foreground rounded-3xl p-8 border border-border shadow-xs space-y-6">
+        <h3 class="text-lg font-extrabold text-foreground pb-4 border-b border-border">
+          Capacidades Tecnológicas de tu Plan
+        </h3>
+
+        <ul class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <li *ngFor="let feature of features" class="p-4 rounded-2xl border border-border bg-muted/30 flex items-start gap-3">
+            <ng-icon
+              [name]="hasFeature(feature.key) ? 'lucideCheckCircle2' : 'lucideX'"
+              [class.text-primary]="hasFeature(feature.key)"
+              [class.text-muted-foreground]="!hasFeature(feature.key)"
+              class="w-5 h-5 shrink-0 mt-0.5"
+            ></ng-icon>
+            <div>
+              <h4 class="font-bold text-sm" [class.text-foreground]="hasFeature(feature.key)" [class.text-muted-foreground]="!hasFeature(feature.key)">
+                {{ feature.label }}
+              </h4>
+              <p class="text-xs text-muted-foreground mt-1 leading-relaxed">
+                {{ hasFeature(feature.key) ? feature.description : 'No incluido en tu plan. Disponible en planes superiores.' }}
+              </p>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- TAB 2: Marca y Logo -->
+    <div *ngIf="activeTab() === 'branding'" class="space-y-6 animate-in fade-in duration-300">
+      <app-tenant-branding-editor [currentTenantId]="tenantId" />
+    </div>
+
+    <!-- TAB 3: Historial de Pagos -->
+    <div *ngIf="activeTab() === 'payments'" class="space-y-6 animate-in fade-in duration-300">
+      <div class="bg-card text-card-foreground rounded-3xl p-8 border border-border shadow-xs space-y-4">
+        <div class="flex flex-col gap-1 pb-4 border-b border-border">
+          <h3 class="text-lg font-extrabold text-foreground">Historial de pagos</h3>
+          <p class="text-xs text-muted-foreground">Cada compra o cambio de plan es un pago que inicia un nuevo período. Podés descargar tus comprobantes oficiales en PDF.</p>
+        </div>
+        <div class="overflow-x-auto" *ngIf="payments().length; else noPayments">
+          <table class="w-full text-sm">
+            <thead class="text-left text-xs uppercase text-muted-foreground">
+              <tr>
+                <th class="py-2 pr-4">Fecha</th>
+                <th class="py-2 pr-4">Plan</th>
+                <th class="py-2 pr-4">Facturación</th>
+                <th class="py-2 pr-4">Período</th>
+                <th class="py-2 pr-4">Medio de pago</th>
+                <th class="py-2 pr-4 text-right">Monto</th>
+                <th class="py-2 pr-4">Estado</th>
+                <th class="py-2">Comprobante</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let payment of payments()" class="border-t border-border">
+                <td class="py-3 pr-4 font-mono text-xs">{{ payment.paid_at | date: 'dd/MM/yyyy HH:mm' }}</td>
+                <td class="py-3 pr-4 font-semibold text-foreground">{{ payment.plan_name }}</td>
+                <td class="py-3 pr-4">{{ payment.billing_cycle === 'yearly' ? 'Anual' : 'Mensual' }}</td>
+                <td class="py-3 pr-4 text-xs text-muted-foreground">{{ payment.start_date | date: 'dd/MM/yyyy' }} – {{ payment.end_date | date: 'dd/MM/yyyy' }}</td>
+                <td class="py-3 pr-4">{{ payment.payment_method_label }}</td>
+                <td class="py-3 pr-4 text-right font-semibold">{{ payment.amount === null ? '—' : (payment.amount | number: '1.2-2') + ' Bs.' }}</td>
+                <td class="py-3 pr-4">
+                  <span class="rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                    [class.bg-emerald-100]="payment.status === 'Vigente'" [class.text-emerald-800]="payment.status === 'Vigente'"
+                    [class.bg-muted]="payment.status !== 'Vigente'" [class.text-muted-foreground]="payment.status !== 'Vigente'">{{ payment.status }}</span>
+                </td>
+                <td class="py-3"><app-receipt-actions kind="subscription" [sourceId]="payment.id" /></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <ng-template #noPayments>
+          <div class="p-8 text-center text-muted-foreground">
+            <ng-icon name="lucideCreditCard" class="w-10 h-10 mx-auto text-muted-foreground/40 mb-2"></ng-icon>
+            <p class="text-sm">Aún no hay pagos registrados para esta organización.</p>
+          </div>
+        </ng-template>
+      </div>
+    </div>
+
+    <!-- TAB 4: Cambiar Plan -->
+    <div *ngIf="activeTab() === 'plans'" class="space-y-6 animate-in fade-in duration-300">
+      <div class="bg-card text-card-foreground rounded-3xl border border-border shadow-xs">
+        <app-pricing-table
+          [currentPlanId]="summary()?.plan?.id ?? null"
+          [showComparison]="true"
+          (selectPlan)="choosePlan($event)"
+        ></app-pricing-table>
+
+        <!-- Checkout Confirmation Form for Selected Plan -->
+        <div *ngIf="selected() as choice" class="mx-4 sm:mx-8 mb-8 p-6 rounded-2xl border-2 border-primary/30 bg-muted/30 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div>
+              <h3 class="font-extrabold text-foreground text-lg">Confirmar cambio al plan {{ choice.plan.name }}</h3>
+              <p class="text-xs text-muted-foreground">
+                Facturación {{ choice.billingCycle === 'yearly' ? 'anual' : 'mensual' }}. El nuevo período empieza hoy y reemplaza al plan actual.
+              </p>
+            </div>
+            <div class="text-2xl font-black text-foreground">{{ selectedPrice() }} Bs.</div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <label class="space-y-1.5 text-xs font-bold text-foreground">
+              Número de tarjeta
+              <input type="text" [(ngModel)]="cardNumber" autocomplete="off" class="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring" />
+            </label>
+            <label class="space-y-1.5 text-xs font-bold text-foreground">
+              Titular
+              <input type="text" [(ngModel)]="cardHolder" autocomplete="off" class="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+            </label>
+            <label class="space-y-1.5 text-xs font-bold text-foreground">
+              Vencimiento
+              <input type="text" [(ngModel)]="cardExp" autocomplete="off" class="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring" />
+            </label>
+            <label class="space-y-1.5 text-xs font-bold text-foreground">
+              CVV
+              <input type="text" [(ngModel)]="cardCvv" autocomplete="off" class="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring" />
+            </label>
+          </div>
+          <p class="text-xs text-muted-foreground">Pago simulado (sandbox): no se realiza ningún cobro real.</p>
+
+          <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+            <button type="button" (click)="selected.set(null)" class="px-5 py-2.5 rounded-xl border border-border bg-secondary text-secondary-foreground font-bold text-sm cursor-pointer hover:bg-secondary/80">
+              Cancelar
+            </button>
+            <button
+              type="button"
+              (click)="confirmChange()"
+              [disabled]="changing()"
+              class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <ng-icon name="lucideCreditCard" class="w-4 h-4"></ng-icon>
+              {{ changing() ? 'Procesando pago...' : 'Pagar y activar plan' }}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>

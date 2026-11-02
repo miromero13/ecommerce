@@ -26,6 +26,7 @@ import {
 import { HlmButtonImports } from '../../../components/button/src';
 import { HlmCardImports } from '../../../components/card/src';
 import { HlmBadgeImports } from '../../../components/badge/src';
+import { HlmTabsImports } from '../../../components/tabs/src';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
 import { PricingTableComponent } from '../../shared/components/pricing-table.component';
 import { PLAN_FEATURES, SubscriptionPayment, SubscriptionPlan, SubscriptionSummary } from '../../shared/models/subscription.model';
@@ -47,6 +48,7 @@ import { ReceiptActionsComponent } from '../../shared/components/receipt-actions
     ...HlmButtonImports,
     ...HlmCardImports,
     ...HlmBadgeImports,
+    ...HlmTabsImports,
   ],
   providers: [
     provideIcons({
@@ -80,7 +82,7 @@ export class SubscriptionPageComponent implements OnInit {
   readonly error = signal<string | null>(null);
   readonly features = PLAN_FEATURES;
 
-  readonly showPlans = signal(false);
+  readonly activeTab = signal<'plan' | 'branding' | 'payments' | 'plans'>('plan');
   readonly selected = signal<{ plan: SubscriptionPlan; billingCycle: 'monthly' | 'yearly' } | null>(null);
   readonly changing = signal(false);
   // Sandbox card: the payment is simulated, same as the onboarding purchase.
@@ -101,7 +103,7 @@ export class SubscriptionPageComponent implements OnInit {
       if (res.data) {
         this.summary.set(res.data);
         // Without a current plan the company is blocked: offer the plans right away.
-        if (!res.data.has_active_subscription) this.showPlans.set(true);
+        if (!res.data.has_active_subscription) this.activeTab.set('plans');
       }
       await this.loadPayments();
     } catch (err: any) {
@@ -111,8 +113,17 @@ export class SubscriptionPageComponent implements OnInit {
     }
   }
 
+  selectTab(tab: string): void {
+    this.activeTab.set(tab as 'plan' | 'branding' | 'payments' | 'plans');
+    this.selected.set(null);
+  }
+
   togglePlans(): void {
-    this.showPlans.update((open) => !open);
+    if (this.activeTab() === 'plans') {
+      this.activeTab.set('plan');
+    } else {
+      this.activeTab.set('plans');
+    }
     this.selected.set(null);
   }
 
@@ -143,7 +154,7 @@ export class SubscriptionPageComponent implements OnInit {
       if (res.data) this.summary.set(res.data);
       await this.loadPayments();
       this.selected.set(null);
-      this.showPlans.set(false);
+      this.activeTab.set('plan');
     } catch (err) {
       toast.error(getErrorMessage(err, 'No se pudo cambiar el plan.'));
     } finally {
