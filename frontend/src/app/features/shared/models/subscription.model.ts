@@ -29,7 +29,7 @@ export const PLAN_FEATURES: PlanFeatureInfo[] = [
   { key: 'chatbot', label: 'Asistente virtual (chatbot)', description: 'Tus productos aparecen en las recomendaciones del asistente de compras de la plataforma.' },
   { key: 'virtual_try_on_2d', label: 'Vestidor virtual', description: 'Tus clientes se prueban tus prendas con la cámara o una foto antes de comprar.' },
   { key: 'ai_text_reports', label: 'Reportes con IA en lenguaje natural', description: 'Pedí reportes escribiendo, por ejemplo: "ventas de esta semana por sucursal".' },
-  { key: 'virtual_try_on_3d_ar', label: 'Vestidor 3D con realidad aumentada', description: 'Seguimiento del cuerpo en vivo con ajuste dinámico de la prenda.', comingSoon: true },
+  { key: 'virtual_try_on_3d_ar', label: 'Vestidor 3D con realidad aumentada', description: 'Seguimiento del cuerpo en vivo con ajuste dinámico de la prenda.' },
   { key: 'ai_ml_smart_reports', label: 'Analítica predictiva con Machine Learning', description: 'Predicción de demanda y segmentación de clientes (RFM).' },
 ];
 
