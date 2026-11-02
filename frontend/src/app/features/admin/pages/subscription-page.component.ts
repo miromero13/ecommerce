@@ -27,6 +27,9 @@ import { HlmButtonImports } from '../../../components/button/src';
 import { HlmCardImports } from '../../../components/card/src';
 import { HlmBadgeImports } from '../../../components/badge/src';
 import { HlmTabsImports } from '../../../components/tabs/src';
+import { HlmTableImports } from '../../../components/table/src';
+import { HlmInputImports } from '../../../components/input/src';
+import { HlmSkeletonImports } from '../../../components/skeleton/src';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
 import { PricingTableComponent } from '../../shared/components/pricing-table.component';
 import { PLAN_FEATURES, SubscriptionPayment, SubscriptionPlan, SubscriptionSummary } from '../../shared/models/subscription.model';
@@ -49,6 +52,9 @@ import { ReceiptActionsComponent } from '../../shared/components/receipt-actions
     ...HlmCardImports,
     ...HlmBadgeImports,
     ...HlmTabsImports,
+    ...HlmTableImports,
+    ...HlmInputImports,
+    ...HlmSkeletonImports,
   ],
   providers: [
     provideIcons({

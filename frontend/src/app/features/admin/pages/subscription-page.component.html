@@ -1,40 +1,42 @@
-<div class="p-6 max-w-6xl mx-auto space-y-8 font-sans bg-background text-foreground">
+<div class="p-4 sm:p-6 max-w-4xl mx-auto space-y-6 font-sans bg-background text-foreground">
   <!-- Page Header -->
-  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-border">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-border">
     <div>
-      <h1 class="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">Suscripción y Cuotas</h1>
-      <p class="text-sm text-muted-foreground mt-1">Supervisá tu plan comercial, límites operativos y módulos de Inteligencia Artificial habilitados.</p>
+      <h1 class="text-2xl font-bold tracking-tight text-foreground">Suscripción y Cuotas</h1>
+      <p class="text-sm text-muted-foreground mt-0.5">Supervisá tu plan comercial, límites operativos y módulos habilitados.</p>
     </div>
 
     <div *ngIf="summary()">
       <button
+        hlmBtn
+        size="sm"
         type="button"
         (click)="togglePlans()"
-        class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm shadow-xs transition-all cursor-pointer"
+        class="gap-2 font-semibold cursor-pointer"
       >
         <span>{{ activeTab() === 'plans' ? 'Ver mi plan' : (summary()?.has_active_subscription ? 'Cambiar plan' : 'Elegir plan') }}</span>
-        <ng-icon [name]="activeTab() === 'plans' ? 'lucideShieldCheck' : 'lucideArrowUpRight'" class="w-4 h-4"></ng-icon>
+        <ng-icon [name]="activeTab() === 'plans' ? 'lucideShieldCheck' : 'lucideArrowUpRight'" class="w-3.5 h-3.5"></ng-icon>
       </button>
     </div>
   </div>
 
-  <!-- Loading Skeleton -->
-  <div *ngIf="loading()" class="space-y-6">
-    <div class="h-12 rounded-xl bg-muted/40 animate-pulse border border-border"></div>
-    <div class="h-48 rounded-2xl bg-muted/40 animate-pulse border border-border"></div>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div class="h-40 rounded-2xl bg-muted/40 animate-pulse border border-border"></div>
-      <div class="h-40 rounded-2xl bg-muted/40 animate-pulse border border-border"></div>
+  <!-- Loading Skeleton with Spartan Skeleton -->
+  <div *ngIf="loading()" class="space-y-4">
+    <div hlmSkeleton class="h-9 w-80 rounded-lg"></div>
+    <div hlmSkeleton class="h-36 w-full rounded-xl"></div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div hlmSkeleton class="h-28 rounded-xl"></div>
+      <div hlmSkeleton class="h-28 rounded-xl"></div>
     </div>
   </div>
 
-  <!-- Error State -->
-  <div *ngIf="!loading() && error()" class="p-6 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive">
+  <!-- Error State with Spartan Card -->
+  <div *ngIf="!loading() && error()" hlmCard class="p-4 bg-destructive/10 border border-destructive/20 text-destructive">
     <div class="flex items-center gap-3">
-      <ng-icon name="lucideShieldAlert" class="w-6 h-6 text-destructive shrink-0"></ng-icon>
+      <ng-icon name="lucideShieldAlert" class="w-5 h-5 text-destructive shrink-0"></ng-icon>
       <div>
-        <h3 class="font-bold text-base">Error al cargar suscripción</h3>
-        <p class="text-sm mt-0.5">{{ error() }}</p>
+        <h3 class="font-bold text-sm">Error al cargar suscripción</h3>
+        <p class="text-xs mt-0.5">{{ error() }}</p>
       </div>
     </div>
   </div>
@@ -42,297 +44,305 @@
   <!-- Main Content with Tabs -->
   <div *ngIf="!loading() && summary()" class="space-y-6">
     <!-- Alert when no active subscription exists -->
-    <div *ngIf="!summary()?.has_active_subscription" role="alert" class="p-6 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive flex items-start gap-3">
-      <ng-icon name="lucideShieldAlert" class="w-6 h-6 shrink-0 mt-0.5"></ng-icon>
+    <div *ngIf="!summary()?.has_active_subscription" hlmCard class="p-4 bg-destructive/10 border border-destructive/20 text-destructive flex items-start gap-3">
+      <ng-icon name="lucideShieldAlert" class="w-5 h-5 shrink-0 mt-0.5"></ng-icon>
       <div>
-        <h3 class="font-bold text-base">Tu empresa no tiene una suscripción activa</h3>
-        <p class="text-sm mt-0.5">No podés crear sucursales ni prendas, y los módulos de IA están desactivados. Elegí un plan para continuar.</p>
+        <h3 class="font-bold text-sm">Tu empresa no tiene una suscripción activa</h3>
+        <p class="text-xs mt-0.5">No podés crear sucursales ni prendas, y los módulos de IA están desactivados. Elegí un plan para continuar.</p>
       </div>
     </div>
 
-    <!-- Navigation Tabs -->
+    <!-- Spartan Compact Navigation Tabs (fit-content, not full-width) -->
     <hlm-tabs [tab]="activeTab()" class="w-full" (tabActivated)="selectTab($event)">
-      <hlm-tabs-list class="grid w-full grid-cols-2 sm:grid-cols-4 gap-1 p-1 bg-muted/60 rounded-2xl border border-border" aria-label="Secciones de suscripción">
-        <button hlmTabsTrigger="plan" type="button" class="py-2.5 text-xs sm:text-sm font-bold transition-all text-center">
-          <span>Plan y Cuotas</span>
-        </button>
+      <div class="flex items-center justify-between border-b border-border pb-3">
+        <hlm-tabs-list class="inline-flex h-9 w-fit items-center justify-start rounded-lg bg-muted p-1 text-muted-foreground border border-border" aria-label="Secciones de suscripción">
+          <button hlmTabsTrigger="plan" type="button" class="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-xs sm:text-sm font-medium ring-offset-background transition-all">
+            <span>Plan y Cuotas</span>
+          </button>
 
-        <button hlmTabsTrigger="branding" type="button" class="py-2.5 text-xs sm:text-sm font-bold transition-all text-center">
-          <span>Marca y Logo</span>
-        </button>
+          <button hlmTabsTrigger="branding" type="button" class="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-xs sm:text-sm font-medium ring-offset-background transition-all">
+            <span>Marca y Logo</span>
+          </button>
 
-        <button hlmTabsTrigger="payments" type="button" class="py-2.5 text-xs sm:text-sm font-bold transition-all text-center">
-          <span>Historial de Pagos</span>
-        </button>
+          <button hlmTabsTrigger="payments" type="button" class="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-xs sm:text-sm font-medium ring-offset-background transition-all">
+            <span>Historial de Pagos</span>
+          </button>
 
-        <button hlmTabsTrigger="plans" type="button" class="py-2.5 text-xs sm:text-sm font-bold transition-all text-center">
-          <span>Cambiar Plan</span>
-        </button>
-      </hlm-tabs-list>
+          <button hlmTabsTrigger="plans" type="button" class="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-xs sm:text-sm font-medium ring-offset-background transition-all">
+            <span>Cambiar Plan</span>
+          </button>
+        </hlm-tabs-list>
+      </div>
     </hlm-tabs>
 
     <!-- TAB 1: Plan y Cuotas -->
-    <div *ngIf="activeTab() === 'plan'" class="space-y-8 animate-in fade-in duration-300">
-      <!-- Active Plan Overview Banner -->
-      <div *ngIf="summary()?.has_active_subscription" class="bg-card text-card-foreground rounded-3xl p-8 border-2 border-primary/30 shadow-md relative overflow-hidden">
-        <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div>
-            <div class="flex items-center gap-3 mb-3">
-              <span class="bg-primary/10 text-primary border border-primary/20 text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wider flex items-center gap-1.5">
-                <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+    <div *ngIf="activeTab() === 'plan'" class="space-y-6 animate-in fade-in duration-200">
+      <!-- Active Plan Overview Banner with Spartan Card -->
+      <section *ngIf="summary()?.has_active_subscription" hlmCard class="border-2 border-primary/30 p-6 relative overflow-hidden">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div class="space-y-2">
+            <div class="flex items-center gap-2">
+              <span hlmBadge variant="default" class="gap-1 font-bold">
+                <span class="size-1.5 rounded-full bg-primary-foreground animate-pulse"></span>
                 {{ summary()?.subscription?.status === 'active' ? 'Suscripción Activa' : summary()?.subscription?.status }}
               </span>
-              <span class="bg-muted text-foreground text-xs px-3 py-1 rounded-full font-semibold border border-border">
+              <span hlmBadge variant="outline" class="font-semibold">
                 Ciclo {{ summary()?.subscription?.billing_cycle === 'yearly' ? 'Anual' : 'Mensual' }}
               </span>
             </div>
 
-            <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight flex items-center gap-3 text-foreground">
+            <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight flex items-center gap-2 text-foreground">
               <span>{{ summary()?.plan?.name }}</span>
               <ng-icon
                 *ngIf="summary()?.plan?.id === 'plan_enterprise'"
                 name="lucideCrown"
-                class="w-7 h-7 text-primary"
+                class="w-6 h-6 text-primary"
               ></ng-icon>
               <ng-icon
                 *ngIf="summary()?.plan?.id === 'plan_pro'"
                 name="lucideSparkles"
-                class="w-7 h-7 text-primary"
+                class="w-6 h-6 text-primary"
               ></ng-icon>
             </h2>
 
-            <p class="text-muted-foreground text-sm mt-2 max-w-xl">
+            <p class="text-muted-foreground text-xs sm:text-sm max-w-lg">
               {{ summary()?.plan?.description }}
             </p>
 
-            <div class="flex items-center gap-6 mt-6 text-xs text-muted-foreground">
-              <div class="flex items-center gap-2">
-                <ng-icon name="lucideCalendar" class="w-4 h-4 text-primary"></ng-icon>
+            <div class="flex flex-wrap items-center gap-4 pt-2 text-xs text-muted-foreground">
+              <div class="flex items-center gap-1.5">
+                <ng-icon name="lucideCalendar" class="w-3.5 h-3.5 text-primary"></ng-icon>
                 <span>Inicio: {{ summary()?.subscription?.start_date | date:'dd/MM/yyyy' }}</span>
               </div>
-              <div class="flex items-center gap-2">
-                <ng-icon name="lucideCreditCard" class="w-4 h-4 text-primary"></ng-icon>
+              <div class="flex items-center gap-1.5">
+                <ng-icon name="lucideCreditCard" class="w-3.5 h-3.5 text-primary"></ng-icon>
                 <span>Vencimiento: {{ summary()?.subscription?.end_date | date:'dd/MM/yyyy' }}</span>
               </div>
             </div>
           </div>
 
-          <div class="text-right md:border-l md:border-border md:pl-8">
+          <div class="sm:text-right sm:border-l sm:border-border sm:pl-6 shrink-0">
             <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Importe Actual</span>
-            <div class="text-4xl font-black text-foreground mt-1">
+            <div class="text-3xl font-black text-foreground mt-0.5">
               {{ summary()?.subscription?.billing_cycle === 'yearly' ? summary()?.plan?.price_yearly : summary()?.plan?.price_monthly }} Bs.
             </div>
-            <span class="text-xs text-muted-foreground block mt-0.5">
+            <span class="text-xs text-muted-foreground block">
               / {{ summary()?.subscription?.billing_cycle === 'yearly' ? 'año' : 'mes' }}
             </span>
           </div>
         </div>
-      </div>
+      </section>
 
-      <!-- Usage Quotas & Limits Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Usage Quotas & Limits Cards with Spartan Card -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <!-- Sucursales Quota -->
-        <div class="bg-card text-card-foreground rounded-2xl p-6 border border-border shadow-xs flex flex-col justify-between">
+        <div hlmCard class="p-5 flex flex-col justify-between">
           <div>
-            <div class="flex items-center justify-between mb-4">
-              <div class="flex items-center gap-2.5">
-                <div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                  <ng-icon name="lucideStore" class="w-5 h-5"></ng-icon>
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2">
+                <div class="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                  <ng-icon name="lucideStore" class="w-4 h-4"></ng-icon>
                 </div>
                 <div>
-                  <h3 class="font-bold text-foreground text-base">Sucursales Físicas</h3>
-                  <span class="text-xs text-muted-foreground">Límite operativo de tiendas</span>
+                  <h3 class="font-bold text-foreground text-sm">Sucursales Físicas</h3>
+                  <span class="text-[11px] text-muted-foreground">Límite operativo</span>
                 </div>
               </div>
-              <span class="text-lg font-black text-foreground">
+              <span class="text-base font-black text-foreground">
                 {{ summary()?.usage?.branches_count }} / {{ summary()?.usage?.branches_max ?? '—' }}
               </span>
             </div>
 
             <!-- Progress Bar -->
-            <div class="w-full bg-muted rounded-full h-3 mb-2 overflow-hidden border border-border">
+            <div class="w-full bg-muted rounded-full h-2 overflow-hidden border border-border">
               <div
-                class="h-3 rounded-full transition-all duration-500 bg-primary"
+                class="h-2 rounded-full transition-all duration-500 bg-primary"
                 [style.width.%]="getBranchPercentage()"
               ></div>
             </div>
           </div>
 
-          <p class="text-xs text-muted-foreground mt-4">
-            Has utilizado el <strong class="text-foreground">{{ getBranchPercentage() }}%</strong> de las sucursales permitidas en tu plan.
+          <p class="text-[11px] text-muted-foreground mt-3">
+            Utilizado el <strong class="text-foreground">{{ getBranchPercentage() }}%</strong> de las sucursales permitidas.
           </p>
         </div>
 
         <!-- Prendas Quota -->
-        <div class="bg-card text-card-foreground rounded-2xl p-6 border border-border shadow-xs flex flex-col justify-between">
+        <div hlmCard class="p-5 flex flex-col justify-between">
           <div>
-            <div class="flex items-center justify-between mb-4">
-              <div class="flex items-center gap-2.5">
-                <div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                  <ng-icon name="lucideZap" class="w-5 h-5"></ng-icon>
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2">
+                <div class="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                  <ng-icon name="lucideZap" class="w-4 h-4"></ng-icon>
                 </div>
                 <div>
-                  <h3 class="font-bold text-foreground text-base">Capacidad de Prendas</h3>
-                  <span class="text-xs text-muted-foreground">Catálogo de productos activos</span>
+                  <h3 class="font-bold text-foreground text-sm">Capacidad de Prendas</h3>
+                  <span class="text-[11px] text-muted-foreground">Catálogo de productos</span>
                 </div>
               </div>
-              <span class="text-lg font-black text-foreground">
+              <span class="text-base font-black text-foreground">
                 {{ summary()?.usage?.garments_count }} / {{ (summary()?.usage?.garments_max | number) ?? '—' }}
               </span>
             </div>
 
             <!-- Progress Bar -->
-            <div class="w-full bg-muted rounded-full h-3 mb-2 overflow-hidden border border-border">
+            <div class="w-full bg-muted rounded-full h-2 overflow-hidden border border-border">
               <div
-                class="h-3 rounded-full transition-all duration-500 bg-primary"
+                class="h-2 rounded-full transition-all duration-500 bg-primary"
                 [style.width.%]="getGarmentPercentage()"
               ></div>
             </div>
           </div>
 
-          <p class="text-xs text-muted-foreground mt-4">
-            Has cargado <strong class="text-foreground">{{ summary()?.usage?.garments_count }}</strong> prendas de las <strong class="text-foreground">{{ summary()?.usage?.garments_max | number }}</strong> disponibles.
+          <p class="text-[11px] text-muted-foreground mt-3">
+            Cargadas <strong class="text-foreground">{{ summary()?.usage?.garments_count }}</strong> prendas de <strong class="text-foreground">{{ summary()?.usage?.garments_max | number }}</strong>.
           </p>
         </div>
       </div>
 
-      <!-- Active Capabilities Details -->
-      <div class="bg-card text-card-foreground rounded-3xl p-8 border border-border shadow-xs space-y-6">
-        <h3 class="text-lg font-extrabold text-foreground pb-4 border-b border-border">
-          Capacidades Tecnológicas de tu Plan
-        </h3>
+      <!-- Active Capabilities Details with Spartan Card -->
+      <section hlmCard class="p-5 space-y-4">
+        <div class="border-b border-border pb-3">
+          <h3 class="text-base font-bold text-foreground">
+            Capacidades Tecnológicas de tu Plan
+          </h3>
+          <p class="text-xs text-muted-foreground">Módulos habilitados y características técnicas de esta suscripción.</p>
+        </div>
 
-        <ul class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <li *ngFor="let feature of features" class="p-4 rounded-2xl border border-border bg-muted/30 flex items-start gap-3">
+        <ul class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <li *ngFor="let feature of features" class="p-3 rounded-xl border border-border bg-muted/20 flex items-start gap-2.5">
             <ng-icon
               [name]="hasFeature(feature.key) ? 'lucideCheckCircle2' : 'lucideX'"
               [class.text-primary]="hasFeature(feature.key)"
               [class.text-muted-foreground]="!hasFeature(feature.key)"
-              class="w-5 h-5 shrink-0 mt-0.5"
+              class="w-4 h-4 shrink-0 mt-0.5"
             ></ng-icon>
             <div>
-              <h4 class="font-bold text-sm" [class.text-foreground]="hasFeature(feature.key)" [class.text-muted-foreground]="!hasFeature(feature.key)">
+              <h4 class="font-bold text-xs" [class.text-foreground]="hasFeature(feature.key)" [class.text-muted-foreground]="!hasFeature(feature.key)">
                 {{ feature.label }}
               </h4>
-              <p class="text-xs text-muted-foreground mt-1 leading-relaxed">
-                {{ hasFeature(feature.key) ? feature.description : 'No incluido en tu plan. Disponible en planes superiores.' }}
+              <p class="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                {{ hasFeature(feature.key) ? feature.description : 'No incluido en tu plan actual.' }}
               </p>
             </div>
           </li>
         </ul>
-      </div>
+      </section>
     </div>
 
     <!-- TAB 2: Marca y Logo -->
-    <div *ngIf="activeTab() === 'branding'" class="space-y-6 animate-in fade-in duration-300">
+    <div *ngIf="activeTab() === 'branding'" class="space-y-4 animate-in fade-in duration-200">
       <app-tenant-branding-editor [currentTenantId]="tenantId" />
     </div>
 
     <!-- TAB 3: Historial de Pagos -->
-    <div *ngIf="activeTab() === 'payments'" class="space-y-6 animate-in fade-in duration-300">
-      <div class="bg-card text-card-foreground rounded-3xl p-8 border border-border shadow-xs space-y-4">
-        <div class="flex flex-col gap-1 pb-4 border-b border-border">
-          <h3 class="text-lg font-extrabold text-foreground">Historial de pagos</h3>
-          <p class="text-xs text-muted-foreground">Cada compra o cambio de plan es un pago que inicia un nuevo período. Podés descargar tus comprobantes oficiales en PDF.</p>
+    <div *ngIf="activeTab() === 'payments'" class="space-y-4 animate-in fade-in duration-200">
+      <section hlmCard class="p-5 space-y-4">
+        <div class="border-b border-border pb-3">
+          <h3 class="text-base font-bold text-foreground">Historial de pagos</h3>
+          <p class="text-xs text-muted-foreground">Comprobantes y recibos oficiales descargables en formato PDF.</p>
         </div>
+
         <div class="overflow-x-auto" *ngIf="payments().length; else noPayments">
-          <table class="w-full text-sm">
-            <thead class="text-left text-xs uppercase text-muted-foreground">
-              <tr>
-                <th class="py-2 pr-4">Fecha</th>
-                <th class="py-2 pr-4">Plan</th>
-                <th class="py-2 pr-4">Facturación</th>
-                <th class="py-2 pr-4">Período</th>
-                <th class="py-2 pr-4">Medio de pago</th>
-                <th class="py-2 pr-4 text-right">Monto</th>
-                <th class="py-2 pr-4">Estado</th>
-                <th class="py-2">Comprobante</th>
+          <table hlmTable class="w-full text-xs">
+            <thead>
+              <tr class="border-b border-border text-muted-foreground">
+                <th class="py-2.5 px-3">Fecha</th>
+                <th class="py-2.5 px-3">Plan</th>
+                <th class="py-2.5 px-3">Facturación</th>
+                <th class="py-2.5 px-3">Período</th>
+                <th class="py-2.5 px-3">Medio de pago</th>
+                <th class="py-2.5 px-3 text-right">Monto</th>
+                <th class="py-2.5 px-3">Estado</th>
+                <th class="py-2.5 px-3">Comprobante</th>
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let payment of payments()" class="border-t border-border">
-                <td class="py-3 pr-4 font-mono text-xs">{{ payment.paid_at | date: 'dd/MM/yyyy HH:mm' }}</td>
-                <td class="py-3 pr-4 font-semibold text-foreground">{{ payment.plan_name }}</td>
-                <td class="py-3 pr-4">{{ payment.billing_cycle === 'yearly' ? 'Anual' : 'Mensual' }}</td>
-                <td class="py-3 pr-4 text-xs text-muted-foreground">{{ payment.start_date | date: 'dd/MM/yyyy' }} – {{ payment.end_date | date: 'dd/MM/yyyy' }}</td>
-                <td class="py-3 pr-4">{{ payment.payment_method_label }}</td>
-                <td class="py-3 pr-4 text-right font-semibold">{{ payment.amount === null ? '—' : (payment.amount | number: '1.2-2') + ' Bs.' }}</td>
-                <td class="py-3 pr-4">
-                  <span class="rounded-full px-2.5 py-0.5 text-xs font-semibold"
-                    [class.bg-emerald-100]="payment.status === 'Vigente'" [class.text-emerald-800]="payment.status === 'Vigente'"
-                    [class.bg-muted]="payment.status !== 'Vigente'" [class.text-muted-foreground]="payment.status !== 'Vigente'">{{ payment.status }}</span>
+              <tr *ngFor="let payment of payments()" class="border-b border-border/60 hover:bg-muted/40 transition-colors">
+                <td class="py-2.5 px-3 font-mono text-[11px]">{{ payment.paid_at | date: 'dd/MM/yyyy HH:mm' }}</td>
+                <td class="py-2.5 px-3 font-semibold text-foreground">{{ payment.plan_name }}</td>
+                <td class="py-2.5 px-3">{{ payment.billing_cycle === 'yearly' ? 'Anual' : 'Mensual' }}</td>
+                <td class="py-2.5 px-3 text-muted-foreground text-[11px]">{{ payment.start_date | date: 'dd/MM/yyyy' }} – {{ payment.end_date | date: 'dd/MM/yyyy' }}</td>
+                <td class="py-2.5 px-3">{{ payment.payment_method_label }}</td>
+                <td class="py-2.5 px-3 text-right font-semibold">{{ payment.amount === null ? '—' : (payment.amount | number: '1.2-2') + ' Bs.' }}</td>
+                <td class="py-2.5 px-3">
+                  <span hlmBadge variant="secondary" class="font-semibold text-[11px]">
+                    {{ payment.status }}
+                  </span>
                 </td>
-                <td class="py-3"><app-receipt-actions kind="subscription" [sourceId]="payment.id" /></td>
+                <td class="py-2.5 px-3"><app-receipt-actions kind="subscription" [sourceId]="payment.id" /></td>
               </tr>
             </tbody>
           </table>
         </div>
         <ng-template #noPayments>
           <div class="p-8 text-center text-muted-foreground">
-            <ng-icon name="lucideCreditCard" class="w-10 h-10 mx-auto text-muted-foreground/40 mb-2"></ng-icon>
-            <p class="text-sm">Aún no hay pagos registrados para esta organización.</p>
+            <ng-icon name="lucideCreditCard" class="w-8 h-8 mx-auto text-muted-foreground/40 mb-2"></ng-icon>
+            <p class="text-xs">Aún no hay pagos registrados para esta organización.</p>
           </div>
         </ng-template>
-      </div>
+      </section>
     </div>
 
     <!-- TAB 4: Cambiar Plan -->
-    <div *ngIf="activeTab() === 'plans'" class="space-y-6 animate-in fade-in duration-300">
-      <div class="bg-card text-card-foreground rounded-3xl border border-border shadow-xs">
+    <div *ngIf="activeTab() === 'plans'" class="space-y-4 animate-in fade-in duration-200">
+      <section hlmCard class="p-5 space-y-4">
         <app-pricing-table
           [currentPlanId]="summary()?.plan?.id ?? null"
           [showComparison]="true"
           (selectPlan)="choosePlan($event)"
         ></app-pricing-table>
 
-        <!-- Checkout Confirmation Form for Selected Plan -->
-        <div *ngIf="selected() as choice" class="mx-4 sm:mx-8 mb-8 p-6 rounded-2xl border-2 border-primary/30 bg-muted/30 space-y-4">
-          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <!-- Checkout Confirmation Form for Selected Plan with Spartan Card & Inputs -->
+        <div *ngIf="selected() as choice" hlmCard class="p-5 border-2 border-primary/30 bg-muted/20 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-border pb-3">
             <div>
-              <h3 class="font-extrabold text-foreground text-lg">Confirmar cambio al plan {{ choice.plan.name }}</h3>
+              <h3 class="font-bold text-foreground text-base">Confirmar cambio al plan {{ choice.plan.name }}</h3>
               <p class="text-xs text-muted-foreground">
                 Facturación {{ choice.billingCycle === 'yearly' ? 'anual' : 'mensual' }}. El nuevo período empieza hoy y reemplaza al plan actual.
               </p>
             </div>
-            <div class="text-2xl font-black text-foreground">{{ selectedPrice() }} Bs.</div>
+            <div class="text-xl font-black text-foreground">{{ selectedPrice() }} Bs.</div>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <label class="space-y-1.5 text-xs font-bold text-foreground">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label class="space-y-1 text-xs font-semibold text-foreground">
               Número de tarjeta
-              <input type="text" [(ngModel)]="cardNumber" autocomplete="off" class="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring" />
+              <input hlmInput type="text" [(ngModel)]="cardNumber" autocomplete="off" class="font-mono text-xs" />
             </label>
-            <label class="space-y-1.5 text-xs font-bold text-foreground">
+            <label class="space-y-1 text-xs font-semibold text-foreground">
               Titular
-              <input type="text" [(ngModel)]="cardHolder" autocomplete="off" class="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+              <input hlmInput type="text" [(ngModel)]="cardHolder" autocomplete="off" class="text-xs" />
             </label>
-            <label class="space-y-1.5 text-xs font-bold text-foreground">
+            <label class="space-y-1 text-xs font-semibold text-foreground">
               Vencimiento
-              <input type="text" [(ngModel)]="cardExp" autocomplete="off" class="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring" />
+              <input hlmInput type="text" [(ngModel)]="cardExp" autocomplete="off" class="font-mono text-xs" />
             </label>
-            <label class="space-y-1.5 text-xs font-bold text-foreground">
+            <label class="space-y-1 text-xs font-semibold text-foreground">
               CVV
-              <input type="text" [(ngModel)]="cardCvv" autocomplete="off" class="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring" />
+              <input hlmInput type="text" [(ngModel)]="cardCvv" autocomplete="off" class="font-mono text-xs" />
             </label>
           </div>
-          <p class="text-xs text-muted-foreground">Pago simulado (sandbox): no se realiza ningún cobro real.</p>
+          <p class="text-[11px] text-muted-foreground">Pago simulado (sandbox): no se realiza ningún cobro real.</p>
 
-          <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
-            <button type="button" (click)="selected.set(null)" class="px-5 py-2.5 rounded-xl border border-border bg-secondary text-secondary-foreground font-bold text-sm cursor-pointer hover:bg-secondary/80">
+          <div class="flex justify-end gap-2 pt-2">
+            <button hlmBtn variant="outline" size="sm" type="button" (click)="selected.set(null)">
               Cancelar
             </button>
             <button
+              hlmBtn
+              size="sm"
               type="button"
               (click)="confirmChange()"
               [disabled]="changing()"
-              class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              class="gap-1.5"
             >
-              <ng-icon name="lucideCreditCard" class="w-4 h-4"></ng-icon>
+              <ng-icon name="lucideCreditCard" class="w-3.5 h-3.5"></ng-icon>
               {{ changing() ? 'Procesando pago...' : 'Pagar y activar plan' }}
             </button>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   </div>
 </div>
