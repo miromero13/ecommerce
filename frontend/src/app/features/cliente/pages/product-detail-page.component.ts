@@ -109,6 +109,19 @@ export class ProductDetailPageComponent {
       .map((variant) => ({ id: variant.id, label: this.variantLabel(variant), imageUrl: variant.image_url ?? null })),
   );
 
+  /** Evaluates if the selling company has 3D fitting room enabled (Enterprise plan). */
+  protected readonly has3dTryOn = computed<boolean>(() => {
+    const prod = this.product();
+    if (!prod || !prod.try_on_enabled) return false;
+    if (prod.try_on_3d_enabled !== undefined) {
+      return Boolean(prod.try_on_3d_enabled);
+    }
+    // In SaaS tiers: only Enterprise (Ayni Moda) includes 3D try-on.
+    // Pro (Kantuta Boutique, Urbana Denim) only has 2D, and Basic (Luna Satén) has neither.
+    const name = (prod.tenant_name ?? '').toLowerCase();
+    return name.includes('ayni') || name.includes('enterprise');
+  });
+
   protected hasDiscount(variant: CatalogProductVariant | null): boolean {
     if (!variant || !variant.original_price) return false;
     return Number(variant.original_price) > Number(variant.price);

@@ -173,12 +173,40 @@
               </button>
             </div>
 
-            <!-- Módulos de IA y Probador Virtual: solo si el plan de la tienda lo incluye -->
+            <!-- Módulos de IA y Probador Virtual: según el plan de la tienda (2D vs 3D) -->
             @if (product.try_on_enabled) {
-              <div class="flex flex-row gap-4 justify-center items-center">
-                <app-photo-try-on [productName]="product.name" [variants]="tryOnOptions()" [initialVariantId]="variant.id" />
-                <app-detector-ropa [variantId]="variant.id" [garmentPoints]="variant.garment_points" [garmentImageUrl]="variant.try_on_image_url ?? variant.image_url ?? product.image_url ?? null" />
-                <app-detector-mediapipe [variantId]="variant.id" [garmentPoints]="variant.garment_points" [garmentImageUrl]="variant.try_on_image_url ?? variant.image_url ?? product.image_url ?? null" />
+              <div class="mt-4 pt-4 border-t border-slate-100 space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    Vestidores virtuales
+                  </span>
+                  <span class="text-[11px] text-slate-400">
+                    {{ has3dTryOn() ? '2D y 3D disponibles' : '2D disponible' }}
+                  </span>
+                </div>
+
+                <div class="flex flex-wrap gap-2.5 items-center">
+                  <!-- Botón 1 (2D): Pro y Enterprise -->
+                  <app-photo-try-on
+                    [productName]="product.name"
+                    [variants]="tryOnOptions()"
+                    [initialVariantId]="variant.id"
+                  />
+
+                  <!-- Botones 2 y 3 (3D): Exclusivos de Enterprise (Ayni Moda) -->
+                  @if (has3dTryOn()) {
+                    <app-detector-ropa
+                      [variantId]="variant.id"
+                      [garmentPoints]="variant.garment_points"
+                      [garmentImageUrl]="variant.try_on_image_url ?? variant.image_url ?? product.image_url ?? null"
+                    />
+                    <app-detector-mediapipe
+                      [variantId]="variant.id"
+                      [garmentPoints]="variant.garment_points"
+                      [garmentImageUrl]="variant.try_on_image_url ?? variant.image_url ?? product.image_url ?? null"
+                    />
+                  }
+                </div>
               </div>
             }
           }

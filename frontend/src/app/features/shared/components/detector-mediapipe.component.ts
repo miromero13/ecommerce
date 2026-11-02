@@ -1,6 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, ElementRef, inject, Input, NgZone, OnChanges, OnDestroy, signal, SimpleChanges, viewChild } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideSparkles } from '@ng-icons/lucide';
 import { HlmButton } from '../../../components/button/src';
 import { HlmCardImports } from '../../../components/card/src';
 import { CatalogoPrendaService } from '../services/catalogo-prenda.service';
@@ -13,7 +15,8 @@ import { CatalogApiService } from '../services/catalog-api.service';
 @Component({
   selector: 'app-detector-mediapipe',
   standalone: true,
-  imports: [CommonModule, HlmButton, ...HlmCardImports],
+  imports: [CommonModule, HlmButton, NgIcon, ...HlmCardImports],
+  providers: [provideIcons({ lucideSparkles })],
   templateUrl: './detector-mediapipe.component.html',
 })
 export class DetectorMediapipeComponent implements OnChanges, OnDestroy {

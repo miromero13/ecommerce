@@ -1,11 +1,20 @@
-    <button hlmBtn type="button" variant="outline" (click)="openDetector()">Vestidor virtual 3</button>
+    <button
+      hlmBtn
+      type="button"
+      variant="outline"
+      class="cursor-pointer gap-2 border-purple-200 text-purple-900 hover:bg-purple-50 shadow-xs"
+      (click)="openDetector()"
+    >
+      <ng-icon name="lucideSparkles" class="size-4 text-purple-600"></ng-icon>
+      <span>Vestidor 3D (MediaPipe Pose)</span>
+    </button>
     @if (open()) {
       <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6" (click)="closeDetector()">
         <section hlmCard class="max-h-[90vh] w-full max-w-3xl overflow-y-auto bg-white shadow-xl" role="dialog" aria-modal="true" aria-labelledby="detector-mediapipe-dialog-title" (click)="$event.stopPropagation()">
         <div hlmCardHeader class="flex flex-row items-start justify-between gap-4">
           <div>
-            <h2 id="detector-mediapipe-dialog-title" hlmCardTitle>Vestidor virtual 3</h2>
-            <p hlmCardDescription>Vista frontal para poleras, blusas y vestidos.</p>
+            <h2 id="detector-mediapipe-dialog-title" hlmCardTitle>Vestidor virtual 3D (MediaPipe Pose)</h2>
+            <p hlmCardDescription>Seguimiento anatómico en tiempo real y calce dinámico sobre la silueta.</p>
           </div>
           <button hlmBtn type="button" variant="ghost" (click)="closeDetector()">Cerrar</button>
         </div>

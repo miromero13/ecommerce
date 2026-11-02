@@ -1,5 +1,7 @@
 import { Component, ElementRef, OnDestroy, inject, input, signal, viewChild } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideCamera, lucideSparkles } from '@ng-icons/lucide';
 
 import { HlmButton } from '../../../components/button/src';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
@@ -28,7 +30,8 @@ async function toJpeg(source: CanvasImageSource, width: number, height: number):
 @Component({
   selector: 'app-photo-try-on',
   standalone: true,
-  imports: [HlmButton],
+  imports: [HlmButton, NgIcon],
+  providers: [provideIcons({ lucideSparkles, lucideCamera })],
   templateUrl: './photo-try-on.component.html',
 })
 export class PhotoTryOnComponent implements OnDestroy {

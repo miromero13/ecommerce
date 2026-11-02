@@ -61,8 +61,10 @@ export interface CatalogProduct {
   id: string;
   tenant_id?: string | null;
   tenant_name?: string | null;
-  /** The selling company's plan includes the virtual try-on. */
+  /** The selling company's plan includes the virtual try-on 2D. */
   try_on_enabled?: boolean;
+  /** The selling company's plan includes the virtual try-on 3D (Enterprise). */
+  try_on_3d_enabled?: boolean;
   name: string;
   description: string | null;
   discount_type?: DiscountType | null;
