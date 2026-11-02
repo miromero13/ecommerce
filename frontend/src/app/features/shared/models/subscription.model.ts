@@ -25,7 +25,7 @@ export const PLAN_FEATURES: PlanFeatureInfo[] = [
   { key: 'pos', label: 'Punto de venta (POS)', description: 'Ventas presenciales en caja con cobro y comprobante.' },
   { key: 'inventory', label: 'Inventario por sucursal', description: 'Stock por sucursal, movimientos, traspasos y alertas de stock mínimo.' },
   { key: 'reservations', label: 'Reservas y pedidos para retiro', description: 'Tus clientes reservan o compran online y retiran en la sucursal que eligen.' },
-  { key: 'standard_reports', label: 'Reportes descriptivos', description: 'Reportes de ventas, inventario y movimientos exportables, con métricas del negocio.' },
+  { key: 'standard_reports', label: 'Reportes descriptivos', description: 'Exportación directa de las tablas de datos (ventas, inventario y movimientos) a archivos Excel o CSV tal cual.' },
   { key: 'chatbot', label: 'Asistente virtual (chatbot)', description: 'Tus productos aparecen en las recomendaciones del asistente de compras de la plataforma.' },
   { key: 'virtual_try_on_2d', label: 'Vestidor 2D', description: 'Tus clientes se prueban tus prendas con la cámara o una foto antes de comprar.' },
   { key: 'ai_text_reports', label: 'Reportes con IA en lenguaje natural', description: 'Pedí reportes escribiendo, por ejemplo: "ventas de esta semana por sucursal".' },
