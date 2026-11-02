@@ -2,10 +2,6 @@
   <!-- Page Header -->
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-border">
     <div>
-      <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary mb-1">
-        <ng-icon name="lucideShieldCheck" class="w-4 h-4 text-primary"></ng-icon>
-        <span>Gestión de Empresa B2B</span>
-      </div>
       <h1 class="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">Suscripción y Cuotas</h1>
       <p class="text-sm text-muted-foreground mt-1">Supervisá tu plan comercial, límites operativos y módulos de Inteligencia Artificial habilitados.</p>
     </div>
@@ -57,23 +53,19 @@
     <!-- Navigation Tabs -->
     <hlm-tabs [tab]="activeTab()" class="w-full" (tabActivated)="selectTab($event)">
       <hlm-tabs-list class="grid w-full grid-cols-2 sm:grid-cols-4 gap-1 p-1 bg-muted/60 rounded-2xl border border-border" aria-label="Secciones de suscripción">
-        <button hlmTabsTrigger="plan" type="button" class="flex items-center justify-center gap-2 py-2.5 text-xs sm:text-sm font-bold transition-all">
-          <ng-icon name="lucideShieldCheck" class="w-4 h-4"></ng-icon>
+        <button hlmTabsTrigger="plan" type="button" class="py-2.5 text-xs sm:text-sm font-bold transition-all text-center">
           <span>Plan y Cuotas</span>
         </button>
 
-        <button hlmTabsTrigger="branding" type="button" class="flex items-center justify-center gap-2 py-2.5 text-xs sm:text-sm font-bold transition-all">
-          <ng-icon name="lucideBuilding2" class="w-4 h-4"></ng-icon>
+        <button hlmTabsTrigger="branding" type="button" class="py-2.5 text-xs sm:text-sm font-bold transition-all text-center">
           <span>Marca y Logo</span>
         </button>
 
-        <button hlmTabsTrigger="payments" type="button" class="flex items-center justify-center gap-2 py-2.5 text-xs sm:text-sm font-bold transition-all">
-          <ng-icon name="lucideCreditCard" class="w-4 h-4"></ng-icon>
+        <button hlmTabsTrigger="payments" type="button" class="py-2.5 text-xs sm:text-sm font-bold transition-all text-center">
           <span>Historial de Pagos</span>
         </button>
 
-        <button hlmTabsTrigger="plans" type="button" class="flex items-center justify-center gap-2 py-2.5 text-xs sm:text-sm font-bold transition-all">
-          <ng-icon name="lucideSparkles" class="w-4 h-4"></ng-icon>
+        <button hlmTabsTrigger="plans" type="button" class="py-2.5 text-xs sm:text-sm font-bold transition-all text-center">
           <span>Cambiar Plan</span>
         </button>
       </hlm-tabs-list>
