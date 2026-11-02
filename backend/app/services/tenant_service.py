@@ -284,3 +284,16 @@ def update_tenant_logo(db: Session, tenant_id: UUID, content: bytes, content_typ
     if previous and previous != tenant.logo_public_id:
         delete_image(previous)
     return _branding(tenant)
+
+
+def delete_tenant_logo(db: Session, tenant_id: UUID) -> dict | None:
+    tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+    if not tenant:
+        return None
+    previous = tenant.logo_public_id
+    tenant.logo_url = None
+    tenant.logo_public_id = None
+    db.commit()
+    if previous:
+        delete_image(previous)
+    return _branding(tenant)

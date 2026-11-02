@@ -19,6 +19,7 @@ from app.services.tenant_service import (
     get_branding,
     update_branding_color,
     update_tenant_logo,
+    delete_tenant_logo,
     get_tenant,
     list_tenants,
     update_tenant,
@@ -259,3 +260,27 @@ async def upload_tenant_logo_route(
 ):
     branding = await _save_logo(db, tenant_id, file)
     return response(status_code=status.HTTP_200_OK, message="Logo de la empresa actualizado", data=branding)
+
+
+@router.delete("/me/logo")
+async def delete_my_logo_route(
+    db: Session = Depends(get_db),
+    _: dict = Depends(require_roles(RolEnum.administrador)),
+    tenant_id: UUID = Depends(get_current_tenant_id),
+):
+    branding = delete_tenant_logo(db, tenant_id)
+    if not branding:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Empresa no encontrada")
+    return response(status_code=status.HTTP_200_OK, message="Logo de la empresa eliminado", data=branding)
+
+
+@router.delete("/{tenant_id}/logo")
+async def delete_tenant_logo_route(
+    tenant_id: UUID,
+    db: Session = Depends(get_db),
+    _: dict = Depends(require_roles(RolEnum.superadministrador)),
+):
+    branding = delete_tenant_logo(db, tenant_id)
+    if not branding:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Empresa no encontrada")
+    return response(status_code=status.HTTP_200_OK, message="Logo de la empresa eliminado", data=branding)

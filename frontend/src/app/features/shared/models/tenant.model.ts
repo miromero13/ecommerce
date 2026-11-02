@@ -44,7 +44,7 @@ export interface TenantUpdatePayload {
   currency?: string;
   country?: string;
   status?: TenantStatus;
-  primary_color?: string;
+  primary_color?: string | null;
 }
 
 /** Administrator registered by the superadmin for a company that has none. */

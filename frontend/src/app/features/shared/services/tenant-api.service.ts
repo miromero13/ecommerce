@@ -77,6 +77,11 @@ export class TenantApiService {
     return this.api.post<ApiResponse<TenantBranding>>(`/saas/tenants/${tenantId ?? 'me'}/logo`, body);
   }
 
+  /** Removes the company logo and restores it to empty. */
+  deleteLogo(tenantId?: string): Observable<ApiResponse<TenantBranding>> {
+    return this.api.delete<ApiResponse<TenantBranding>>(`/saas/tenants/${tenantId ?? 'me'}/logo`);
+  }
+
   /** The superadmin enters the company's panel as its administrator. */
   openPanelSession(tenantId: string): Observable<ApiResponse<AuthResponse>> {
     return this.api.post<ApiResponse<AuthResponse>>(`/saas/tenants/${tenantId}/panel-session`, {});
