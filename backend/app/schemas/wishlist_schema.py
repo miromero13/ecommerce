@@ -11,3 +11,10 @@ class MoveToCartRequest(BaseModel):
     variant_id: UUID  # the size/color chosen when moving the favorite to the cart
     branch_id: UUID | None = None
     quantity: int = Field(default=1, gt=0, le=20)
+
+
+class MoveAllToCartRequest(BaseModel):
+    tenant_id: UUID
+    branch_id: UUID
+    clear_conflict: bool = True
+

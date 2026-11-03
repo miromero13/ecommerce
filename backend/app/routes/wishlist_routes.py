@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.auth.dependencies import require_roles
 from app.core.database import get_db
 from app.schemas.enums import RolEnum
-from app.schemas.wishlist_schema import MoveToCartRequest, WishlistItemCreate
+from app.schemas.wishlist_schema import MoveAllToCartRequest, MoveToCartRequest, WishlistItemCreate
 from app.services import wishlist_service as service
 from app.utils.response import response
 
@@ -51,3 +51,13 @@ def move_route(product_id: UUID, payload: MoveToCartRequest, db: Session = Depen
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return response(status_code=200, message="Prenda movida al carrito de compras con éxito", data=cart)
+
+
+@router.post("/move-all-to-cart")
+def move_all_route(payload: MoveAllToCartRequest, db: Session = Depends(get_db), user: dict = Depends(CUSTOMER)):
+    try:
+        cart, count = service.move_all_to_cart(db, UUID(user["sub"]), payload.tenant_id, payload.branch_id, payload.clear_conflict)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return response(status_code=200, message=f"Se agregaron {count} prendas al carrito", data=cart.model_dump())
+

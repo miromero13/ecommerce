@@ -63,7 +63,7 @@ def test_db():
         "tenants", "branches", "users", "categories", "products", "product_variants",
         "inventory", "carts", "cart_items", "promotion_codes",
         "promotion_code_usages", "reservations", "sizes", "colors",
-        "user_product_interactions",
+        "user_product_interactions", "wishlist_items",
     ]
     Base.metadata.create_all(engine, tables=[Base.metadata.tables[name] for name in needed if name in Base.metadata.tables])
     session = Session(engine)
@@ -121,12 +121,15 @@ def env(test_db):
     test_db.add(product)
     test_db.flush()
 
+    from app.schemas.catalog_enums import ProductStatusEnum
+
     variant = ProductVariant(
         id=uuid.uuid4(),
         tenant_id=tenant.id,
         product_id=product.id,
         sku="REM-001",
         price=Decimal("100.00"),
+        status=ProductStatusEnum.active,
     )
     test_db.add(variant)
     test_db.flush()
@@ -322,3 +325,22 @@ def test_clear_cart_resets_tenant_and_branch(test_db, env):
     assert cleared.tenant_id is None
     assert cleared.branch_id is None
     assert cleared.branch_name is None
+
+
+def test_wishlist_move_all_to_cart_by_branch(test_db, env):
+    from app.services.wishlist_service import add_item, move_all_to_cart
+
+    user_id = env["user"].id
+    product = env["product"]
+    tenant_id = env["tenant"].id
+    branch_a_id = env["branch_a"].id
+
+    # Add product to wishlist
+    add_item(test_db, user_id, product.id)
+
+    # Move all items of this tenant and branch to cart
+    cart, count = move_all_to_cart(test_db, user_id, tenant_id, branch_a_id)
+    assert count == 1
+    assert cart.branch_id == branch_a_id
+    assert len(cart.items) == 1
+    assert cart.items[0].product_id == product.id
