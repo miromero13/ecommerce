@@ -17,9 +17,23 @@ class WishlistApi {
   Future<String> remove(String productId) async =>
       (await _client.delete<dynamic>('wishlist/items/$productId')).message;
 
-  Future<String> moveToCart(String productId, String variantId) async => (await _client.post<dynamic>(
+  Future<String> moveToCart(String productId, String variantId, {String? branchId}) async => (await _client.post<dynamic>(
         'wishlist/items/$productId/move-to-cart',
-        data: {'variant_id': variantId},
+        data: {
+          'variant_id': variantId,
+          if (branchId != null) 'branch_id': branchId,
+        },
+      ))
+          .message;
+
+  Future<String> moveAllToCart(String tenantId, String branchId) async =>
+      (await _client.post<dynamic>(
+        'wishlist/move-all-to-cart',
+        data: {
+          'tenant_id': tenantId,
+          'branch_id': branchId,
+          'clear_conflict': true,
+        },
       ))
           .message;
 }

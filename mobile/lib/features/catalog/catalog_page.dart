@@ -752,7 +752,17 @@ class _CatalogPageState extends State<CatalogPage> {
             expand: true,
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 8),
+        Expanded(
+          child: AppButton(
+            label: 'Deseos',
+            variant: AppButtonVariant.outlined,
+            icon: const Icon(Icons.favorite_border, color: Colors.pinkAccent),
+            onPressed: () => Navigator.of(context).pushNamed(AppRoutes.wishlist),
+            expand: true,
+          ),
+        ),
+        const SizedBox(width: 8),
         Expanded(
           child: AppButton(
             label: 'Reservas',

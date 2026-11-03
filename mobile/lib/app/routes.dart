@@ -130,6 +130,7 @@ abstract final class AppRouter {
         settings,
         WishlistPage(authController: authController),
         selectedIndex: 1,
+        shellTitle: 'Lista de deseos',
       ),
       AppRoutes.loyalty => _page(
         settings,
