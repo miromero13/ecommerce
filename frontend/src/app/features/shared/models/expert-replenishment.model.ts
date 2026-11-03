@@ -36,3 +36,8 @@ export interface ExpertSuggestion {
 export interface ApplyTransfersRequest {
   transfer_ids: string[];
 }
+
+export interface DiscardTransfersRequest {
+  transfer_ids: string[];
+}
+

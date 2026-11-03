@@ -14,11 +14,13 @@ from app.schemas.enums import RolEnum
 from app.models.user import User
 from app.schemas.expert_replenishment_schema import (
     ApplyTransfersRequest,
+    DiscardTransfersRequest,
     ExpertRuleRead,
     ExpertRuleUpdate,
 )
 from app.services.expert_replenishment_service import (
     apply_transfers,
+    discard_transfers,
     evaluate,
     get_or_create_rules,
     list_suggestions,
@@ -72,6 +74,27 @@ def apply_replenishment_transfers(
         status.HTTP_200_OK,
         message="Órdenes de traspaso automático aplicadas al inventario",
         data={"applied_count": applied_count},
+    )
+
+
+@router.post(
+    "/discard-transfers",
+    dependencies=[Depends(require_roles(RolEnum.administrador)), Depends(require_permission("replenishment:manage"))],
+)
+def discard_replenishment_transfers(
+    payload: DiscardTransfersRequest,
+    db: Session = Depends(get_db),
+    tenant_id: UUID = Depends(get_current_tenant_id),
+):
+    discarded_count = discard_transfers(
+        db=db,
+        tenant_id=tenant_id,
+        transfer_ids=payload.transfer_ids,
+    )
+    return response(
+        status.HTTP_200_OK,
+        message="Sugerencias de traspaso descartadas",
+        data={"discarded_count": discarded_count},
     )
 
 

@@ -26,6 +26,7 @@ from app.schemas.expert_replenishment_schema import (
 )
 from app.services.expert_replenishment_service import (
     apply_transfers,
+    discard_transfers,
     evaluate,
     get_or_create_rules,
     list_suggestions,
@@ -405,3 +406,31 @@ def test_applying_a_batch_is_all_or_nothing():
             assert {s.status for s in list_suggestions(db, tenant.id)} == {SuggestionStatusEnum.pending.value}
         finally:
             _clean_tenant(db, tenant)
+
+
+def test_discard_transfers():
+    with SessionLocal() as db:
+        tenant = _create_test_tenant(db, "discard_test")
+        try:
+            source = _create_branch(db, tenant.id, "Origen")
+            target = _create_branch(db, tenant.id, "Destino")
+            _, variant = _create_catalog_item(db, tenant.id)
+            _stock(db, tenant.id, variant.id, source.id, 20, 5)
+            _stock(db, tenant.id, variant.id, target.id, 0, 5)
+
+            suggestions = evaluate(db, tenant.id)
+            assert len(suggestions) == 1
+            s_id = suggestions[0].id
+
+            count = discard_transfers(db, tenant.id, [s_id])
+            assert count == 1
+
+            pending = list_suggestions(db, tenant.id, status=SuggestionStatusEnum.pending.value)
+            assert len(pending) == 0
+
+            discarded = list_suggestions(db, tenant.id, status=SuggestionStatusEnum.discarded.value)
+            assert len(discarded) == 1
+            assert discarded[0].id == s_id
+        finally:
+            _clean_tenant(db, tenant)
+

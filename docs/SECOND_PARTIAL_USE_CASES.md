@@ -873,19 +873,18 @@ PUT /api/inventory/expert-replenishment/rules
 ```
 
 ##### Ubicación en Frontend (Angular)
-* **Página y Vista:** `frontend/src/app/features/admin/pages/admin-expert-replenishment-page.component.ts` (`admin-expert-replenishment-page.component.html`)
+* **Integración Principal (Notificaciones Interactivas):** Centro de Notificaciones en `/app/notifications`. Cada sugerencia emitida por el sistema experto genera una tarjeta interactiva con la insignia **🧠 Sistema Experto IA**, detallando sucursal origen con excedente, sucursal destino con stock crítico, justificación de inferencia, y botones de decisión directa: *"Aprobar traspaso"* y *"Descartar sugerencia"*.
+* **DESACTIVADO EN NAVEGACIÓN LATERAL:** La sección `/app/admin/expert-replenishment` no se usa como página de navegación en el menú lateral para evitar sobrecargar la interfaz. El reabastecimiento inteligente opera de forma proactiva y por eventos en Notificaciones. La ruta Angular `/app/admin/expert-replenishment` se mantiene registrada únicamente por compatibilidad técnica.
 * **Servicio API:** `frontend/src/app/features/shared/services/expert-replenishment-api.service.ts`
 * **Modelo TypeScript:** `frontend/src/app/features/shared/models/expert-replenishment.model.ts`
-* **Ruta Angular:** `/app/admin/expert-replenishment` (`canActivate: [roleGuard(['administrador'])]`)
-* **Integración en Menú:** Ítem `"Reabastecimiento IA"` en la sección Administración en `app-shell.component.ts`.
-* **Mensajes en UI:** Toast con `res.message`: `"Evaluación del sistema experto finalizada"` y `"Órdenes de traspaso automático aplicadas al inventario"`.
+* **Mensajes en UI:** Toast con `res.message`: `"Evaluación del sistema experto finalizada"`, `"Sugerencias de traspaso descartadas"` y `"Órdenes de traspaso automático aplicadas al inventario"`.
 
 ##### Checklist de Implementación
 - [x] Backend: Servicio `expert_replenishment_service.py` con motor de reglas lógicas basadas en hechos.
-- [x] Backend: Endpoints `/api/inventory/expert-replenishment/...` para evaluar y confirmar transferencias.
-- [x] Backend: Tarea programada en segundo plano para evaluación automática periódica.
-- [x] Frontend: Crear `ExpertReplenishmentApiService` y página `admin-expert-replenishment-page`.
-- [x] Frontend: Tabla de sugerencias del sistema experto con botón para aprobar traspasos en lote.
+- [x] Backend: Endpoints `/api/inventory/expert-replenishment/...` para evaluar, descartar y confirmar transferencias.
+- [x] Backend: Disparador reactivo por evento ante quiebre de stock (`notify_low_stock`) + tarea periódica de fondo.
+- [x] Frontend: Tarjetas interactivas en `/app/notifications` con aprobación/descarte en 1 clic.
+- [x] Frontend: Crear `ExpertReplenishmentApiService` y modelo con soporte de descarte y aprobación.
 - [x] Verificación: Provocar nivel de stock crítico en una sucursal y validar la recomendación generada por el motor (`tests/test_expert_replenishment.py`).
 
 ---

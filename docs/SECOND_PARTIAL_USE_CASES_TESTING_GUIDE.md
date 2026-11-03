@@ -231,19 +231,27 @@ Guía detallada paso a paso para probar **cada uno de los 25 casos de uso (CU1 a
 * **Estado:** **Hecho e Implementado**
 * **Actor de prueba:** Administrador de Tenant
 * **Credenciales:** `carolina.quiroga@ayni-moda.demo.bo` / `Fashion2026!` (Pestaña: *Administrativos*)
-* **Ruta UI:** `/app/admin/expert-replenishment` (Menú lateral: *"Reabastecimiento IA"*)
+* **Ubicación UI:** Notificaciones en `/app/notifications` (Campanita superior).
+* **Nota sobre la navegación:** La sección `/app/admin/expert-replenishment` está **desactivada del menú lateral** (igual que la de reportes); el flujo opera de forma proactiva mediante notificaciones interactivas cuando se produce un quiebre de stock. La URL `/app/admin/expert-replenishment` sigue disponible directamente por compatibilidad.
 
-##### Pasos para probar:
-1. Iniciá sesión como Administrador de Ayni Moda y navegá a `/app/admin/expert-replenishment`.
-2. Verificá las reglas activas de umbral mínimo y velocidad de ventas.
-3. Hacé clic en el botón **"Evaluar Inventario Ahora"**.
-4. **Resultado:**
-   * Toast: `"Evaluación del sistema experto finalizada"`.
-   * La tabla muestra sugerencias inteligentes de traspaso indicando: *Prenda, Sucursal Origen (con excedente), Sucursal Destino (con stock crítico), Cantidad sugerida y Justificación lógica basada en reglas*.
-5. Marcá la casilla de una o varias sugerencias y hacé clic en **"Aprobar Traspasos en Lote"**.
-6. **Resultado:**
+##### Pasos para probar el flujo reactivo de notificaciones:
+1. Iniciá sesión como Administrador de Ayni Moda (`carolina.quiroga@ayni-moda.demo.bo` / `Fashion2026!`).
+2. Navegá a **Inventario** (`/app/admin/inventory`) y registrá un movimiento de **Salida** en una sucursal destino (ej. *Sucursal Mall Ventura*) de forma que el stock quede por debajo del mínimo de seguridad.
+3. El motor de inferencia del Sistema Experto se ejecuta automáticamente por evento en segundo plano al detectar el stock crítico.
+4. Observá el contador en la **campanita de notificaciones** arriba a la derecha. Hacé clic en ella o ingresá a `/app/notifications`.
+5. **Resultado:**
+   * La lista muestra una tarjeta interactiva con el sello **🧠 Sistema Experto IA**:
+     * Detalle: Prenda, Sucursal Origen (con excedente), Sucursal Destino (con stock crítico), Cantidad sugerida y Justificación lógica de inferencia ($R_1$-$R_4$).
+     * Botones de acción directa: **"Aprobar traspaso"** y **"Descartar sugerencia"**.
+6. Hacé clic en **"Aprobar traspaso"**.
+7. **Resultado:**
    * Toast: `"Órdenes de traspaso automático aplicadas al inventario"`.
    * El stock se actualiza atómicamente entre ambas sucursales.
+
+##### Pasos para probar la vista tradicional directa (compatibilidad):
+1. Ingresá directamente por URL a `/app/admin/expert-replenishment`.
+2. Hacé clic en el botón **"Evaluar Reabastecimiento"**.
+3. Marcá las sugerencias pendientes y hacé clic en **"Aplicar Traspasos"**.
 
 ---
 
@@ -596,7 +604,7 @@ Guía detallada paso a paso para probar **cada uno de los 25 casos de uso (CU1 a
 | **Suscripción y Cuotas** | Admin Ayni Moda | `carolina.quiroga@ayni-moda.demo.bo`<br>`Fashion2026!` | Administrativos | `/app/admin/subscription` |
 | **RBAC / Roles dinámicos** | Admin Ayni Moda | `carolina.quiroga@ayni-moda.demo.bo`<br>`Fashion2026!` | Administrativos | `/app/admin/roles` |
 | **Reportes IA y ML** | Admin Ayni Moda | `carolina.quiroga@ayni-moda.demo.bo`<br>`Fashion2026!` | Administrativos | `/app/admin/reports` |
-| **Sistema Experto Stock** | Admin Ayni Moda | `carolina.quiroga@ayni-moda.demo.bo`<br>`Fashion2026!` | Administrativos | `/app/admin/expert-replenishment` |
+| **Sistema Experto Stock** | Admin Ayni Moda | `carolina.quiroga@ayni-moda.demo.bo`<br>`Fashion2026!` | Administrativos | `/app/notifications`<br>*(o directa `/app/admin/expert-replenishment`)* |
 | **Ingesta RPA con PDF** | Proveedor | `carlos.aliaga@ayni-moda-proveedores.demo.bo`<br>`Fashion2026!` | Administrativos | `/app/proveedor/rpa-ingest` |
 | **Traspaso de Inventario** | Encargado | `rodrigo.choque@ayni-moda.demo.bo`<br>`Fashion2026!` | Administrativos | `/app/encargado/inventory` |
 | **Venta en Caja y Puntos** | Cajera | `lucia.apaza@ayni-moda.demo.bo`<br>`Fashion2026!` | Administrativos | `/app/cajero/caja` |

@@ -18,7 +18,9 @@ from app.models.product_variant import ProductVariant
 from app.models.sale import Sale
 from app.models.sale_item import SaleItem
 from app.models.tenant import Tenant
+from app.models.user import User
 from app.schemas.catalog_enums import ProductStatusEnum
+from app.schemas.enums import RolEnum
 from app.schemas.expert_replenishment_schema import (
     ExpertRuleUpdate,
     ExpertSuggestionRead,
@@ -216,6 +218,8 @@ def evaluate(db: Session, tenant_id: UUID) -> list[ExpertSuggestionRead]:
     for s in new_suggestions:
         db.refresh(s)
 
+    _notify_admins_new_suggestions(db, tenant_id, new_suggestions, branches_map)
+
     return list_suggestions(db, tenant_id, status=SuggestionStatusEnum.pending.value)
 
 
@@ -343,6 +347,97 @@ def apply_transfers(
         raise
 
     return applied_count
+
+
+def discard_transfers(
+    db: Session,
+    tenant_id: UUID,
+    transfer_ids: list[UUID],
+) -> int:
+    suggestions = (
+        db.query(ExpertTransferSuggestion)
+        .filter(
+            ExpertTransferSuggestion.tenant_id == tenant_id,
+            ExpertTransferSuggestion.id.in_(transfer_ids),
+        )
+        .all()
+    )
+    discarded_count = 0
+    for s in suggestions:
+        if s.status == SuggestionStatusEnum.pending.value:
+            s.status = SuggestionStatusEnum.discarded.value
+            discarded_count += 1
+    db.commit()
+    return discarded_count
+
+
+def evaluate_on_low_stock(db: Session, inventory: Inventory) -> list[ExpertSuggestionRead]:
+    """Triggered reactively when an inventory drops below its minimum threshold."""
+    if not inventory or not inventory.tenant_id:
+        return []
+    try:
+        return evaluate(db, inventory.tenant_id)
+    except Exception:
+        db.rollback()
+        return []
+
+
+def _notify_admins_new_suggestions(
+    db: Session,
+    tenant_id: UUID,
+    suggestions: list[ExpertTransferSuggestion],
+    branches_map: dict[UUID, Branch],
+) -> None:
+    if not suggestions:
+        return
+    from app.services.notification_service import create_notification
+
+    admins = (
+        db.query(User)
+        .filter(
+            User.rol == RolEnum.administrador,
+            User.is_active.is_(True),
+            User.tenant_id == tenant_id,
+        )
+        .all()
+    )
+    if not admins:
+        return
+
+    for s in suggestions:
+        target_branch = branches_map.get(s.target_branch_id)
+        source_branch = branches_map.get(s.source_branch_id)
+        target_name = target_branch.name if target_branch else "Sucursal destino"
+        source_name = source_branch.name if source_branch else "Sucursal origen"
+
+        variant = db.query(ProductVariant).filter(ProductVariant.id == s.variant_id).first()
+        product_name = "Prenda"
+        if variant and variant.product:
+            product_name = variant.product.name
+
+        title = "Reabastecimiento sugerido (Sistema Experto)"
+        body = (
+            f"Stock crítico en {target_name}. {source_name} tiene excedente. "
+            f"Se sugiere traspasar {s.suggested_quantity} u de {product_name}."
+        )
+        data = {
+            "destination": "expert_replenishment",
+            "suggestion_id": str(s.id),
+            "product_name": product_name,
+            "source_branch_name": source_name,
+            "target_branch_name": target_name,
+            "suggested_quantity": str(s.suggested_quantity),
+            "reason": s.reason,
+        }
+        for admin in admins:
+            create_notification(
+                db,
+                admin.id,
+                title,
+                body,
+                data=data,
+                dedupe_key=f"expert-replenishment:{admin.id}:{s.id}",
+            )
 
 
 def run_auto_evaluation_all_tenants(db: Session) -> int:

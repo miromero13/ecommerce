@@ -43,3 +43,8 @@ class ExpertSuggestionRead(BaseModel):
 
 class ApplyTransfersRequest(BaseModel):
     transfer_ids: list[UUID] = Field(..., min_length=1)
+
+
+class DiscardTransfersRequest(BaseModel):
+    transfer_ids: list[UUID] = Field(..., min_length=1)
+

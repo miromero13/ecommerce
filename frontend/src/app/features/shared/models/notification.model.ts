@@ -29,6 +29,8 @@ export function notificationRoute(data: Record<string, unknown>, role: RolUsuari
       return role === 'encargado' ? '/app/encargado/reservations' : role === 'cliente' ? '/app/cliente/my-reservations' : '/app/notifications';
     case 'inventory':
       return role === 'administrador' ? '/app/admin/inventory' : role === 'encargado' ? '/app/encargado/inventory' : '/app/notifications';
+    case 'expert_replenishment':
+      return '/app/notifications';
     case 'product': {
       const productId = safeId(data['product_id']);
       return role === 'cliente' && productId ? `/app/cliente/products/${productId}` : '/app/notifications';

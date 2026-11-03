@@ -674,8 +674,8 @@ Ejecutar la transferencia reutiliza `inventory_service.register_transfer` (atóm
 | Administrador | `/app/admin/subscription` | Marca de la empresa (logo y color) |
 | Superadmin | `/app/superadmin/settlements`, `/drivers`, `/tenants` | Liquidaciones, repartidores, marca y comisión por empresa |
 | Administrador | `/app/admin/roles` | Roles personalizados con permisos por módulo (CU3) |
-| Administrador | `/app/admin/reports` | Consulta por voz/texto, regresión, K-Means, 4 reportes, Excel/PDF, modo demostración (CU8) |
-| Administrador | `/app/admin/expert-replenishment` | Sugerencias del sistema experto, reglas y aprobación en lote (CU9) |
+| Administrador | `/app/admin/reports` | Consulta por voz/texto, regresión, K-Means, 4 reportes, Excel/PDF, modo demostración (CU8) *(desactivado de navegación lateral, accesible en modales de Ventas e Inventario)* |
+| Administrador | `/app/notifications` *(o `/app/admin/expert-replenishment`)* | Sugerencias del sistema experto por eventos con aprobación/descarte en 1 clic (CU9) *(desactivado de navegación lateral)* |
 | Proveedor / encargado / admin | `/app/proveedor/rpa-ingest`, `/app/encargado/rpa-ingest`, `/app/admin/rpa-ingest` | Subir remito, revisar líneas y confirmar el ingreso (CU10) |
 | Cliente | `/app/cliente/wishlist` (+ corazón en catálogo y detalle) | Favoritos y mover al carrito (CU16) |
 | Cliente | `/app/cliente/loyalty` (+ «Usar puntos» en el carrito) | Puntos, nivel e historial por empresa (CU17) |

@@ -211,3 +211,11 @@ def notify_low_stock(db: Session, inventory: Inventory) -> None:
             {"destination": "inventory", "variant_id": str(inventory.variant_id), "branch_id": str(inventory.branch_id)},
             f"low-stock:{user.id}:{inventory.variant_id}:{inventory.branch_id}:{available}",
         )
+
+    # Reactively trigger Expert Replenishment evaluation so admins receive immediate transfer suggestions
+    try:
+        from app.services.expert_replenishment_service import evaluate_on_low_stock
+        evaluate_on_low_stock(db, inventory)
+    except Exception:
+        logger.exception("Could not evaluate expert replenishment on low stock for inventory %s", inventory.id)
+

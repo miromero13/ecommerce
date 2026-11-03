@@ -6,6 +6,7 @@ import { ApiResponse } from '../../../core/models/api.model';
 import { ApiService } from '../../../core/services/api.service';
 import {
   ApplyTransfersRequest,
+  DiscardTransfersRequest,
   ExpertRule,
   ExpertRuleUpdate,
   ExpertSuggestion,
@@ -38,5 +39,9 @@ export class ExpertReplenishmentApiService {
 
   applyTransfers(payload: ApplyTransfersRequest): Observable<ApiResponse<{ applied_count: number }>> {
     return this.api.post<ApiResponse<{ applied_count: number }>>(`${this.endpoint}/apply-transfers`, payload);
+  }
+
+  discardTransfers(payload: DiscardTransfersRequest): Observable<ApiResponse<{ discarded_count: number }>> {
+    return this.api.post<ApiResponse<{ discarded_count: number }>>(`${this.endpoint}/discard-transfers`, payload);
   }
 }

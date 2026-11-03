@@ -297,7 +297,9 @@ export class AppShellComponent {
                { label: 'Proveedores', route: '/app/admin/provider', icon: 'lucideUsers' },
                { label: 'Solicitudes', route: '/app/admin/replenishment', icon: 'lucideClipboardList' },
                { label: 'Ingesta RPA', route: '/app/admin/rpa-ingest', icon: 'lucidePackageSearch' },
-               { label: 'Reabastecimiento IA', route: '/app/admin/expert-replenishment', icon: 'lucideBrainCircuit' },
+               // DESACTIVADO: La sección '/app/admin/expert-replenishment' no satura el menú lateral.
+               // El reabastecimiento inteligente opera por eventos y llega como notificación interactiva al administrador con decisión en 1 clic.
+               // { label: 'Reabastecimiento IA', route: '/app/admin/expert-replenishment', icon: 'lucideBrainCircuit' },
                { label: 'Suscripción y Plan', route: '/app/admin/subscription', icon: 'lucideShield' },
                { label: 'Comprobantes', route: '/app/admin/receipts', icon: 'lucideClipboardList' },
                { label: 'Cobros y Liquidaciones', route: '/app/admin/payouts', icon: 'lucideShoppingCart' },

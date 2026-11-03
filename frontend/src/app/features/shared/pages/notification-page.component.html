@@ -29,24 +29,96 @@
   } @else {
     <div class="space-y-3">
       @for (item of push.notifications(); track item.id) {
-        <button
-          hlmCard
-          type="button"
-          class="block w-full p-4 text-left transition hover:border-primary"
-          [class.border-primary]="!item.read_at"
-          (click)="open(item)"
-        >
-          <div class="flex items-start justify-between gap-4">
-            <div>
-              <h2 class="font-semibold">{{ item.title }}</h2>
-              <p class="mt-1 text-sm text-slate-600">{{ item.body }}</p>
+        @if (isReplenishment(item)) {
+          <article
+            hlmCard
+            class="block w-full p-5 border-l-4 border-l-primary transition bg-card shadow-sm"
+            [class.ring-1]="!item.read_at"
+            [class.ring-primary/20]="!item.read_at"
+          >
+            <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-primary/10 text-primary">
+                    🧠 Sistema Experto IA
+                  </span>
+                  @if (!item.read_at) {
+                    <span class="rounded-full bg-primary px-2 py-0.5 text-[11px] text-primary-foreground font-medium">Pendiente</span>
+                  }
+                </div>
+                <h2 class="font-semibold text-foreground text-base mt-1.5">{{ item.title }}</h2>
+                <p class="mt-1 text-sm text-foreground/90">{{ item.body }}</p>
+              </div>
+
+              <time class="text-xs text-muted-foreground whitespace-nowrap">{{ item.created_at | date: 'short' }}</time>
             </div>
-            @if (!item.read_at) {
-              <span class="rounded-full bg-primary px-2 py-1 text-xs text-primary-foreground">Nueva</span>
+
+            <!-- Detalle de la recomendación -->
+            @if (item.data['reason']) {
+              <div class="mt-3 p-3 rounded-md bg-muted/50 border border-border text-xs text-muted-foreground space-y-1.5">
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-1 font-medium text-foreground">
+                  <div>
+                    <span class="text-muted-foreground font-normal">Origen:</span> {{ item.data['source_branch_name'] }} <span class="text-emerald-700 dark:text-emerald-400 font-normal">(Excedente)</span>
+                  </div>
+                  <span>➔</span>
+                  <div>
+                    <span class="text-muted-foreground font-normal">Destino:</span> {{ item.data['target_branch_name'] }} <span class="text-destructive font-normal">(Crítico)</span>
+                  </div>
+                  <div class="ml-auto font-bold text-primary">
+                    Sugerido: +{{ item.data['suggested_quantity'] }} u
+                  </div>
+                </div>
+                <p class="text-[11px] text-muted-foreground/90 italic pt-1 border-t border-border/50">
+                  {{ item.data['reason'] }}
+                </p>
+              </div>
             }
-          </div>
-          <time class="mt-3 block text-xs text-slate-400">{{ item.created_at | date: 'short' }}</time>
-        </button>
+
+            <!-- Botones de Acción Directa -->
+            <div class="mt-4 flex flex-wrap items-center justify-end gap-2.5">
+              <button
+                hlmBtn
+                type="button"
+                variant="outline"
+                size="sm"
+                [disabled]="processingId() === item.id"
+                (click)="discardReplenishment(item, $event)"
+                class="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+              >
+                {{ processingId() === item.id ? 'Procesando...' : 'Descartar sugerencia' }}
+              </button>
+              <button
+                hlmBtn
+                type="button"
+                size="sm"
+                [disabled]="processingId() === item.id"
+                (click)="applyReplenishment(item, $event)"
+                class="text-xs bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
+              >
+                {{ processingId() === item.id ? 'Aplicando...' : 'Aprobar traspaso (+ ' + item.data['suggested_quantity'] + ' u)' }}
+              </button>
+            </div>
+          </article>
+        } @else {
+          <button
+            hlmCard
+            type="button"
+            class="block w-full p-4 text-left transition hover:border-primary cursor-pointer"
+            [class.border-primary]="!item.read_at"
+            (click)="open(item)"
+          >
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <h2 class="font-semibold">{{ item.title }}</h2>
+                <p class="mt-1 text-sm text-slate-600">{{ item.body }}</p>
+              </div>
+              @if (!item.read_at) {
+                <span class="rounded-full bg-primary px-2 py-1 text-xs text-primary-foreground">Nueva</span>
+              }
+            </div>
+            <time class="mt-3 block text-xs text-slate-400">{{ item.created_at | date: 'short' }}</time>
+          </button>
+        }
       }
     </div>
   }
