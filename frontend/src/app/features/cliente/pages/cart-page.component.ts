@@ -11,6 +11,7 @@ import { HlmButton } from '../../../components/button/src';
 import { HlmCardImports } from '../../../components/card/src';
 import { HlmInputImports } from '../../../components/input/src';
 import { HlmTable } from '../../../components/table/src';
+import { HlmTabsImports } from '../../../components/tabs/src';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
 import { requestWithToast } from '../../../core/utils/request-toast.util';
 import { downloadSimplePdf } from '../../../core/utils/simple-pdf.util';
@@ -43,6 +44,7 @@ type StripeCheckout = {
     NgIcon,
     HlmButton,
     HlmTable,
+    ...HlmTabsImports,
     ...HlmBadgeImports,
     ...HlmCardImports,
     ...HlmInputImports,
@@ -96,9 +98,26 @@ export class CartPageComponent {
   protected readonly quote = signal<DeliveryQuote | null>(null);
   protected readonly quoting = signal(false);
 
+  // Wizard steps on right aside (web only): resumen | entrega | pago
+  protected readonly checkoutStep = signal<'resumen' | 'entrega' | 'pago'>('resumen');
+
   constructor() {
     // Pickup branches belong to the cart's company, so they load after the cart.
     void this.loadCart().then(() => this.loadBranches());
+  }
+
+  protected goToStep(step: 'resumen' | 'entrega' | 'pago'): void {
+    if (step === 'pago') {
+      if (!this.pickupBranchId()) {
+        toast.warning(this.fulfillment() === 'delivery' ? 'Selecciona la sucursal de despacho.' : 'Selecciona una sucursal para el retiro.');
+        return;
+      }
+      if (this.fulfillment() === 'delivery' && !this.quote()) {
+        toast.warning('Ingresa tu dirección y calcula el costo de envío.');
+        return;
+      }
+    }
+    this.checkoutStep.set(step);
   }
 
   protected get itemCount(): number {
