@@ -43,9 +43,24 @@ export class WishlistApiService {
     return response.message;
   }
 
-  async moveToCart(productId: string, variantId: string): Promise<string> {
+  async moveToCart(productId: string, variantId: string, branchId?: string): Promise<string> {
     const response = await firstValueFrom(
-      this.api.post<ApiResponse<Cart>>(`/wishlist/items/${productId}/move-to-cart`, { variant_id: variantId }),
+      this.api.post<ApiResponse<Cart>>(`/wishlist/items/${productId}/move-to-cart`, {
+        variant_id: variantId,
+        branch_id: branchId || undefined,
+      }),
+    );
+    await this.reload();
+    return response.message;
+  }
+
+  async moveAllToCart(tenantId: string, branchId: string, clearConflict: boolean = true): Promise<string> {
+    const response = await firstValueFrom(
+      this.api.post<ApiResponse<Cart>>('/wishlist/move-all-to-cart', {
+        tenant_id: tenantId,
+        branch_id: branchId,
+        clear_conflict: clearConflict,
+      }),
     );
     await this.reload();
     return response.message;

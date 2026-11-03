@@ -25,6 +25,23 @@
           hlmBtn
           variant="outline"
           size="icon"
+          routerLink="/app/cliente/wishlist"
+          aria-label="Ir a lista de deseos"
+          title="Ver mi lista de deseos"
+          class="relative text-slate-800 hover:text-slate-950 cursor-pointer"
+        >
+          <ng-icon name="lucideHeart" class="text-rose-600" />
+          @if (wishlistApi.savedIds().size > 0) {
+            <span class="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-600 px-1 text-[9px] font-bold text-white shadow-xs">
+              {{ wishlistApi.savedIds().size }}
+            </span>
+          }
+        </a>
+
+        <a
+          hlmBtn
+          variant="outline"
+          size="icon"
           routerLink="/app/cliente/cart"
           aria-label="Ir al carrito"
           title="Ir al carrito"

@@ -11,11 +11,14 @@ import {
   lucideCalendar,
   lucideChevronDown,
   lucideEye,
+  lucideHeart,
   lucideRotateCcw,
   lucideSearch,
   lucideShoppingCart,
   lucideX,
 } from '@ng-icons/lucide';
+
+import { WishlistApiService } from '../../shared/services/wishlist-api.service';
 
 import { toast } from '@spartan-ng/brain/sonner';
 
@@ -75,6 +78,7 @@ import { WishlistToggleButtonComponent } from '../components/wishlist-toggle-but
       lucideShoppingCart,
       lucideEye,
       lucideCalendar,
+      lucideHeart,
       lucideBookmark,
       lucideAlertTriangle,
       lucideSearch,
@@ -92,6 +96,7 @@ export class CatalogPageComponent {
   private readonly session = inject(SessionService);
   private readonly tenantApi = inject(TenantApiService);
   protected readonly reservationDraft = inject(ReservationDraftService);
+  protected readonly wishlistApi = inject(WishlistApiService);
   private readonly router = inject(Router);
 
   protected readonly tenants = signal<Array<{ id: string; name: string; slug: string; currency: string; country: string }>>([]);
@@ -240,6 +245,7 @@ export class CatalogPageComponent {
   }
 
   constructor() {
+    void this.wishlistApi.ensureLoaded();
     void this.loadData();
 
     this.form.valueChanges
