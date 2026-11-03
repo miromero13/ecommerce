@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, effect, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { provideIcons } from '@ng-icons/core';
-import { lucidePencil } from '@ng-icons/lucide';
+import { lucidePencil, lucideWallet } from '@ng-icons/lucide';
 
 import { HlmButton } from '../../../components/button/src';
 import { HlmFieldImports } from '../../../components/field/src';
@@ -22,7 +22,7 @@ import { UserApiService } from '../services/user-api.service';
   selector: 'app-profile-page',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterLink, HlmButton, HlmInput, ...HlmFieldImports, ...HlmIconImports, ...HlmSelectImports],
-  providers: [provideIcons({ lucidePencil })],
+  providers: [provideIcons({ lucidePencil, lucideWallet })],
   templateUrl: './profile-page.component.html',
 })
 export class ProfilePageComponent {

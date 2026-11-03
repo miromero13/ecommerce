@@ -20,7 +20,7 @@ import { CatalogBranch } from '../../shared/models/catalog.model';
 import { CartApiService } from '../../shared/services/cart-api.service';
 import { LoyaltyApiService } from '../../shared/services/loyalty-api.service';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideMapPin, lucideStore } from '@ng-icons/lucide';
+import { lucideCreditCard, lucideMapPin, lucideStar, lucideStore, lucideWallet } from '@ng-icons/lucide';
 import { CatalogApiService } from '../../shared/services/catalog-api.service';
 import { Order } from '../../shared/models/order.model';
 import { CheckoutApiService } from '../../shared/services/checkout-api.service';
@@ -47,7 +47,7 @@ type StripeCheckout = {
     ...HlmCardImports,
     ...HlmInputImports,
   ],
-  providers: [provideIcons({ lucideStore, lucideMapPin })],
+  providers: [provideIcons({ lucideStore, lucideMapPin, lucideCreditCard, lucideWallet, lucideStar })],
   templateUrl: './cart-page.component.html',
 })
 export class CartPageComponent {

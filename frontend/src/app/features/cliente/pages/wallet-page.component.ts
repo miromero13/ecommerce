@@ -2,6 +2,15 @@ import { CommonModule } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import {
+  lucideChevronDown,
+  lucideGift,
+  lucideLightbulb,
+  lucideStar,
+  lucideWallet,
+  lucideX,
+} from '@ng-icons/lucide';
 import { toast } from '@spartan-ng/brain/sonner';
 
 import { HlmBadgeImports } from '../../../components/badge/src';
@@ -40,6 +49,7 @@ const LOYALTY_LABELS: Record<LoyaltyMovement['type'], string> = {
   imports: [
     CommonModule,
     FormsModule,
+    NgIcon,
     HlmButton,
     HlmInput,
     HlmTable,
@@ -48,6 +58,16 @@ const LOYALTY_LABELS: Record<LoyaltyMovement['type'], string> = {
     ...HlmFieldImports,
     ...HlmSelectImports,
     ...HlmBadgeImports,
+  ],
+  providers: [
+    provideIcons({
+      lucideGift,
+      lucideWallet,
+      lucideStar,
+      lucideLightbulb,
+      lucideChevronDown,
+      lucideX,
+    }),
   ],
   template: `
     <section class="space-y-6 text-slate-700">
@@ -59,8 +79,9 @@ const LOYALTY_LABELS: Record<LoyaltyMovement['type'], string> = {
               Administra tu saldo prepagado, convierte tus puntos de fidelidad y compra tarjetas de regalo.
             </p>
           </div>
-          <button hlmBtn type="button" (click)="openGiftModal()">
-            🎁 Comprar Gift Card
+          <button hlmBtn type="button" (click)="openGiftModal()" class="flex items-center gap-1.5">
+            <ng-icon name="lucideGift" class="size-4"></ng-icon>
+            <span>Comprar Gift Card</span>
           </button>
         </div>
       </header>
@@ -106,8 +127,8 @@ const LOYALTY_LABELS: Record<LoyaltyMovement['type'], string> = {
           <section hlmCard class="h-full bg-white p-6 shadow-sm flex flex-col justify-between rounded-3xl border border-slate-200">
             <div class="space-y-4">
               <div class="flex items-center gap-3">
-                <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 text-lg">
-                  🎁
+                <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
+                  <ng-icon name="lucideGift" class="size-5"></ng-icon>
                 </div>
                 <div>
                   <h2 class="text-sm font-bold text-slate-900">¿Tienes una Tarjeta de Regalo?</h2>
@@ -157,16 +178,18 @@ const LOYALTY_LABELS: Record<LoyaltyMovement['type'], string> = {
           <button
             hlmTabsTrigger="movimientos"
             type="button"
-            class="!w-fit !min-h-9 !rounded-xl !px-4 !py-1 text-xs font-semibold"
+            class="!w-fit !min-h-9 !rounded-xl !px-4 !py-1 text-xs font-semibold flex items-center gap-1.5"
           >
-            <span>🪙 Mi Saldo y Movimientos</span>
+            <ng-icon name="lucideWallet" class="size-3.5"></ng-icon>
+            <span>Mi Saldo y Movimientos</span>
           </button>
           <button
             hlmTabsTrigger="puntos"
             type="button"
-            class="!w-fit !min-h-9 !rounded-xl !px-4 !py-1 text-xs font-semibold flex items-center gap-2"
+            class="!w-fit !min-h-9 !rounded-xl !px-4 !py-1 text-xs font-semibold flex items-center gap-1.5"
           >
-            <span>⭐ Puntos de Fidelidad ({{ totalPoints() }})</span>
+            <ng-icon name="lucideStar" class="size-3.5"></ng-icon>
+            <span>Puntos de Fidelidad ({{ totalPoints() }})</span>
             @if (totalPoints() >= 100) {
               <span class="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
                 Convertibles
@@ -224,7 +247,7 @@ const LOYALTY_LABELS: Record<LoyaltyMovement['type'], string> = {
       @if (activeTab() === 'puntos') {
         <div class="space-y-6">
           <div class="rounded-2xl border border-amber-200 bg-amber-50/60 p-4 text-xs text-amber-900 flex items-start gap-3">
-            <span class="text-base">💡</span>
+            <ng-icon name="lucideLightbulb" class="size-5 shrink-0 text-amber-700 mt-0.5"></ng-icon>
             <div>
               <p class="font-bold">¿Cómo funcionan tus puntos?</p>
               <p class="mt-0.5">
@@ -293,7 +316,7 @@ const LOYALTY_LABELS: Record<LoyaltyMovement['type'], string> = {
                 </div>
                 <span class="text-xs text-indigo-600 font-semibold flex items-center gap-1">
                   <span>{{ showPointsHistory() ? 'Ocultar historial' : 'Ver historial completo' }}</span>
-                  <span class="text-base transition-transform duration-200" [class.rotate-180]="showPointsHistory()">▾</span>
+                  <ng-icon name="lucideChevronDown" class="size-4 transition-transform duration-200" [class.rotate-180]="showPointsHistory()"></ng-icon>
                 </span>
               </button>
 
@@ -339,11 +362,14 @@ const LOYALTY_LABELS: Record<LoyaltyMovement['type'], string> = {
             <div hlmCardHeader class="space-y-1 border-b border-slate-200 pb-4 flex items-center justify-between">
               <div>
                 <h2 hlmCardTitle class="text-xl flex items-center gap-2">
-                  <span>🎁</span> Comprar Tarjeta de Regalo
+                  <ng-icon name="lucideGift" class="size-5 text-indigo-600"></ng-icon>
+                  <span>Comprar Tarjeta de Regalo</span>
                 </h2>
                 <p class="text-xs text-slate-500">El destinatario recibirá un correo con el voucher y código QR para canjear.</p>
               </div>
-              <button hlmBtn variant="outline" size="sm" type="button" (click)="showGiftModal.set(false)">✕</button>
+              <button hlmBtn variant="outline" size="sm" type="button" (click)="showGiftModal.set(false)">
+                <ng-icon name="lucideX" class="size-4"></ng-icon>
+              </button>
             </div>
 
             <div class="grid gap-6 p-6 sm:grid-cols-12">

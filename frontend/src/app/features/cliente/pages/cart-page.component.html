@@ -186,7 +186,10 @@
                 [class.bg-indigo-50/50]="paymentMethod() === 'stripe'"
                 [class.border-slate-200]="paymentMethod() !== 'stripe'"
               >
-                <p class="font-bold text-slate-900">💳 Tarjeta (Stripe)</p>
+                <p class="font-bold text-slate-900 flex items-center gap-1.5">
+                  <ng-icon name="lucideCreditCard" class="text-indigo-600 size-4"></ng-icon>
+                  <span>Tarjeta (Stripe)</span>
+                </p>
                 <p class="text-[11px] text-slate-500">Crédito / Débito</p>
               </button>
               <button
@@ -197,7 +200,10 @@
                 [class.bg-indigo-50/50]="paymentMethod() === 'wallet'"
                 [class.border-slate-200]="paymentMethod() !== 'wallet'"
               >
-                <p class="font-bold text-slate-900">🪙 Billetera Digital</p>
+                <p class="font-bold text-slate-900 flex items-center gap-1.5">
+                  <ng-icon name="lucideWallet" class="text-indigo-600 size-4"></ng-icon>
+                  <span>Billetera Digital</span>
+                </p>
                 <p class="text-[11px] text-indigo-700 font-semibold">
                   Saldo: \${{ (walletBalance() ?? 0) | number: '1.2-2' }}
                 </p>
@@ -212,7 +218,10 @@
           @if (paymentMethod() === 'wallet' && availablePoints() >= 100) {
             <div class="rounded-xl border border-amber-200 bg-amber-50/80 p-3 text-xs text-amber-900 flex items-center justify-between gap-3">
               <div>
-                <p class="font-bold">⭐ Tenés {{ availablePoints() }} puntos en esta marca</p>
+                <p class="font-bold flex items-center gap-1.5">
+                  <ng-icon name="lucideStar" class="text-amber-500 size-4"></ng-icon>
+                  <span>Tenés {{ availablePoints() }} puntos en esta marca</span>
+                </p>
                 <p class="text-[11px] text-amber-700">Equivalen a \${{ (availablePoints() / 100) | number: '1.2-2' }} BOB para pagar tu pedido.</p>
               </div>
               <button
