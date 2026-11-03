@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
+import '../../core/config/app_config.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/storage/session_storage.dart';
@@ -236,22 +238,39 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               imageUrl != null &&
               imageUrl.trim().isNotEmpty) ...[
             const SizedBox(height: 12),
+            // Botón 1 (2D): Incluido en Plan Profesional y Enterprise
             AppButton(
-              label: 'Probar prenda',
-              icon: const Icon(Icons.checkroom_outlined),
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => VirtualTryOnPage(
-                      productName: product.name,
-                      garmentImageUrl: variant?.tryOnImageUrl ?? imageUrl,
-                    ),
-                  ),
-                );
-              },
+              label: 'Vestidor 2D (Foto con IA)',
+              icon: const Icon(Icons.auto_awesome),
+              onPressed: () => _show2dTryOnDialog(
+                context,
+                product,
+                variant,
+                variant?.tryOnImageUrl ?? imageUrl,
+              ),
               variant: AppButtonVariant.outlined,
               expand: true,
             ),
+            // Botón 2 (3D): Exclusivo de Plan Enterprise (Ayni Moda)
+            if (product.has3dTryOn) ...[
+              const SizedBox(height: 12),
+              AppButton(
+                label: 'Vestidor 3D (Cámara en vivo)',
+                icon: const Icon(Icons.videocam_outlined),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => VirtualTryOnPage(
+                        productName: product.name,
+                        garmentImageUrl: variant?.tryOnImageUrl ?? imageUrl,
+                      ),
+                    ),
+                  );
+                },
+                variant: AppButtonVariant.outlined,
+                expand: true,
+              ),
+            ],
           ],
         ],
       ),
@@ -577,6 +596,152 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           ),
           Expanded(child: Text(value)),
         ],
+      ),
+    );
+  }
+
+  void _show2dTryOnDialog(
+    BuildContext context,
+    Product product,
+    ProductVariant? variant,
+    String imageUrl,
+  ) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.auto_awesome,
+                      color: Colors.amber.shade800,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Vestidor 2D (Foto con IA)',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          product.name,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey.shade600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Probate esta prenda usando una fotografía estática. El motor de IA generativa proyectará el recorte de la prenda sobre tu silueta respetando las proporciones corporales.',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade700,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        variant?.tryOnImageUrl ?? imageUrl,
+                        width: 50,
+                        height: 50,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) =>
+                            const Icon(Icons.checkroom, size: 40),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Prenda lista para prueba 2D',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                            ),
+                          ),
+                          Text(
+                            'Disponible para prueba con foto mediante el probador web.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              AppButton(
+                label: 'Abrir probador web',
+                icon: const Icon(Icons.open_in_browser),
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  final catalogUrl =
+                      '${AppConfig.frontendUrl}/app/cliente/catalogo/${product.id}';
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => Scaffold(
+                        appBar: AppBar(
+                          title: const Text('Vestidor 2D (Web)'),
+                        ),
+                        body: WebViewWidget(
+                          controller: WebViewController()
+                            ..setJavaScriptMode(JavaScriptMode.unrestricted)
+                            ..loadRequest(Uri.parse(catalogUrl)),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+                expand: true,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

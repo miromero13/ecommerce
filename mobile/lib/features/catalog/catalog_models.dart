@@ -81,7 +81,9 @@ class Product {
     this.colorId,
     this.branchQuantity,
     this.tenantId,
+    this.tenantName,
     this.tryOnEnabled = false,
+    this.tryOn3dEnabled,
     this.variants,
   });
 
@@ -100,9 +102,20 @@ class Product {
   final String? colorId;
   final int? branchQuantity;
   final String? tenantId;
-  // The selling company's plan includes the virtual try-on.
+  final String? tenantName;
+  // The selling company's plan includes the virtual try-on 2D.
   final bool tryOnEnabled;
+  // The selling company's plan includes the virtual try-on 3D (Enterprise).
+  final bool? tryOn3dEnabled;
   final List<ProductVariant>? variants;
+
+  /// Evaluates whether the selling company has 3D fitting room enabled (Enterprise plan).
+  bool get has3dTryOn {
+    if (!tryOnEnabled) return false;
+    if (tryOn3dEnabled != null) return tryOn3dEnabled!;
+    final name = (tenantName ?? '').toLowerCase();
+    return name.contains('ayni') || name.contains('enterprise');
+  }
 
   factory Product.fromJson(Map<String, dynamic> json) {
     final rawVariants = json['variants'];
@@ -124,7 +137,9 @@ class Product {
       colorId: _optionalString(json, 'color_id'),
       branchQuantity: _optionalInt(json, 'branch_quantity'),
       tenantId: _optionalString(json, 'tenant_id'),
+      tenantName: _optionalString(json, 'tenant_name'),
       tryOnEnabled: json['try_on_enabled'] == true,
+      tryOn3dEnabled: json['try_on_3d_enabled'] == null ? null : json['try_on_3d_enabled'] == true,
       variants: rawVariants == null
           ? null
           : _parseList(rawVariants, ProductVariant.fromJson),

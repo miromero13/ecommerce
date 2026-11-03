@@ -154,7 +154,7 @@ class _VirtualTryOnPageState extends State<VirtualTryOnPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Probar prenda'),
+        title: const Text('Vestidor 3D (Cámara en vivo)'),
         leading: IconButton(
           icon: const Icon(Icons.close),
           tooltip: 'Cerrar',

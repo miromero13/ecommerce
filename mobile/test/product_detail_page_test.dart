@@ -200,48 +200,83 @@ void main() {
     expect(items.last.imageUrl, 'variant-image');
   });
 
-  testWidgets('muestra probar prenda solo cuando hay una imagen', (
+  testWidgets('controla los botones de vestidor 2D y 3D según el plan del tenant', (
     tester,
   ) async {
     ProductDetailArguments arguments(Product product) =>
         ProductDetailArguments(product: product);
 
+    // 1. Sin imagen o sin vestidor en el plan (Luna Satén / Básico): no muestra ningún botón
     await tester.pumpWidget(
       MaterialApp(
         theme: buildAppTheme(),
         home: ProductDetailPage(
           arguments: arguments(
             const Product(
-              id: 'without-image',
-              name: 'Sin imagen',
+              id: 'basic-plan',
+              name: 'Pijama de Satén',
               categoryId: 'category-id',
+              imageUrl: 'https://example.com/pijama.jpg',
+              tenantName: 'Luna Satén',
+              tryOnEnabled: false,
             ),
           ),
         ),
       ),
     );
-    expect(find.text('Probar prenda'), findsNothing);
+    expect(find.text('Vestidor 2D (Foto con IA)'), findsNothing);
+    expect(find.text('Vestidor 3D (Cámara en vivo)'), findsNothing);
 
+    // 2. Plan Pro (Kantuta Boutique): solo muestra vestidor 2D
     await tester.pumpWidget(
       MaterialApp(
         theme: buildAppTheme(),
         home: ProductDetailPage(
           arguments: arguments(
             const Product(
-              id: 'with-image',
-              name: 'Con imagen',
+              id: 'pro-plan',
+              name: 'Vestido Kantuta',
               categoryId: 'category-id',
-              imageUrl: 'https://example.com/garment.jpg',
+              imageUrl: 'https://example.com/vestido.jpg',
+              tenantName: 'Kantuta Boutique',
+              tryOnEnabled: true,
             ),
           ),
         ),
       ),
     );
     await tester.scrollUntilVisible(
-      find.text('Probar prenda'),
+      find.text('Vestidor 2D (Foto con IA)'),
       500,
       scrollable: find.byType(Scrollable).first,
     );
-    expect(find.text('Probar prenda'), findsOneWidget);
+    expect(find.text('Vestidor 2D (Foto con IA)'), findsOneWidget);
+    expect(find.text('Vestidor 3D (Cámara en vivo)'), findsNothing);
+
+    // 3. Plan Enterprise (Ayni Moda): muestra tanto 2D como 3D
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildAppTheme(),
+        home: ProductDetailPage(
+          arguments: arguments(
+            const Product(
+              id: 'enterprise-plan',
+              name: 'Blazer Ayni',
+              categoryId: 'category-id',
+              imageUrl: 'https://example.com/blazer.jpg',
+              tenantName: 'Ayni Moda',
+              tryOnEnabled: true,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.scrollUntilVisible(
+      find.text('Vestidor 3D (Cámara en vivo)'),
+      500,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Vestidor 2D (Foto con IA)'), findsOneWidget);
+    expect(find.text('Vestidor 3D (Cámara en vivo)'), findsOneWidget);
   });
 }
