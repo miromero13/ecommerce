@@ -547,9 +547,9 @@ Ejecutar la transferencia reutiliza `inventory_service.register_transfer` (atóm
 
 ---
 
-## 10. Estado de implementación — Fase 0, pagos, delivery y CU3–CU17 (actualizado 2026-10-28)
+## 10. Estado de implementación — Fase 0, pagos, delivery y CU3–CU17 (actualizado 2026-11-03)
 
-> Sección mantenida por Claude Code. Commits en la rama `marilyn` (sin push). Cada punto tiene tests en `backend/tests/`.
+> Sección mantenida como bitácora técnica de avance. Commits en la rama de trabajo. Cada punto cuenta con tests en `backend/tests/` o cobertura e2e/unitaria en clientes.
 
 | Tema | Estado | Caso de uso | Archivos clave |
 |---|---|---|---|
@@ -582,6 +582,53 @@ Ejecutar la transferencia reutiliza `inventory_service.register_transfer` (atóm
 | Traspaso: selección de la prenda del inventario de la sucursal de origen | ✅ | CU11 | `admin/pages/admin-inventory-page` |
 | Comprobante de pago por cada transacción (PDF y correo) | ✅ | 1P-CU16, 1P-CU18, 1P-CU14, CU27 | `models/payment_receipt.py`, migración `0049`, `services/receipt_service.py` (emisión, PDF con reportlab, envío), `routes/receipt_routes.py`, tarea `_receipt_email_loop` en `main.py`, `email_service` (adjuntos), `shared/components/receipt-actions`, `shared/pages/receipts-page`, móvil `shared/widgets/receipt_email_button.dart` |
 | Devoluciones con reembolso a tarjeta / efectivo (D3, D4) | ⏳ | CU21 | ver sección 1.7 |
+
+### 10.1 Registro detallado de cambios y commits recientes (2026-11-02 → 2026-11-03)
+
+Bitácora de evoluciones implementadas desde el commit `594717a` hasta `HEAD`:
+
+1. **CU16 – Wishlist: Agrupación por sucursal y transferencia masiva al carrito** (Commits `4967ad6`, `1580cc8`, `573791c`)
+   * **Backend:** Soporte en `wishlist_service.py` para agrupar ítems según sucursal y endpoint batch `POST /api/wishlist/items/move-all-to-cart` para mover en lote todas las prendas disponibles de una sucursal al carrito activo. Tests integrados en `test_cart_branch_coupon.py`.
+   * **Frontend:** Botón de acceso directo a la lista de deseos en la barra de navegación del catálogo (`catalog-page.component.html`), vista agrupada por sucursal en `wishlist-page.component.ts` y botón para mover todas las prendas al carrito.
+   * **Móvil:** Integración de acceso directo a favoritos en la cabecera del catálogo Flutter (`catalog_page.dart`), vista agrupada por sucursal (`wishlist_page.dart`) y método de transferencia masiva en `wishlist_api.dart`.
+
+2. **CU15 – Carrito: Ámbito por sucursal y reseteo contextual de cupones** (Commits `20132a3`, `e931c07`, `6b74a98`)
+   * **Backend:** Creación de la migración Alembic `0052_add_branch_id_to_carts.py` agregando la columna `branch_id` (`UUID`, FK hacia `branches.id`, indexada) en la tabla `carts`. Validación estricta de cupones vinculados a la sucursal del carrito y reseteo automático del código promocional aplicado al cambiar de sucursal para evitar inconsistencias de descuento.
+   * **Frontend:** Sincronización del `branch_id` del carrito con el selector de sucursal en `cart-page.component.ts`, notificación reactiva al usuario cuando un cupón queda revocado por cambio de tienda y actualización de interfaces TypeScript.
+   * **Móvil:** Actualización de modelos y controlador en Flutter (`cart_controller.dart`, `cart_models.dart`, `cart_api.dart`) soportando el campo `branchId` y pruebas unitarias correspondientes en `cart_models_test.dart`.
+
+3. **CU9 – Reabastecimiento experto: Notificaciones reactivas y acciones en 1 clic** (Commit `cfb6a4e`)
+   * **Backend:** Evolución del servicio de reabastecimiento experto (`expert_replenishment_service.py`, `notification_delivery.py`) para disparar notificaciones transaccionales ante eventos de stock crítico, con enlaces directos a la aprobación o descarte del traspaso sugerido.
+   * **Frontend:** Integración de tarjetas interactivas de reabastecimiento en la pantalla de notificaciones (`notification-page.component.ts/.html`) permitiendo ejecutar transferencias automáticas sin navegar al módulo completo de inventario.
+
+4. **CU8 – Reportes inteligentes con IA: Contextualización por plan y dashboard** (Commit `dbd5313`)
+   * **Frontend:** Pestañas dinámicas en `admin-reports-page` mostrando únicamente los reportes permitidos por el plan de la empresa (descriptivos vs. predictivos/ML). Atajos directos a reportes desde tarjetas clave del panel administrativo (`admin-home-page`, `admin-inventory-page`, `sales-history-page`) y cacheo de características del tenant en `SessionService`.
+
+5. **CU5 / CU28 – Vestidor virtual 3D: Restricción por plan y mejoras de UI** (Commits `96cf74e`, `39c3b66`, `145c2ac`)
+   * **Web & Móvil:** Verificación estricta de la característica `virtual_try_on_3d` según el plan de la tienda. Si la empresa no cuenta con vestidor 3D, el botón se oculta o deshabilita con mensaje explicativo. Se retiró la etiqueta "Próximamente" en favor de control de acceso por plan y se mejoraron las etiquetas de los botones de acción en `product-detail-page.component.html` y `virtual_try_on_page.dart`.
+
+6. **CU3 – RBAC: Menú dinámico y enforzamiento estricto de permisos en endpoints** (Commits `346694f`, `577a150`)
+   * **Backend:** Auditoría y aseguramiento de dependencias `require_permission` en todas las rutas críticas del backend para impedir ejecución de acciones no autorizadas incluso con rol base.
+   * **Frontend:** Unificación del selector de roles en la gestión de usuarios administrativos. Persistencia de permisos en la recarga de página (`SessionService.refreshPermissions`) y renderizado reactivo del menú lateral (`app-shell.component.ts`) ocultando opciones para las cuales el usuario carece de permisos efectivos.
+
+7. **CU26 – Branding: Reset de marca y aplicación dinámica de variables CSS** (Commits `202443e`, `38f0dea`, `5bfb235`)
+   * **Backend:** Endpoint y servicio `DELETE /api/saas/tenants/me/logo` y `reset_branding` para restablecer los valores por defecto de la marca de la empresa.
+   * **Frontend:** Inyección en tiempo real de `--primary-color` en el root del DOM con persistencia en `localStorage`, botones de restablecimiento de identidad visual en el editor de branding y menú contextual de 3 puntos para acciones sobre comprobantes de pago.
+
+8. **CU2 / CU27 / CU28 – Suscripciones: Spartan UI, tabs compactos y clarificación de catálogo** (Commits `efc0d89`, `d1d1f10`, `7745422`, `c7fce07`, `827482f`, `5323959`, `9e8a775`)
+   * **Frontend:** Rediseño de la pantalla de suscripciones (`subscription-page`) con componentes Spartan UI estructurados en pestañas compactas y accesibles. Optimización de padding en las tarjetas de precios (`pricing-table.component`), remoción de badges innecesarios y clarificación de los nombres de módulos en planes ("Reportes descriptivos con exportación Excel/CSV", "Vestidor 2D" y "Vestidor 3D"). Variables de entorno para Mailtrap documentadas en `.env.example`.
+
+9. **Datos demo y optimización de fixtures** (Commits `ac4f82f`, `d345298`, `f64bfed`)
+   * Migración de datasets CSV a `backend/demo_assets/`, consolidación del seeder demostrativo en `scripts/seed_demo.py` y sincronización de credenciales de prueba en `docs/TEST_CREDENTIALS.md`.
+
+10. **Reestructuración de Casos de Uso (CU1 al CU28)** (Commit `6c5ba2f`)
+    * Desdoblamiento estructural de casos de uso complejos en casos de uso atómicos cumpliendo con la metodología ICONIX:
+      - **CU1:** Aprovisionamiento y Gestión de Organizaciones (Tenants).
+      - **CU26:** Personalización de Identidad y Marca del Tenant (Branding).
+      - **CU2:** Gestión del Catálogo de Planes de Suscripción SaaS.
+      - **CU27:** Contratación y Onboarding de Suscripción B2B.
+      - **CU28:** Monitoreo de Consumo y Cambio de Plan B2B.
+    * Actualización correspondiente en `docs/SECOND_PARTIAL_USE_CASES.md`, `docs/SECOND_PARTIAL_PROJECT_CONTEXT.md` y `docs/SECOND_PARTIAL_USE_CASES_TESTING_GUIDE.md`.
 
 **Notas para quien continúe:**
 - Migraciones: `0041` Fase 0, `0042` CU3, `0043` CU9, `0044` CU10, `0045` CU16, `0046` CU17, `0047` monto de cada suscripción, `0048` caja, `0049` comprobantes.
