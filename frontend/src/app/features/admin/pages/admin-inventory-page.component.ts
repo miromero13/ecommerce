@@ -5,7 +5,7 @@ import { firstValueFrom } from 'rxjs';
 
 import { toast } from '@spartan-ng/brain/sonner';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideMic, lucideSquare } from '@ng-icons/lucide';
+import { lucideFileText, lucideLock, lucideMic, lucideSparkles, lucideSquare } from '@ng-icons/lucide';
 
 import { HlmBadgeImports } from '../../../components/badge/src';
 import { HlmButton } from '../../../components/button/src';
@@ -32,7 +32,7 @@ import { HasPermissionDirective } from '../../shared/directives/has-permission.d
 
 type InventoryTab = 'consolidated' | 'branch' | 'movements';
 type InventoryMovementType = 'income' | 'outcome';
-type InventoryReportType = 'inventory' | 'movements';
+type InventoryReportType = 'inventory' | 'movements' | 'critical';
 type ReportFormat = 'pdf' | 'html' | 'csv';
 type ReportColumn = { key: string; label: string };
 
@@ -70,13 +70,20 @@ const REPORT_COLUMNS: Record<InventoryReportType, ReportColumn[]> = {
     { key: 'quantity', label: 'Cantidad' },
     { key: 'movements_count', label: 'Cantidad de movimientos' },
   ],
+  critical: [
+    { key: 'branch_name', label: 'Sucursal' },
+    { key: 'product_name', label: 'Producto' },
+    { key: 'variant_sku', label: 'SKU' },
+    { key: 'available_quantity', label: 'Disponible' },
+    { key: 'minimum_stock', label: 'Stock mínimo' },
+  ],
 };
 
 @Component({
   selector: 'app-admin-inventory-page',
   standalone: true,
   imports: [CommonModule, NgIcon, ReactiveFormsModule, HlmButton, HlmTable, HasPermissionDirective, ...HlmBadgeImports, ...HlmCardImports, ...HlmFieldImports, ...HlmSelectImports, ...HlmTabsImports],
-  providers: [provideIcons({ lucideMic, lucideSquare })],
+  providers: [provideIcons({ lucideMic, lucideSquare, lucideLock, lucideFileText, lucideSparkles })],
   templateUrl: './admin-inventory-page.component.html',
 })
 export class AdminInventoryPageComponent {
@@ -88,6 +95,9 @@ export class AdminInventoryPageComponent {
   private readonly session = inject(SessionService);
   private readonly reportsApi = inject(ReportsApiService);
   private speechRecognition: SpeechRecognitionLike | null = null;
+
+  protected readonly hasAiReports = computed(() => this.session.hasPlanFeature('ai_text_reports'));
+  protected readonly reportTab = signal<'descriptive' | 'ai'>('descriptive');
 
   protected readonly branches = signal<CatalogBranch[]>([]);
   // A manager only lists their own branch, so transfer destinations come from the company's public branches.
@@ -326,6 +336,7 @@ export class AdminInventoryPageComponent {
   }
 
   protected openReportModal(type: InventoryReportType): void {
+    this.reportTab.set('descriptive');
     this.reportMenuOpen.set(false);
     this.reportType.set(type);
     this.reportFormat.set('pdf');
@@ -378,24 +389,25 @@ export class AdminInventoryPageComponent {
     try {
       const response = await firstValueFrom(this.reportsApi.queryNaturalLanguage(query));
       const data = response.data;
-      if (!data || (data.report_type !== 'inventory' && data.report_type !== 'movements')) {
-        toast.error('Esta pantalla solo puede generar reportes de inventario o movimientos.');
+      if (!data || (data.report_type !== 'inventory' && data.report_type !== 'movements' && data.report_type !== 'critical_inventory')) {
+        toast.error('Esta pantalla solo puede generar reportes de inventario, movimientos o inventario crítico.');
         return;
       }
-      this.reportType.set(data.report_type);
+      const mappedType: InventoryReportType = data.report_type === 'critical_inventory' ? 'critical' : data.report_type;
+      this.reportType.set(mappedType);
       const filters = data.filters;
       this.reportBranchId.set(filters.branch_id ?? '');
       this.reportProductId.set(filters.product_id ?? '');
       this.reportFromDate.set(filters.from_date ?? '');
       this.reportToDate.set(filters.to_date ?? '');
       this.reportFormat.set(data.format === 'html' || data.format === 'csv' ? data.format : 'pdf');
-      const availableColumns = REPORT_COLUMNS[data.report_type];
+      const availableColumns = REPORT_COLUMNS[mappedType];
       const requestedColumns = data.columns ?? [];
       const selectedColumns = requestedColumns.length
-        ? availableColumns.filter((column) => requestedColumns.includes(column.key))
+        ? availableColumns.filter((column: ReportColumn) => requestedColumns.includes(column.key))
         : availableColumns;
       const columns = selectedColumns.length ? selectedColumns : availableColumns;
-      this.reportColumns.set(columns.map((column) => column.key));
+      this.reportColumns.set(columns.map((column: ReportColumn) => column.key));
       const rows = data.report.rows as unknown as Array<Record<string, unknown>>;
       const html = this.reportDocumentHtml(columns, rows);
       if (this.reportFormat() === 'csv') this.downloadReportCsv(columns, rows);
@@ -439,12 +451,19 @@ export class AdminInventoryPageComponent {
         from_date: fromDate || null,
         to_date: toDate || null,
       };
-      const response = this.reportType() === 'inventory'
-        ? await firstValueFrom(this.reportsApi.getInventoryReport(filters))
-        : await firstValueFrom(this.reportsApi.getMovementsReport(filters));
-      const rows = response.data?.rows ?? [];
+      let rows: Array<Record<string, unknown>> = [];
+      if (this.reportType() === 'inventory') {
+        const response = await firstValueFrom(this.reportsApi.getInventoryReport(filters));
+        rows = (response.data?.rows ?? []) as unknown as Array<Record<string, unknown>>;
+      } else if (this.reportType() === 'movements') {
+        const response = await firstValueFrom(this.reportsApi.getMovementsReport(filters));
+        rows = (response.data?.rows ?? []) as unknown as Array<Record<string, unknown>>;
+      } else {
+        const response = await firstValueFrom(this.reportsApi.getSmartReport('critical_inventory', filters));
+        rows = (response.data?.rows ?? []) as unknown as Array<Record<string, unknown>>;
+      }
       const columns = this.reportColumnsForType().filter((column) => this.reportColumns().includes(column.key));
-      const reportRows = rows as unknown as Array<Record<string, unknown>>;
+      const reportRows = rows;
       const documentHtml = this.reportDocumentHtml(columns, reportRows);
       if (this.reportFormat() === 'csv') this.downloadReportCsv(columns, reportRows);
       else if (this.reportFormat() === 'pdf') this.downloadReportPdf(columns, reportRows);

@@ -5,10 +5,12 @@ import { firstValueFrom } from 'rxjs';
 import { ApiResponse } from '../../../core/models/api.model';
 import { AuthResponse, LoginRequest, RegisterRequest, RolUsuario, UsuarioAuth } from '../models/auth.model';
 import { AuthApiService } from './auth-api.service';
+import { SubscriptionApiService } from './subscription-api.service';
 import { UserApiService } from './user-api.service';
 
 const TOKEN_KEY = 'aci_token';
 const USER_KEY = 'aci_user';
+const PLAN_FEATURES_KEY = 'aci_plan_features';
 // Superadmin session kept aside while it works inside a company's panel.
 const PANEL_RETURN_KEY = 'aci_panel_return';
 
@@ -23,13 +25,16 @@ export class SessionService {
   private readonly router = inject(Router);
   private readonly authApi = inject(AuthApiService);
   private readonly userApi = inject(UserApiService);
+  private readonly subscriptionApi = inject(SubscriptionApiService);
 
   private readonly tokenSignal = signal<string | null>(localStorage.getItem(TOKEN_KEY));
   private readonly userSignal = signal<UsuarioAuth | null>(this.getStoredUser());
+  private readonly planFeaturesSignal = signal<string[]>(this.getStoredPlanFeatures());
   private readonly loadingSignal = signal(false);
 
   readonly token = this.tokenSignal.asReadonly();
   readonly user = this.userSignal.asReadonly();
+  readonly planFeatures = this.planFeaturesSignal.asReadonly();
   readonly isLoading = this.loadingSignal.asReadonly();
   readonly isAuthenticated = computed(() => !!this.tokenSignal() && !!this.userSignal());
   private readonly panelReturnSignal = signal<PanelReturn | null>(this.getStoredPanelReturn());
@@ -50,6 +55,7 @@ export class SessionService {
       this.userSignal.set(user);
       if (user) {
         localStorage.setItem(USER_KEY, JSON.stringify(user));
+        void this.refreshPlanFeatures();
       }
     } catch {
       this.clearSession();
@@ -67,6 +73,7 @@ export class SessionService {
       }
       const response = await firstValueFrom(this.authApi.login(payload));
       this.applyAuthResponse(response);
+      void this.refreshPlanFeatures();
     } finally {
       this.loadingSignal.set(false);
     }
@@ -118,6 +125,7 @@ export class SessionService {
     localStorage.setItem(PANEL_RETURN_KEY, JSON.stringify(back));
     this.panelReturnSignal.set(back);
     this.setSession(auth.access_token, this.normalizeUser(auth.user));
+    void this.refreshPlanFeatures();
     await this.router.navigate(['/app/admin']);
   }
 
@@ -127,6 +135,7 @@ export class SessionService {
     localStorage.removeItem(PANEL_RETURN_KEY);
     this.panelReturnSignal.set(null);
     this.setSession(back.token, back.user);
+    void this.refreshPlanFeatures();
     await this.router.navigate(['/app/superadmin/tenants']);
   }
 
@@ -152,10 +161,46 @@ export class SessionService {
   clearSession(): void {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(PLAN_FEATURES_KEY);
     localStorage.removeItem(PANEL_RETURN_KEY); // logging out also ends the superadmin's session
     this.panelReturnSignal.set(null);
     this.tokenSignal.set(null);
     this.userSignal.set(null);
+    this.planFeaturesSignal.set([]);
+  }
+
+  private getStoredPlanFeatures(): string[] {
+    try {
+      const raw = localStorage.getItem(PLAN_FEATURES_KEY);
+      return raw ? (JSON.parse(raw) as string[]) : [];
+    } catch {
+      localStorage.removeItem(PLAN_FEATURES_KEY);
+      return [];
+    }
+  }
+
+  hasPlanFeature(feature: string): boolean {
+    const user = this.userSignal();
+    if (!user) return false;
+    if (user.rol === 'superadministrador') return true;
+    return this.planFeaturesSignal().includes(feature);
+  }
+
+  async refreshPlanFeatures(): Promise<void> {
+    const user = this.userSignal();
+    if (!user || !user.tenant_id || user.rol === 'cliente') {
+      this.planFeaturesSignal.set([]);
+      localStorage.removeItem(PLAN_FEATURES_KEY);
+      return;
+    }
+    try {
+      const res = await firstValueFrom(this.subscriptionApi.getCurrentSubscription());
+      const features = res.data?.features ?? [];
+      this.planFeaturesSignal.set(features);
+      localStorage.setItem(PLAN_FEATURES_KEY, JSON.stringify(features));
+    } catch {
+      // Keep cached features on temporary network failure
+    }
   }
 
   private getStoredUser(): UsuarioAuth | null {

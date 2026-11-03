@@ -21,74 +21,348 @@
 
   @if (reportModalOpen()) {
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6" (click)="closeReportModal()">
-      <section hlmCard class="max-h-[90vh] w-full max-w-2xl overflow-y-auto bg-white text-slate-700 shadow-xl" role="dialog" aria-modal="true" aria-labelledby="sales-report-modal-title" (click)="$event.stopPropagation()">
-        <div hlmCardHeader class="space-y-1 border-b border-slate-200 pb-4">
-          <h2 id="sales-report-modal-title" hlmCardTitle class="text-xl">Reporte de ventas</h2>
-           <p class="text-sm text-slate-500">Elige los filtros, formato y columnas del reporte.</p>
-        </div>
-        <div class="grid gap-4 px-6 sm:grid-cols-2">
-          @if (isAdmin()) {
-            <section class="space-y-2 rounded-lg border border-slate-200 bg-white p-3 sm:col-span-2">
-              <div class="flex items-center justify-between">
-                <h3 class="text-sm font-semibold">Reporte por lenguaje natural</h3>
-                <p class="text-[11px] text-slate-400">Filtros, periodo, formato o columnas (PDF por defecto)</p>
-              </div>
+      <section hlmCard class="max-h-[90vh] w-full max-w-3xl overflow-y-auto bg-white text-slate-700 shadow-xl" role="dialog" aria-modal="true" aria-labelledby="sales-report-modal-title" (click)="$event.stopPropagation()">
+        <div hlmCardHeader class="space-y-2 border-b border-slate-200 pb-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 id="sales-report-modal-title" hlmCardTitle class="text-xl">Reportes de ventas</h2>
+              <p class="text-xs text-slate-500">Generá análisis descriptivos, consultas con IA o predicciones con Machine Learning.</p>
+            </div>
+            <button type="button" class="text-slate-400 hover:text-slate-600 font-bold p-1 rounded-md text-lg cursor-pointer" aria-label="Cerrar modal" (click)="closeReportModal()">✕</button>
+          </div>
 
-              <div class="flex items-center gap-2">
-                <div class="relative flex-1">
-                  <input 
-                    type="text"
-                    class="h-10 w-full rounded-md border border-slate-300 bg-white px-3 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400" 
-                    [value]="naturalQuery()" 
-                    (input)="setNaturalQuery($event)" 
-                    placeholder="Escribe o dicta tu consulta..." />
-                  <button 
-                    type="button" 
-                    class="absolute right-1 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-primary text-white hover:opacity-90 disabled:opacity-50"
-                    [disabled]="reportLoading()" 
-                    [attr.aria-label]="listening() ? 'Detener reconocimiento de voz' : 'Iniciar reconocimiento de voz'"
-                    [title]="listening() ? 'Detener reconocimiento de voz' : 'Iniciar reconocimiento de voz'"
-                    (click)="startListening()">
-                     <ng-icon [name]="listening() ? 'lucideSquare' : 'lucideMic'" color="white" size="16px" />
+          <!-- TABS CON CANDADITOS SEGÚN PLAN -->
+          <nav class="flex flex-wrap gap-2 pt-2" aria-label="Nivel de reporte">
+            <!-- Tab 1: Descriptivo (Todos los planes) -->
+            <button
+              hlmBtn
+              type="button"
+              size="sm"
+              [variant]="reportTab() === 'descriptive' ? 'default' : 'outline'"
+              (click)="reportTab.set('descriptive')"
+              class="cursor-pointer gap-1.5"
+            >
+              <ng-icon name="lucideFileText" class="size-4"></ng-icon>
+              <span>1. Descriptivo</span>
+            </button>
+
+            <!-- Tab 2: Consulta con IA (Plan Pro / Enterprise) -->
+            <button
+              hlmBtn
+              type="button"
+              size="sm"
+              [variant]="reportTab() === 'ai' ? 'default' : 'outline'"
+              (click)="reportTab.set('ai')"
+              class="cursor-pointer gap-1.5"
+            >
+              <ng-icon name="lucideSparkles" class="size-4 text-amber-500"></ng-icon>
+              <span>2. Consulta con IA</span>
+              @if (!hasAiReports()) {
+                <ng-icon name="lucideLock" class="size-3.5 text-amber-600" title="Requiere Plan Profesional"></ng-icon>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-1 py-0.5 rounded border border-amber-200">Pro</span>
+              }
+            </button>
+
+            <!-- Tab 3: Machine Learning (Solo Enterprise) -->
+            <button
+              hlmBtn
+              type="button"
+              size="sm"
+              [variant]="reportTab() === 'ml' ? 'default' : 'outline'"
+              (click)="reportTab.set('ml')"
+              class="cursor-pointer gap-1.5"
+            >
+              <ng-icon name="lucideBrainCircuit" class="size-4 text-purple-600"></ng-icon>
+              <span>3. Machine Learning</span>
+              @if (!hasMlReports()) {
+                <ng-icon name="lucideLock" class="size-3.5 text-purple-600" title="Requiere Plan Enterprise"></ng-icon>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-purple-700 bg-purple-50 px-1 py-0.5 rounded border border-purple-200">Enterprise</span>
+              }
+            </button>
+          </nav>
+        </div>
+
+        <!-- TAB 1: DESCRIPTIVO -->
+        @if (reportTab() === 'descriptive') {
+          <div class="grid gap-4 p-6 sm:grid-cols-2">
+            @if (isAdmin()) {
+              <label class="space-y-1 text-sm font-medium">
+                <span>Sucursal</span>
+                <div hlmSelect [value]="reportBranchId()" [itemToString]="reportBranchSelectLabel" (valueChange)="setReportBranch($event)">
+                  <hlm-select-trigger class="h-9 w-full" buttonId="sales-report-branch"><span hlmSelectValue placeholder="Todas las sucursales"></span></hlm-select-trigger>
+                  <hlm-select-content><hlm-select-item value="">Todas las sucursales</hlm-select-item>@for (branch of branches(); track branch.id) {<hlm-select-item [value]="branch.id">{{ branch.name }}</hlm-select-item>}</hlm-select-content>
+                </div>
+              </label>
+            } @else {
+              <div class="space-y-1 text-sm font-medium"><span>Sucursal</span><p class="h-9 rounded-md border border-slate-300 bg-slate-50 px-3 py-2">{{ branchSelectLabel(reportBranchId()) }}</p></div>
+            }
+            <label class="space-y-1 text-sm font-medium">
+              <span>Producto</span>
+              <div hlmSelect [value]="reportProductId()" [itemToString]="reportProductSelectLabel" (valueChange)="setReportProduct($event)">
+                <hlm-select-trigger class="h-9 w-full" buttonId="sales-report-product"><span hlmSelectValue placeholder="Todos los productos"></span></hlm-select-trigger>
+                <hlm-select-content><hlm-select-item value="">Todos los productos</hlm-select-item>@for (product of reportProducts(); track product.id) {<hlm-select-item [value]="product.id">{{ product.name }}</hlm-select-item>}</hlm-select-content>
+              </div>
+            </label>
+            <label class="space-y-1 text-sm font-medium"><span>Desde (opcional)</span><input class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm" type="date" [value]="reportFromDate()" (change)="setReportFromDate($event)" /></label>
+            <label class="space-y-1 text-sm font-medium"><span>Hasta (opcional)</span><input class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm" type="date" [value]="reportToDate()" (change)="setReportToDate($event)" /></label>
+            <label class="space-y-1 text-sm font-medium sm:col-span-2">
+              <span>Formato de descarga</span>
+              <div hlmSelect [value]="reportFormat()" [itemToString]="reportFormatSelectLabel" (valueChange)="setReportFormat($event)">
+                <hlm-select-trigger class="h-9 w-full" buttonId="sales-report-format"><span hlmSelectValue placeholder="PDF (descarga directa)"></span></hlm-select-trigger>
+                <hlm-select-content><hlm-select-item value="pdf">PDF (descarga directa)</hlm-select-item><hlm-select-item value="html">HTML (abrir documento)</hlm-select-item><hlm-select-item value="csv">CSV (descargar)</hlm-select-item></hlm-select-content>
+              </div>
+            </label>
+            <fieldset class="space-y-2 sm:col-span-2">
+              <legend class="text-sm font-medium">Columnas a exportar</legend>
+              <div class="grid gap-2 sm:grid-cols-2">
+                @for (column of salesReportColumns; track column.key) {
+                  <label class="flex items-center gap-2 text-sm cursor-pointer">
+                    <input type="checkbox" [checked]="isReportColumnSelected(column.key)" (change)="toggleReportColumn(column.key, $any($event.target).checked)" />
+                    {{ column.label }}
+                  </label>
+                }
+              </div>
+            </fieldset>
+            <div class="flex justify-end gap-2 sm:col-span-2 pt-2 border-t border-slate-100">
+              <button hlmBtn variant="outline" type="button" (click)="closeReportModal()">Cancelar</button>
+              <button hlmBtn type="button" [disabled]="reportLoading()" (click)="generateReport()">
+                {{ reportLoading() ? 'Generando...' : 'Descargar reporte' }}
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- TAB 2: CONSULTA CON IA (NLP) -->
+        @if (reportTab() === 'ai') {
+          <div class="p-6 space-y-4">
+            @if (hasAiReports()) {
+              <section class="space-y-3 rounded-xl border border-slate-200 bg-slate-50/50 p-4">
+                <div class="flex items-center justify-between">
+                  <h3 class="text-sm font-semibold flex items-center gap-1.5">
+                    <ng-icon name="lucideSparkles" class="text-amber-500"></ng-icon>
+                    Reporte por lenguaje natural asistido con IA
+                  </h3>
+                  <span class="text-xs text-slate-400">Dictá o escribí tu consulta</span>
+                </div>
+                <p class="text-xs text-slate-500">
+                  Por ejemplo: <em>«ventas de esta semana en la sucursal Centro»</em> o <em>«ventas de blusas del mes pasado en PDF»</em>.
+                </p>
+
+                <div class="flex items-center gap-2">
+                  <div class="relative flex-1">
+                    <input
+                      type="text"
+                      class="h-10 w-full rounded-md border border-slate-300 bg-white px-3 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                      [value]="naturalQuery()"
+                      (input)="setNaturalQuery($event)"
+                      placeholder="Escribe o dicta tu consulta..." />
+                    <button
+                      type="button"
+                      class="absolute right-1 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-primary text-white hover:opacity-90 disabled:opacity-50 cursor-pointer"
+                      [disabled]="reportLoading()"
+                      [attr.aria-label]="listening() ? 'Detener reconocimiento de voz' : 'Iniciar reconocimiento de voz'"
+                      [title]="listening() ? 'Detener reconocimiento de voz' : 'Iniciar reconocimiento de voz'"
+                      (click)="startListening()">
+                       <ng-icon [name]="listening() ? 'lucideSquare' : 'lucideMic'" color="white" size="16px" />
+                    </button>
+                  </div>
+
+                  <button
+                    hlmBtn
+                    class="h-10 px-4 cursor-pointer"
+                    type="button"
+                    [disabled]="reportLoading() || listening()"
+                    (click)="generateNaturalReport()">
+                    {{ reportLoading() ? 'Consultando...' : 'Generar' }}
                   </button>
                 </div>
-                
-                <button 
-                  hlmBtn 
-                  class="h-10 px-4" 
-                  type="button" 
-                  [disabled]="reportLoading() || listening()" 
-                  (click)="generateNaturalReport()">
-                  {{ reportLoading() ? '...' : 'Generar' }}
+              </section>
+            } @else {
+              <!-- BLOQUEADO CON CANDADITO (PLAN BÁSICO) -->
+              <div class="rounded-xl border border-amber-200 bg-amber-50/70 p-6 text-center space-y-3">
+                <div class="mx-auto flex size-12 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+                  <ng-icon name="lucideLock" class="size-6"></ng-icon>
+                </div>
+                <h3 class="text-base font-semibold text-amber-900">Función bloqueada para tu plan</h3>
+                <p class="text-sm text-amber-800 max-w-md mx-auto">
+                  La consulta en lenguaje natural con dictado por voz requiere el <strong>Plan Profesional</strong> o <strong>Enterprise</strong>.
+                  En tu <strong>Plan Básico</strong> podés usar la pestaña <strong>Descriptivo</strong> para exportar tus ventas en Excel, CSV o PDF.
+                </p>
+                <div class="pt-2">
+                  <button hlmBtn size="sm" type="button" (click)="reportTab.set('descriptive')">
+                    Ir al reporte descriptivo
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- TAB 3: MACHINE LEARNING -->
+        @if (reportTab() === 'ml') {
+          <div class="p-6 space-y-4">
+            @if (hasMlReports()) {
+              <!-- MODO DEMOSTRACIÓN BANNER -->
+              <aside class="space-y-1.5 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-950">
+                <label class="flex cursor-pointer items-center gap-2 font-semibold text-amber-900">
+                  <input type="checkbox" [checked]="demoMode()" (change)="demoMode.set($any($event.target).checked)" />
+                  <span>Modo demostración (solo datos sintéticos)</span>
+                </label>
+                @if (demoMode()) {
+                  <p class="text-amber-800">Scikit-Learn entrena regresión y K-Means reales con datos sintéticos reproducibles en memoria. No es un pronóstico del negocio ni una segmentación de tus clientes reales.</p>
+                } @else {
+                  <p class="text-amber-800">Los modelos se entrenan con las ventas y los clientes reales de tu empresa. Si hay pocos datos, se completan con datos sintéticos y el resultado lo indica.</p>
+                }
+                <p class="text-[11px] text-amber-700">Las métricas (R², MSE, Silhouette) se calculan sobre los datos usados; no se modifica la base de datos.</p>
+              </aside>
+
+              <div class="flex gap-2 border-b border-slate-200 pb-2">
+                <button
+                  type="button"
+                  class="text-xs font-semibold px-3 py-1.5 rounded-md cursor-pointer transition-colors"
+                  [class.bg-slate-900]="mlSubTab() === 'demand'"
+                  [class.text-white]="mlSubTab() === 'demand'"
+                  [class.bg-slate-100]="mlSubTab() !== 'demand'"
+                  [class.text-slate-700]="mlSubTab() !== 'demand'"
+                  (click)="mlSubTab.set('demand')"
+                >
+                  Predicción de demanda (Regresión)
+                </button>
+                <button
+                  type="button"
+                  class="text-xs font-semibold px-3 py-1.5 rounded-md cursor-pointer transition-colors"
+                  [class.bg-slate-900]="mlSubTab() === 'clusters'"
+                  [class.text-white]="mlSubTab() === 'clusters'"
+                  [class.bg-slate-100]="mlSubTab() !== 'clusters'"
+                  [class.text-slate-700]="mlSubTab() !== 'clusters'"
+                  (click)="mlSubTab.set('clusters')"
+                >
+                  Segmentación de clientes (K-Means)
                 </button>
               </div>
-            </section>
-           }
-          @if (isAdmin()) { <label class="space-y-1 text-sm font-medium"><span>Sucursal</span>
-            <div hlmSelect [value]="reportBranchId()" [itemToString]="reportBranchSelectLabel" (valueChange)="setReportBranch($event)">
-              <hlm-select-trigger class="h-9 w-full" buttonId="sales-report-branch"><span hlmSelectValue placeholder="Todas las sucursales"></span></hlm-select-trigger>
-              <hlm-select-content><hlm-select-item value="">Todas las sucursales</hlm-select-item>@for (branch of branches(); track branch.id) {<hlm-select-item [value]="branch.id">{{ branch.name }}</hlm-select-item>}</hlm-select-content>
-            </div>
-          </label> } @else { <div class="space-y-1 text-sm font-medium"><span>Sucursal</span><p class="h-9 rounded-md border border-slate-300 bg-slate-50 px-3 py-2">{{ branchSelectLabel(reportBranchId()) }}</p></div> }
-          <label class="space-y-1 text-sm font-medium"><span>Producto</span>
-            <div hlmSelect [value]="reportProductId()" [itemToString]="reportProductSelectLabel" (valueChange)="setReportProduct($event)">
-              <hlm-select-trigger class="h-9 w-full" buttonId="sales-report-product"><span hlmSelectValue placeholder="Todos los productos"></span></hlm-select-trigger>
-              <hlm-select-content><hlm-select-item value="">Todos los productos</hlm-select-item>@for (product of reportProducts(); track product.id) {<hlm-select-item [value]="product.id">{{ product.name }}</hlm-select-item>}</hlm-select-content>
-            </div>
-          </label>
-          <label class="space-y-1 text-sm font-medium"><span>Desde (opcional)</span><input class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm" type="date" [value]="reportFromDate()" (change)="setReportFromDate($event)" /></label>
-          <label class="space-y-1 text-sm font-medium"><span>Hasta (opcional)</span><input class="h-9 w-full rounded-md border border-slate-300 px-3 text-sm" type="date" [value]="reportToDate()" (change)="setReportToDate($event)" /></label>
-          <label class="space-y-1 text-sm font-medium sm:col-span-2"><span>Formato</span>
-             <div hlmSelect [value]="reportFormat()" [itemToString]="reportFormatSelectLabel" (valueChange)="setReportFormat($event)">
-               <hlm-select-trigger class="h-9 w-full" buttonId="sales-report-format"><span hlmSelectValue placeholder="PDF (descarga directa)"></span></hlm-select-trigger>
-               <hlm-select-content><hlm-select-item value="pdf">PDF (descarga directa)</hlm-select-item><hlm-select-item value="html">HTML (abrir documento)</hlm-select-item><hlm-select-item value="csv">CSV (descargar)</hlm-select-item></hlm-select-content>
-             </div>
-           </label>
-          <fieldset class="space-y-2 sm:col-span-2"><legend class="text-sm font-medium">Columnas a exportar</legend><div class="grid gap-2 sm:grid-cols-2">
-            @for (column of salesReportColumns; track column.key) {<label class="flex items-center gap-2 text-sm"><input type="checkbox" [checked]="isReportColumnSelected(column.key)" (change)="toggleReportColumn(column.key, $any($event.target).checked)" />{{ column.label }}</label>}
-          </div></fieldset>
-          <div class="flex justify-end gap-2 sm:col-span-2"><button hlmBtn variant="outline" type="button" (click)="closeReportModal()">Cancelar</button><button hlmBtn type="button" [disabled]="reportLoading()" (click)="generateReport()">{{ reportLoading() ? 'Generando...' : 'Generar' }}</button></div>
-        </div>
+
+              <!-- DEMAND SUBTAB -->
+              @if (mlSubTab() === 'demand') {
+                <div class="space-y-3">
+                  <p class="text-xs text-slate-500">
+                    Modelo de regresión supervisada entrenado con las ventas históricas para proyectar la demanda futura de prendas.
+                  </p>
+                  <div class="flex flex-wrap items-center gap-3">
+                    <label class="text-xs font-medium text-slate-700 flex items-center gap-1.5">
+                      <span>Horizonte:</span>
+                      <select class="rounded border border-slate-300 bg-white px-2 py-1 text-xs" [(ngModel)]="weeks">
+                        <option [value]="2">2 semanas</option>
+                        <option [value]="4">4 semanas (1 mes)</option>
+                        <option [value]="8">8 semanas (2 meses)</option>
+                        <option [value]="12">12 semanas (1 trimestre)</option>
+                      </select>
+                    </label>
+                    <button hlmBtn size="sm" type="button" [disabled]="mlLoading()" (click)="predictDemand()">
+                      {{ mlLoading() ? 'Entrenando modelo...' : 'Predecir demanda' }}
+                    </button>
+                  </div>
+
+                  @if (mlError()) {
+                    <p class="text-xs text-red-600 rounded bg-red-50 p-2 border border-red-200">{{ mlError() }}</p>
+                  }
+
+                  @if (forecast(); as fc) {
+                    <div class="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs space-y-2">
+                      <div class="flex flex-wrap justify-between items-center text-slate-600">
+                        <span><strong>Modelo:</strong> {{ fc.model_type }}</span>
+                        <span><strong>R²:</strong> {{ fc.evaluation_metrics.r2_score | number:'1.2-4' }}</span>
+                        <span><strong>MSE:</strong> {{ fc.evaluation_metrics.mse | number:'1.2-4' }}</span>
+                        <span><strong>Muestras:</strong> {{ fc.evaluation_metrics.test_samples }}</span>
+                      </div>
+                      <div class="rounded-md bg-amber-50 p-2 text-xs text-amber-900 border border-amber-200">
+                        <p class="font-medium">{{ fc.data_source.notice }}</p>
+                        <p class="text-[11px] text-amber-800">Datos: {{ fc.data_source.mode === 'real' ? 'reales' : fc.data_source.mode === 'mixed' ? 'mixtos (reales y sintéticos)' : 'sintéticos (demostración)' }}. Muestras reales: {{ fc.data_source.real_samples }} · Sintéticas: {{ fc.data_source.synthetic_samples }}</p>
+                      </div>
+                      <div class="max-h-48 overflow-y-auto">
+                        <table class="w-full text-left text-xs bg-white rounded border">
+                          <thead class="bg-slate-100 font-semibold border-b">
+                            <tr>
+                              <th class="p-2">Semana</th>
+                              <th class="p-2">Unidades previstas</th>
+                              <th class="p-2">Intervalo inferior</th>
+                              <th class="p-2">Intervalo superior</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (pt of fc.forecast; track $index) {
+                              <tr class="border-b last:border-b-0 hover:bg-slate-50">
+                                <td class="p-2 font-medium">Semana {{ pt.week }}</td>
+                                <td class="p-2 text-emerald-700 font-semibold">{{ pt.predicted_units | number:'1.0-1' }}</td>
+                                <td class="p-2 text-slate-500">{{ pt.confidence_lower | number:'1.0-1' }}</td>
+                                <td class="p-2 text-slate-500">{{ pt.confidence_upper | number:'1.0-1' }}</td>
+                              </tr>
+                            }
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+
+              <!-- CLUSTERS SUBTAB -->
+              @if (mlSubTab() === 'clusters') {
+                <div class="space-y-3">
+                  <p class="text-xs text-slate-500">
+                    Agrupamiento no supervisado K-Means basado en Recencia, Frecuencia y Valor Monetario (RFM) para segmentar clientes.
+                  </p>
+                  <div class="flex items-center gap-3">
+                    <button hlmBtn size="sm" type="button" [disabled]="mlLoading()" (click)="segmentCustomers()">
+                      {{ mlLoading() ? 'Ejecutando clustering...' : 'Segmentar clientes' }}
+                    </button>
+                  </div>
+
+                  @if (mlError()) {
+                    <p class="text-xs text-red-600 rounded bg-red-50 p-2 border border-red-200">{{ mlError() }}</p>
+                  }
+
+                  @if (clusters(); as cl) {
+                    <div class="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs space-y-2">
+                      <div class="flex justify-between text-slate-600">
+                        <span><strong>Clusters:</strong> {{ cl.clusters_count }}</span>
+                        <span><strong>Silhouette Score:</strong> {{ cl.evaluation_metrics.silhouette_score | number:'1.2-4' }}</span>
+                      </div>
+                      <div class="rounded-md bg-amber-50 p-2 text-xs text-amber-900 border border-amber-200">
+                        <p class="font-medium">{{ cl.data_source.notice }}</p>
+                        <p class="text-[11px] text-amber-800">Datos: {{ cl.data_source.mode === 'real' ? 'reales' : cl.data_source.mode === 'mixed' ? 'mixtos (reales y sintéticos)' : 'sintéticos (demostración)' }}. Muestras reales: {{ cl.data_source.real_samples }} · Sintéticas: {{ cl.data_source.synthetic_samples }}</p>
+                      </div>
+                      <div class="grid gap-2 sm:grid-cols-2">
+                        @for (seg of cl.segments; track seg.cluster_id) {
+                          <div class="rounded border bg-white p-2.5 space-y-1">
+                            <h4 class="font-bold text-slate-800">{{ seg.name }}</h4>
+                            <p class="text-slate-600">Clientes: <strong>{{ seg.size }}</strong></p>
+                            <p class="text-slate-600">Gasto promedio: <strong>{{ seg.avg_spend | number:'1.2-2' }} BOB</strong></p>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            } @else {
+              <!-- BLOQUEADO CON CANDADITO (PLAN BÁSICO / PROFESIONAL) -->
+              <div class="rounded-xl border border-purple-200 bg-purple-50/70 p-6 text-center space-y-3">
+                <div class="mx-auto flex size-12 items-center justify-center rounded-full bg-purple-100 text-purple-700">
+                  <ng-icon name="lucideLock" class="size-6"></ng-icon>
+                </div>
+                <h3 class="text-base font-semibold text-purple-900">Analítica predictiva Enterprise</h3>
+                <p class="text-sm text-purple-800 max-w-md mx-auto">
+                  La predicción de demanda y segmentación de clientes con modelos de <strong>Machine Learning (Scikit-Learn)</strong> requiere el <strong>Plan Enterprise</strong>.
+                </p>
+                <div class="pt-2">
+                  <button hlmBtn size="sm" type="button" (click)="reportTab.set('descriptive')">
+                    Ir al reporte descriptivo
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        }
       </section>
     </div>
   }

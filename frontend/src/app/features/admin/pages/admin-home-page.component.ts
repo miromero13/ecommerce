@@ -1,8 +1,11 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
 import { toast } from '@spartan-ng/brain/sonner';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideBrainCircuit, lucideUsers } from '@ng-icons/lucide';
 
 import { HlmBadgeImports } from '../../../components/badge/src';
 import { HlmButton } from '../../../components/button/src';
@@ -24,7 +27,8 @@ type MovementTab = 'income' | 'outcome' | 'transfers';
 @Component({
   selector: 'app-admin-home-page',
   standalone: true,
-  imports: [CommonModule, HlmButton, OnBrowserDirective, AreaChartComponent, BarChartComponent, DonutChartComponent, ...HlmBadgeImports, ...HlmCardImports, ...HlmInputImports, ...HlmSelectImports],
+  imports: [CommonModule, RouterLink, NgIcon, HlmButton, OnBrowserDirective, AreaChartComponent, BarChartComponent, DonutChartComponent, ...HlmBadgeImports, ...HlmCardImports, ...HlmInputImports, ...HlmSelectImports],
+  providers: [provideIcons({ lucideBrainCircuit, lucideUsers })],
   templateUrl: './admin-home-page.component.html',
 })
 export class AdminHomePageComponent {

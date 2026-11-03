@@ -333,6 +333,11 @@ export const routes: Routes = [
             loadComponent: () => import('./features/shared/pages/sales-history-page.component').then((m) => m.SalesHistoryPageComponent),
           },
           {
+            path: 'ventas',
+            redirectTo: 'sales',
+            pathMatch: 'full',
+          },
+          {
             path: 'reports',
             loadComponent: () => import('./features/admin/pages/admin-reports-page.component').then((m) => m.AdminReportsPageComponent),
           },

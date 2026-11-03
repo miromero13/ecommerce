@@ -1,7 +1,40 @@
 <section class="space-y-3">
-  <header class="flex items-center justify-between gap-3">
-    <div><h1 class="text-2xl font-semibold">Dashboard</h1><p class="text-sm text-slate-500">Ventas, inventario y reservas en tiempo real.</p></div>
-    <button hlmBtn type="button" variant="outline" (click)="refresh()" [disabled]="loading()">Actualizar</button>
+  <header class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <h1 class="text-2xl font-semibold">Dashboard</h1>
+      <p class="text-sm text-slate-500">Ventas, inventario y reservas en tiempo real.</p>
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+      <!-- Acceso directo 1: Predicción de demanda (ML) -->
+      <a
+        hlmBtn
+        variant="outline"
+        size="sm"
+        routerLink="/app/admin/sales"
+        [queryParams]="{ report: 'ml', sub: 'demand' }"
+        class="gap-1.5 cursor-pointer text-slate-700 hover:text-slate-900 border-slate-300 hover:bg-slate-50 shadow-2xs"
+        title="Abrir predicción de demanda en reportes de ventas"
+      >
+        <ng-icon name="lucideBrainCircuit" class="size-4 text-purple-600"></ng-icon>
+        <span>Predicción de demanda (ML)</span>
+      </a>
+
+      <!-- Acceso directo 2: Segmentación de clientes (ML) -->
+      <a
+        hlmBtn
+        variant="outline"
+        size="sm"
+        routerLink="/app/admin/sales"
+        [queryParams]="{ report: 'ml', sub: 'clusters' }"
+        class="gap-1.5 cursor-pointer text-slate-700 hover:text-slate-900 border-slate-300 hover:bg-slate-50 shadow-2xs"
+        title="Abrir segmentación de clientes en reportes de ventas"
+      >
+        <ng-icon name="lucideUsers" class="size-4 text-indigo-600"></ng-icon>
+        <span>Segmentación de clientes (ML)</span>
+      </a>
+
+      <button hlmBtn type="button" size="sm" variant="outline" (click)="refresh()" [disabled]="loading()">Actualizar</button>
+    </div>
   </header>
 
   <section hlmCard class="bg-white shadow-sm"><div hlmCardContent class="grid gap-2 p-3 sm:grid-cols-2 lg:grid-cols-5">

@@ -241,9 +241,11 @@ export class AppShellComponent {
       items.push({ label: 'Usuarios', route: '/app/admin/user', icon: 'lucideUsers' });
     }
 
-    if (this.session.hasPermission('reports:read') || this.session.hasPermission('reports:ai')) {
-      items.push({ label: 'Reportes IA', route: '/app/admin/reports', icon: 'lucideClipboardList' });
-    }
+    // DESACTIVADO: La sección '/app/admin/reports' no se usa como página de navegación lateral.
+    // Los reportes ahora se generan directamente desde los botones contextuales de 'Generar reporte' en Ventas e Inventario.
+    // if (this.session.hasPermission('reports:read') || this.session.hasPermission('reports:ai')) {
+    //   items.push({ label: 'Reportes IA', route: '/app/admin/reports', icon: 'lucideClipboardList' });
+    // }
 
     if (this.session.hasPermission('rbac:manage')) {
       items.push({ label: 'Roles y Permisos', route: '/app/admin/roles', icon: 'lucideShield' });
@@ -286,7 +288,9 @@ export class AppShellComponent {
               { label: 'Promociones', route: '/app/admin/promotions', icon: 'lucideTicket' },
               { label: 'Inventario', route: '/app/admin/inventory', icon: 'lucidePackageSearch' },
               { label: 'Ventas', route: '/app/admin/sales', icon: 'lucideShoppingCart' },
-              { label: 'Reportes IA', route: '/app/admin/reports', icon: 'lucideClipboardList' },
+              // DESACTIVADO: La sección '/app/admin/reports' no se usa como página de navegación lateral.
+              // Los reportes descriptivos, consultas IA y Machine Learning se generan directamente desde los botones contextuales de Ventas e Inventario.
+              // { label: 'Reportes IA', route: '/app/admin/reports', icon: 'lucideClipboardList' },
               { label: 'Usuarios', route: '/app/admin/user', icon: 'lucideUsers' },
               { label: 'Roles y Permisos', route: '/app/admin/roles', icon: 'lucideShield' },
               { label: 'Sucursales', route: '/app/admin/branch', icon: 'lucideLayoutDashboard' },

@@ -1,10 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
 import { toast } from '@spartan-ng/brain/sonner';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideMic, lucideSquare } from '@ng-icons/lucide';
+import { lucideBrainCircuit, lucideFileText, lucideLock, lucideMic, lucideSparkles, lucideSquare } from '@ng-icons/lucide';
 
 import { HlmCardImports } from '../../../components/card/src';
 import { HlmButton } from '../../../components/button/src';
@@ -13,6 +15,7 @@ import { HlmTable } from '../../../components/table/src';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
 import { downloadSimplePdf } from '../../../core/utils/simple-pdf.util';
 import { CatalogBranch, CatalogProduct } from '../models/catalog.model';
+import { CustomerClusters, DemandForecast } from '../models/report.model';
 import { Sale } from '../models/sale.model';
 import { CatalogApiService } from '../services/catalog-api.service';
 import { ReportsApiService } from '../services/reports-api.service';
@@ -55,8 +58,8 @@ const SALES_REPORT_COLUMNS: ReportColumn[] = [
 @Component({
   selector: 'app-sales-history-page',
   standalone: true,
-  imports: [CommonModule, NgIcon, HlmButton, HlmTable, ...HlmCardImports, ...HlmSelectImports],
-  providers: [provideIcons({ lucideMic, lucideSquare })],
+  imports: [CommonModule, FormsModule, NgIcon, HlmButton, HlmTable, ...HlmCardImports, ...HlmSelectImports],
+  providers: [provideIcons({ lucideMic, lucideSquare, lucideLock, lucideSparkles, lucideBrainCircuit, lucideFileText })],
   templateUrl: './sales-history-page.component.html',
 })
 export class SalesHistoryPageComponent {
@@ -65,6 +68,7 @@ export class SalesHistoryPageComponent {
   private readonly branchApi = inject(AdminBranchService);
   private readonly reportsApi = inject(ReportsApiService);
   private readonly session = inject(SessionService);
+  private readonly route = inject(ActivatedRoute);
   private speechRecognition: SpeechRecognitionLike | null = null;
 
   protected readonly sales = signal<Sale[]>([]);
@@ -72,6 +76,16 @@ export class SalesHistoryPageComponent {
   protected readonly selectedBranchId = signal('');
   protected readonly loading = signal(false);
   protected readonly reportModalOpen = signal(false);
+  protected readonly reportTab = signal<'descriptive' | 'ai' | 'ml'>('descriptive');
+  protected readonly mlSubTab = signal<'demand' | 'clusters'>('demand');
+  protected readonly hasAiReports = computed(() => this.session.hasPlanFeature('ai_text_reports'));
+  protected readonly hasMlReports = computed(() => this.session.hasPlanFeature('ai_ml_smart_reports'));
+  protected readonly forecast = signal<DemandForecast | null>(null);
+  protected readonly clusters = signal<CustomerClusters | null>(null);
+  protected readonly mlLoading = signal(false);
+  protected readonly mlError = signal('');
+  protected readonly demoMode = signal(false);
+  protected weeks = 4;
   protected readonly reportFormat = signal<ReportFormat>('pdf');
   protected readonly reportBranchId = signal('');
   protected readonly reportProductId = signal('');
@@ -94,6 +108,13 @@ export class SalesHistoryPageComponent {
     if (this.isAdmin() || this.isManager()) void this.loadBranches();
     if (this.isManager()) this.selectedBranchId.set(this.session.user()?.branch_id ?? '');
     void this.loadSales();
+    this.route.queryParamMap.subscribe((params) => {
+      if (params.get('report') === 'ml') {
+        this.openReportModal();
+        this.reportTab.set('ml');
+        this.mlSubTab.set(params.get('sub') === 'clusters' ? 'clusters' : 'demand');
+      }
+    });
   }
 
   protected async loadSales(): Promise<void> {
@@ -130,6 +151,11 @@ export class SalesHistoryPageComponent {
   }[format ?? 'pdf']);
 
   protected openReportModal(): void {
+    this.reportTab.set('descriptive');
+    this.mlSubTab.set('demand');
+    this.mlError.set('');
+    this.forecast.set(null);
+    this.clusters.set(null);
     this.reportBranchId.set(this.isManager() ? this.selectedBranchId() : '');
     this.reportProductId.set('');
     this.reportFromDate.set('');
@@ -138,6 +164,52 @@ export class SalesHistoryPageComponent {
     this.reportColumns.set(SALES_REPORT_COLUMNS.map((column) => column.key));
     this.reportModalOpen.set(true);
     void this.loadReportProducts();
+  }
+
+  protected async predictDemand(): Promise<void> {
+    if (this.mlLoading()) return;
+    if (!Number.isInteger(Number(this.weeks)) || this.weeks < 1 || this.weeks > 12) {
+      this.mlError.set('Selecciona entre 1 y 12 semanas.');
+      return;
+    }
+    this.mlLoading.set(true);
+    this.mlError.set('');
+    this.forecast.set(null);
+    try {
+      const { data, message } = await firstValueFrom(
+        this.reportsApi.predictDemand({
+          target_period_weeks: Number(this.weeks),
+          use_synthetic_data: this.demoMode(),
+          branch_id: this.reportBranchId() || undefined,
+        }),
+      );
+      if (!data) throw new Error('Respuesta vacía');
+      this.forecast.set(data);
+      toast.success(message);
+    } catch (error) {
+      this.mlError.set(getErrorMessage(error, 'No se pudo predecir la demanda.'));
+    } finally {
+      this.mlLoading.set(false);
+    }
+  }
+
+  protected async segmentCustomers(): Promise<void> {
+    if (this.mlLoading()) return;
+    this.mlLoading.set(true);
+    this.mlError.set('');
+    this.clusters.set(null);
+    try {
+      const { data, message } = await firstValueFrom(
+        this.reportsApi.customerClusters(this.demoMode()),
+      );
+      if (!data) throw new Error('Respuesta vacía');
+      this.clusters.set(data);
+      toast.success(message);
+    } catch (error) {
+      this.mlError.set(getErrorMessage(error, 'No se pudo segmentar a los clientes.'));
+    } finally {
+      this.mlLoading.set(false);
+    }
   }
 
   protected closeReportModal(): void {
