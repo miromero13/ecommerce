@@ -14,6 +14,7 @@ class Cart(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True, index=True)
+    branch_id = Column(UUID(as_uuid=True), ForeignKey("branches.id", ondelete="SET NULL"), nullable=True, index=True)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, unique=True, index=True)
     promotion_code_id = Column(UUID(as_uuid=True), ForeignKey("promotion_codes.id"), nullable=True, index=True)
     status = Column(SQLAlchemyEnum(CartStatusEnum, name="cartstatusenum"), nullable=False, default=CartStatusEnum.active)
@@ -24,3 +25,4 @@ class Cart(Base):
     updated_at = Column(DateTime(timezone=True), nullable=True, onupdate=func.now())
 
     items = relationship("CartItem", back_populates="cart", cascade="all, delete-orphan")
+    branch = relationship("Branch")

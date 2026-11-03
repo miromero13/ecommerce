@@ -5,10 +5,19 @@ from sqlalchemy.orm import Session
 
 from app.auth.dependencies import require_roles
 from app.core.database import get_db
-from app.schemas.cart_schema import CartItemCreate, CartItemUpdate
+from app.schemas.cart_schema import CartBranchUpdate, CartItemCreate, CartItemUpdate
 from app.schemas.promotion_schema import PromotionCodeApply
 from app.schemas.enums import RolEnum
-from app.services.cart_service import add_cart_item, apply_coupon, clear_cart, get_current_cart, remove_coupon, remove_cart_item, update_cart_item
+from app.services.cart_service import (
+    add_cart_item,
+    apply_coupon,
+    clear_cart,
+    get_current_cart,
+    remove_coupon,
+    remove_cart_item,
+    set_cart_branch,
+    update_cart_item,
+)
 from app.utils.response import response
 
 
@@ -35,6 +44,20 @@ async def add_cart_item_route(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return response(status_code=status.HTTP_201_CREATED, message="Producto agregado al carrito", data=cart.model_dump())
+
+
+@router.patch("/branch")
+async def update_cart_branch_route(
+    payload: CartBranchUpdate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_roles(RolEnum.cliente)),
+):
+    try:
+        cart, warning = set_cart_branch(db, UUID(current_user["sub"]), payload.branch_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    msg = warning or "Sucursal del carrito actualizada exitosamente"
+    return response(status_code=200, message=msg, data=cart.model_dump())
 
 
 @router.patch("/items/{item_id}")

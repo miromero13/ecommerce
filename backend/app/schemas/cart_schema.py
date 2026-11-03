@@ -13,6 +13,10 @@ class CartStatusEnum(str, Enum):
     cancelled = "cancelled"
 
 
+class CartBranchUpdate(BaseModel):
+    branch_id: UUID | None = None
+
+
 class CartItemCreate(BaseModel):
     variant_id: UUID
     branch_id: UUID | None = None
@@ -51,6 +55,8 @@ class CartRead(BaseModel):
     user_id: UUID
     tenant_id: UUID | None = None
     tenant_name: str | None = None
+    branch_id: UUID | None = None
+    branch_name: str | None = None
     status: CartStatusEnum
     subtotal: Decimal
     discount_amount: Decimal

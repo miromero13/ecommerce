@@ -133,6 +133,8 @@ def _serialize_cart(db: Session, cart: Cart) -> CartRead:
             "user_id": cart.user_id,
             "tenant_id": cart.tenant_id,
             "tenant_name": db.query(Tenant.name).filter(Tenant.id == cart.tenant_id).scalar() if cart.tenant_id else None,
+            "branch_id": cart.branch_id,
+            "branch_name": db.query(Branch.name).filter(Branch.id == cart.branch_id).scalar() if cart.branch_id else None,
             "status": cart.status,
             "subtotal": subtotal,
             "discount_amount": discount_amount,
@@ -193,6 +195,8 @@ def add_cart_item(db: Session, user_id: UUID, payload: CartItemCreate) -> CartRe
         raise ValueError("Retira el cupón antes de agregar un producto con descuento")
 
     cart.tenant_id = variant.tenant_id
+    if payload.branch_id and not cart.branch_id:
+        cart.branch_id = payload.branch_id
     if existing:
         existing.quantity = next_quantity
         existing.unit_price = variant.price
@@ -254,6 +258,9 @@ def remove_cart_item(db: Session, user_id: UUID, item_id: UUID) -> CartRead:
 def clear_cart(db: Session, user_id: UUID) -> CartRead:
     cart = _get_mutable_cart(db, user_id)
     db.query(CartItem).filter(CartItem.cart_id == cart.id).delete(synchronize_session=False)
+    cart.tenant_id = None
+    cart.branch_id = None
+    cart.promotion_code_id = None
     refresh_cart_totals(db, cart)
     db.commit()
     db.refresh(cart)
@@ -277,7 +284,8 @@ def refresh_cart_totals(db: Session, cart: Cart) -> None:
         if not remaining:
             reservation.cart_id = None
     if not items:
-        cart.tenant_id = None
+        if not cart.branch_id:
+            cart.tenant_id = None
         cart.promotion_code_id = None
     subtotal = sum(Decimal(str(item["original_unit_price"])) * int(item["quantity"]) for item in items)
     item_discount = sum(Decimal(str(item["discount_amount"])) * int(item["quantity"]) for item in items)
@@ -303,7 +311,15 @@ def apply_coupon(db: Session, user_id: UUID, payload: PromotionCodeApply) -> Car
     if cart_has_product_discount(db, cart.id):
         raise ValueError("No puedes aplicar un cupón a un carrito con productos rebajados")
     validate_cart_company(db, cart, cart.tenant_id)
-    code = validate_for_user(db, payload.code, user_id, tenant_id=cart.tenant_id)
+    code_obj = get_code(db, payload.code)
+    if not code_obj or code_obj.tenant_id != cart.tenant_id:
+        raise ValueError("El código promocional no existe, está inactivo o fuera de vigencia")
+    if code_obj.branch_id is not None:
+        if cart.branch_id is None:
+            raise ValueError("Este código promocional es exclusivo de una sucursal. Selecciona la sucursal antes de aplicarlo")
+        if code_obj.branch_id != cart.branch_id:
+            raise ValueError("El código promocional no aplica a esta sucursal")
+    code = validate_for_user(db, payload.code, user_id, branch_id=cart.branch_id, tenant_id=cart.tenant_id)
     items = _load_cart_items(db, cart.id)
     subtotal = sum(Decimal(str(item["original_unit_price"])) * int(item["quantity"]) for item in items)
     calculate_discount(code, subtotal)
@@ -312,6 +328,35 @@ def apply_coupon(db: Session, user_id: UUID, payload: PromotionCodeApply) -> Car
     db.commit()
     db.refresh(cart)
     return _serialize_cart(db, cart)
+
+
+def set_cart_branch(db: Session, user_id: UUID, branch_id: UUID | None) -> tuple[CartRead, str | None]:
+    cart = _get_mutable_cart(db, user_id)
+    warning_message = None
+    if branch_id is not None:
+        branch = db.query(Branch).filter(Branch.id == branch_id).first()
+        if not branch:
+            raise ValueError("Sucursal no encontrada")
+        if cart.tenant_id and branch.tenant_id != cart.tenant_id:
+            raise ValueError("La sucursal no pertenece a la empresa de los productos en tu carrito")
+        if cart.branch_id and cart.branch_id != branch_id and cart.items:
+            db.query(CartItem).filter(CartItem.cart_id == cart.id).delete(synchronize_session=False)
+            cart.promotion_code_id = None
+            warning_message = "Al cambiar de sucursal, el carrito se reinició porque el inventario pertenece a cada tienda física"
+        cart.branch_id = branch_id
+        cart.tenant_id = branch.tenant_id
+    else:
+        if cart.items:
+            db.query(CartItem).filter(CartItem.cart_id == cart.id).delete(synchronize_session=False)
+            cart.promotion_code_id = None
+            warning_message = "Al desvincular la sucursal, el carrito se vació"
+        cart.branch_id = None
+        cart.tenant_id = None
+
+    refresh_cart_totals(db, cart)
+    db.commit()
+    db.refresh(cart)
+    return _serialize_cart(db, cart), warning_message
 
 
 def remove_coupon(db: Session, user_id: UUID) -> CartRead:
