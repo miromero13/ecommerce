@@ -43,7 +43,7 @@ def test_tiers_and_conversions():
     from app.services.loyalty_service import points_for, points_value, tier_for
 
     assert [tier_for(p) for p in (0, 499, 500, 1499, 1500)] == ["Bronce", "Bronce", "Plata", "Plata", "Oro"]
-    assert points_for(Decimal("249.99")) == 24 and points_value(55) == Decimal("5.50")
+    assert points_for(Decimal("249.99")) == 24 and points_value(550) == Decimal("5.50")
 
 
 def test_paid_web_order_earns_points_once(loyalty_api, api_db, pricey):
@@ -57,24 +57,24 @@ def test_paid_web_order_earns_points_once(loyalty_api, api_db, pricey):
 
 
 def test_redeemed_points_discount_the_order_and_return_when_cancelled(loyalty_api, api_db, pricey):
-    give_points(api_db, pricey, 100)
+    give_points(api_db, pricey, 1000)
     add(loyalty_api, pricey)
-    order = checkout(loyalty_api, pricey, points=50)
+    order = checkout(loyalty_api, pricey, points=500)
     assert Decimal(str(order["loyalty_discount"])) == Decimal("5.00")
     assert Decimal(str(order["total_amount"])) == Decimal("245.00")
-    assert balance(loyalty_api, pricey)[pricey.own.tenant.name][0] == 50
+    assert balance(loyalty_api, pricey)[pricey.own.tenant.name][0] == 500
     call(loyalty_api, pricey.customer, "POST", f"/orders/{order['id']}/cancel")
-    assert balance(loyalty_api, pricey)[pricey.own.tenant.name][0] == 100
+    assert balance(loyalty_api, pricey)[pricey.own.tenant.name][0] == 1000
 
 
 def test_invalid_redemptions_are_rejected_without_side_effects(loyalty_api, api_db, pricey):
     add(loyalty_api, pricey)
     body = {"pickup_branch_id": str(pricey.branches[0].id)}
     rejected(loyalty_api, api_db, pricey.customer, "POST", "/payments/stripe/checkout", 400,
-             "Puntos insuficientes: tienes 0 puntos en esta empresa", json={**body, "points_to_redeem": 10})
-    give_points(api_db, pricey, 5000)
+             "Puntos insuficientes: tienes 0 puntos en esta empresa", json={**body, "points_to_redeem": 100})
+    give_points(api_db, pricey, 50000)
     rejected(loyalty_api, api_db, pricey.customer, "POST", "/payments/stripe/checkout", 400,
-             "Los puntos se canjean en múltiplos de 10", json={**body, "points_to_redeem": 15})
+             "Los puntos se canjean en múltiplos de 100", json={**body, "points_to_redeem": 15})
     rejected(loyalty_api, api_db, pricey.customer, "POST", "/payments/stripe/checkout", 400,
              "Los puntos canjeados superan el monto a pagar", json={**body, "points_to_redeem": 2510})
     assert balance(loyalty_api, pricey)[pricey.own.tenant.name][0] == 5000

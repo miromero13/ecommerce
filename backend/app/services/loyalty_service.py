@@ -1,6 +1,6 @@
 """CU17 loyalty program, kept per company (approved rules):
 - earn 1 point per 10 Bs paid for products (shipping does not count);
-- redeem 10 points = 1 Bs, never more than the amount to pay;
+- redeem 100 points = 1 Bs, never more than the amount to pay;
 - tier by lifetime points: Bronce < 500, Plata 500-1499, Oro >= 1500.
 Callers own the transaction: these helpers flush but never commit."""
 from decimal import Decimal, ROUND_DOWN
@@ -12,7 +12,7 @@ from app.models.loyalty import LoyaltyAccount, LoyaltyLedger
 from app.models.tenant import Tenant
 
 BS_PER_EARNED_POINT = Decimal("10")
-POINTS_PER_BS = 10
+POINTS_PER_BS = 100
 TIERS = ((1500, "Oro"), (500, "Plata"), (0, "Bronce"))
 
 
