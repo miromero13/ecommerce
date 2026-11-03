@@ -1,12 +1,12 @@
 # Second Partial – Use Cases Testing Guide
 
-Guía detallada paso a paso para probar **cada uno de los 25 casos de uso (CU1 a CU25)** definidos en `docs/SECOND_PARTIAL_USE_CASES.md`. Cada caso especifica el actor, las credenciales exactas de inicio de sesión, la pestaña de acceso, la ruta en la interfaz y las acciones a realizar.
+Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a CU28)** definidos en `docs/SECOND_PARTIAL_USE_CASES.md`. Cada caso especifica el actor, las credenciales exactas de inicio de sesión, la pestaña de acceso, la ruta en la interfaz y las acciones a realizar.
 
 ---
 
 ### MÓDULO 1: Plataforma SaaS, Seguridad y Comercial
 
-#### CU1 – Plataforma Multi-Tenant (Multi-empresa)
+#### CU1 – Aprovisionamiento y Gestión de Organizaciones (Tenants)
 * **Estado:** **Hecho e Implementado**
 * **Actor de prueba:** Superadministrador
 * **Credenciales:** `superadmin@fashionstore.com` / `SuperAdmin2026!` (Pestaña: *Administrativos*)
@@ -39,33 +39,27 @@ Guía detallada paso a paso para probar **cada uno de los 25 casos de uso (CU1 a
 
 ---
 
-#### CU2 – Gestión de Planes y Suscripciones B2B
+#### CU2 – Gestión del Catálogo de Planes de Suscripción SaaS
 * **Estado:** **Hecho e Implementado**
-* **Actor de prueba:**
-  * Parte A (Planes): Superadministrador (`superadmin@fashionstore.com` / `SuperAdmin2026!`)
-  * Parte B (Suscripción y Cambio de Plan): Administrador de Tenant (`carolina.quiroga@ayni-moda.demo.bo` o `veronica.pinto@luna-saten.demo.bo` / `Fashion2026!`)
-* **Ruta UI:**
-  * Superadministrador: `/app/superadmin/plans`
-  * Administrador de Tenant: `/app/admin/subscription`
+* **Actor de prueba:** Superadministrador (`superadmin@fashionstore.com` / `SuperAdmin2026!`)
+* **Ruta UI:** `/app/superadmin/plans` (Menú lateral: *"Planes de Suscripción"*)
 
 ##### Pasos para probar:
-1. **Ver y gestionar planes (Superadmin):**
-   * Iniciá sesión como Superadministrador e ingresá a `/app/superadmin/plans`.
-   * Verificá los planes configurados: *Básico, Profesional, Enterprise*.
-   * Podés editar límites (`max_branches`, `max_garments`) o crear un plan nuevo.
-2. **Consultar y cambiar suscripción (Admin de Tenant):**
-   * Cerrá sesión e iniciá con `veronica.pinto@luna-saten.demo.bo` (Luna Satén tiene Plan Básico).
-   * En el menú lateral hacé clic en **"Suscripción y Plan"** (`/app/admin/subscription`).
-   * Verificá el indicador de plan actual (*Básico*), la fecha de vigencia y las barras de consumo de cupos (sucursales y prendas).
-   * Hacé clic en **"Cambiar Plan"** para desplegar la tabla comparativa de precios.
-   * Seleccioná el plan **"Profesional"**, completá la pasarela simulada con tarjeta de prueba (`4242424242424242`, exp: `12/28`, cvv: `123`) y confirmá el cambio.
-3. **Resultado esperado:**
-   * Notificación Toast: `"Plan actualizado con éxito. Tu empresa ahora tiene el plan Profesional."`
-   * Los límites de sucursales y prendas aumentan inmediatamente en la interfaz.
+1. Iniciá sesión como Superadministrador e ingresá a `/app/superadmin/plans`.
+2. Verificá la tabla de planes configurados: *Básico, Profesional, Enterprise*, con sus precios mensual/anual y límites de cupos.
+3. Hacé clic en **"Nuevo Plan"** o seleccioná **"Editar"** en uno existente:
+   * Modificá los cupos de sucursales (`max_branches`) o prendas (`max_garments`).
+   * Seleccioná o desmarcá módulos adicionales (IA vestidor virtual, chatbot, smart reports).
+4. Podés alternar el interruptor de estado activo/inactivo del plan para comprobar la desactivación comercial (un plan desactivado no se oferta a nuevas marcas en la landing).
+5. Hacé clic en **"Guardar Plan"**.
+6. **Resultado esperado:**
+   * Notificación Toast: `"Plan actualizado exitosamente"` o `"Plan creado exitosamente"`.
+   * Los cambios quedan disponibles de inmediato en la base de datos para futuras suscripciones.
 
 * **Endpoint API equivalente:**
   ```bash
-  curl -X GET http://localhost:8000/api/saas/plans
+  curl -X GET http://localhost:8000/api/saas/plans/admin \
+    -H "Authorization: Bearer <SUPERADMIN_TOKEN>"
   ```
 
 ---
@@ -113,6 +107,86 @@ Guía detallada paso a paso para probar **cada uno de los 25 casos de uso (CU1 a
 4. Completá el formulario de onboarding para crear una tienda de prueba (empresa, admin, email y contraseña).
 5. **Resultado esperado:**
    * Mensaje de éxito informando el inicio de la prueba gratuita y la asignación del subdominio de la marca.
+
+---
+
+#### CU26 – Personalización de Identidad y Marca del Tenant (Branding)
+* **Estado:** **Hecho e Implementado**
+* **Actor de prueba:** Administrador de Tenant (`carolina.quiroga@ayni-moda.demo.bo` / `Fashion2026!`) o Superadministrador
+* **Ruta UI:** `/app/admin/settings` (o editor de branding en encabezado de cuenta)
+
+##### Pasos para probar:
+1. Iniciá sesión como Administrador de *Ayni Moda*.
+2. Accedé a la sección de configuración de marca de la empresa.
+3. Cargá un archivo de imagen para el nuevo logotipo (formato PNG o JPG).
+4. Seleccioná un color primario corporativo (ej. `#800020` borgoña o `#1A5276` azul marino).
+5. Confirmá el guardado de la personalización.
+6. **Resultado esperado:**
+   * Toast verde: `"Logotipo actualizado exitosamente"` / `"Configuración de marca guardada"`.
+   * El encabezado del AppShell web adopta el nuevo logotipo y las variables de color primario en tiempo real.
+   * Al emitir o imprimir una orden/comprobante de venta en PDF (`simple-pdf.util`), el documento incluye el logo y nombre de la tienda.
+   * La app móvil Flutter descarga automáticamente el branding de la tienda al sincronizar.
+
+* **Endpoint API equivalente:**
+  ```bash
+  curl -X GET http://localhost:8000/api/saas/tenants/me/branding \
+    -H "Authorization: Bearer <ADMIN_TOKEN>"
+  ```
+
+---
+
+#### CU27 – Contratación y Onboarding de Suscripción B2B
+* **Estado:** **Hecho e Implementado**
+* **Actor de prueba:** Prospecto / Nueva Marca B2B (Sin autenticación)
+* **Ruta UI:** `http://localhost:4200/landing` (Sección Precios / Planes)
+
+##### Pasos para probar:
+1. Navegá a la landing pública `http://localhost:4200/landing`.
+2. En la tabla de precios comparativa, seleccioná el plan **"Profesional"** y elegí facturación mensual o anual.
+3. Completá el formulario modal de contratación:
+   * **Empresa:** `Boutique Elegance`
+   * **Nombre del Admin:** `Ana Pérez`
+   * **Correo de contacto:** `ana.perez@elegance.demo.bo`
+   * **Datos de tarjeta simulada:** Número `4242424242424242`, exp `12/28`, CVV `123`, titular `Ana Pérez`.
+4. Hacé clic en **"Confirmar y Suscribirse"**.
+5. **Resultado esperado:**
+   * Notificación Toast: `"Suscripción activada con éxito. Te enviamos un correo con los datos de acceso."`.
+   * Se crea atómicamente la empresa con subdominio, el usuario admin y la suscripción con `end_date` calculada.
+   * En la bandeja de Mailtrap se verifica la llegada del correo de bienvenida con credenciales seguras.
+
+* **Endpoint API equivalente:**
+  ```bash
+  curl -X POST http://localhost:8000/api/saas/subscriptions/purchase-simulated \
+    -H "Content-Type: application/json" \
+    -d '{"company_name":"Boutique Elegance","admin_name":"Ana Pérez","admin_email":"ana.perez@elegance.demo.bo","plan_id":"plan_pro_02","billing_cycle":"monthly","card_number":"4242424242424242","card_holder":"Ana Pérez","card_exp":"12/28","card_cvv":"123"}'
+  ```
+
+---
+
+#### CU28 – Monitoreo de Consumo y Cambio de Plan B2B
+* **Estado:** **Hecho e Implementado**
+* **Actor de prueba:** Administrador de Tenant (`veronica.pinto@luna-saten.demo.bo` / `Fashion2026!`)
+* **Ruta UI:** `/app/admin/subscription` (Menú lateral: *"Suscripción y Plan"*)
+
+##### Pasos para probar:
+1. Iniciá sesión como Administrador de *Luna Satén* (empresa con Plan Básico inicial).
+2. Hacé clic en el menú lateral en **"Suscripción y Plan"** (`/app/admin/subscription`).
+3. Verificá en pantalla:
+   * Tarjeta con el plan actual (*Básico*), estado *Activo* y fecha de vigencia del período.
+   * Barras de consumo: sucursales utilizadas vs. límite (`max_branches: 2`), prendas en catálogo vs. límite (`max_garments: 500`).
+4. **Prueba de Upgrade:** Hacé clic en **"Cambiar Plan"**, seleccioná el plan **"Profesional"**, completá la tarjeta de prueba (`4242424242424242`) y confirmá.
+5. **Resultado esperado:**
+   * Toast: `"Plan actualizado con éxito. Tu empresa ahora tiene el plan Profesional."`.
+   * Las barras de cuota se expanden de inmediato a 5 sucursales y 3.000 prendas.
+6. **Prueba de Enforcement de Límites:** Si se intenta crear una sucursal adicional que supere el cupo permitido por el plan, el backend rechaza la operación con código HTTP 403: `"Límite de sucursales alcanzado para el plan actual. Actualizá tu suscripción."`.
+
+* **Endpoint API equivalente:**
+  ```bash
+  curl -X GET http://localhost:8000/api/saas/subscriptions/current \
+    -H "Authorization: Bearer <ADMIN_TOKEN>"
+  ```
+
+---
 
 ---
 

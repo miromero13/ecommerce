@@ -131,12 +131,12 @@ Para mantener la cohesión y respetar **estrictamente la estructura existente de
 
 ---
 
-## 3. Matriz General de Casos de Uso (CU1 al CU25)
+## 3. Matriz General de Casos de Uso (CU1 al CU28)
 
 | **ID** | **Caso de uso** | **Módulo** | **Estado en Código** | **Actor(es) principal** | **Plataforma** |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **CU1** | **Plataforma Multi-Tenant (Multi-empresa)** | M1: Plataforma SaaS y Seguridad | **Hecho** | Superadministrador | Web |
-| **CU2** | **Gestión de planes y suscripciones B2B** | M1: Plataforma SaaS y Seguridad | **Hecho** | Superadministrador, Administrador | Web |
+| **CU1** | **Aprovisionamiento y gestión de organizaciones (Tenants)** | M1: Plataforma SaaS y Seguridad | **Hecho** | Superadministrador | Web |
+| **CU2** | **Gestión del catálogo de planes de suscripción SaaS** | M1: Plataforma SaaS y Seguridad | **Hecho** | Superadministrador | Web |
 | **CU3** | **Gestión granular de roles y permisos (RBAC)** | M1: Plataforma SaaS y Seguridad | **Hecho** | Superadministrador, Administrador | Web |
 | **CU4** | **Landing page y catálogo de planes** | M1: Plataforma SaaS y Seguridad | **Hecho** | Prospecto / Marca B2B | Web |
 | **CU5** | **Usar vestidor virtual en tiempo real** | M2: Inteligencia Artificial | **Hecho** | Cliente | Móvil / Web |
@@ -160,6 +160,9 @@ Para mantener la cohesión y respetar **estrictamente la estructura existente de
 | **CU23** | **Modo Offline y Sincronización Diferida (Offline-First)** | M6: Logística y Posventa | **Pendiente** | Cajero, Cliente, Delivery | Ambas |
 | **CU24** | **Restablecimiento y control de inventario por devoluciones y mermas** | M6: Logística y Posventa | **Pendiente** | Encargado, Administrador | Web |
 | **CU25** | **Resolución de conflictos de inventario y notificación en ventas offline** | M6: Logística y Posventa | **Pendiente** | Cajero, Cliente, Sistema | Ambas |
+| **CU26** | **Personalización de identidad y marca del tenant (Branding)** | M1: Plataforma SaaS y Seguridad | **Hecho** | Administrador, Superadministrador | Web / Móvil |
+| **CU27** | **Contratación y onboarding de suscripción B2B** | M1: Plataforma SaaS y Seguridad | **Hecho** | Prospecto / Marca B2B, Superadmin | Web |
+| **CU28** | **Monitoreo de consumo y cambio de plan B2B** | M1: Plataforma SaaS y Seguridad | **Hecho** | Administrador | Web |
 
 ---
 
@@ -169,17 +172,15 @@ Para mantener la cohesión y respetar **estrictamente la estructura existente de
 
 ### Módulo 1: Plataforma SaaS, Seguridad y Comercial
 
-#### CU1 – Plataforma Multi-Tenant (Multi-empresa)
+#### CU1 – Aprovisionamiento y gestión de organizaciones (Tenants)
 * **Módulo:** M1: Plataforma SaaS y Seguridad
 * **Actor Principal:** Superadministrador
 * **Estado:** Hecho | **Plataforma:** Web
-* **Descripción Funcional y Alcance de Migración:**
-  Transición y migración estructural de **todo el software existente** a un modelo SaaS Multi-Inquilino (*Row-Level Multi-Tenancy* mediante `tenant_id`). **No consiste únicamente en crear tablas nuevas**, sino en migrar de forma integral la base de datos preexistente, refactorizar la totalidad de los servicios del backend para aislar consultas, e instrumentar el frontend y app móvil:
-  1. **Migración de Datos y Base de Datos:** Se crea la tabla `tenants` y se siembra un *Tenant Inicial por Defecto* (ej. "Tenant Principal / WomenStyle"). Mediante migraciones incrementales de Alembic, **se altera cada tabla del sistema** agregando `tenant_id` (`UUID`, FK a `tenants.id`, indexada). Se asignan todos los registros preexistentes a este tenant inicial y posteriormente se impone la restricción `nullable=False`.
-  2. **Refactorización Completa de Servicios Backend:** Cada uno de los servicios existentes (`catalog_service.py`, `inventory_service.py`, `cart_service.py`, `order_service.py`, `sales_service.py`, `branch_service.py`, `user_service.py`, `promotion_service.py`, `dashboard_service.py`, `report_service.py`, `recommendation_service.py`, `chatbot_service.py`) debe ser refactorizado para exigir e inyectar el filtro `tenant_id == current_tenant_id` en cada consulta `SELECT`, `UPDATE`, `INSERT` y `DELETE`, imposibilitando filtraciones cruzadas de información entre marcas.
-  3. **Resolución de Contexto y Middleware:** Implementación de un middleware en FastAPI que determina el `tenant_id` en cada petición entrante a partir del subdominio (`marca.plataforma.com`) o encabezado `X-Tenant-ID`.
-  4. **Autenticación Multi-Tenant:** El login valida la existencia del usuario en el tenant específico y el token JWT incluye el claim `tenant_id` (el Superadministrador es la única entidad global con capacidad de operar sobre múltiples organizaciones).
-  5. **Frontend y Móvil:** El cliente HTTP (`ApiService`) inyecta automáticamente el contexto de tenant en todas las solicitudes y la interfaz adopta el branding personalizado (logotipo, nombre de empresa, moneda y colores).
+* **Descripción Funcional y Alcance:**
+  Aprovisionamiento administrativo y gobierno del ciclo de vida de organizaciones/inquilinos (*Tenants*) en la plataforma SaaS. El Superadministrador registra nuevas empresas asignando su razón social, identificador único (*slug*), subdominio exclusivo (`{subdomain}.plataforma.com`), correo de contacto principal, país y moneda comercial.
+  1. **Aislamiento Multi-Tenant:** Cada tenant creado opera sobre un entorno lógico estrictamente aislado mediante `tenant_id` (ver especificación de arquitectura y migración transversal en la **Sección 1.5**).
+  2. **Ciclo de Vida y Estados:** El Superadministrador consulta el listado global de organizaciones con su estado (`pending_subscription`, `active`, `suspended`), planes asignados y fechas de registro. Puede modificar datos de contacto o suspender una empresa (`suspended`), lo que inhabilita de inmediato el acceso a todo su personal y oculta sus productos del catálogo público.
+  3. **Sesión de Soporte / Impersonación:** El Superadministrador puede acceder directamente al panel administrativo de cualquier empresa cliente con un token delegado (`POST /api/saas/tenants/{tenant_id}/panel-session`) para resolver incidencias técnicas o configuración asistida sin necesidad de conocer las credenciales del cliente.
 
 ##### Endpoints Backend
 ```http
@@ -235,144 +236,119 @@ Response 200 OK:
 ```http
 GET /api/saas/tenants/{tenant_id}
 PATCH /api/saas/tenants/{tenant_id}
+POST /api/saas/tenants/{tenant_id}/panel-session
 ```
 
 ##### Ubicación en Frontend (Angular)
 * **Página y Vista:** `frontend/src/app/features/admin/pages/tenant-management-page.component.ts` (`tenant-management-page.component.html`)
 * **Servicio API:** `frontend/src/app/features/shared/services/tenant-api.service.ts`
 * **Modelo TypeScript:** `frontend/src/app/features/shared/models/tenant.model.ts`
-* **Ruta Angular:** `/app/admin/tenants` (`canActivate: [roleGuard(['superadministrador'])]`)
+* **Ruta Angular:** `/app/superadmin/tenants` o `/app/admin/tenants` (`canActivate: [roleGuard(['superadministrador'])]`)
 * **Integración en Menú:** Ítem `"Empresas / Tenants"` en `sidebarSections` de Superadministrador en `app-shell.component.ts`.
 * **Mensajes en UI:** La vista consume y muestra directamente el `message` del backend vía `toast.success(res.message)` o `toast.error(getErrorMessage(err, 'No se pudo crear la empresa'))`.
 
-##### Checklist de Implementación y Migración Integral
-- [x] Backend (Modelo SaaS): Crear modelo SQLAlchemy `Tenant` con campos de organización, subdominio, contacto y estado.
-- [x] Backend (Migración de BD Existente): Crear migración Alembic que agregue la columna `tenant_id` (FK a `tenants.id`, indexada) en TODAS las tablas existentes del sistema (`users`, `user_profiles`, `branches`, `categories`, `collections`, `seasons`, `products`, `product_variants`, `sizes`, `colors`, `inventories`, `inventory_movements`, `carts`, `cart_items`, `reservations`, `reservation_items`, `orders`, `order_items`, `payment_attempts`, `sales`, `sale_items`, `promotion_codes`, `promotion_code_usages`, `replenishment_requests`, `recommendations`, `chat_conversations`, `chat_messages`, `notifications`, `user_device_tokens`).
-- [x] Backend (Migración de Datos): Ejecutar script de datos para sembrar el Tenant Inicial por defecto ("Tenant Principal / WomenStyle") y vincular todos los registros preexistentes a dicho tenant antes de aplicar la restricción `nullable=False`.
-- [x] Backend (Middleware de Aislamiento): Implementar middleware de contexto multi-tenant que extraiga el `tenant_id` del subdominio de la petición o encabezado HTTP `X-Tenant-ID`.
-- [x] Backend (Refactorización de Servicios): Refactorizar la totalidad de los servicios existentes del backend (`catalog_service.py`, `inventory_service.py`, `cart_service.py`, `order_service.py`, `sales_service.py`, `branch_service.py`, `user_service.py`, `promotion_service.py`, `dashboard_service.py`, `report_service.py`, `recommendation_service.py`, `chatbot_service.py`) para filtrar y aislar obligatoriamente todas las consultas SQL por `tenant_id`.
-- [x] Backend (Autenticación y JWT): Modificar el servicio de autenticación y generación de tokens JWT para inyectar el claim `tenant_id` y restringir el acceso del usuario a su organización.
-- [x] Backend (Endpoints de Administración): Implementar endpoints CRUD `/api/saas/tenants` para provisionamiento y configuración de organizaciones por el Superadministrador.
-- [x] Frontend: Configurar `ApiService` e interceptores HTTP para resolver subdominios o adjuntar el encabezado `X-Tenant-ID` en todas las peticiones salientes.
-- [x] Frontend: Desarrollar pantalla `tenant-management-page` con listado de organizaciones, formulario de alta y estados de suscripción.
-- [x] Verificación: Comprobar que los datos preexistentes permanecen operativos bajo el tenant inicial y que un nuevo tenant registrado inicia con su base de datos completamente limpia e inaccesible desde otros tenants.
+##### Checklist de Implementación
+- [x] Backend: Modelo SQLAlchemy `Tenant` con campos de organización, subdominio, contacto y estado.
+- [x] Backend: Endpoints CRUD `/api/saas/tenants` para provisionamiento y configuración de organizaciones por el Superadministrador.
+- [x] Backend: Endpoint `/panel-session` para acceso administrativo directo del Superadmin a inquilinos.
+- [x] Frontend: Pantalla `tenant-management-page` con listado de organizaciones, filtros, formulario modal de alta y botón de ingreso a panel de empresa.
+- [x] Verificación: Registrar un tenant nuevo y verificar unicidad de subdominio y aislamiento estricto de datos con respecto a organizaciones previas.
 
 ---
 
-#### CU2 – Gestión de planes y suscripciones B2B
+#### CU2 – Gestión del catálogo de planes de suscripción SaaS
 * **Módulo:** M1: Plataforma SaaS y Seguridad
-* **Actor Principal:** Superadministrador (crea planes), Administrador de Tenant (contrata y paga)
+* **Actor Principal:** Superadministrador
 * **Estado:** **Hecho** | **Plataforma:** Web
-* **Descripción Funcional:** Gestión de tiers de suscripción mensual/anual con límites operativos (número de sucursales y prendas) y módulos habilitados por plan (chatbot, vestidor virtual, reportes con IA). El pago es **simulado (sandbox)** con tarjeta de prueba; no se integra Stripe Checkout para suscripciones B2B.
+* **Descripción Funcional:** Administración comercial de la oferta de suscripciones B2B de la plataforma. El Superadministrador define, crea y actualiza los tiers comerciales (Básico, Profesional, Enterprise), configurando sus tarifas (mensual y anual con descuento), límites operativos estructurales (`max_branches` y `max_garments`) y módulos habilitados (`catalog`, `pos`, `inventory`, `virtual_try_on_2d`, `chatbot`, `smart_reports`).
 * **Reglas de negocio:**
-  1. Una suscripción vigente es la que está `active` y cuya `end_date` no pasó. Al vencer deja de contar, aunque su estado no cambie.
-  2. Sin suscripción vigente, la empresa no puede crear sucursales ni prendas, y sus módulos de IA quedan desactivados.
-  3. Los módulos se aplican según el plan de la **empresa que vende**: el vestidor virtual solo aparece en sus productos si su plan incluye `virtual_try_on_2d`, y el chatbot solo recomienda productos de empresas cuyo plan incluye `chatbot`.
-  4. Una empresa `suspended` no tiene acceso para su personal y sus productos se ocultan del catálogo público.
-  5. Cambiar de plan inicia un período nuevo y cancela el anterior. No se permite bajar a un plan cuyos límites ya se superan.
-  6. Desactivar un plan lo quita de la venta; las empresas que ya lo tienen lo conservan hasta su vencimiento.
+  1. Los planes desactivados dejan de ofrecerse inmediatamente a nuevas empresas en la landing pública, pero las empresas con suscripción activa previa conservan sus condiciones hasta el término del período facturado.
+  2. La modificación de tarifas o límites de un plan afecta a las nuevas contrataciones y renovaciones futuras, sin alterar retroactivamente el período en curso de los inquilinos.
+  3. Los módulos habilitados en el plan condicionan la disponibilidad de funcionalidades en la empresa: si un plan carece de `virtual_try_on_2d`, el vestidor virtual queda inhabilitado en sus productos; si carece de `chatbot`, el asistente virtual excluye los artículos de esa marca.
 
 ##### Endpoints Backend
 ```http
-GET /api/saas/plans
+GET /api/saas/plans/admin
+Headers: Authorization: Bearer <superadmin_jwt>
 Response 200 OK:
 {
   "statusCode": 200,
-  "message": "Planes de suscripción recuperados",
+  "message": "Listado completo de planes recuperado",
   "data": [
     {
       "id": "plan_basic_01",
       "name": "Básico",
       "price_monthly": 49.00,
+      "price_yearly": 490.00,
       "max_branches": 2,
       "max_garments": 500,
-      "features": ["catalog", "pos", "inventory"]
+      "features": ["catalog", "pos", "inventory"],
+      "is_active": true
     },
     {
       "id": "plan_pro_02",
       "name": "Profesional",
       "price_monthly": 129.00,
+      "price_yearly": 1290.00,
       "max_branches": 5,
       "max_garments": 3000,
-      "features": ["catalog", "pos", "inventory", "ai_try_on", "chatbot"]
+      "features": ["catalog", "pos", "inventory", "virtual_try_on_2d", "chatbot"],
+      "is_active": true
     }
   ]
 }
 ```
 ```http
-POST /api/saas/subscriptions/purchase-simulated        (público: alta de una marca nueva)
+POST /api/saas/plans
+Headers: Authorization: Bearer <superadmin_jwt>
 Request Body:
 {
-  "company_name": "Boutique Elegance",
-  "admin_name": "Ana Pérez",
-  "admin_email": "admin@elegance.com",
-  "plan_id": "plan_pro",
-  "billing_cycle": "monthly",
-  "card_number": "4242424242424242", "card_holder": "Ana Pérez", "card_exp": "12/28", "card_cvv": "123"
+  "name": "Enterprise",
+  "price_monthly": 299.00,
+  "price_yearly": 2990.00,
+  "max_branches": 20,
+  "max_garments": 15000,
+  "features": ["catalog", "pos", "inventory", "virtual_try_on_2d", "chatbot", "smart_reports"]
 }
 Response 201 Created:
 {
   "statusCode": 201,
-  "message": "Suscripción activada con éxito. Te enviamos un correo con los datos de acceso.",
-  "data": { "tenant_id": "...", "tenant_slug": "boutique-elegance", "admin_email": "admin@elegance.com", "plan_name": "Profesional", "subscription_status": "active" }
+  "message": "Plan creado exitosamente",
+  "data": { "id": "plan_enterprise_03", "name": "Enterprise", "max_branches": 20, "max_garments": 15000 }
 }
 ```
 ```http
-POST /api/saas/subscriptions/change-plan               (Administrador de la empresa)
-Headers: Authorization: Bearer <admin_jwt>
+PATCH /api/saas/plans/{plan_id}
+Headers: Authorization: Bearer <superadmin_jwt>
 Request Body:
-{ "plan_id": "plan_enterprise", "billing_cycle": "yearly", "card_number": "4242424242424242" }
+{
+  "is_active": false
+}
 Response 200 OK:
 {
   "statusCode": 200,
-  "message": "Plan actualizado con éxito. Tu empresa ahora tiene el plan Enterprise.",
-  "data": { "has_active_subscription": true, "plan": { ... }, "subscription": { ... }, "usage": { ... }, "features": [ ... ] }
+  "message": "Plan actualizado exitosamente",
+  "data": { "id": "plan_basic_01", "is_active": false }
 }
-
-Response 400 Bad Request:
-{ "statusCode": 400, "message": "El plan seleccionado no se encuentra disponible.", "error": "HTTPException" }
-{ "statusCode": 400, "message": "No podés cambiar al plan Básico: tenés 3 sucursales y permite 2.", "error": "HTTPException" }
 ```
 ```http
-GET  /api/saas/subscriptions/current                   (personal de la empresa; superadmin con ?tenant_id=)
-POST /api/saas/tenants/with-subscription               (Superadministrador: alta directa con pago en efectivo)
-GET  /api/saas/plans/admin                             (Superadministrador: todos los planes, incluso desactivados)
-POST /api/saas/plans                                   (Superadministrador: crear plan → 201 "Plan creado exitosamente")
-PATCH /api/saas/plans/{plan_id}                        (Superadministrador: editar o desactivar → 200 "Plan actualizado exitosamente")
-```
-```http
-Límites aplicados al crear sucursales (POST /api/branches/) y prendas (POST /api/catalog/products):
-Response 403 Forbidden:
-{ "statusCode": 403, "message": "Límite de sucursales alcanzado para el plan actual. Actualizá tu suscripción.", "error": "HTTPException" }
-{ "statusCode": 403, "message": "Límite de prendas alcanzado para el plan actual. Actualizá tu suscripción.", "error": "HTTPException" }
-{ "statusCode": 403, "message": "Tu empresa no tiene una suscripción activa. Renová o elegí un plan para continuar.", "error": "HTTPException" }
+GET /api/saas/plans                                    (catálogo público de planes vigentes)
 ```
 
 ##### Ubicación en Frontend (Angular)
-* **Página y Vista:** `frontend/src/app/features/admin/pages/subscription-page.component.ts` (`subscription-page.component.html`)
+* **Página y Vista:** `frontend/src/app/features/superadmin/pages/plan-management-page.component.ts` (`plan-management-page.component.html`)
 * **Servicio API:** `frontend/src/app/features/shared/services/subscription-api.service.ts`
 * **Modelo TypeScript:** `frontend/src/app/features/shared/models/subscription.model.ts`
-* **Ruta Angular:** `/app/admin/subscription` (`canActivate: [roleGuard(['administrador', 'superadministrador'])]`)
-* **Integración en Menú:** Ítem `"Suscripción y Plan"` en `sidebarSections` de Administrador en `app-shell.component.ts`.
-* **Cambio de plan:** El botón "Cambiar plan" de `subscription-page` despliega `pricing-table.component` (marca el plan actual) y un formulario de pago simulado que llama a `change-plan`.
-* **Gestión de planes (Superadministrador):** `frontend/src/app/features/superadmin/pages/plan-management-page.component.ts`, ruta `/app/superadmin/plans`, ítem `"Planes de Suscripción"`.
-* **Landing:** `pricing-table.component` muestra en cada tarjeta lo que agrega cada plan sobre el anterior y una tabla comparativa completa (precios, límites y módulos con su descripción), construida con los datos de `GET /api/saas/plans`.
-* **Mensajes en UI:** Notificación de éxito y alertas de límite obtenidas directamente del `response.message`.
+* **Ruta Angular:** `/app/superadmin/plans` (`canActivate: [roleGuard(['superadministrador'])]`)
+* **Integración en Menú:** Ítem `"Planes de Suscripción"` en `sidebarSections` de Superadministrador en `app-shell.component.ts`.
+* **Mensajes en UI:** Notificaciones Toast al guardar o editar planes basadas en `response.message`.
 
 ##### Checklist de Implementación
-- [x] Backend: Crear tablas `saas_plans` y `tenant_subscriptions` con foreign key `tenant_id`.
-- [x] Backend: Implementar cliente de Mailtrap API, servicio de onboarding y pasarela de pago simulada (Sandbox) con creación atómica de tenant y admin aleatorio.
-- [x] Backend: Validador de límites del plan vigente antes de permitir crear sucursales (`max_branches`) o prendas (`max_garments`); sin plan vigente se bloquea la creación.
-- [x] Backend: Vencimiento por `end_date`, cambio de plan con pago simulado y validación de bajada de plan.
-- [x] Backend: Módulos por plan aplicados en vestidor virtual (`/api/catalog/garment` y `try_on_enabled` del producto), chatbot y reportes con IA.
-- [x] Backend: Bloqueo de empresas suspendidas (personal y catálogo público).
-- [x] Backend: CRUD de planes para el Superadministrador (crear, editar, desactivar).
-- [x] Frontend: Crear `SubscriptionApiService` y componente de tarjetas comparativas de precios con los planes de la base de datos, más una tabla comparativa detallada en la landing.
-- [x] Frontend: Desarrollar pantalla `subscription-page` con estado actual de la suscripción, barras de cuotas, aviso de suscripción vencida y cambio de plan.
-- [x] Frontend: Pantalla `plan-management-page` del Superadministrador.
-- [x] Móvil: el botón "Probar prenda" solo aparece si el plan de la tienda incluye el vestidor.
-- [x] Verificación: `backend/tests/test_saas_subscriptions.py` sobre el PostgreSQL desechable (sin tocar la base de desarrollo).
-- [ ] Pendiente: vestidor 3D con realidad aumentada y analítica con Machine Learning (se muestran como "Próximamente").
+- [x] Backend: Modelo SQLAlchemy `SaaSPlan` con campos de tarifa mensual/anual, cupos y lista de características.
+- [x] Backend: Endpoints `/api/saas/plans/admin` (listado con inactivos), `POST /api/saas/plans` y `PATCH /api/saas/plans/{id}`.
+- [x] Backend: Filtro de planes públicos activos en `GET /api/saas/plans`.
+- [x] Frontend: Pantalla `plan-management-page` con tabla de planes, edición de cuotas, selección de módulos y switch de activación.
+- [x] Verificación: Probar creación y desactivación de planes verificando su reflejo en la landing y protección de suscriptores previos.
 
 ---
 
@@ -528,6 +504,226 @@ Response 422 Unprocessable Entity:
 - [x] Frontend: Desarrollar página pública `landing-page` responsiva con sección hero, features, spotlight del vestidor virtual 2D/3D y tabla de precios.
 - [x] Frontend: Flujo de onboarding reactivo con selección de plan, ciclo, datos de empresa/admin y pasarela simulada.
 - [x] Verificación: Registrar una nueva organización desde la landing/onboarding y verificar inicio de sesión con las credenciales generadas.
+
+---
+
+#### CU26 – Personalización de identidad y marca del tenant (Branding)
+* **Módulo:** M1: Plataforma SaaS y Seguridad
+* **Actor Principal:** Administrador de Empresa, Superadministrador
+* **Estado:** **Hecho** | **Plataforma:** Web / Móvil
+* **Descripción Funcional:** Parametrización visual e identidad corporativa de la organización cliente. Permite cargar el logotipo de la empresa (PNG/JPEG/SVG), definir el color primario corporativo (código hexadecimal) y la moneda comercial operativa (`BOB`). Los atributos de branding se inyectan dinámicamente mediante el servicio `BrandingService` en el shell web (`AppShell`), en la cabecera y pie de los comprobantes PDF de venta y recibos (`simple-pdf.util`), y se descargan en la aplicación móvil Flutter según la tienda activa.
+* **Reglas de negocio:**
+  1. El logotipo no debe exceder 2 MB y debe ser en formato de imagen estándar (PNG, JPG, SVG, WebP).
+  2. Los cambios de logotipo o color primario se reflejan inmediatamente en la sesión de los usuarios que pertenecen a ese tenant sin requerir reinicio del servidor.
+  3. Cada empresa mantiene su propia moneda por defecto (`BOB`), la cual rige los precios y cálculos transaccionales de sus órdenes y ventas.
+
+##### Endpoints Backend
+```http
+GET /api/saas/tenants/me/branding
+Headers: Authorization: Bearer <tenant_jwt>
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Configuración de branding obtenida",
+  "data": {
+    "name": "Ayni Moda",
+    "logo_url": "/static/tenants/logos/ayni-moda.png",
+    "primary_color": "#800020",
+    "currency": "BOB"
+  }
+}
+```
+```http
+POST /api/saas/tenants/me/logo
+Headers: Authorization: Bearer <admin_jwt>, Content-Type: multipart/form-data
+Body: file: <logo_file>
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Logotipo actualizado exitosamente",
+  "data": {
+    "logo_url": "/static/tenants/logos/ayni-moda-updated.png"
+  }
+}
+```
+```http
+GET /api/saas/tenants/{tenant_id}/branding
+POST /api/saas/tenants/{tenant_id}/logo
+PATCH /api/saas/tenants/{tenant_id}                    (actualizar primary_color, name, currency)
+```
+
+##### Ubicación en Frontend (Angular & Móvil)
+* **Componente:** `frontend/src/app/features/shared/components/tenant-branding-editor/tenant-branding-editor.component.ts`
+* **Servicio:** `frontend/src/app/core/services/branding.service.ts`
+* **Integración en Shell:** `frontend/src/app/core/layouts/app-shell.component.ts`
+* **Generación de Documentos:** `frontend/src/app/core/utils/simple-pdf.util.ts`
+* **Mensajes en UI:** Toast: `"Logotipo actualizado exitosamente"` / `"Configuración de marca guardada"`.
+
+##### Checklist de Implementación
+- [x] Backend: Campos `logo_url`, `primary_color` y `currency` en el modelo `Tenant`.
+- [x] Backend: Endpoints `/api/saas/tenants/me/branding`, `/api/saas/tenants/me/logo` y variantes por `{id}`.
+- [x] Frontend: `BrandingService` reactivo que aplica variables CSS (`--primary-color`) en el DOM según la empresa activa.
+- [x] Frontend: Componente de edición de branding e inyección de logo/colores en el encabezado de navegación y PDFs.
+- [x] Móvil: Consumo del endpoint de branding para personalizar la barra de título y paleta de la tienda.
+- [x] Verificación: Subir logo para una empresa y comprobar que no altera el branding de otros tenants.
+
+---
+
+#### CU27 – Contratación y onboarding de suscripción B2B
+* **Módulo:** M1: Plataforma SaaS y Seguridad
+* **Actor Principal:** Prospecto / Nueva Marca B2B, Superadministrador
+* **Estado:** **Hecho** | **Plataforma:** Web
+* **Descripción Funcional:** Proceso de suscripción y aprovisionamiento integral de una nueva empresa en la plataforma. La marca interesada selecciona un plan de suscripción del catálogo público, elige ciclo de facturación (mensual o anual con descuento), completa los datos comerciales y de su administrador, e ingresa la tarjeta de pago en la pasarela simulada (Sandbox).
+* **Reglas de negocio:**
+  1. La transacción es atómica: crea la organización (`Tenant`), el usuario Administrador y el registro de suscripción activa con su respectiva fecha de vencimiento (`end_date`).
+  2. El pago es simulado mediante pasarela sandbox con tarjetas de prueba (ej. `4242424242424242`).
+  3. Tras la confirmación, se emite el primer recibo/comprobante de pago en PDF y se despacha automáticamente un correo de bienvenida con credenciales seguras mediante la API de Mailtrap.
+  4. El Superadministrador dispone de un endpoint administrativo para registrar directamente empresas con pago presencial en efectivo (`/with-subscription`).
+
+##### Endpoints Backend
+```http
+POST /api/saas/subscriptions/purchase-simulated
+Request Body:
+{
+  "company_name": "Boutique Elegance",
+  "admin_name": "Ana Pérez",
+  "admin_email": "admin@elegance.com",
+  "plan_id": "plan_pro_02",
+  "billing_cycle": "monthly",
+  "card_number": "4242424242424242",
+  "card_holder": "Ana Pérez",
+  "card_exp": "12/28",
+  "card_cvv": "123"
+}
+Response 201 Created:
+{
+  "statusCode": 201,
+  "message": "Suscripción activada con éxito. Te enviamos un correo con los datos de acceso.",
+  "data": {
+    "tenant_id": "e3b0c442-98fc-1c14-9afb-4c72e0500001",
+    "tenant_slug": "boutique-elegance",
+    "admin_email": "admin@elegance.com",
+    "plan_name": "Profesional",
+    "subscription_status": "active",
+    "end_date": "2026-05-10T12:00:00Z"
+  }
+}
+
+Response 409 Conflict:
+{
+  "statusCode": 409,
+  "message": "El correo o subdominio ya se encuentra registrado",
+  "error": "HTTPException"
+}
+```
+```http
+POST /api/saas/tenants/with-subscription               (Superadministrador: alta directa con pago en efectivo)
+```
+
+##### Ubicación en Frontend (Angular)
+* **Página y Vista:** `frontend/src/app/features/shared/pages/landing-page.component.ts`
+* **Componente de Precios y Checkout:** `frontend/src/app/features/shared/components/pricing-table.component.ts`
+* **Servicio API:** `frontend/src/app/features/shared/services/subscription-api.service.ts`
+* **Ruta Angular:** `/landing` o `/precios`
+* **Mensajes en UI:** Notificación de éxito: `"Suscripción activada con éxito. Te enviamos un correo con los datos de acceso."`.
+
+##### Checklist de Implementación
+- [x] Backend: Servicio `subscription_service.purchase_simulated` atómico con creación de tenant, admin y suscripción.
+- [x] Backend: Integración de despacho de credenciales por email con Mailtrap API.
+- [x] Backend: Generación y almacenamiento del primer comprobante de pago de la suscripción.
+- [x] Frontend: Formulario de checkout simulado reactivo integrado en `pricing-table.component`.
+- [x] Verificación: Contratar un plan Profesional con tarjeta sandbox y comprobar recepción de correo y login de la nueva empresa (`tests/test_saas_subscriptions.py`).
+
+---
+
+#### CU28 – Monitoreo de consumo y cambio de plan B2B
+* **Módulo:** M1: Plataforma SaaS y Seguridad
+* **Actor Principal:** Administrador de Tenant
+* **Estado:** **Hecho** | **Plataforma:** Web
+* **Descripción Funcional:** Gestión operativa de la suscripción vigente por parte de la empresa inquilina. El Administrador monitorea el estado del plan, fecha de vencimiento (`end_date`), historial de facturación y cuotas de consumo en tiempo real mediante barras de progreso (sucursales creadas vs. `max_branches`, prendas registradas vs. `max_garments`). Permite ejecutar el cambio de plan (*Upgrade* o *Downgrade*) mediante pasarela simulada.
+* **Reglas de negocio:**
+  1. Una suscripción activa permite operar normalmente. Si la fecha `end_date` expira, se bloquea la creación de recursos y se inhabilitan módulos de IA hasta su renovación.
+  2. **Upgrade de Plan:** El cambio a un plan superior cancela el período anterior, inicia uno nuevo e incrementa de forma inmediata los límites de sucursales y prendas.
+  3. **Downgrade Restringido:** No se permite bajar a un plan inferior si el uso actual supera las cuotas del nuevo plan (ej. si la empresa tiene 4 sucursales activas, el backend rechaza cambiar al plan Básico que solo admite 2 con error 400).
+  4. **Enforcement de Límites:** Los endpoints de creación de sucursales (`POST /api/branches/`) y prendas (`POST /api/catalog/products`) consultan la cuota vigente y rechazan con HTTP 403 si se alcanzó el tope del plan.
+
+##### Endpoints Backend
+```http
+GET /api/saas/subscriptions/current
+Headers: Authorization: Bearer <admin_jwt>
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Suscripción actual obtenida",
+  "data": {
+    "has_active_subscription": true,
+    "plan": {
+      "id": "plan_basic_01",
+      "name": "Básico",
+      "max_branches": 2,
+      "max_garments": 500,
+      "features": ["catalog", "pos", "inventory"]
+    },
+    "subscription": {
+      "status": "active",
+      "billing_cycle": "monthly",
+      "end_date": "2026-05-15T00:00:00Z"
+    },
+    "usage": {
+      "branches_count": 2,
+      "garments_count": 140
+    }
+  }
+}
+```
+```http
+POST /api/saas/subscriptions/change-plan
+Headers: Authorization: Bearer <admin_jwt>
+Request Body:
+{
+  "plan_id": "plan_pro_02",
+  "billing_cycle": "yearly",
+  "card_number": "4242424242424242"
+}
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Plan actualizado con éxito. Tu empresa ahora tiene el plan Profesional.",
+  "data": {
+    "has_active_subscription": true,
+    "plan": { "id": "plan_pro_02", "name": "Profesional", "max_branches": 5, "max_garments": 3000 }
+  }
+}
+
+Response 400 Bad Request:
+{
+  "statusCode": 400,
+  "message": "No podés cambiar al plan Básico: tenés 3 sucursales y permite 2.",
+  "error": "HTTPException"
+}
+```
+```http
+Límites aplicados al crear sucursales o prendas:
+Response 403 Forbidden:
+{ "statusCode": 403, "message": "Límite de sucursales alcanzado para el plan actual. Actualizá tu suscripción.", "error": "HTTPException" }
+{ "statusCode": 403, "message": "Límite de prendas alcanzado para el plan actual. Actualizá tu suscripción.", "error": "HTTPException" }
+{ "statusCode": 403, "message": "Tu empresa no tiene una suscripción activa. Renová o elegí un plan para continuar.", "error": "HTTPException" }
+```
+
+##### Ubicación en Frontend (Angular)
+* **Página y Vista:** `frontend/src/app/features/admin/pages/subscription-page.component.ts` (`subscription-page.component.html`)
+* **Servicio API:** `frontend/src/app/features/shared/services/subscription-api.service.ts`
+* **Modelo TypeScript:** `frontend/src/app/features/shared/models/subscription.model.ts`
+* **Ruta Angular:** `/app/admin/subscription` (`canActivate: [roleGuard(['administrador', 'superadministrador'])]`)
+* **Integración en Menú:** Ítem `"Suscripción y Plan"` en `sidebarSections` de Administrador en `app-shell.component.ts`.
+* **Mensajes en UI:** Notificación de éxito y alertas de límite consumiendo directamente `response.message`.
+
+##### Checklist de Implementación
+- [x] Backend: Endpoint `/api/saas/subscriptions/current` con cálculo en tiempo real de recursos usados vs. cuotas.
+- [x] Backend: Endpoint `/api/saas/subscriptions/change-plan` con validación estricta de downgrade e inicio de nuevo ciclo.
+- [x] Backend: Decorador/dependencia de validación de límites en servicios de sucursales y prendas (HTTP 403).
+- [x] Frontend: Pantalla `subscription-page` con barras de progreso de cupos, advertencia de expiración y modal de cambio de plan.
+- [x] Verificación: Validar que una empresa con 2 sucursales en plan Básico sea bloqueada al intentar crear una tercera sucursal, y que tras el upgrade a Profesional se habilite de inmediato.
 
 ---
 
@@ -1956,10 +2152,10 @@ Response 200 OK:
 
 | Módulo | Casos de Uso Implementados (Base) | Casos de Uso Nuevos a Desarrollar | Total |
 | :--- | :---: | :---: | :---: |
-| **M1: Plataforma SaaS y Seguridad** | 0 | 4 (`CU1`, `CU2`, `CU3`, `CU4`) | 4 |
+| **M1: Plataforma SaaS y Seguridad** | 0 | 7 (`CU1`, `CU2`, `CU3`, `CU4`, `CU26`, `CU27`, `CU28`) | 7 |
 | **M2: Inteligencia Artificial** | 3 (`CU5`, `CU6`, `CU7`) | 3 (`CU8`, `CU9`, `CU10`) | 6 |
 | **M3: Inventario y Operaciones** | 2 (`CU11`, `CU12`) | 0 | 2 |
 | **M4: Business Intelligence** | 2 (`CU13`, `CU14`) | 0 | 2 |
 | **M5: Promociones y Fidelización** | 1 (`CU15`) | 4 (`CU16`, `CU17`, `CU18`, `CU19`) | 5 |
 | **M6: Logística y Posventa** | 0 | 6 (`CU20`, `CU21`, `CU22`, `CU23`, `CU24`, `CU25`) | 6 |
-| **TOTALES** | **8 HECHOS** | **17 PENDIENTES** | **25** |
+| **TOTALES** | **11 HECHOS** | **17 PENDIENTES** | **28** |

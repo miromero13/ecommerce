@@ -84,37 +84,37 @@ Fuera de alcance de este plan: CU18–CU20, CU22, CU23.
 
 Rutas reales verificadas. "Brecha" = lo que falta para cerrar el CU según el examen/especificación. Las rutas que la especificación indica mal están en la columna "Doc dice (incorrecto)".
 
-### CU1 – Multi-Tenant
+### CU1 – Aprovisionamiento y Gestión Multi-Tenant & CU26 – Branding
 | Capa | Archivos |
 |---|---|
 | Entidad | `backend/app/models/tenant.py` (+ `tenant_id` en todas las tablas) |
 | Migración | `backend/alembic/versions/0038_add_tenants_and_multitenant_foundation.py` |
 | Schema | `backend/app/schemas/tenant_schema.py` |
 | Servicio | `backend/app/services/tenant_service.py` |
-| Controlador | `backend/app/routes/tenant_routes.py` (`/api/saas/tenants`: `GET /`, `POST /`, `GET /public`, `GET /{id}`, `PATCH /{id}`, `PATCH /{id}/status`) |
+| Controlador | `backend/app/routes/tenant_routes.py` (`/api/saas/tenants`: `GET /`, `POST /`, `GET /public`, `GET /{id}`, `PATCH /{id}`, `PATCH /{id}/status`, `POST /{id}/panel-session`) |
 | Aislamiento | `backend/app/auth/dependencies.py` (`get_current_tenant_id`, `get_tenant_and_branch_scope`, `validate_tenant_access`) |
 | Tests | `backend/tests/test_saas_multitenant.py`, `test_*_tenant_isolation.py` |
 | Front | `frontend/src/app/features/superadmin/pages/tenant-management-page.component.ts/.html`, `superadmin-dashboard-page`, `features/shared/services/tenant-api.service.ts`, `features/shared/models/tenant.model.ts` — ruta `/app/superadmin/tenants` |
 | Doc dice (incorrecto) | `features/admin/pages/tenant-management-page` y `/app/admin/tenants` |
 
-**Brechas CU1 (el checklist las marca [x] pero no existen en el código):**
+**Brechas CU1 / CU26 (el checklist las marca [x] pero no existen en el código):**
 | # | Brecha | Archivos |
 |---|---|---|
 | 0.1 | **Middleware de resolución de tenant** por `X-Tenant-ID` o subdominio (no existe; `main.py` solo tiene CORS). Regla: si hay JWT con `tenant_id` y el header difiere → 403; para cliente/catálogo público el header selecciona la empresa. Guarda el valor en `request.state.tenant_id`. | `backend/app/core/tenant_middleware.py` [NEW], `backend/main.py` [EDIT] (`app.add_middleware`), `backend/tests/test_tenant_middleware.py` [NEW] |
 | 0.2 | **Front/móvil no envían `X-Tenant-ID`** | `frontend/src/app/features/shared/interceptors/auth.interceptor.ts` [EDIT] (header desde `SessionService.user().tenant_id`), `mobile/lib/core/network/api_client.dart` [EDIT] |
-| 0.3 | **Branding por empresa** (spec 1.5.5: nombre, logo, moneda, colores). `tenants` solo tiene `name, slug, contact_email, currency, country, status`. | `backend/app/models/tenant.py` [EDIT] (`logo_url`, `primary_color`), `backend/alembic/versions/0041_add_tenant_branding.py` [NEW], `backend/app/schemas/tenant_schema.py` [EDIT], `tenant-management-page` [EDIT] (campos), `frontend/src/app/core/layouts/app-shell.component.ts` [EDIT] (logo + `--primary` CSS var del tenant activo) |
+| 0.3 | **Branding por empresa (CU26)** (spec 1.5.5: nombre, logo, moneda, colores). `tenants` solo tiene `name, slug, contact_email, currency, country, status`. | `backend/app/models/tenant.py` [EDIT] (`logo_url`, `primary_color`), `backend/alembic/versions/0041_add_tenant_branding.py` [NEW], `backend/app/schemas/tenant_schema.py` [EDIT], `tenant-management-page` [EDIT] (campos), `frontend/src/app/core/layouts/app-shell.component.ts` [EDIT] (logo + `--primary` CSS var del tenant activo) |
 
-### CU2 – Planes y suscripciones
+### CU2 – Planes SaaS, CU27 – Onboarding B2B & CU28 – Consumo y Cambio de Plan
 | Capa | Archivos |
 |---|---|
 | Entidad | `backend/app/models/subscription_plan.py`, `backend/app/models/tenant_subscription.py` |
 | Migración | `0039_add_saas_plans_and_subscriptions.py` |
 | Schema / Servicio | `backend/app/schemas/subscription_schema.py`, `backend/app/services/subscription_service.py` (`PLAN_FEATURE_KEYS`, cuotas, `tenant_has_feature`), `backend/app/services/email_service.py` (Mailtrap) |
-| Controlador | `backend/app/routes/subscription_routes.py` (`/api/saas`: `/plans`, `/public/plans`, `/plans/admin`, `POST /plans`, `PATCH /plans/{id}`, `/subscriptions/purchase-simulated`, `/subscriptions/current`, `/subscriptions/change-plan`, `/tenants/with-subscription`) |
+| Controlador | `backend/app/routes/subscription_routes.py` (`/api/saas`: `/plans`, `/public/plans`, `/plans/admin`, `POST /plans`, `PATCH /plans/{id}` [CU2], `/subscriptions/purchase-simulated`, `/tenants/with-subscription` [CU27], `/subscriptions/current`, `/subscriptions/change-plan` [CU28]) |
 | Tests | `backend/tests/test_saas_subscriptions.py` |
-| Front | `features/admin/pages/subscription-page`, `features/superadmin/pages/plan-management-page`, `features/shared/components/pricing-table.component`, `features/shared/services/subscription-api.service.ts`, `features/shared/models/subscription.model.ts` |
+| Front | `features/admin/pages/subscription-page` (CU28), `features/superadmin/pages/plan-management-page` (CU2), `features/shared/components/pricing-table.component` (CU27), `features/shared/services/subscription-api.service.ts`, `features/shared/models/subscription.model.ts` |
 
-**Brecha CU2:** `ai_ml_smart_reports` aparece como "Próximamente" en `features/admin/pages/subscription-page.component.html` y `features/shared/components/pricing-table.component.html` → quitar la etiqueta al terminar CU8 (el vestidor 3D/AR sigue "Próximamente": el examen no lo exige).
+**Brecha CU2 / CU28:** `ai_ml_smart_reports` aparece como "Próximamente" en `features/admin/pages/subscription-page.component.html` y `features/shared/components/pricing-table.component.html` → quitar la etiqueta al terminar CU8 (el vestidor 3D/AR sigue "Próximamente": el examen no lo exige).
 
 ### CU4 – Landing y catálogo de planes
 | Capa | Archivos |
@@ -303,9 +303,9 @@ No se crean casos de uso nuevos ni relaciones include/extend: cada tarea corrige
 |---|---|---|---|
 | 0.1 Middleware `X-Tenant-ID` / subdominio | **CU1** Multi-Tenant | — | Resolución de tenant del Desafío VI |
 | 0.2 Header `X-Tenant-ID` en web/móvil | **CU1** | — | Spec 1.5.5 |
-| 0.3 Branding por empresa | **CU1** | — | Spec 1.5.5 (nombre, logo, moneda, colores) |
-| P2 Moneda de la empresa (BOB) | **CU1** | 1P-CU16, 1P-CU18 | La moneda es un parámetro del tenant |
-| D2 Stripe Connect (cuenta por empresa) | **CU1** (aislamiento financiero) + **CU2** (comisión de plataforma) | 1P-CU16 | Sin esto, el dinero de las empresas se mezcla |
+| 0.3 Branding por empresa | **CU26** (Branding) | — | Spec 1.5.5 (nombre, logo, moneda, colores) |
+| P2 Moneda de la empresa (BOB) | **CU1**, **CU26** | 1P-CU16, 1P-CU18 | La moneda es un parámetro del tenant |
+| D2 Stripe Connect (cuenta por empresa) | **CU1** (aislamiento financiero) + **CU2/CU28** (comisión de plataforma) | 1P-CU16 | Sin esto, el dinero de las empresas se mezcla |
 | P1 Entregar pedido pagado con Stripe | — | **1P-CU16** Compra digital y estado del pedido | El flujo base queda incompleto |
 | I1 Constraints de stock | **CU11** Traspaso de inventario (RNF04) | 1P-CU12 Movimiento de inventario | Integridad transaccional |
 | I2 Ajuste con motivo (merma) | **CU11** | 1P-CU12 | Lo usan CU21 y CU23 |
@@ -564,7 +564,7 @@ Ejecutar la transferencia reutiliza `inventory_service.register_transfer` (atóm
 | Pago en línea solo con Stripe (pedidos web/móvil y anticipo de reservas) | ✅ | 1P-CU16 (pasarela, RF19), 1P-CU14 | `order_service` (`create_stripe_payment`, `create_deposit_stripe_payment`, `process_stripe_event`), `payment_routes.py` (`/payments/stripe/...`), `cart-page`, `my-reservations-page`, móvil `checkout_page.dart`, `reservations_page.dart` |
 | Anticipo 50 % no reembolsable (D1) | ✅ | 1P-CU14, 1P-CU17 | `reservation_service` (`pending_payment`, `complete_deposit_payment`, regla en `transition_reservation`), `/payments/qr/reservations/{id}`, `/payments/stripe/reservations/{id}`, `my-reservations-page`, móvil `reservations_page.dart` |
 | Delivery por distancia con repartidores de la plataforma | ✅ | CU20 | `services/delivery_service.py`, `routes/delivery_routes.py`, `delivery/pages/delivery-home-page`, `superadmin/pages/drivers-page`, `cart-page`, móvil `checkout_page.dart` |
-| Branding por empresa (logo, color) — 0.3 | ✅ | CU1 | `tenant_service` (`update_tenant_logo`, `get_branding`), `tenant_routes` (`/branding`, `/me/branding`, `/me/logo`, `/{id}/logo`), `core/services/branding.service.ts`, `shared/components/tenant-branding-editor`, `app-shell`, `simple-pdf.util` |
+| Branding por empresa (logo, color) — 0.3 | ✅ | CU26 | `tenant_service` (`update_tenant_logo`, `get_branding`), `tenant_routes` (`/branding`, `/me/branding`, `/me/logo`, `/{id}/logo`), `core/services/branding.service.ts`, `shared/components/tenant-branding-editor`, `app-shell`, `simple-pdf.util` |
 | Cupón en caja (CU15) | ✅ | CU15 | `sales_service._apply_cashier_coupon`, `sales.customer_id` / `sales.promotion_code_id`, `caja-page` |
 | Recomendaciones: mensajes en español, reentrenamiento nocturno, compras en caja y favoritos como señales, sin empresas suspendidas | ✅ | CU6 | `recommendation_service.py`, `recommendation_routes.py`, `wishlist_service.py`, `sales_service.py`, `main.py` |
 | Anticipo con tarjeta (web y móvil) | ✅ | 1P-CU14 | `shared/components/stripe-card-payment`, `my-reservations-page`, móvil `reservations_page.dart` |
@@ -575,12 +575,12 @@ Ejecutar la transferencia reutiliza `inventory_service.register_transfer` (atóm
 | Ingesta RPA de remitos con Gemini | ✅ | CU10 | `services/rpa_ingest_service.py`, `routes/rpa_ingest_routes.py`, `inventory_service._add_stock`, migración `0044`, `proveedor/pages/provider-rpa-ingest-page`, `docs/demo/remito_demo.pdf` |
 | Lista de deseos con mover al carrito (web y móvil) | ✅ | CU16 | `services/wishlist_service.py`, `routes/wishlist_routes.py`, migración `0045`, `cliente/pages/wishlist-page`, `cliente/components/wishlist-toggle-button`, móvil `features/wishlist/` |
 | Puntos de fidelidad por empresa con niveles (web, caja y móvil) | ✅ | CU17 | `services/loyalty_service.py`, `routes/loyalty_routes.py`, `order_service` (`_new_order`, `_consume_order`, `_release_order`), `sales_service._apply_loyalty`, migración `0046`, `cliente/pages/loyalty-page`, `cart-page`, `caja-page`, móvil `features/loyalty/`, `checkout_page.dart` |
-| Superadmin entra al panel de una empresa como su administrador; tenants solo con plan; historial de pagos | ✅ | CU1, CU2 | `tenant_service` (`open_tenant_panel`, `register_tenant_admin`, `list_tenants`), `tenant_routes` (`/panel-session`, `/admin`), `subscription_service.list_subscription_history`, migración `0047`, `session.service.ts` (`enterTenantPanel`), `tenant-management-page`, `subscription-page` |
+| Superadmin entra al panel de una empresa como su administrador; tenants solo con plan; historial de pagos | ✅ | CU1, CU28 | `tenant_service` (`open_tenant_panel`, `register_tenant_admin`, `list_tenants`), `tenant_routes` (`/panel-session`, `/admin`), `subscription_service.list_subscription_history`, migración `0047`, `session.service.ts` (`enterTenantPanel`), `tenant-management-page`, `subscription-page` |
 | Pedidos web solo con pago en línea (sin efectivo ni contra entrega) | ✅ | 1P-CU16, CU20 | `payment_routes.py` (sin `/payments/cash/checkout`), `order_service.hand_over_order`, `delivery_service.confirm_delivery`, `cart-page`, móvil `checkout_page.dart` |
 | Caja por cajero: apertura, vuelto, ingresos/retiros y cierre con diferencia | ✅ | 1P-CU18 | `models/cash_session.py`, migración `0048`, `services/cash_session_service.py`, `routes/cash_session_routes.py`, `sales_service.create_sale`, `cajero/components/cash-drawer-panel`, `caja-page` |
 | Panel de una sucursal para el administrador | ✅ | 1P (gestión de sucursales) | `admin/pages/admin-branch-detail-page`, `order_routes` (`/orders/branch?branch_id=`), `admin-branch-page` |
 | Traspaso: selección de la prenda del inventario de la sucursal de origen | ✅ | CU11 | `admin/pages/admin-inventory-page` |
-| Comprobante de pago por cada transacción (PDF y correo) | ✅ | 1P-CU16, 1P-CU18, 1P-CU14, CU2 | `models/payment_receipt.py`, migración `0049`, `services/receipt_service.py` (emisión, PDF con reportlab, envío), `routes/receipt_routes.py`, tarea `_receipt_email_loop` en `main.py`, `email_service` (adjuntos), `shared/components/receipt-actions`, `shared/pages/receipts-page`, móvil `shared/widgets/receipt_email_button.dart` |
+| Comprobante de pago por cada transacción (PDF y correo) | ✅ | 1P-CU16, 1P-CU18, 1P-CU14, CU27 | `models/payment_receipt.py`, migración `0049`, `services/receipt_service.py` (emisión, PDF con reportlab, envío), `routes/receipt_routes.py`, tarea `_receipt_email_loop` en `main.py`, `email_service` (adjuntos), `shared/components/receipt-actions`, `shared/pages/receipts-page`, móvil `shared/widgets/receipt_email_button.dart` |
 | Devoluciones con reembolso a tarjeta / efectivo (D3, D4) | ⏳ | CU21 | ver sección 1.7 |
 
 **Notas para quien continúe:**

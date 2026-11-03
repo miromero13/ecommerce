@@ -146,11 +146,11 @@ El desarrollo del segundo parcial atiende a cuatro problemáticas operativas y d
 
 ---
 
-## 7. Actores y Mapa Consolidado de Casos de Uso (CU1 al CU25)
+## 7. Actores y Mapa Consolidado de Casos de Uso (CU1 al CU28)
 
 ### Actores del Sistema
-* **Superadministrador:** Administra la plataforma SaaS, crea planes y gestiona tenants.
-* **Administrador de Tenant:** Administra su empresa, sucursales, usuarios, catálogo, suscripción y reportes con IA.
+* **Superadministrador:** Administra la plataforma SaaS, crea planes, gestiona tenants y audita suscripciones.
+* **Administrador de Tenant:** Administra su empresa, sucursales, usuarios, catálogo, branding, suscripción y reportes con IA.
 * **Encargado de Sucursal:** Prepara reservas, recepciona mercadería y gestiona transferencias de stock.
 * **Cajero:** Atiende la caja física, emite ventas presenciales (online y offline de contado) y cobra pedidos.
 * **Cliente:** Navega el catálogo, usa el vestidor virtual, compra digitalmente, reserva prendas y usa su billetera.
@@ -161,8 +161,8 @@ El desarrollo del segundo parcial atiende a cuatro problemáticas operativas y d
 
 | **ID** | **Caso de Uso** | **Módulo** | **Estado** | **Actor Principal** | **Plataforma** |
 | :--- | :--- | :--- | :---: | :--- | :--- |
-| **CU1** | **Plataforma Multi-Tenant (Migración Integral)** | M1: SaaS y Seguridad | **Hecho** | Superadministrador | Web |
-| **CU2** | **Gestión de Planes y Suscripciones B2B** | M1: SaaS y Seguridad | **Hecho** | Superadmin, Admin Tenant | Web |
+| **CU1** | **Aprovisionamiento y Gestión de Organizaciones (Tenants)** | M1: SaaS y Seguridad | **Hecho** | Superadministrador | Web |
+| **CU2** | **Gestión del Catálogo de Planes de Suscripción SaaS** | M1: SaaS y Seguridad | **Hecho** | Superadministrador | Web |
 | **CU3** | **Gestión Granular de Roles y Permisos (RBAC)** | M1: SaaS y Seguridad | Pendiente | Superadmin, Admin Tenant | Web |
 | **CU4** | **Landing Page y Catálogo de Planes** | M1: SaaS y Seguridad | **Hecho** | Prospecto B2B | Web |
 | **CU5** | **Usar Vestidor Virtual en Tiempo Real** | M2: Inteligencia Artificial | **Hecho** | Cliente | Móvil / Web |
@@ -186,8 +186,11 @@ El desarrollo del segundo parcial atiende a cuatro problemáticas operativas y d
 | **CU23** | **Modo Offline y Sincronización Diferida (Offline-First)** | M6: Logística y Posventa | Pendiente | Cajero, Cliente, Delivery | Ambas |
 | **CU24** | **Restablecimiento y Control de Inventario por Devolución/Merma** | M6: Logística y Posventa | Pendiente | Encargado, Admin Tenant | Web |
 | **CU25** | **Resolución de Conflictos de Inventario y Notificación Offline** | M6: Logística y Posventa | Pendiente | Cajero, Cliente, Sistema | Ambas |
+| **CU26** | **Personalización de Identidad y Marca del Tenant (Branding)** | M1: SaaS y Seguridad | **Hecho** | Admin Tenant, Superadmin | Web / Móvil |
+| **CU27** | **Contratación y Onboarding de Suscripción B2B** | M1: SaaS y Seguridad | **Hecho** | Prospecto B2B, Superadmin | Web |
+| **CU28** | **Monitoreo de Consumo y Cambio de Plan B2B** | M1: SaaS y Seguridad | **Hecho** | Admin Tenant | Web |
 
-* **Total de Casos de Uso:** 25 (8 Implementados en Base + 17 Pendientes de Evolución Segundo Parcial).
+* **Total de Casos de Uso:** 28 (11 Implementados en Base + 17 Pendientes de Evolución Segundo Parcial).
 
 ---
 
