@@ -16,6 +16,8 @@ import '../features/reservations/reservation_create_page.dart';
 import '../features/reservations/reservation_models.dart';
 import '../features/reservations/reservations_page.dart';
 import '../features/loyalty/loyalty_page.dart';
+import '../features/profile/gift_cards_page.dart';
+import '../features/profile/wallet_page.dart';
 import '../features/wishlist/wishlist_page.dart';
 import '../shared/widgets/app_scaffold.dart';
 
@@ -33,6 +35,8 @@ abstract final class AppRoutes {
   static const notifications = '/notifications';
   static const wishlist = '/wishlist';
   static const loyalty = '/loyalty';
+  static const giftCards = '/gift-cards';
+  static const wallet = '/wallet';
 }
 
 abstract final class AppRouter {
@@ -136,6 +140,18 @@ abstract final class AppRouter {
         settings,
         LoyaltyPage(authController: authController),
         selectedIndex: 1,
+      ),
+      AppRoutes.giftCards => _page(
+        settings,
+        GiftCardsPage(authController: authController),
+        selectedIndex: 1,
+        shellTitle: 'Tarjetas de regalo',
+      ),
+      AppRoutes.wallet => _page(
+        settings,
+        WalletPage(authController: authController),
+        selectedIndex: 1,
+        shellTitle: 'Mi Billetera Digital',
       ),
       AppRoutes.login => _page(
         settings,

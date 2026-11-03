@@ -90,6 +90,29 @@ class OrderController extends ChangeNotifier {
     }
   }
 
+  Future<Map<String, dynamic>?> checkoutWallet({
+    required String pickupBranchId,
+    Map<String, dynamic>? delivery,
+    int points = 0,
+  }) async {
+    status = OrderControllerStatus.saving;
+    errorMessage = null;
+    feedbackMessage = null;
+    notifyListeners();
+    try {
+      final result = await _api.checkoutWallet(pickupBranchId: pickupBranchId, delivery: delivery, points: points);
+      feedbackMessage = 'Pedido pagado exitosamente con tu Billetera Digital';
+      status = OrderControllerStatus.ready;
+      notifyListeners();
+      return result;
+    } catch (error) {
+      status = OrderControllerStatus.error;
+      errorMessage = _messageFor(error);
+      notifyListeners();
+      return null;
+    }
+  }
+
   Future<StripeCheckoutResult?> payOrder({required String orderId}) async {
     status = OrderControllerStatus.saving;
     errorMessage = null;

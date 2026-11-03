@@ -48,6 +48,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   final _latitude = TextEditingController();
   final _longitude = TextEditingController();
   final _points = TextEditingController(); // CU17: 10 points = 1 Bs
+  String _paymentMethod = 'stripe'; // 'stripe' | 'wallet'
   Map<String, dynamic>? _quote;
   bool _quoting = false;
 
@@ -214,7 +215,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
                 labelText: 'Puntos a canjear (opcional)',
-                helperText: '10 puntos = 1 Bs de descuento. Consulta tu saldo en Mis puntos.',
+                helperText: '100 puntos = 1 Bs de descuento. Consulta tu saldo en Mis puntos.',
               ),
             ),
             const SizedBox(height: 12),
@@ -278,9 +279,20 @@ class _CheckoutPageState extends State<CheckoutPage> {
             ],
             const SizedBox(height: 12),
           ],
+          SegmentedButton<String>(
+            segments: const [
+              ButtonSegment(value: 'stripe', label: Text('Tarjeta'), icon: Icon(Icons.credit_card)),
+              ButtonSegment(value: 'wallet', label: Text('Billetera'), icon: Icon(Icons.account_balance_wallet)),
+            ],
+            selected: {_paymentMethod},
+            onSelectionChanged: isSaving
+                ? null
+                : (set) => setState(() => _paymentMethod = set.first),
+          ),
+          const SizedBox(height: 12),
           AppButton(
-            label: 'Pagar con tarjeta',
-            icon: const Icon(Icons.credit_card_outlined),
+            label: _paymentMethod == 'wallet' ? 'Pagar con Billetera Digital' : 'Pagar con tarjeta',
+            icon: Icon(_paymentMethod == 'wallet' ? Icons.account_balance_wallet_outlined : Icons.credit_card_outlined),
             onPressed: isSaving || (!_isOrderPayment && pickupBranchId == null)
                 ? null
                 : () => _submit(pickupBranchId),
@@ -310,6 +322,19 @@ class _CheckoutPageState extends State<CheckoutPage> {
     final delivery = _deliveryPayload();
     if (_fulfillment == 'delivery' && delivery == null) {
       AppSnackBar.show(context, 'Ingresa la dirección y calcula el costo de envío.', tone: AppSnackBarTone.warning);
+      return;
+    }
+    if (_paymentMethod == 'wallet') {
+      final order = await _controller.checkoutWallet(
+        pickupBranchId: pickupBranchId,
+        delivery: delivery,
+        points: _pointsToRedeem,
+      );
+      if (!mounted) return;
+      if (order != null) {
+        AppSnackBar.show(context, '¡Pedido pagado exitosamente con tu Billetera!', tone: AppSnackBarTone.success);
+        Navigator.of(context).pushReplacementNamed(AppRoutes.orders, arguments: order['id']);
+      }
       return;
     }
     await _checkoutStripe(pickupBranchId: pickupBranchId, delivery: delivery);

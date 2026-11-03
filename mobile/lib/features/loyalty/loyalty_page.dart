@@ -68,7 +68,7 @@ class _LoyaltyPageState extends State<LoyaltyPage> {
         children: [
           const AppSectionTitle(
             title: 'Mis puntos',
-            subtitle: '1 punto por cada 10 Bs pagados · 10 puntos = 1 Bs. Bronce < 500, Plata 500-1499, Oro ≥ 1500.',
+            subtitle: '1 punto por cada 10 Bs pagados · 100 puntos = 1 Bs. Bronce < 500, Plata 500-1499, Oro ≥ 1500.',
           ),
           const SizedBox(height: 16),
           if (balances.isEmpty)

@@ -50,10 +50,10 @@ class ManagementPage extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         _ManagementCard(
-          icon: Icons.loyalty_outlined,
-          title: 'Mis puntos',
-          subtitle: 'Puntos y nivel en cada empresa para canjear al pagar.',
-          onTap: () => Navigator.of(context).pushNamed(AppRoutes.loyalty),
+          icon: Icons.account_balance_wallet_outlined,
+          title: 'Mi Billetera Digital',
+          subtitle: 'Saldo en Bs, conversión de puntos de fidelidad y Gift Cards.',
+          onTap: () => Navigator.of(context).pushNamed(AppRoutes.wallet),
         ),
         const SizedBox(height: 12),
         _ManagementCard(

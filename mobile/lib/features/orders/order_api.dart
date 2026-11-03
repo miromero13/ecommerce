@@ -92,6 +92,23 @@ class OrderApi {
     return StripeCheckoutResult(checkout: checkout, message: response.message);
   }
 
+  Future<Map<String, dynamic>> checkoutWallet({
+    required String pickupBranchId,
+    Map<String, dynamic>? delivery,
+    int points = 0,
+  }) async {
+    final response = await _client.post<Map<String, dynamic>>(
+      'wallet/checkout',
+      data: {
+        'pickup_branch_id': pickupBranchId,
+        if (delivery != null) 'delivery': delivery,
+        'points_to_redeem': points,
+      },
+      parser: (value) => Map<String, dynamic>.from(value as Map),
+    );
+    return response.data ?? const {};
+  }
+
   static Order _parseOrder(dynamic value) {
     if (value is! Map) {
       throw const FormatException('La respuesta del pedido es inválida');

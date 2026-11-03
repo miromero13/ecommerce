@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../app/routes.dart';
 import '../../shared/widgets/app_button.dart';
 import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/app_empty_view.dart';
@@ -157,6 +158,28 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ),
         const SizedBox(height: 16),
+        AppCard(
+          onTap: () => Navigator.of(context).pushNamed(AppRoutes.wallet),
+          child: Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: Colors.indigo.shade100,
+                child: Icon(Icons.account_balance_wallet, color: Colors.indigo.shade800),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Mi Billetera Digital', style: TextStyle(fontWeight: FontWeight.bold)),
+                    Text('Consulta tu saldo y canjeá Gift Cards', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: Colors.grey),
+            ],
+          ),
+        ),
         const SizedBox(height: 16),
         AppButton(
           label: 'Cerrar sesión',
