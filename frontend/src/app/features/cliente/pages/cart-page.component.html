@@ -147,7 +147,7 @@
           }
           <div class="space-y-2">
               <label class="text-xs font-medium text-slate-600 flex items-center gap-1.5" for="pickup-branch"><ng-icon name="lucideMapPin" class="text-slate-700" /> {{ fulfillment() === 'delivery' ? 'Sucursal que envía el pedido' : 'Sucursal de retiro' }}</label>
-              <select id="pickup-branch" class="flex h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm cursor-pointer" [value]="pickupBranchId()" (change)="pickupBranchId.set($any($event.target).value)">
+              <select id="pickup-branch" class="flex h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm cursor-pointer" [value]="pickupBranchId()" (change)="onBranchChange($any($event.target).value)">
                 <option value="">Selecciona una sucursal</option>
                 @for (branch of branches(); track branch.id) {
                   <option [value]="branch.id" [selected]="branch.id === pickupBranchId()">{{ branch.name }} - {{ branch.city }}</option>

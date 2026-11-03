@@ -391,11 +391,52 @@ export class CartPageComponent {
       const response = await firstValueFrom(this.catalogApi.listPublicBranches(tenantId));
       const branchList = response.data ?? [];
       this.branches.set(branchList);
-      const preferred = branchList.some((b) => b.id === this.cartBranchId()) ? this.cartBranchId() : '';
-      this.pickupBranchId.set(preferred || (branchList.length === 1 ? branchList[0].id : ''));
+      const serverBranch = this.cart()?.branch_id;
+      const preferred = (serverBranch && branchList.some((b) => b.id === serverBranch))
+        ? serverBranch
+        : (branchList.some((b) => b.id === this.cartBranchId()) ? this.cartBranchId() : '');
+      const chosen = preferred || (branchList.length === 1 ? branchList[0].id : '');
+      this.pickupBranchId.set(chosen);
+      if (chosen && chosen !== this.cart()?.branch_id) {
+        void this.syncCartBranch(chosen, false);
+      }
     } catch (error) {
       toast.error(getErrorMessage(error, 'No se pudieron cargar las sucursales.'));
     }
+  }
+
+  protected async onBranchChange(newBranchId: string): Promise<void> {
+    this.pickupBranchId.set(newBranchId);
+    await this.syncCartBranch(newBranchId, true);
+  }
+
+  private async syncCartBranch(branchId: string, notifyUser: boolean): Promise<void> {
+    try {
+      const response = await firstValueFrom(this.cartApi.setBranch(branchId || null));
+      this.cart.set(response.data ?? null);
+      if (branchId) {
+        const branch = this.branches().find((b) => b.id === branchId);
+        if (branch) {
+          this.setCartBranch(branch.id, `${branch.name} (${branch.city})`);
+        }
+      } else {
+        this.clearCartBranch();
+      }
+      if (notifyUser && response.message && response.message.includes('retirado')) {
+        toast.warning(response.message);
+      }
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'No se pudo actualizar la sucursal del carrito.'));
+    }
+  }
+
+  private setCartBranch(branchId: string, branchName: string): void {
+    try {
+      localStorage.setItem('fashionstore_cart_branch_id', branchId);
+      localStorage.setItem('fashionstore_cart_branch_name', branchName);
+    } catch {}
+    this.cartBranchId.set(branchId);
+    this.cartBranchName.set(branchName);
   }
 
   private getCartBranchId(): string {

@@ -32,6 +32,10 @@ export class CartApiService {
     return this.api.post<CartResponse>('/cart/coupon', { code });
   }
 
+  setBranch(branchId: string | null) {
+    return this.api.patch<CartResponse>('/cart/branch', { branch_id: branchId });
+  }
+
   removeCoupon() {
     return this.api.delete<CartResponse>('/cart/coupon');
   }
