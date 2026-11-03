@@ -107,6 +107,16 @@ export const routes: Routes = [
         loadComponent: () => import('./features/cliente/pages/loyalty-page.component').then((m) => m.LoyaltyPageComponent),
       },
       {
+        path: 'cliente/gift-cards',
+        canActivate: [roleGuard(['cliente'])],
+        loadComponent: () => import('./features/cliente/pages/gift-cards-page.component').then((m) => m.GiftCardsPageComponent),
+      },
+      {
+        path: 'cliente/wallet',
+        canActivate: [roleGuard(['cliente'])],
+        loadComponent: () => import('./features/cliente/pages/wallet-page.component').then((m) => m.WalletPageComponent),
+      },
+      {
         path: 'cliente/cart',
         loadComponent: () =>
           import('./features/cliente/pages/cart-page.component').then((m) => m.CartPageComponent),

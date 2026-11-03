@@ -19,7 +19,7 @@ const MOVEMENT_LABELS: Record<LoyaltyMovement['type'], string> = { earn: 'Ganado
       <header>
         <h1 class="text-2xl font-semibold">Mis puntos</h1>
         <p class="text-sm text-slate-500">
-          Ganas 1 punto por cada 10 Bs pagados y canjeas 10 puntos = 1 Bs al pagar. Los puntos son de cada empresa.
+          Ganas 1 punto por cada 10 Bs pagados y canjeas 100 puntos = 1 Bs al pagar. Los puntos son de cada empresa.
           Nivel por puntos acumulados: Bronce (menos de 500), Plata (500 a 1499) y Oro (1500 o más).
         </p>
       </header>

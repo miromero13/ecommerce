@@ -9,7 +9,10 @@ import { HlmFieldImports } from '../../../components/field/src';
 import { HlmIconImports } from '../../../components/icon/src';
 import { HlmInput } from '../../../components/input/src';
 import { HlmSelectImports } from '../../../components/select/src';
+import { RouterLink } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { requestWithToast } from '../../../core/utils/request-toast.util';
+import { WalletApiService } from '../services/wallet-api.service';
 import { UpdateProfileRequest } from '../models/auth.model';
 import { PerfilUsuario } from '../models/user.model';
 import { SessionService } from '../services/session.service';
@@ -18,7 +21,7 @@ import { UserApiService } from '../services/user-api.service';
 @Component({
   selector: 'app-profile-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, HlmButton, HlmInput, ...HlmFieldImports, ...HlmIconImports, ...HlmSelectImports],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, HlmButton, HlmInput, ...HlmFieldImports, ...HlmIconImports, ...HlmSelectImports],
   providers: [provideIcons({ lucidePencil })],
   templateUrl: './profile-page.component.html',
 })
@@ -26,11 +29,13 @@ export class ProfilePageComponent {
   private readonly fb = inject(FormBuilder);
   private readonly session = inject(SessionService);
   private readonly userApi = inject(UserApiService);
+  private readonly walletApi = inject(WalletApiService);
 
   protected readonly user = signal<PerfilUsuario | null>(this.session.user());
   protected readonly userRoleLabel = signal('');
   protected readonly loading = signal(false);
   protected readonly isEditing = signal(false);
+  protected readonly walletBalance = signal<number | null>(null);
 
   protected readonly genderSelectLabel = (gender: string | null | undefined): string => {
     if (!gender) return 'Género';
@@ -116,7 +121,19 @@ export class ProfilePageComponent {
       if (!this.isEditing()) {
         this.form.disable({ emitEvent: false });
       }
+      if (currentUser?.rol === 'cliente') {
+        void this.loadWallet();
+      }
     });
+  }
+
+  private async loadWallet(): Promise<void> {
+    try {
+      const res = await firstValueFrom(this.walletApi.balance());
+      this.walletBalance.set(res.data?.balance ?? 0);
+    } catch {
+      // Ignore
+    }
   }
 
   protected async submit(): Promise<void> {

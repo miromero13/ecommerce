@@ -1,4 +1,4 @@
-/** CU17: points of a customer in one company (10 points = 1 Bs). */
+/** CU17: points of a customer in one company (100 points = 1 Bs). */
 export interface LoyaltyBalance {
   tenant_id: string;
   tenant_name: string;

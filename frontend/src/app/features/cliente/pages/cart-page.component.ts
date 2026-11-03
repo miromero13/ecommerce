@@ -26,6 +26,7 @@ import { Order } from '../../shared/models/order.model';
 import { CheckoutApiService } from '../../shared/services/checkout-api.service';
 import { DeliveryApiService } from '../../shared/services/delivery-api.service';
 import { DeliveryAddress, DeliveryQuote } from '../../shared/models/delivery.model';
+import { WalletApiService } from '../../shared/services/wallet-api.service';
 import { environment } from '../../../../environments/environment';
 
 type StripeCheckout = {
@@ -54,6 +55,7 @@ export class CartPageComponent {
   private readonly cartApi = inject(CartApiService);
   private readonly catalogApi = inject(CatalogApiService);
   private readonly checkoutApi = inject(CheckoutApiService);
+  private readonly walletApi = inject(WalletApiService);
   private stripe: Stripe | null = null;
   private stripeElements: StripeElements | null = null;
   private stripePaymentElement: StripePaymentElement | null = null;
@@ -77,10 +79,13 @@ export class CartPageComponent {
   protected readonly pickupBranchId = signal(this.getCartBranchId());
   protected readonly checkingOut = signal(false);
   protected readonly couponCode = signal('');
-  // CU17: points of the cart's company; 10 points = 1 Bs off the products.
+  // CU17: points of the cart's company; 100 points = 1 Bs off the products.
   private readonly loyaltyApi = inject(LoyaltyApiService);
   protected readonly availablePoints = signal(0);
   protected readonly pointsToRedeem = signal(0);
+  // CU19: store wallet
+  protected readonly walletBalance = signal<number | null>(null);
+  protected readonly paymentMethod = signal<'stripe' | 'wallet'>('stripe');
   // CU20: in-store pickup or home delivery shipped from the selected branch.
   private readonly deliveryApi = inject(DeliveryApiService);
   protected readonly fulfillment = signal<'pickup' | 'delivery'>('pickup');
@@ -199,8 +204,24 @@ export class CartPageComponent {
 
     this.checkingOut.set(true);
     try {
-      await this.startStripeCheckout(pickupBranchId, delivery);
-      await this.loadCart();
+      if (this.paymentMethod() === 'wallet') {
+        const res = await requestWithToast(
+          this.walletApi.checkout({
+            pickup_branch_id: pickupBranchId,
+            delivery,
+            points_to_redeem: this.pointsToRedeem(),
+          }),
+          { loading: 'Procesando pago con Billetera Digital...', success: '¡Pedido pagado exitosamente con tu Billetera!', error: 'No se pudo pagar con la billetera.' }
+        );
+        if (res.data) {
+          this.lastOrder.set(res.data);
+        }
+        await this.loadCart();
+        void this.loadWallet();
+      } else {
+        await this.startStripeCheckout(pickupBranchId, delivery);
+        await this.loadCart();
+      }
     } catch {
       // requestWithToast already showed the error.
     } finally {
@@ -378,6 +399,30 @@ export class CartPageComponent {
       this.availablePoints.set(balances.find((row) => row.tenant_id === tenantId)?.points_balance ?? 0);
     } catch {
       this.availablePoints.set(0); // checkout still works without points
+    }
+    void this.loadWallet();
+  }
+
+  protected async loadWallet(): Promise<void> {
+    try {
+      const res = await firstValueFrom(this.walletApi.balance());
+      this.walletBalance.set(res.data?.balance ?? 0);
+    } catch {
+      this.walletBalance.set(0);
+    }
+  }
+
+  protected async convertPointsToWallet(): Promise<void> {
+    const tenantId = this.cart()?.tenant_id;
+    const points = Math.floor(this.availablePoints() / 100) * 100;
+    if (!tenantId || points < 100) return;
+    try {
+      const res = await firstValueFrom(this.walletApi.convertPoints({ tenant_id: tenantId, points }));
+      toast.success(res.message || 'Puntos convertidos exitosamente a saldo en tu Billetera.');
+      await this.loadPoints();
+      await this.loadWallet();
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'No se pudieron convertir los puntos a saldo.'));
     }
   }
 
