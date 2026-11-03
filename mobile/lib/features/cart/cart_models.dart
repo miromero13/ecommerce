@@ -87,6 +87,10 @@ class Cart {
     required this.items,
     this.promotionCodeId,
     this.promotionCode,
+    this.tenantId,
+    this.tenantName,
+    this.branchId,
+    this.branchName,
     this.updatedAt,
   });
 
@@ -102,6 +106,10 @@ class Cart {
   final List<CartItem> items;
   final String? promotionCodeId;
   final String? promotionCode;
+  final String? tenantId;
+  final String? tenantName;
+  final String? branchId;
+  final String? branchName;
 
   factory Cart.fromJson(Map<String, dynamic> json) {
     final rawItems = json['items'];
@@ -121,6 +129,10 @@ class Cart {
       updatedAt: _optionalDateTime(json, 'updated_at'),
       promotionCodeId: _optionalString(json, 'promotion_code_id'),
       promotionCode: _optionalString(json, 'promotion_code'),
+      tenantId: _optionalString(json, 'tenant_id'),
+      tenantName: _optionalString(json, 'tenant_name'),
+      branchId: _optionalString(json, 'branch_id'),
+      branchName: _optionalString(json, 'branch_name'),
       items: rawItems
           .map((item) {
             if (item is! Map) {

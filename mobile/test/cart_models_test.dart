@@ -12,6 +12,10 @@ void main() {
       'discount_amount': 5,
       'total_amount': 120.5,
       'item_count': 2,
+      'tenant_id': 'tenant-uuid',
+      'tenant_name': 'Ayni Moda',
+      'branch_id': 'branch-uuid',
+      'branch_name': 'Sucursal Central',
       'created_at': '2026-01-01T10:00:00Z',
       'updated_at': null,
       'items': [
@@ -40,6 +44,10 @@ void main() {
     expect(cart.discountAmount, 5);
     expect(cart.totalAmount, 120.5);
     expect(cart.itemCount, 2);
+    expect(cart.tenantId, 'tenant-uuid');
+    expect(cart.tenantName, 'Ayni Moda');
+    expect(cart.branchId, 'branch-uuid');
+    expect(cart.branchName, 'Sucursal Central');
     expect(cart.items.single.imageUrl, 'https://example.com/image.jpg');
     expect(cart.items.single.colorName, 'Negro');
   });

@@ -32,6 +32,9 @@ class CartController extends ChangeNotifier {
 
   Future<void> clear() => _run(_api.clear);
 
+  Future<void> setBranch(String? branchId) =>
+      _run(() => _api.setBranch(branchId));
+
   Future<void> applyCoupon(String code) =>
       _run(() => _api.applyCoupon(code: code));
 

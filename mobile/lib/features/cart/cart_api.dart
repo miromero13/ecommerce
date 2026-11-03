@@ -72,6 +72,15 @@ class CartApi {
     return _result(response.data, response.message);
   }
 
+  Future<CartOperationResult> setBranch(String? branchId) async {
+    final response = await _client.patch<Cart>(
+      'cart/branch',
+      data: {'branch_id': branchId},
+      parser: _parseCart,
+    );
+    return _result(response.data, response.message);
+  }
+
   Future<CartOperationResult> removeCoupon() async {
     final response = await _client.delete<Cart>(
       'cart/coupon',
