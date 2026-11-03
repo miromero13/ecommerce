@@ -1503,7 +1503,7 @@ Response 400 Bad Request:
 * **Descripción Funcional:** Billetera de puntos **por empresa**. Acumula puntos cuando una compra queda pagada (pedido web o venta en caja con el cliente identificado) y permite canjearlos como descuento en el checkout web/móvil o en caja.
 * **Reglas implementadas:**
   * Se gana **1 punto por cada 10 Bs** pagados por prendas (el envío no suma; el anticipo de una reserva sí). Un pedido suma puntos una sola vez, al quedar pagado.
-  * Se canjean **10 puntos = 1 Bs**, en múltiplos de 10, sin superar el monto de las prendas; el canje se elige al confirmar el pedido (pagado con tarjeta vía Stripe; los pedidos web nunca se pagan con QR ni en efectivo) o en caja.
+  * Se canjean **100 puntos = 1 Bs**, en múltiplos de 100, sin superar el monto de las prendas; el canje se elige al confirmar el pedido (pagado con tarjeta vía Stripe o Billetera Digital) o en caja.
   * Si un pedido con puntos canjeados vence o se cancela, los puntos se devuelven.
   * Nivel por puntos acumulados (nunca baja): **Bronce** (< 500), **Plata** (500–1499), **Oro** (≥ 1500).
   * En caja el canje y la acumulación exigen el correo de un cliente registrado.
@@ -1577,7 +1577,7 @@ Response 400 Bad Request:
 #### CU18 – Emitir y comprar tarjetas de regalo (*Gift Cards*)
 * **Módulo:** M5: Promociones y Fidelización
 * **Actor Principal:** Cliente
-* **Estado:** Pendiente | **Plataforma:** Ambas
+* **Estado:** **Hecho** (`gift_card_service.py`, `gift_card_routes.py`, migración `0053`) | **Plataforma:** Ambas
 * **Descripción Funcional:** Proceso de compra de vouchers prepagados con saldo configurable ($20, $50, $100), dedicatoria personalizada y generación de código alfanumérico único con código QR descargable y enviado por email.
 
 ##### Endpoints Backend
@@ -1630,18 +1630,18 @@ Response 404 Not Found:
 * **Mensajes en UI:** Toast: `"Tarjeta de regalo adquirida y enviada por correo al destinatario"`.
 
 ##### Checklist de Implementación
-- [ ] Backend: Modelar tabla `gift_cards` con código hash único, saldos y estado.
-- [ ] Backend: Generador de código QR y envío de correo con plantilla HTML.
-- [ ] Frontend: Desarrollar pantalla `gift-cards-page` con previsualizador visual de tarjeta de regalo.
-- [ ] Móvil: Pantalla de compra y listado de Gift Cards en Flutter.
-- [ ] Verificación: Adquirir una Gift Card y comprobar la validez del código QR generado.
+- [x] Backend: Modelar tabla `gift_cards` con código hash único, saldos y estado.
+- [x] Backend: Generador de código QR y envío de correo con plantilla HTML.
+- [x] Frontend: Desarrollar pantalla `gift-cards-page` con previsualizador visual de tarjeta de regalo.
+- [x] Móvil: Pantalla de compra y listado de Gift Cards en Flutter.
+- [x] Verificación: Adquirir una Gift Card y comprobar la validez del código QR generado.
 
 ---
 
 #### CU19 – Gestionar billetera digital (*Store Wallet*)
 * **Módulo:** M5: Promociones y Fidelización
 * **Actor Principal:** Cliente, Cajero
-* **Estado:** Pendiente | **Plataforma:** Ambas
+* **Estado:** **Hecho** (`wallet_service.py`, `wallet_routes.py`, migración `0053`) | **Plataforma:** Ambas
 * **Descripción Funcional:** Billetera digital unificada del usuario. Permite canjear Gift Cards acreditando saldo, consultar el balance monetario disponible y pagar total o parcialmente en checkout web/móvil o en caja escaneando el código de usuario. Recibe además los reembolsos por devoluciones (RMA).
 
 ##### Regla de Navegación e Integración UI
@@ -1721,12 +1721,12 @@ GET /api/wallet/transactions
 * **Mensajes en UI:** Muestra en pantalla el mensaje exacto del backend: `"Gift Card canjeada exitosamente. Se acreditaron $50.00 en tu saldo."` o `"Saldo insuficiente en la billetera virtual para completar la operación"`.
 
 ##### Checklist de Implementación
-- [ ] Backend: Modelar tablas `user_wallets` y `wallet_transactions` con concurrencia segura y aislamiento por `tenant_id`.
-- [ ] Backend: Endpoints `/api/wallet/balance`, `/api/wallet/redeem-gift-card`, `/api/wallet/pay` y transacciones.
-- [ ] Frontend: Desarrollar pantalla `wallet-page` y tarjeta de saldo en la vista de perfil.
-- [ ] Frontend: Agregar medio de pago "Billetera Virtual" en el checkout del carrito (`cart-page.component.ts`).
-- [ ] Móvil: Añadir botón "Mi Billetera Digital" en el menú de `ProfilePage` en Flutter y vista de saldo.
-- [ ] Verificación: Cargar una tarjeta de regalo y realizar el pago total de un pedido descontando del saldo.
+- [x] Backend: Modelar tablas `user_wallets` y `wallet_transactions` con concurrencia segura y aislamiento por `tenant_id`.
+- [x] Backend: Endpoints `/api/wallet/balance`, `/api/wallet/redeem-gift-card`, `/api/wallet/pay` y transacciones.
+- [x] Frontend: Desarrollar pantalla `wallet-page` y tarjeta de saldo en la vista de perfil.
+- [x] Frontend: Agregar medio de pago "Billetera Virtual" en el checkout del carrito (`cart-page.component.ts`).
+- [x] Móvil: Añadir botón "Mi Billetera Digital" en el menú de `ProfilePage` en Flutter y vista de saldo.
+- [x] Verificación: Cargar una tarjeta de regalo y realizar el pago total de un pedido descontando del saldo.
 
 ---
 

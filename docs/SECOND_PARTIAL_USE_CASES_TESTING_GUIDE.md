@@ -491,7 +491,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 ##### Pasos para probar:
 1. **Consultar Puntos (Cliente):**
    * Ingresá como cliente y andá a `/app/cliente/loyalty`.
-   * Verificá el saldo de puntos acumulados por empresa, el nivel alcanzado (*Bronce, Plata, Oro*) y la equivalencia en dinero (10 puntos = 1 Bs).
+   * Verificá el saldo de puntos acumulados por empresa, el nivel alcanzado (*Bronce, Plata, Oro*) y la equivalencia en dinero (100 puntos = 1 Bs).
 2. **Canje de Puntos en Checkout Web:**
    * Agregá prendas al carrito y procedé al pago en `/app/cliente/cart`.
    * En el bloque de pago, activá la opción **"Canjear Puntos"** e indicá la cantidad (en múltiplos de 10).
