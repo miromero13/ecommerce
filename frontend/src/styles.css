@@ -4,6 +4,7 @@
 @import "tailwindcss/preflight.css" layer(base);
 @import "tailwindcss/utilities.css" layer(utilities);
 @import "@spartan-ng/brain/hlm-tailwind-preset.css";
+@import "leaflet/dist/leaflet.css";
 
 @media print {
   body * { visibility: hidden; }

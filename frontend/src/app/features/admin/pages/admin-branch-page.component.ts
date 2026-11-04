@@ -16,11 +16,12 @@ import { AdminBranch } from '../models/admin-branch.model';
 import { AdminBranchService } from '../services/admin-branch.service';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
 import { requestWithToast } from '../../../core/utils/request-toast.util';
+import { LocationPickerMapComponent } from '../../shared/components/location-picker-map.component';
 
 @Component({
   selector: 'app-admin-branch-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, HlmButton, HlmInput, AdminActionMenuComponent, ...HlmCardImports, ...HlmFieldImports, ...HlmSelectImports],
+  imports: [CommonModule, ReactiveFormsModule, HlmButton, HlmInput, AdminActionMenuComponent, LocationPickerMapComponent, ...HlmCardImports, ...HlmFieldImports, ...HlmSelectImports],
   templateUrl: './admin-branch-page.component.html',
 })
 export class AdminBranchPageComponent {
@@ -40,6 +41,13 @@ export class AdminBranchPageComponent {
   protected readonly defaultSelectLabel = (value: boolean | null | undefined): string => (value ? 'Sí' : 'No');
 
   protected readonly activeSelectLabel = (value: boolean | null | undefined): string => (value ? 'Activa' : 'Inactiva');
+
+  protected onBranchLocationSelected(coords: { latitude: number; longitude: number }): void {
+    this.form.patchValue({
+      latitude: coords.latitude,
+      longitude: coords.longitude,
+    });
+  }
 
   protected readonly form = this.fb.nonNullable.group({
     name: ['', [Validators.required]],

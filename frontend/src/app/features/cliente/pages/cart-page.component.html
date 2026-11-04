@@ -204,23 +204,28 @@
             </div>
 
             @if (fulfillment() === 'delivery') {
-              <div class="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <label class="text-xs font-medium text-slate-600" for="delivery-address">Dirección de entrega</label>
-                <input id="delivery-address" hlmInput class="w-full" placeholder="Ej. Av. San Martín 450" [value]="deliveryAddress()" (input)="deliveryAddress.set($any($event.target).value)" />
-                <input hlmInput class="w-full" placeholder="Referencia: edificio, color de puerta..." [value]="deliveryReference()" (input)="deliveryReference.set($any($event.target).value)" />
-                <div class="grid grid-cols-2 gap-2">
-                  <input hlmInput placeholder="Latitud" inputmode="decimal" [value]="latitude()" (input)="setCoordinate('latitude', $event)" />
-                  <input hlmInput placeholder="Longitud" inputmode="decimal" [value]="longitude()" (input)="setCoordinate('longitude', $event)" />
+              <div class="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <div>
+                  <label class="text-xs font-medium text-slate-600 block mb-1" for="delivery-address">Dirección de entrega</label>
+                  <input id="delivery-address" hlmInput class="w-full" placeholder="Ej. Av. San Martín 450" [value]="deliveryAddress()" (input)="deliveryAddress.set($any($event.target).value)" />
                 </div>
-                <div class="flex gap-2">
-                  <button hlmBtn type="button" variant="outline" size="sm" class="flex-1 text-xs" (click)="useMyLocation()">Usar mi ubicación</button>
-                  <button hlmBtn type="button" variant="outline" size="sm" class="flex-1 text-xs" (click)="quoteDelivery()" [disabled]="quoting()">
-                    {{ quoting() ? 'Calculando...' : 'Calcular envío' }}
-                  </button>
+                <div>
+                  <label class="text-xs font-medium text-slate-600 block mb-1">Referencia</label>
+                  <input hlmInput class="w-full" placeholder="Referencia: edificio, color de puerta..." [value]="deliveryReference()" (input)="deliveryReference.set($any($event.target).value)" />
                 </div>
+
+                <!-- Selector de ubicación interactivo en Mapa con OpenStreetMap -->
+                <app-location-picker-map
+                  [latitude]="latitude() ? +latitude() : null"
+                  [longitude]="longitude() ? +longitude() : null"
+                  label="Punto exacto de entrega en el mapa"
+                  height="200px"
+                  (locationChange)="onMapLocationSelected($event)"
+                />
+
                 @if (quote(); as q) {
-                  <div class="pt-2 border-t border-slate-200 text-xs">
-                    <p class="text-slate-600">Distancia {{ q.distance_km }} km · Envío <span class="font-semibold text-slate-900">{{ q.shipping_cost }} BOB</span> · ~{{ q.estimated_minutes }} min</p>
+                  <div class="pt-2 border-t border-slate-200 text-xs bg-white p-2.5 rounded-lg border">
+                    <p class="text-slate-600">Distancia: <b>{{ q.distance_km }} km</b> · Envío: <span class="font-bold text-emerald-600">{{ q.shipping_cost }} BOB</span> · Tiempo est.: ~{{ q.estimated_minutes }} min</p>
                     <p class="text-sm font-bold text-slate-900 mt-1">Total con envío: {{ totalWithShipping() | number: '1.2-2' }} BOB</p>
                   </div>
                 }

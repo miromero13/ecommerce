@@ -35,6 +35,8 @@ type StripeCheckout = {
   pickupExpiresAt: string;
 };
 
+import { LocationPickerMapComponent } from '../../shared/components/location-picker-map.component';
+
 @Component({
   selector: 'app-cart-page',
   standalone: true,
@@ -44,6 +46,7 @@ type StripeCheckout = {
     NgIcon,
     HlmButton,
     HlmTable,
+    LocationPickerMapComponent,
     ...HlmTabsImports,
     ...HlmBadgeImports,
     ...HlmCardImports,
@@ -286,6 +289,14 @@ export class CartPageComponent {
   protected selectFulfillment(type: 'pickup' | 'delivery'): void {
     this.fulfillment.set(type);
     this.quote.set(null);
+  }
+
+  protected onMapLocationSelected(coords: { latitude: number; longitude: number }): void {
+    this.latitude.set(coords.latitude.toFixed(6));
+    this.longitude.set(coords.longitude.toFixed(6));
+    if (this.pickupBranchId()) {
+      void this.quoteDelivery();
+    }
   }
 
   protected setCoordinate(target: 'latitude' | 'longitude', event: Event): void {
