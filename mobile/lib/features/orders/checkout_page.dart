@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../core/network/api_exception.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:flutter_stripe/flutter_stripe.dart' hide PaymentMethod;
 
 import '../../core/config/app_config.dart';
@@ -12,6 +11,7 @@ import '../../shared/widgets/app_error_view.dart';
 import '../../shared/widgets/app_loading.dart';
 import '../../shared/widgets/app_section_title.dart';
 import '../../shared/widgets/app_snack_bar.dart';
+import '../../shared/widgets/location_picker_map.dart';
 import '../../shared/widgets/product_image.dart';
 import '../../shared/widgets/product_price.dart';
 import '../auth/auth_controller.dart';
@@ -47,6 +47,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
   final _reference = TextEditingController();
   final _latitude = TextEditingController();
   final _longitude = TextEditingController();
+  double? _selectedLat;
+  double? _selectedLng;
   final _points = TextEditingController(); // CU17: 10 points = 1 Bs
   String _paymentMethod = 'stripe'; // 'stripe' | 'wallet'
   Map<String, dynamic>? _quote;
@@ -235,47 +237,52 @@ class _CheckoutPageState extends State<CheckoutPage> {
             if (_fulfillment == 'delivery') ...[
               const SizedBox(height: 12),
               TextField(controller: _address, decoration: const InputDecoration(labelText: 'Dirección de entrega')),
-              TextField(controller: _reference, decoration: const InputDecoration(labelText: 'Referencia (opcional)')),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _latitude,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-                      decoration: const InputDecoration(labelText: 'Latitud'),
-                      onChanged: (_) => setState(() => _quote = null),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextField(
-                      controller: _longitude,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-                      decoration: const InputDecoration(labelText: 'Longitud'),
-                      onChanged: (_) => setState(() => _quote = null),
-                    ),
-                  ),
-                ],
-              ),
               const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: _quoting || pickupBranchId == null ? null : () => _useMyLocation(pickupBranchId),
-                    icon: const Icon(Icons.my_location_outlined),
-                    label: const Text('Usar mi ubicación'),
-                  ),
-                  OutlinedButton(
-                    onPressed: _quoting || pickupBranchId == null ? null : () => _quoteDelivery(pickupBranchId),
-                    child: Text(_quoting ? 'Calculando...' : 'Calcular envío'),
-                  ),
-                ],
+              TextField(controller: _reference, decoration: const InputDecoration(labelText: 'Referencia (opcional)')),
+              const SizedBox(height: 12),
+              LocationPickerMap(
+                initialLatitude: _selectedLat,
+                initialLongitude: _selectedLng,
+                height: 210,
+                onLocationChanged: (point) {
+                  setState(() {
+                    _selectedLat = point.latitude;
+                    _selectedLng = point.longitude;
+                    _latitude.text = point.latitude.toStringAsFixed(6);
+                    _longitude.text = point.longitude.toStringAsFixed(6);
+                    _quote = null;
+                  });
+                  if (pickupBranchId != null) {
+                    _quoteDelivery(pickupBranchId);
+                  }
+                },
               ),
-              if (_quote != null)
-                Text(
-                  'Distancia ${_quote!['distance_km']} km · Envío ${_quote!['shipping_cost']} BOB · ~${_quote!['estimated_minutes']} min',
+              if (_quoting)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Center(
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
                 ),
+              if (_quote != null) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.teal.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.teal.shade200),
+                  ),
+                  child: Text(
+                    'Distancia: ${_quote!['distance_km']} km · Costo de envío: ${_quote!['shipping_cost']} BOB · Tiempo est.: ~${_quote!['estimated_minutes']} min',
+                    style: TextStyle(fontSize: 12, color: Colors.teal.shade900, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
             ],
             const SizedBox(height: 12),
           ],
@@ -348,44 +355,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
       'latitude': double.parse(_latitude.text.trim()),
       'longitude': double.parse(_longitude.text.trim()),
     };
-  }
-
-  /// CU20: fill the delivery coordinates from the device GPS, then quote.
-  Future<void> _useMyLocation(String branchId) async {
-    try {
-      if (!await Geolocator.isLocationServiceEnabled()) {
-        _warn('Activa la ubicación del dispositivo para usar esta opción.');
-        return;
-      }
-      var permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      if (permission == LocationPermission.denied) {
-        _warn('Necesitamos permiso de ubicación; también puedes escribir la latitud y longitud.');
-        return;
-      }
-      if (permission == LocationPermission.deniedForever) {
-        _warn('El permiso de ubicación está bloqueado. Habilítalo en los ajustes del teléfono.');
-        await Geolocator.openAppSettings();
-        return;
-      }
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, timeLimit: Duration(seconds: 15)),
-      );
-      if (!mounted) return;
-      setState(() {
-        _latitude.text = position.latitude.toStringAsFixed(6);
-        _longitude.text = position.longitude.toStringAsFixed(6);
-      });
-      await _quoteDelivery(branchId);
-    } catch (_) {
-      _warn('No se pudo obtener tu ubicación. Ingrésala manualmente.');
-    }
-  }
-
-  void _warn(String message) {
-    if (mounted) AppSnackBar.show(context, message, tone: AppSnackBarTone.warning);
   }
 
   Future<void> _quoteDelivery(String branchId) async {
