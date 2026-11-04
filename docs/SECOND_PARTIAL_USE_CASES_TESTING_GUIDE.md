@@ -586,17 +586,33 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 * **Actor de prueba:**
   * Cliente (Solicita): `maria.quispe@clientes.demo.bo` / `Cliente2026!`
   * Encargado (Resuelve): `rodrigo.choque@ayni-moda.demo.bo` / `Fashion2026!`
-* **Ruta UI prevista:** `/app/cliente/orders` (botón Solicitar Devolución) y `/app/encargado/returns`.
+* **Ruta UI prevista:** `/app/cliente/returns/new` (desde `/app/cliente/orders`) y `/app/encargado/returns`.
 
 ##### Pasos para probar según especificación:
-1. **Solicitud de Devolución (Cliente):**
-   * En el historial de pedidos pagados (`/app/cliente/orders`), hacé clic en **"Solicitar Cambio o Devolución"** en una prenda (dentro del plazo de 30 días).
-   * Seleccioná el motivo (*Talle incorrecto*, *Falla*, etc.) y resolución deseada (*Crédito en tienda*).
-   * **Resultado:** Notificación con el número de reclamo generado (ej. `RMA-2026-0914`) en estado `pending_inspection`.
-2. **Inspección y Dictamen (Encargado):**
-   * Ingresá como Encargado a `/app/encargado/returns`.
-   * Localizá la solicitud, ingresá la nota de inspección (*"Prenda con etiqueta intacta"*), marcá aprobación y reingreso a stock.
-   * **Resultado:** Notificación: `"Devolución aprobada. Se acreditó el saldo en la billetera digital del cliente y se restauró el stock."`.
+1. **Listado de Órdenes Elegibles (Cliente):**
+   * Iniciá sesión como Cliente (`maria.quispe@clientes.demo.bo`).
+   * Ingresá a la sección de devoluciones (`/app/cliente/returns/new`).
+   * **Resultado esperado:** La interfaz lista **exclusivamente las ventas entregadas dentro de los últimos 30 días**. Si una compra tiene más de 30 días, no aparece o figura deshabilitada con el aviso de plazo vencido.
+2. **Armado de Solicitud Multilínea (Cliente):**
+   * Seleccioná una orden que contenga 2 o más prendas.
+   * **Prenda 1:** Seleccioná motivo *"Talle incorrecto"*, resolución *"Cambio de prenda"* y elegí la variante deseada (ej. talle L). Si el selector indica *"Sin stock en esta variante"*, elegí una variante/prenda alternativa de igual valor o conmutá a *"Crédito en tienda"*.
+   * **Prenda 2:** Seleccioná motivo *"Defecto de fábrica"*, resolución *"Crédito en tienda"* y redactá la nota explicativa.
+   * Presioná **"Enviar Solicitud de RMA"**.
+   * **Resultado:** Notificación verde con el número de reclamo generado (ej. `RMA-2026-0914`) en estado `pending_inspection` conteniendo los ítems seleccionados.
+3. **Inspección Física y Dictamen Ítem por Ítem (Encargado):**
+   * Iniciá sesión como Encargado (`rodrigo.choque@ayni-moda.demo.bo`) e ingresá a `/app/encargado/returns`.
+   * Abrí la solicitud `RMA-2026-0914`.
+   * **Ítem 1 (Cambio por talle):** Inspeccioná la prenda física.
+     * Si está **Intacta** (con etiquetas y sin uso): Marcá `Aprobado`, reingreso a stock comercial (`rma_restock`) y confirmá el despacho de la nueva prenda. Si la variante solicitada no tuviese stock en la sucursal, el modal te permite seleccionar una prenda alternativa en acuerdo con el cliente o conmutar a reembolso en billetera.
+     * Si presenta **Daño atribuible al cliente** (mancha, uso): Marcá `Rechazado` con nota de rechazo.
+   * **Ítem 2 (Defecto de fábrica):**
+     * Constatá la falla de origen. Marcá `Aprobado por defecto de fábrica`, derivando el ítem físico a **merma/cuarentena** (`scrap_quarantine`) y autorizando el saldo a la billetera digital.
+   * **Resultado final:**
+     * La solicitud padre pasa a estado `approved` (si todos los ítems fueron aprobados) o `partially_approved` (si uno fue aprobado y otro rechazado).
+     * El saldo de las prendas con reembolso queda programado con fecha al cierre del mes corriente (`scheduled_month_end`) para preservar el control contable y de inventario.
+     * **Notificación al Cliente:** El cliente recibe inmediatamente una notificación push y alerta interna: *"Tu solicitud de devolución fue dictaminada. Se programó la acreditación de Bs. 220.00 en tu Billetera Digital al cierre del mes."*
+     * El botón **"Descargar Ficha PDF"** permite obtener la ficha actualizada con el dictamen técnico y firmas de sucursal.
+     * El stock comercial de la prenda devuelta intacta aumenta en +1, la reposición entregada en el acto se descuenta en -1, y la prenda defectuosa queda radicada en el libro de mermas técnicas.
 
 ---
 
@@ -638,15 +654,26 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 * **Estado:** **Especificado / En Proceso**
 * **Actor de prueba:** Encargado de Sucursal o Administrador
 * **Credenciales:** `rodrigo.choque@ayni-moda.demo.bo` / `Fashion2026!`
-* **Ruta UI prevista:** `/app/encargado/rma/inspection`
+* **Ruta UI prevista:** `/app/encargado/rma/inspection` (o pestaña de inspección en `/app/encargado/returns`)
 
 ##### Pasos para probar según especificación:
-1. Iniciá sesión como Encargado e ingresá al módulo de inspección técnica de devoluciones.
-2. Para una prenda devuelta aprobada administrativamente:
-   * **Escenario A (Reintegro comercial):** Marcá estado *Intacto / Apto*. Presioná Reintegrar.
-     * **Resultado:** Toast: `"Prenda reintegrada exitosamente al inventario comercializable"`. El stock disponible aumenta en la sucursal.
-   * **Escenario B (Descarte a merma):** Marcá estado *Dañado / Con falla de uso*, ingresá observación fotográfica y seleccioná *Baja a cuarentena*.
-     * **Resultado:** Toast: `"Prenda registrada en inventario de merma y baja técnica"`. Se genera el registro de merma sin contaminar el stock de venta.
+1. Iniciá sesión como Encargado e ingresá al módulo de inspección técnica de devoluciones sobre un ítem de RMA.
+2. Evaluá los siguientes escenarios operativos:
+   * **Escenario A (Reintegro comercial por prenda intacta):**
+     * Seleccioná estado físico: *Intacto / Con etiquetas*. Acción: *Reintegrar al stock vendible*.
+     * Si la resolución es cambio de prenda y hay stock: se confirma el egreso de la nueva prenda (`exchange_dispatch`).
+     * **Resultado:** Toast: `"Prenda reintegrada exitosamente al inventario comercializable y reposición apartada"`. El stock de la sucursal receptora se actualiza atómicamente.
+   * **Escenario B (Falta de stock para el cambio y selección de alternativa):**
+     * Al intentar despachar el cambio solicitado por el cliente, el sistema advierte: *"Variante sin existencias en esta sucursal"*.
+     * El encargado abre el selector de prendas y elige una variante o prenda alternativa del catálogo de igual valor acordada con el cliente (o activa conmutación a saldo en billetera).
+     * **Resultado:** Toast: `"Prenda devuelta reintegrada y variante alternativa asignada y apartada exitosamente"`.
+   * **Escenario C (Descarte a merma técnica por defecto de fábrica):**
+     * Seleccioná condición: *Defecto de confección/fábrica*. Acción: *Derivar a merma técnica / cuarentena*.
+     * Completá el informe técnico (ej. *"Costura de sisa rota de fábrica"*).
+     * **Resultado:** Toast: `"Prenda registrada en inventario de merma y baja técnica"`. Se genera el acta `QR-2026-XXXX`. El stock comercial vendible NO se incrementa. Se autoriza el crédito o cambio sin perjuicio para el cliente.
+   * **Escenario D (Rechazo por uso/daño del cliente en reclamo por talle):**
+     * Seleccioná condición: *Dañado por el cliente / Prenda usada*. Acción: *Rechazar y devolver al cliente*.
+     * **Resultado:** Toast: `"Ítem de RMA rechazado. Se emite acta de rechazo para restitución al cliente"`. No se mueve stock ni se acredita saldo.
 
 ---
 

@@ -1852,80 +1852,150 @@ GET /api/delivery/my-orders
 * **Módulo:** M6: Logística y Posventa
 * **Actor Principal:** Cliente (solicita), Encargado de sucursal / Administrador (inspecciona y resuelve)
 * **Estado:** Pendiente | **Plataforma:** Ambas
-* **Descripción Funcional:** Circuito de logística inversa (RMA). El cliente solicita el cambio o devolución de una prenda dentro de los 30 días posteriores a la compra. El encargado inspecciona la prenda en sucursal y la aprueba o rechaza; el sistema reingresa la prenda a stock (o merma) y acredita automáticamente el reembolso en la billetera virtual (`Store Wallet`).
+* **Descripción Funcional:** Circuito integral de logística inversa y posventa (RMA). Permite al cliente gestionar cambios de prendas o devoluciones de sus compras realizadas dentro de los **30 días** posteriores a la entrega.
+  1. **Vista "Mis Devoluciones y Cambios":** El cliente visualiza el listado histórico de sus solicitudes de RMA con estado en tiempo real (`pending_inspection`, `approved`, `partially_approved`, `rejected`, `completed`) y el botón para **Descargar la Ficha Oficial en PDF**. Si no posee trámites, dispone de un botón principal para iniciar una nueva solicitud.
+  2. **Filtrado de Compras Elegibles:** Al crear una solicitud, el sistema filtra y lista exclusivamente las ventas del cliente entregadas en los últimos 30 días.
+  3. **Solicitud Multilínea (Selección granular):** El cliente selecciona una o varias prendas del pedido e indica para cada una:
+     * **Motivo:** Talle incorrecto (`wrong_size`), Color no deseado (`wrong_color`), Defecto de fábrica / confección (`factory_defect`) o Cambio de opinión / arrepentimiento (`change_of_mind`).
+     * **Resolución Deseada:**
+       * **Cambio de prenda (`exchange`):** Restringido estrictamente a **variantes del mismo producto** (otra talla u otro color; no por productos ajenos). La entrega y el canje físico se ejecutan en el acto en la sucursal al momento de la inspección.
+       * **Crédito en billetera (`store_credit`):** Reembolso del monto a la billetera digital (`Store Wallet`). Por política de control contable y cierre de inventarios mensuales, **la acreditación en la billetera se programa para el cierre de mes** (`scheduled_month_end`), evitando descalces en el inventario activo.
+  4. **Emisión de Ficha de Solicitud en PDF:** Al confirmarse la solicitud, el sistema genera la **Ficha de RMA descargable en PDF** con código QR/barras, resumen de prendas, motivos y casillas para el dictamen y firma del encargado en mostrador.
+  5. **Inspección Física y Dictamen Ítem por Ítem:**
+     * **Impecable (`intact`):** Prenda sin uso y con etiquetas de origen. Si pidió cambio por talla/color, el cambio se entrega en el acto en sucursal, reingresando la prenda devuelta a stock vendible (`rma_restock`) y descontando la nueva variante entregada (`exchange_dispatch`).
+     * **Defecto de Fábrica (`factory_defect`):** Se aprueba el reclamo al cliente. La prenda defectuosa **va a merma / cuarentena técnica** (`scrap_quarantine`, CU24) y se programa la acreditación del saldo a billetera a fin de mes.
+     * **Dañada / Usada por el cliente (`customer_damaged`):** Se rechaza el ítem con acta de rechazo, devolviéndose la prenda al cliente sin alteración de inventario ni entrega de dinero.
+  6. **Notificación Automática al Cliente:** Al aprobarse la devolución y programarse la acreditación, el sistema envía una **notificación push y alerta en la app** al cliente informando el monto aprobado y la fecha de liquidación mensual. Al llegar el cierre de mes y efectivizarse el saldo en `Store Wallet`, se dispara una segunda notificación confirmando el saldo disponible para compras.
 
 ##### Endpoints Backend
+```http
+GET /api/rma/eligible-orders
+Headers: Authorization: Bearer <client_jwt>
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Órdenes elegibles para cambio o devolución obtenidas",
+  "data": [
+    {
+      "order_id": "ord_8812",
+      "order_number": "PED-2026-0044",
+      "delivered_at": "2026-03-25T14:30:00Z",
+      "days_since_delivery": 6,
+      "items": [
+        {
+          "order_item_id": "item_221",
+          "product_id": "prod_551",
+          "product_name": "Camisa Clásica Popelín",
+          "variant_id": "var_101",
+          "size": "M",
+          "color": "Azul",
+          "unit_price": 140.00,
+          "quantity": 1,
+          "eligible_for_rma": true,
+          "available_same_product_variants": [
+            { "variant_id": "var_102", "size": "L", "color": "Azul", "stock": 4 },
+            { "variant_id": "var_103", "size": "M", "color": "Blanco", "stock": 2 }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
 ```http
 POST /api/rma/requests
 Headers: Authorization: Bearer <client_jwt>
 Request Body:
 {
   "order_id": "ord_8812",
-  "order_item_id": "item_221",
-  "reason": "wrong_size",
-  "customer_notes": "Me quedó chico de hombros, solicito crédito en tienda",
-  "preferred_resolution": "store_credit"
+  "customer_notes": "Cambio de talle para la camisa y devolución por falla de tela",
+  "items": [
+    {
+      "order_item_id": "item_221",
+      "quantity": 1,
+      "reason": "wrong_size",
+      "preferred_resolution": "exchange",
+      "requested_variant_id": "var_102",
+      "notes": "Me quedó chica, solicito talle L misma prenda"
+    },
+    {
+      "order_item_id": "item_222",
+      "quantity": 1,
+      "reason": "factory_defect",
+      "preferred_resolution": "store_credit",
+      "notes": "Costura abierta de origen en hombro"
+    }
+  ]
 }
 Response 201 Created:
 {
   "statusCode": 201,
-  "message": "Solicitud de devolución registrada exitosamente",
+  "message": "Solicitud de cambio/devolución registrada exitosamente",
   "data": {
+    "rma_id": "rma_9901",
     "rma_number": "RMA-2026-0914",
-    "status": "pending_inspection"
+    "status": "pending_inspection",
+    "total_items": 2,
+    "pdf_url": "/api/rma/requests/rma_9901/pdf",
+    "created_at": "2026-03-31T10:00:00Z"
   }
 }
-
-Response 400 Bad Request:
-{
-  "statusCode": 400,
-  "message": "La prenda supera el plazo máximo permitido de 30 días para cambios y devoluciones",
-  "error": "HTTPException"
-}
 ```
+
 ```http
-PATCH /api/rma/requests/{rma_id}/status
+GET /api/rma/requests/{rma_id}/pdf
+Headers: Authorization: Bearer <jwt>
+Response 200 OK:
+Content-Type: application/pdf
+Content-Disposition: attachment; filename="Ficha_RMA_2026_0914.pdf"
+```
+
+```http
+PATCH /api/rma/requests/{rma_id}/items/{rma_item_id}/review
 Headers: Authorization: Bearer <encargado_jwt>
-Request Body:
+Request Body (Aprobación de devolución a billetera con fecha de fin de mes y notificación):
 {
   "status": "approved",
-  "inspection_notes": "Prenda en perfecto estado con etiqueta original",
-  "return_to_inventory": true,
-  "branch_id": "branch_central"
+  "item_condition": "factory_damaged",
+  "action": "scrap_quarantine",
+  "resolution": "store_credit",
+  "branch_id": "branch_central",
+  "inspection_notes": "Defecto de confección en sisa. Se envía a merma y se programa crédito en billetera a fin de mes."
 }
 Response 200 OK:
 {
   "statusCode": 200,
-  "message": "Devolución aprobada. Se acreditó el saldo en la billetera digital del cliente y se restauró el stock.",
-  "data": { "rma_id": "rma_9901", "credited_wallet_amount": 140.00 }
+  "message": "Ítem dictaminado: Aprobado. Se programó acreditación a fin de mes y se notificó al cliente.",
+  "data": {
+    "rma_id": "rma_9901",
+    "rma_item_id": "item_222",
+    "item_status": "approved_refund",
+    "quarantine_record": "QR-2026-0044",
+    "refund_amount": 220.00,
+    "wallet_settlement_date": "2026-04-30T23:59:59Z",
+    "notification_sent": true
+  }
 }
-
-Response 409 Conflict:
-{
-  "statusCode": 409,
-  "message": "La solicitud de devolución para este ítem ya fue procesada anteriormente",
-  "error": "HTTPException"
-}
-```
-```http
-GET /api/rma/requests
 ```
 
 ##### Ubicación en Frontend (Angular & Móvil)
 * **Páginas y Vistas Web:**
-  - Solicitud desde historial de órdenes: `frontend/src/app/features/cliente/pages/rma-request-page.component.ts` (`/app/cliente/returns`)
-  - Panel de dictamen para Encargado: `frontend/src/app/features/encargado/pages/rma-review-page.component.ts` (`/app/encargado/returns`)
+  - Panel "Mis Devoluciones y Cambios": `frontend/src/app/features/cliente/pages/rma-history-page.component.ts` (`/app/cliente/returns`)
+  - Formulario de solicitud multilínea: `frontend/src/app/features/cliente/pages/rma-request-page.component.ts` (`/app/cliente/returns/new`)
+  - Consola de dictamen para Encargado: `frontend/src/app/features/encargado/pages/rma-review-page.component.ts` (`/app/encargado/returns`)
 * **Servicio API:** `frontend/src/app/features/shared/services/rma-api.service.ts`
-* **Modelo TypeScript:** `frontend/src/app/features/shared/models/rma.model.ts`
-* **Móvil Flutter:** `mobile/lib/features/orders/rma_request_dialog.dart`
-* **Mensajes en UI:** Toast proyecta `res.message`: `"Devolución aprobada. Se acreditó el saldo en la billetera digital del cliente y se restauró el stock."`.
+* **Servicio PDF:** `backend/app/services/rma_pdf_service.py`
+* **Notificaciones:** Integración con `create_notification()` en `notification_service.py`.
 
 ##### Checklist de Implementación
-- [ ] Backend: Modelar tabla `rma_requests` con estados (`pending_inspection`, `approved`, `rejected`).
-- [ ] Backend: Transacción atómica en aprobación para restaurar stock y acreditar `Store Wallet` (CU19).
-- [ ] Frontend: Desarrollar pantalla `rma-request-page` para clientes y `rma-review-page` para encargados.
-- [ ] Móvil: Botón "Solicitar devolución" en el detalle de pedido de Flutter.
-- [ ] Verificación: Aprobar devolución y constatar el incremento de stock y del balance en la billetera virtual.
+- [ ] Backend: Modelar tablas `rma_requests` y `rma_request_items` con soporte multilínea y estados compuestos (`pending_inspection`, `approved`, `partially_approved`, `rejected`, `completed`).
+- [ ] Backend: Endpoint `GET /api/rma/eligible-orders` con validación estricta de plazo de 30 días posteriores a la entrega.
+- [ ] Backend: Selector de variante alternativa para cambios si la requerida carece de existencias, o conversión a crédito en `Store Wallet` (CU19).
+- [ ] Backend: Lógica de dictamen granular: aceptación/rechazo independiente por ítem y bifurcación según condición física (`intact`, `factory_damaged`, `customer_damaged`).
+- [ ] Frontend: Desarrollar pantalla de selección de ítems para cliente con verificación de variantes y stock.
+- [ ] Frontend: Desarrollar consola de inspección para encargado con dictamen independiente por prenda.
+- [ ] Verificación: Probar solicitud mixta (1 cambio de talle intacto + 1 falla de fábrica a merma + 1 prenda usada rechazada) y verificar inventario, billetera y actas.
 
 ---
 
@@ -2050,40 +2120,76 @@ Response 400 Bad Request:
 * **Módulo:** M6: Logística y Posventa
 * **Actor Principal:** Encargado de sucursal, Administrador
 * **Estado:** Pendiente | **Plataforma:** Web
-* **Descripción Funcional:** Gestión física y contable del inventario resultante de procesos de devolución (RMA). Cuando una prenda es recibida en sucursal física tras la aprobación administrativa de un cambio o devolución (CU21), el encargado efectúa la inspección técnica de calidad. Si la prenda se encuentra apta para la venta (sin uso, limpia y con etiquetas de origen), el sistema registra un reingreso de existencias (`rma_restock`), incrementando atómicamente el stock comercializable en la sucursal receptora. Si la prenda presenta signos de uso, daños atribuibles al cliente o fallas de confección irreparables, el sistema rechaza su reintegro al catálogo comercial y genera un movimiento hacia inventario de **merma / baja técnica / cuarentena** con su respectiva justificación fotográfica y documental, previniendo la comercialización accidental de prendas defectuosas.
+* **Descripción Funcional:** Gestión física, contable y operativa del inventario derivado de procesos de cambio y devolución (RMA). Cuando una o varias prendas son recibidas físicamente en sucursal tras la solicitud de un cliente (CU21), el encargado efectúa la inspección técnica de cada ítem:
+  1. **Reingreso Comercial (`restock_available`):** Si la prenda devuelta por talle, color o arrepentimiento se encuentra **intacta** (sin uso, limpia y con etiquetas de origen), el sistema registra un reingreso de existencias (`rma_restock`), incrementando atómicamente el stock comercializable en la sucursal receptora.
+  2. **Baja Técnica a Merma / Cuarentena (`scrap_quarantine`):** Si la prenda fue aceptada por **defecto de fábrica comprobado** (`factory_defect`), el sistema prohíbe terminantemente su reincorporación al catálogo vendible. Genera un movimiento de baja por merma y aislamiento físico en cuarentena técnica (`scrap_quarantine`) con código identificador oficial (`quarantine_record`), justificación técnica y registro de auditoría.
+  3. **Rechazo y Devolución al Cliente (`return_to_customer`):** Si una prenda en reclamo por talle/gusto presenta daños atribuibles al cliente (`customer_damaged`: lavado, manchas, roturas), el sistema no altera el inventario de la tienda y emite un acta formal de rechazo para su entrega o reenvío al comprador.
+  4. **Despacho y Sustitución de Prendas por Cambio (`exchange_dispatch`):** En resoluciones de cambio de prenda (`exchange`), el sistema descuenta la nueva variante del stock de la sucursal (`exchange_out`). Si la variante solicitada inicialmente no cuenta con stock disponible en tienda, el sistema ofrece:
+     * **Sustitución por variante/prenda alternativa:** El encargado, previa coordinación o preferencia del cliente, selecciona otra variante disponible en el catálogo de igual valor.
+     * **Conversión a saldo en billetera:** Si no hay alternativa de agrado o disponibilidad, se conmuta automáticamente la resolución a crédito en tienda (`store_credit`), reembolsando el monto a la billetera digital del cliente.
 
 ##### Endpoints Backend
 ```http
-POST /api/rma/inspections/{rma_id}/restock
+POST /api/rma/inspections/{rma_id}/items/{rma_item_id}/process
 Headers: Authorization: Bearer <encargado_jwt>
-Request Body:
+Request Body (Caso 1 - Reingreso comercial por prenda intacta):
 {
   "item_condition": "intact",
-  "inspection_notes": "Prenda en perfecto estado, etiquetas y precintos originales intactos",
   "action": "restock_available",
   "branch_id": "branch_central",
-  "quantity": 1
+  "quantity": 1,
+  "inspection_notes": "Prenda en perfecto estado, etiquetas y precintos originales intactos",
+  "resolution": "exchange",
+  "replacement_variant_id": "var_102"
 }
 Response 200 OK:
 {
   "statusCode": 200,
-  "message": "Prenda reintegrada exitosamente al inventario comercializable",
+  "message": "Prenda reintegrada exitosamente al inventario comercializable y reposición apartada",
   "data": {
     "rma_id": "rma_9901",
-    "movement_id": "mov_88210",
-    "status": "restocked",
+    "rma_item_id": "item_221",
+    "restock_movement_id": "mov_88210",
+    "dispatch_movement_id": "mov_88215",
+    "status": "restocked_and_exchanged",
+    "branch_id": "branch_central",
     "new_available_stock": 14
   }
 }
 
-Response 200 OK (Descarte a merma):
-Request Body:
+Request Body (Caso 2 - Falta de stock original y selección de variante alternativa):
 {
-  "item_condition": "damaged",
-  "inspection_notes": "Desgarro en costura lateral. No apto para reventa.",
+  "item_condition": "intact",
+  "action": "restock_available",
+  "branch_id": "branch_central",
+  "quantity": 1,
+  "inspection_notes": "No había stock de talle L azul; cliente aceptó talle L azul marino como alternativa",
+  "resolution": "exchange",
+  "replacement_variant_id": "var_108",
+  "is_alternative_item": true
+}
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Prenda devuelta reintegrada y variante alternativa asignada y apartada exitosamente",
+  "data": {
+    "rma_id": "rma_9901",
+    "rma_item_id": "item_221",
+    "restock_movement_id": "mov_88210",
+    "dispatch_movement_id": "mov_88216",
+    "replacement_variant_id": "var_108",
+    "status": "restocked_and_exchanged"
+  }
+}
+
+Request Body (Caso 3 - Descarte a merma por falla de confección de origen):
+{
+  "item_condition": "factory_damaged",
   "action": "scrap_quarantine",
   "branch_id": "branch_central",
-  "quantity": 1
+  "quantity": 1,
+  "inspection_notes": "Falla de costura abierta en hombro derecho de fábrica. Derivado a merma técnica.",
+  "resolution": "store_credit"
 }
 Response 200 OK:
 {
@@ -2091,9 +2197,11 @@ Response 200 OK:
   "message": "Prenda registrada en inventario de merma y baja técnica",
   "data": {
     "rma_id": "rma_9901",
+    "rma_item_id": "item_222",
     "movement_id": "mov_88211",
     "status": "scrapped",
-    "quarantine_record": "QR-2026-0044"
+    "quarantine_record": "QR-2026-0044",
+    "credited_wallet_amount": 220.00
   }
 }
 ```
@@ -2102,7 +2210,10 @@ Response 200 OK:
 * **Página y Vista:** `frontend/src/app/features/encargado/pages/rma-inspection-page.component.ts` (`rma-inspection-page.component.html`)
 * **Servicio API:** `frontend/src/app/features/shared/services/rma-api.service.ts`
 * **Ruta Angular:** `/app/encargado/rma/inspection` (`canActivate: [roleGuard(['encargado', 'administrador'])]`)
-* **Mensajes en UI:** Toast: `"Stock actualizado. La prenda fue devuelta al catálogo disponible de la sucursal."` o `"Baja registrada. Ítem derivado a cuarentena/merma."`.
+* **Mensajes en UI:**
+  - Toast Reingreso: `"Stock actualizado. La prenda fue devuelta al catálogo disponible de la sucursal."`
+  - Toast Merma: `"Baja registrada. Ítem derivado a cuarentena/merma bajo el registro oficial."`
+  - Modal Alternativas: `"La variante solicitada no tiene stock disponible en esta sucursal. Seleccioná una variante alternativa o acreditá saldo en billetera."`
 
 ---
 
