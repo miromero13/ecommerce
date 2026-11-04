@@ -10,6 +10,9 @@ class InventoryMovementTypeEnum(str, Enum):
     outcome = "outcome"
     transfer_in = "transfer_in"
     transfer_out = "transfer_out"
+    rma_restock = "rma_restock"
+    exchange_dispatch = "exchange_dispatch"
+    scrap_quarantine = "scrap_quarantine"
 
 
 class InventoryMovementCreate(BaseModel):

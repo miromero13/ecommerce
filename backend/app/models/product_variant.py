@@ -3,6 +3,8 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
+from app.models.size import Size
+from app.models.color import Color
 from app.schemas.catalog_enums import ProductStatusEnum
 import uuid
 
@@ -25,6 +27,8 @@ class ProductVariant(Base):
     status = Column(SQLAlchemyEnum(ProductStatusEnum), nullable=False, default=ProductStatusEnum.pending)
 
     product = relationship("Product", back_populates="variants")
+    size = relationship("Size")
+    color = relationship("Color")
     inventory = relationship("Inventory", back_populates="variant", cascade="all, delete-orphan")
 
     __table_args__ = (
