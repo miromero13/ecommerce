@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
 import { HlmButton } from '../../../components/button/src';
@@ -13,7 +14,7 @@ import { Order, FulfillmentStatusEnum } from '../../shared/models/order.model';
 @Component({
   selector: 'app-orders-page',
   standalone: true,
-  imports: [CommonModule, HlmButton, ReceiptActionsComponent, ...HlmCardImports],
+  imports: [CommonModule, RouterLink, HlmButton, ReceiptActionsComponent, ...HlmCardImports],
   templateUrl: './orders-page.component.html',
 })
 export class OrdersPageComponent {

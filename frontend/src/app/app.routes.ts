@@ -127,6 +127,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/cliente/pages/orders-page.component').then((m) => m.OrdersPageComponent),
       },
       {
+        path: 'cliente/returns',
+        canActivate: [roleGuard(['cliente'])],
+        loadComponent: () => import('./features/cliente/pages/rma-history-page.component').then((m) => m.RmaHistoryPageComponent),
+      },
+      {
         path: 'proveedor',
         loadComponent: () =>
           import('./features/proveedor/pages/proveedor-home-page.component').then(
@@ -175,6 +180,11 @@ export const routes: Routes = [
         path: 'encargado/orders',
         canActivate: [roleGuard(['encargado'], 'orders:manage')],
         loadComponent: () => import('./features/encargado/pages/orders-page.component').then((m) => m.EncargadoOrdersPageComponent),
+      },
+      {
+        path: 'encargado/returns',
+        canActivate: [roleGuard(['encargado', 'administrador'])],
+        loadComponent: () => import('./features/encargado/pages/rma-review-page.component').then((m) => m.RmaReviewPageComponent),
       },
       {
         path: 'encargado/promotions',

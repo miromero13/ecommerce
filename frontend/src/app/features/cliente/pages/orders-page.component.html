@@ -18,7 +18,12 @@
             </div>
           } @else if (order.pickup_code && order.fulfillment_status !== 'collected') { <p class="text-xs text-slate-500">Código de retiro: <strong>{{ order.pickup_code }}</strong></p> }
           @if (order.payment_status === 'paid') {
-            <app-receipt-actions kind="order" [sourceId]="order.id" />
+            <div class="flex items-center justify-between gap-2 border-t border-slate-100 pt-2">
+              <app-receipt-actions kind="order" [sourceId]="order.id" />
+              <a hlmBtn variant="outline" size="sm" routerLink="/app/cliente/returns" class="text-xs">
+                Cambio o Devolución
+              </a>
+            </div>
           }
         </div>
       </article>

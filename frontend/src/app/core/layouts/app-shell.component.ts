@@ -3,7 +3,7 @@ import { Component, computed, effect, inject, signal, untracked } from '@angular
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideBell, lucideBrainCircuit, lucideBuilding2, lucideCalendarDays, lucideClipboardList, lucideLayoutDashboard, lucideLogOut, lucideMail, lucidePackageSearch, lucideShield, lucideShoppingCart, lucideTicket, lucideUser, lucideUserRound, lucideUsers, lucideHeart, lucideGift, lucideWallet } from '@ng-icons/lucide';
+import { lucideBell, lucideBrainCircuit, lucideBuilding2, lucideCalendarDays, lucideClipboardList, lucideLayoutDashboard, lucideLogOut, lucideMail, lucidePackageSearch, lucideShield, lucideShoppingCart, lucideTicket, lucideUser, lucideUserRound, lucideUsers, lucideHeart, lucideGift, lucideWallet, lucideRotateCcw } from '@ng-icons/lucide';
 
 import {
   HlmSidebar,
@@ -77,6 +77,7 @@ type SidebarSection = {
       lucideHeart,
       lucideGift,
       lucideWallet,
+      lucideRotateCcw,
     }),
   ],
   templateUrl: './app-shell.component.html',
@@ -323,6 +324,7 @@ export class AppShellComponent {
               { label: 'Mi Billetera', route: '/app/cliente/wallet', icon: 'lucideWallet' },
               { label: 'Carrito', route: '/app/cliente/cart', icon: 'lucideShoppingCart' },
               { label: 'Pedidos', route: '/app/cliente/orders', icon: 'lucideClipboardList' },
+              { label: 'Devoluciones y Cambios', route: '/app/cliente/returns', icon: 'lucideRotateCcw' },
             ],
           },
         ];
@@ -335,6 +337,7 @@ export class AppShellComponent {
               { label: 'Reservas', route: '/app/encargado/reservations', icon: 'lucideCalendarDays' },
               { label: 'Inventario', route: '/app/encargado/inventory', icon: 'lucidePackageSearch' },
                { label: 'Pedidos', route: '/app/encargado/orders', icon: 'lucideClipboardList' },
+               { label: 'Devoluciones (RMA)', route: '/app/encargado/returns', icon: 'lucideRotateCcw' },
                { label: 'Proveedores', route: '/app/encargado/providers', icon: 'lucideUsers' },
                { label: 'Solicitudes', route: '/app/encargado/replenishment', icon: 'lucideClipboardList' },
                { label: 'Ingesta RPA', route: '/app/encargado/rpa-ingest', icon: 'lucidePackageSearch' },
