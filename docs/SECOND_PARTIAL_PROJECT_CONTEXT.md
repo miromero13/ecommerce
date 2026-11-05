@@ -161,36 +161,36 @@ El desarrollo del segundo parcial atiende a cuatro problemáticas operativas y d
 
 | **ID** | **Caso de Uso** | **Módulo** | **Estado** | **Actor Principal** | **Plataforma** |
 | :--- | :--- | :--- | :---: | :--- | :--- |
-| **CU1** | **Aprovisionamiento y Gestión de Organizaciones (Tenants)** | M1: SaaS y Seguridad | **Hecho** | Superadministrador | Web |
-| **CU2** | **Gestión del Catálogo de Planes de Suscripción SaaS** | M1: SaaS y Seguridad | **Hecho** | Superadministrador | Web |
-| **CU3** | **Gestión Granular de Roles y Permisos (RBAC)** | M1: SaaS y Seguridad | Pendiente | Superadmin, Admin Tenant | Web |
-| **CU4** | **Landing Page y Catálogo de Planes** | M1: SaaS y Seguridad | **Hecho** | Prospecto B2B | Web |
-| **CU5** | **Usar Vestidor Virtual en Tiempo Real** | M2: Inteligencia Artificial | **Hecho** | Cliente | Móvil / Web |
-| **CU6** | **Recibir Recomendaciones de Catálogo** | M2: Inteligencia Artificial | **Hecho** | Cliente | Ambas |
-| **CU7** | **Consultar Asistente Virtual / Chatbot** | M2: Inteligencia Artificial | **Hecho** | Cliente | Ambas |
-| **CU8** | **Generar Reportes Inteligentes con IA y ML** | M2: Inteligencia Artificial | Pendiente | Admin Tenant | Web |
-| **CU9** | **Reabastecimiento de Stock (Sistema Experto)** | M2: Inteligencia Artificial | Pendiente | Admin Tenant, Sistema | Web |
-| **CU10** | **Ingesta de Mercadería con RPA e IA** | M2: Inteligencia Artificial | Pendiente | Proveedor, Sistema | Web |
-| **CU11** | **Traspaso Manual de Inventario** | M3: Inventario y Operaciones | **Hecho** | Admin, Encargado | Web |
-| **CU12** | **Notificaciones Push Móviles** | M3: Inventario y Operaciones | **Hecho** | Cliente, Sistema | Móvil |
-| **CU13** | **Dashboard de Control y Métricas** | M4: Business Intelligence | **Hecho** | Admin Tenant | Web |
-| **CU14** | **Generación y Exportación de Reportes** | M4: Business Intelligence | **Hecho** | Admin Tenant | Web |
-| **CU15** | **Gestionar y Aplicar Cupones Promocionales** | M5: Promociones y Fidelidad | **Hecho** | Cliente, Admin, Cajero | Ambas |
-| **CU16** | **Gestionar Lista de Deseos (Wishlist)** | M5: Promociones y Fidelidad | Pendiente | Cliente | Ambas |
-| **CU17** | **Fidelización y Billetera de Puntos (Loyalty)** | M5: Promociones y Fidelidad | Pendiente | Cliente, Cajero | Ambas |
-| **CU18** | **Emitir y Comprar Tarjetas de Regalo (Gift Cards)** | M5: Promociones y Fidelidad | Pendiente | Cliente | Ambas |
-| **CU19** | **Gestionar Billetera Digital (Store Wallet)** | M5: Promociones y Fidelidad | Pendiente | Cliente, Cajero | Ambas |
-| **CU20** | **Delivery y Despacho a Domicilio con PIN** | M6: Logística y Posventa | **Hecho** | Cliente, Delivery | Ambas |
-| **CU21** | **Solicitar y Procesar Cambios y Devoluciones (RMA)** | M6: Logística y Posventa | **Hecho** | Cliente, Encargado | Ambas |
-| **CU22** | **Progressive Web App (PWA) e Instalabilidad** | M6: Logística y Posventa | Pendiente | Cliente, Todos | Web |
-| **CU23** | **Consulta y Navegación de Catálogo Offline en Caché** | M6: Logística y Posventa | Pendiente | Cajero, Cliente, Encargado | Ambas |
-| **CU24** | **Restablecimiento y Control de Inventario por Devolución/Merma** | M6: Logística y Posventa | **Hecho** | Encargado, Admin Tenant | Web |
-| **CU25** | **Registro de Ventas de Contado y Reservas en Modo Offline (POS)** | M6: Logística y Posventa | Pendiente | Cajero, Cliente | Ambas |
-| **CU26** | **Personalización de Identidad y Marca del Tenant (Branding)** | M1: SaaS y Seguridad | **Hecho** | Admin Tenant, Superadmin | Web / Móvil |
-| **CU27** | **Contratación y Onboarding de Suscripción B2B** | M1: SaaS y Seguridad | **Hecho** | Prospecto B2B, Superadmin | Web |
-| **CU28** | **Monitoreo de Consumo y Cambio de Plan B2B** | M1: SaaS y Seguridad | **Hecho** | Admin Tenant | Web |
-| **CU29** | **Monitor y Gestión de Cola Local de Operaciones Pendientes (Offline Queue)** | M6: Logística y Posventa | Pendiente | Cajero, Administrador | Ambas |
-| **CU30** | **Sincronización Diferida y Resolución de Conflictos de Inventario** | M6: Logística y Posventa | Pendiente | Cajero, Admin, Sistema, Cliente | Ambas |
+| **CU1** | **Gestionar organizaciones (Tenants) de la plataforma** | M1: SaaS y Seguridad | **Hecho** | Superadministrador | Web |
+| **CU2** | **Gestionar planes de suscripción SaaS** | M1: SaaS y Seguridad | **Hecho** | Superadministrador | Web |
+| **CU3** | **Gestionar roles y permisos de usuario (RBAC)** | M1: SaaS y Seguridad | Pendiente | Superadmin, Admin Tenant | Web |
+| **CU4** | **Consultar página comercial y planes de suscripción** | M1: SaaS y Seguridad | **Hecho** | Prospecto B2B | Web |
+| **CU5** | **Probar prendas en el vestidor virtual** | M2: Inteligencia Artificial | **Hecho** | Cliente | Móvil / Web |
+| **CU6** | **Recibir recomendaciones personalizadas de prendas** | M2: Inteligencia Artificial | **Hecho** | Cliente | Ambas |
+| **CU7** | **Consultar al asistente virtual (Chatbot)** | M2: Inteligencia Artificial | **Hecho** | Cliente | Ambas |
+| **CU8** | **Generar reportes inteligentes con IA** | M2: Inteligencia Artificial | Pendiente | Admin Tenant | Web |
+| **CU9** | **Reabastecer stock automáticamente entre sucursales** | M2: Inteligencia Artificial | Pendiente | Admin Tenant, Sistema | Web |
+| **CU10** | **Registrar ingreso de mercadería con RPA e IA** | M2: Inteligencia Artificial | Pendiente | Proveedor, Sistema | Web |
+| **CU11** | **Transferir inventario entre sucursales** | M3: Inventario y Operaciones | **Hecho** | Admin, Encargado | Web |
+| **CU12** | **Recibir notificaciones push en el móvil** | M3: Inventario y Operaciones | **Hecho** | Cliente, Sistema | Móvil |
+| **CU13** | **Consultar dashboard de métricas comerciales** | M4: Business Intelligence | **Hecho** | Admin Tenant | Web |
+| **CU14** | **Generar y exportar reportes operativos** | M4: Business Intelligence | **Hecho** | Admin Tenant | Web |
+| **CU15** | **Gestionar y aplicar cupones de descuento** | M5: Promociones y Fidelidad | **Hecho** | Cliente, Admin, Cajero | Ambas |
+| **CU16** | **Gestionar lista de deseos (*Wishlist*)** | M5: Promociones y Fidelidad | Pendiente | Cliente | Ambas |
+| **CU17** | **Acumular y canjear puntos de fidelización (*Loyalty*)** | M5: Promociones y Fidelidad | Pendiente | Cliente, Cajero | Ambas |
+| **CU18** | **Comprar y emitir tarjetas de regalo (*Gift Cards*)** | M5: Promociones y Fidelidad | Pendiente | Cliente | Ambas |
+| **CU19** | **Gestionar billetera digital (*Store Wallet*)** | M5: Promociones y Fidelidad | Pendiente | Cliente, Cajero | Ambas |
+| **CU20** | **Gestionar envío a domicilio con validación por PIN** | M6: Logística y Posventa | **Hecho** | Cliente, Delivery | Ambas |
+| **CU21** | **Solicitar y procesar cambios y devoluciones (RMA)** | M6: Logística y Posventa | **Hecho** | Cliente, Encargado | Ambas |
+| **CU22** | **Instalar la aplicación web progresiva (PWA)** | M6: Logística y Posventa | Pendiente | Cliente, Todos | Web |
+| **CU23** | **Consultar catálogo sin conexión (Offline)** | M6: Logística y Posventa | Pendiente | Cajero, Cliente, Encargado | Ambas |
+| **CU24** | **Reintegrar inventario por devoluciones y registrar mermas** | M6: Logística y Posventa | **Hecho** | Encargado, Admin Tenant | Web |
+| **CU25** | **Registrar ventas y reservas sin conexión (POS Offline)** | M6: Logística y Posventa | Pendiente | Cajero, Cliente | Ambas |
+| **CU26** | **Personalizar la marca de la tienda (Branding)** | M1: SaaS y Seguridad | **Hecho** | Admin Tenant, Superadmin | Web / Móvil |
+| **CU27** | **Contratar suscripción B2B (Onboarding)** | M1: SaaS y Seguridad | **Hecho** | Prospecto B2B, Superadmin | Web |
+| **CU28** | **Monitorear consumo y cambiar plan de suscripción** | M1: SaaS y Seguridad | **Hecho** | Admin Tenant | Web |
+| **CU29** | **Gestionar cola de operaciones pendientes (Offline Queue)** | M6: Logística y Posventa | Pendiente | Cajero, Administrador | Ambas |
+| **CU30** | **Sincronizar operaciones offline y resolver conflictos de inventario** | M6: Logística y Posventa | Pendiente | Cajero, Admin, Sistema, Cliente | Ambas |
 
 * **Total de Casos de Uso:** 30 (13 Implementados en Base + 17 Evolución Segundo Parcial).
 

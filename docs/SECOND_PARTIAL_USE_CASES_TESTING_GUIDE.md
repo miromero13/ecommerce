@@ -6,7 +6,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 
 ### MÓDULO 1: Plataforma SaaS, Seguridad y Comercial
 
-#### CU1 – Aprovisionamiento y Gestión de Organizaciones (Tenants)
+#### CU1 – Gestionar organizaciones (Tenants) de la plataforma
 * **Estado:** **Hecho e Implementado**
 * **Actor de prueba:** Superadministrador
 * **Credenciales:** `superadmin@fashionstore.com` / `SuperAdmin2026!` (Pestaña: *Administrativos*)
@@ -39,7 +39,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 
 ---
 
-#### CU2 – Gestión del Catálogo de Planes de Suscripción SaaS
+#### CU2 – Gestionar planes de suscripción SaaS
 * **Estado:** **Hecho e Implementado**
 * **Actor de prueba:** Superadministrador (`superadmin@fashionstore.com` / `SuperAdmin2026!`)
 * **Ruta UI:** `/app/superadmin/plans` (Menú lateral: *"Planes de Suscripción"*)
@@ -64,7 +64,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 
 ---
 
-#### CU3 – Gestión Granular de Roles y Permisos (RBAC Dinámico)
+#### CU3 – Gestionar roles y permisos de usuario (RBAC)
 * **Estado:** **Hecho e Implementado**
 * **Actor de prueba:** Administrador de Tenant
 * **Credenciales:** `carolina.quiroga@ayni-moda.demo.bo` / `Fashion2026!` (Pestaña: *Administrativos*)
@@ -92,7 +92,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 
 ---
 
-#### CU4 – Landing Page y Catálogo de Planes
+#### CU4 – Consultar página comercial y planes de suscripción
 * **Estado:** **Hecho e Implementado**
 * **Actor de prueba:** Prospecto / Visitante público (Sin autenticación)
 * **Ruta UI:** `/landing` o `/` (`http://localhost:4200/landing`)
@@ -110,7 +110,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 
 ---
 
-#### CU26 – Personalización de Identidad y Marca del Tenant (Branding)
+#### CU26 – Personalizar la marca de la tienda (Branding)
 * **Estado:** **Hecho e Implementado**
 * **Actor de prueba:** Administrador de Tenant (`carolina.quiroga@ayni-moda.demo.bo` / `Fashion2026!`) o Superadministrador
 * **Ruta UI:** `/app/admin/settings` (o editor de branding en encabezado de cuenta)
@@ -135,7 +135,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 
 ---
 
-#### CU27 – Contratación y Onboarding de Suscripción B2B
+#### CU27 – Contratar suscripción B2B (Onboarding)
 * **Estado:** **Hecho e Implementado**
 * **Actor de prueba:** Prospecto / Nueva Marca B2B (Sin autenticación)
 * **Ruta UI:** `http://localhost:4200/landing` (Sección Precios / Planes)
@@ -163,7 +163,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 
 ---
 
-#### CU28 – Monitoreo de Consumo y Cambio de Plan B2B
+#### CU28 – Monitorear consumo y cambiar plan de suscripción
 * **Estado:** **Hecho e Implementado**
 * **Actor de prueba:** Administrador de Tenant (`veronica.pinto@luna-saten.demo.bo` / `Fashion2026!`)
 * **Ruta UI:** `/app/admin/subscription` (Menú lateral: *"Suscripción y Plan"*)
@@ -192,7 +192,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 
 ### MÓDULO 2: Inteligencia Artificial y Automatización
 
-#### CU5 – Usar Vestidor Virtual en Tiempo Real
+#### CU5 – Probar prendas en el vestidor virtual
 * **Rama de IA:** **Visión por Computadora** (*Pose Estimation*) + **IA Generativa de Video**
 * **Estado:** **Hecho e Implementado**
 * **Actor de prueba:** Cliente
@@ -219,7 +219,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 
 ---
 
-#### CU6 – Recibir Recomendaciones Personalizadas de Catálogo
+#### CU6 – Recibir recomendaciones personalizadas de prendas
 * **Rama de IA:** **Machine Learning** (Filtrado Colaborativo con Implicit ALS)
 * **Estado:** **Hecho e Implementado**
 * **Actor de prueba:** Cliente
@@ -244,7 +244,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 
 ---
 
-#### CU7 – Consultar Asistente Virtual / Chatbot
+#### CU7 – Consultar al asistente virtual (Chatbot)
 * **Rama de IA:** **Procesamiento de Lenguaje Natural (PLN)** + **IA Generativa (Gemini)**
 * **Estado:** **Hecho e Implementado**
 * **Actor de prueba:** Cliente o Visitante
@@ -270,7 +270,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 
 ---
 
-#### CU8 – Generar Reportes Inteligentes con IA y Machine Learning
+#### CU8 – Generar reportes inteligentes con IA
 * **Rama de IA:** **PLN / Text-to-Query** + **IA Generativa (Gemini)** + **ML Supervisado y No Supervisado (Scikit-Learn)**
 * **Estado:** **Hecho e Implementado**
 * **Actor de prueba:** Administrador de Tenant
@@ -300,7 +300,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 
 ---
 
-#### CU9 – Reabastecimiento Automático de Stock (Sistema Experto)
+#### CU9 – Reabastecer stock automáticamente entre sucursales
 * **Rama de IA:** **Sistemas Expertos** (Motor de Inferencia de Reglas Determinísticas)
 * **Estado:** **Hecho e Implementado**
 * **Actor de prueba:** Administrador de Tenant
@@ -329,7 +329,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 
 ---
 
-#### CU10 – Ingesta de Mercadería con RPA e IA (IDP)
+#### CU10 – Registrar ingreso de mercadería con RPA e IA
 * **Rama de IA:** **RPA con IA** (*Intelligent Document Processing* - OCR + Extracción Semántica Gemini)
 * **Estado:** **Hecho e Implementado**
 * **Actor de prueba:** Proveedor o Administrador
@@ -358,7 +358,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 
 ### MÓDULO 3: Inventario y Operaciones de Sucursal
 
-#### CU11 – Traspaso Manual de Inventario
+#### CU11 – Transferir inventario entre sucursales
 * **Estado:** **Hecho e Implementado**
 * **Actor de prueba:** Administrador o Encargado de Sucursal
 * **Credenciales:**
@@ -382,7 +382,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 
 ---
 
-#### CU12 – Notificaciones Push Móviles
+#### CU12 – Recibir notificaciones push en el móvil
 * **Estado:** **Hecho e Implementado**
 * **Actor de prueba:** Cliente (en Móvil) y Sistema/Encargado (en Web)
 * **Credenciales:** Cliente `maria.quispe@clientes.demo.bo` / `Cliente2026!`
@@ -400,7 +400,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 
 ### MÓDULO 4: Business Intelligence y Reportes
 
-#### CU13 – Dashboard de Control y Métricas
+#### CU13 – Consultar dashboard de métricas comerciales
 * **Estado:** **Hecho e Implementado**
 * **Actor de prueba:** Administrador de Tenant
 * **Credenciales:** `carolina.quiroga@ayni-moda.demo.bo` / `Fashion2026!` (Pestaña: *Administrativos*)
@@ -415,7 +415,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 
 ---
 
-#### CU14 – Generación y Exportación de Reportes
+#### CU14 – Generar y exportar reportes operativos
 * **Estado:** **Hecho e Implementado**
 * **Actor de prueba:** Administrador o Encargado
 * **Credenciales:** `carolina.quiroga@ayni-moda.demo.bo` / `Fashion2026!`
@@ -433,7 +433,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 
 ### MÓDULO 5: Promociones, Fidelización y Experiencia de Cliente
 
-#### CU15 – Gestionar y Aplicar Cupones Promocionales
+#### CU15 – Gestionar y aplicar cupones de descuento
 * **Estado:** **Hecho e Implementado**
 * **Actor de prueba:**
   * Parte A (Crear cupón): Administrador (`carolina.quiroga@ayni-moda.demo.bo` / `Fashion2026!`)
@@ -457,7 +457,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 
 ---
 
-#### CU16 – Gestionar Lista de Deseos (*Wishlist*)
+#### CU16 – Gestionar lista de deseos (*Wishlist*)
 * **Estado:** **Hecho e Implementado**
 * **Actor de prueba:** Cliente
 * **Credenciales:** `maria.quispe@clientes.demo.bo` / `Cliente2026!` (Pestaña: *Clientes*)
@@ -479,7 +479,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 
 ---
 
-#### CU17 – Fidelización y Billetera de Puntos (*Loyalty*)
+#### CU17 – Acumular y canjear puntos de fidelización (*Loyalty*)
 * **Estado:** **Hecho e Implementado**
 * **Actor de prueba:**
   * Cliente: `maria.quispe@clientes.demo.bo` / `Cliente2026!`
@@ -506,7 +506,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 
 ---
 
-#### CU18 – Emitir y Comprar Tarjetas de Regalo (*Gift Cards*)
+#### CU18 – Comprar y emitir tarjetas de regalo (*Gift Cards*)
 * **Estado:** **Especificado / En Proceso**
 * **Actor de prueba:** Cliente
 * **Credenciales:** `maria.quispe@clientes.demo.bo` / `Cliente2026!`
@@ -534,7 +534,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 
 ---
 
-#### CU19 – Gestionar Billetera Digital (*Store Wallet*)
+#### CU19 – Gestionar billetera digital (*Store Wallet*)
 * **Estado:** **Especificado / En Proceso**
 * **Actor de prueba:** Cliente
 * **Credenciales:** `maria.quispe@clientes.demo.bo` / `Cliente2026!`
@@ -553,7 +553,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 
 ### MÓDULO 6: Logística, Despacho y Posventa
 
-#### CU20 – Delivery y Despacho a Domicilio
+#### CU20 – Gestionar envío a domicilio con validación por PIN
 * **Estado:** **Hecho e Implementado en Backend y Web**
 * **Actor de prueba:**
   * Cliente: `maria.quispe@clientes.demo.bo` / `Cliente2026!`
@@ -581,7 +581,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 
 ---
 
-#### CU21 – Solicitar y Procesar Cambios y Devoluciones (RMA)
+#### CU21 – Solicitar y procesar cambios y devoluciones (RMA)
 * **Estado:** **Especificado / En Proceso**
 * **Actor de prueba:**
   * Cliente (Solicita): `maria.quispe@clientes.demo.bo` / `Cliente2026!`
@@ -616,7 +616,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 
 ---
 
-#### CU22 – Progressive Web App (PWA) e Instalabilidad
+#### CU22 – Instalar la aplicación web progresiva (PWA)
 * **Estado:** **Especificado / En Proceso**
 * **Plataforma:** **Web**
 * **Actor de prueba:** Cualquier usuario en navegador Chromium / Safari
@@ -633,7 +633,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 
 ---
 
-#### CU23 – Consulta y Navegación de Catálogo Offline en Caché
+#### CU23 – Consultar catálogo sin conexión (Offline)
 * **Estado:** **Especificado / En Proceso**
 * **Plataforma:** **Ambas (Web y Móvil)**
 * **Actor de prueba:** Cajero en POS físico (`lucia.apaza@ayni-moda.demo.bo`) o Cliente
@@ -648,7 +648,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 
 ---
 
-#### CU24 – Restablecimiento y Control de Inventario por Devoluciones y Mermas
+#### CU24 – Reintegrar inventario por devoluciones y registrar mermas
 * **Estado:** **Hecho / Verificado**
 * **Plataforma:** **Web**
 * **Actor de prueba:** Encargado de Sucursal o Administrador
@@ -665,7 +665,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 
 ---
 
-#### CU25 – Registro de Ventas de Contado y Reservas en Modo Offline (POS de Contingencia)
+#### CU25 – Registrar ventas y reservas sin conexión (POS Offline)
 * **Estado:** **Especificado / En Proceso**
 * **Plataforma:** **Ambas (Web y Móvil)**
 * **Actor de prueba:** Cajero en POS físico (`lucia.apaza@ayni-moda.demo.bo`)
@@ -683,7 +683,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 
 ---
 
-#### CU29 – Monitor y Gestión de Cola Local de Operaciones Pendientes (Offline Queue)
+#### CU29 – Gestionar cola de operaciones pendientes (Offline Queue)
 * **Estado:** **Especificado / En Proceso**
 * **Plataforma:** **Ambas (Web y Móvil)**
 * **Actor de prueba:** Cajero y Administrador
@@ -698,7 +698,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 
 ---
 
-#### CU30 – Sincronización Diferida y Resolución de Conflictos de Inventario
+#### CU30 – Sincronizar operaciones offline y resolver conflictos de inventario
 * **Estado:** **Especificado / En Proceso**
 * **Plataforma:** **Ambas (Web y Móvil)**
 * **Actor de prueba:** Cajero, Administrador y Cliente
