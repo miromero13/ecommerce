@@ -3,7 +3,7 @@ import { Component, computed, effect, inject, signal, untracked } from '@angular
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideBell, lucideBrainCircuit, lucideBuilding2, lucideCalendarDays, lucideClipboardList, lucideLayoutDashboard, lucideLogOut, lucideMail, lucidePackageSearch, lucideShield, lucideShoppingCart, lucideTicket, lucideUser, lucideUserRound, lucideUsers, lucideHeart, lucideGift, lucideWallet, lucideRotateCcw, lucideTruck } from '@ng-icons/lucide';
+import { lucideBell, lucideBrainCircuit, lucideBuilding2, lucideCalendarDays, lucideClipboardList, lucideDownload, lucideLayoutDashboard, lucideLogOut, lucideMail, lucidePackageSearch, lucideShield, lucideShoppingCart, lucideTicket, lucideUser, lucideUserRound, lucideUsers, lucideHeart, lucideGift, lucideWallet, lucideRotateCcw, lucideTruck } from '@ng-icons/lucide';
 
 import {
   HlmSidebar,
@@ -21,8 +21,11 @@ import { CatalogBranch } from '../../features/shared/models/catalog.model';
 import { CatalogApiService } from '../../features/shared/services/catalog-api.service';
 import { SessionService } from '../../features/shared/services/session.service';
 import { ChatbotComponent } from '../../features/shared/components/chatbot.component';
+import { PwaInstallPromptComponent } from '../../features/shared/components/pwa-install-prompt.component';
+import { PwaUpdatePromptComponent } from '../../features/shared/components/pwa-update-prompt.component';
 import { NotificationPushService } from '../../features/shared/services/notification-push.service';
 import { BrandingService } from '../services/branding.service';
+import { PwaService } from '../services/pwa.service';
 
 type SidebarItem = {
   label: string;
@@ -56,12 +59,15 @@ type SidebarSection = {
     HlmSidebarTrigger,
     HlmSidebarWrapper,
     ChatbotComponent,
+    PwaInstallPromptComponent,
+    PwaUpdatePromptComponent,
   ],
   providers: [
     provideIcons({
       lucideBell,
       lucideBrainCircuit,
       lucideBuilding2,
+      lucideDownload,
       lucideLayoutDashboard,
       lucideLogOut,
       lucideMail,
@@ -88,6 +94,7 @@ export class AppShellComponent {
   private readonly catalogApi = inject(CatalogApiService);
   protected readonly notifications = inject(NotificationPushService);
   protected readonly branding = inject(BrandingService);
+  protected readonly pwaService = inject(PwaService);
   // CU1: staff see their company's logo, name and color; reloads when the session changes.
   private readonly loadBranding = effect(() => {
     const tenantId = this.session.user()?.tenant_id;

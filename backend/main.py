@@ -7,7 +7,7 @@ from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.routes import user_routes, auth, branch_routes, provider_routes, catalog_routes, garment_routes, inventory_routes, cart_routes, reservation_routes, order_routes, payment_routes, sales_routes, report_routes, dashboard_routes, promotion_routes, replenishment_routes, recommendation_routes, chatbot_routes, notification_routes, tenant_routes, subscription_routes, payout_routes, delivery_routes, rbac_routes, expert_replenishment_routes, rpa_ingest_routes, wishlist_routes, loyalty_routes, cash_session_routes, receipt_routes, gift_card_routes, wallet_routes, rma_routes
+from app.routes import user_routes, auth, branch_routes, provider_routes, catalog_routes, garment_routes, inventory_routes, cart_routes, reservation_routes, order_routes, payment_routes, sales_routes, report_routes, dashboard_routes, promotion_routes, replenishment_routes, recommendation_routes, chatbot_routes, notification_routes, tenant_routes, subscription_routes, payout_routes, delivery_routes, rbac_routes, expert_replenishment_routes, rpa_ingest_routes, wishlist_routes, loyalty_routes, cash_session_routes, receipt_routes, gift_card_routes, wallet_routes, rma_routes, pwa_routes
 from app.core.error_handlers import register_error_handlers
 from app.core.tenant_middleware import register_tenant_middleware
 from app.core.database import SessionLocal
@@ -141,6 +141,7 @@ api_router.include_router(receipt_routes.router)
 api_router.include_router(gift_card_routes.router)
 api_router.include_router(wallet_routes.router)
 api_router.include_router(rma_routes.router)
+api_router.include_router(pwa_routes.router)
 
 app.include_router(api_router)
 
