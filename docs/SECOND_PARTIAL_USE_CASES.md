@@ -135,36 +135,36 @@ Para mantener la cohesión y respetar **estrictamente la estructura existente de
 
 | **ID** | **Caso de uso** | **Módulo** | **Estado en Código** | **Actor(es) principal** | **Plataforma** |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **CU1** | **Aprovisionamiento y gestión de organizaciones (Tenants)** | M1: Plataforma SaaS y Seguridad | **Hecho** | Superadministrador | Web |
-| **CU2** | **Gestión del catálogo de planes de suscripción SaaS** | M1: Plataforma SaaS y Seguridad | **Hecho** | Superadministrador | Web |
-| **CU3** | **Gestión granular de roles y permisos (RBAC)** | M1: Plataforma SaaS y Seguridad | **Hecho** | Superadministrador, Administrador | Web |
-| **CU4** | **Landing page y catálogo de planes** | M1: Plataforma SaaS y Seguridad | **Hecho** | Prospecto / Marca B2B | Web |
-| **CU5** | **Usar vestidor virtual en tiempo real** | M2: Inteligencia Artificial | **Hecho** | Cliente | Móvil / Web |
-| **CU6** | **Recibir recomendaciones de catálogo** | M2: Inteligencia Artificial | **Hecho** | Cliente | Ambas |
-| **CU7** | **Consultar asistente virtual / Chatbot** | M2: Inteligencia Artificial | **Hecho** | Cliente | Ambas |
-| **CU8** | **Generar reportes inteligentes con IA y Machine Learning** | M2: Inteligencia Artificial | **Hecho** | Administrador | Web |
-| **CU9** | **Reabastecimiento automático de stock (Sistema Experto)** | M2: Inteligencia Artificial | **Hecho** | Administrador, Sistema | Web |
-| **CU10** | **Ingesta de mercadería con RPA e IA** | M2: Inteligencia Artificial | **Hecho** | Proveedor, Sistema | Web |
-| **CU11** | **Traspaso manual de inventario** | M3: Inventario y Operaciones | **Hecho** | Administrador, Encargado | Web |
-| **CU12** | **Notificaciones push móviles** | M3: Inventario y Operaciones | **Hecho** | Cliente, Sistema | Móvil |
-| **CU13** | **Dashboard de control y métricas** | M4: Business Intelligence | **Hecho** | Administrador | Web |
-| **CU14** | **Generación y exportación de reportes** | M4: Business Intelligence | **Hecho** | Administrador | Web |
-| **CU15** | **Gestionar y aplicar cupones promocionales** | M5: Promociones y Fidelización | **Hecho** | Cliente, Admin, Encargado | Ambas |
+| **CU1** | **Gestionar organizaciones (Tenants) de la plataforma** | M1: Plataforma SaaS y Seguridad | **Hecho** | Superadministrador | Web |
+| **CU2** | **Gestionar planes de suscripción SaaS** | M1: Plataforma SaaS y Seguridad | **Hecho** | Superadministrador | Web |
+| **CU3** | **Gestionar roles y permisos de usuario (RBAC)** | M1: Plataforma SaaS y Seguridad | **Hecho** | Superadministrador, Administrador | Web |
+| **CU4** | **Consultar página comercial y planes de suscripción** | M1: Plataforma SaaS y Seguridad | **Hecho** | Prospecto / Marca B2B | Web |
+| **CU5** | **Probar prendas en el vestidor virtual** | M2: Inteligencia Artificial | **Hecho** | Cliente | Móvil / Web |
+| **CU6** | **Recibir recomendaciones personalizadas de prendas** | M2: Inteligencia Artificial | **Hecho** | Cliente | Ambas |
+| **CU7** | **Consultar al asistente virtual (Chatbot)** | M2: Inteligencia Artificial | **Hecho** | Cliente | Ambas |
+| **CU8** | **Generar reportes inteligentes con IA** | M2: Inteligencia Artificial | **Hecho** | Administrador | Web |
+| **CU9** | **Reabastecer stock automáticamente entre sucursales** | M2: Inteligencia Artificial | **Hecho** | Administrador, Sistema | Web |
+| **CU10** | **Registrar ingreso de mercadería con RPA e IA** | M2: Inteligencia Artificial | **Hecho** | Proveedor, Sistema | Web |
+| **CU11** | **Transferir inventario entre sucursales** | M3: Inventario y Operaciones | **Hecho** | Administrador, Encargado | Web |
+| **CU12** | **Recibir notificaciones push en el móvil** | M3: Inventario y Operaciones | **Hecho** | Cliente, Sistema | Móvil |
+| **CU13** | **Consultar dashboard de métricas comerciales** | M4: Business Intelligence | **Hecho** | Administrador | Web |
+| **CU14** | **Generar y exportar reportes operativos** | M4: Business Intelligence | **Hecho** | Administrador | Web |
+| **CU15** | **Gestionar y aplicar cupones de descuento** | M5: Promociones y Fidelización | **Hecho** | Cliente, Admin, Encargado | Ambas |
 | **CU16** | **Gestionar lista de deseos (*Wishlist*)** | M5: Promociones y Fidelización | **Hecho** | Cliente | Ambas |
-| **CU17** | **Fidelización y billetera de puntos (*Loyalty*)** | M5: Promociones y Fidelización | **Hecho** | Cliente, Cajero | Ambas |
-| **CU18** | **Emitir y comprar tarjetas de regalo (*Gift Cards*)** | M5: Promociones y Fidelización | **Hecho** | Cliente | Ambas |
+| **CU17** | **Acumular y canjear puntos de fidelización (*Loyalty*)** | M5: Promociones y Fidelización | **Hecho** | Cliente, Cajero | Ambas |
+| **CU18** | **Comprar y emitir tarjetas de regalo (*Gift Cards*)** | M5: Promociones y Fidelización | **Hecho** | Cliente | Ambas |
 | **CU19** | **Gestionar billetera digital (*Store Wallet*)** | M5: Promociones y Fidelización | **Hecho** | Cliente, Cajero | Ambas |
-| **CU20** | **Delivery y despacho a domicilio** | M6: Logística y Posventa | **Hecho** | Cliente, Delivery | Ambas |
+| **CU20** | **Gestionar envío a domicilio con validación por PIN** | M6: Logística y Posventa | **Hecho** | Cliente, Delivery | Ambas |
 | **CU21** | **Solicitar y procesar cambios y devoluciones (RMA)** | M6: Logística y Posventa | **Hecho** | Cliente, Encargado, Admin | Ambas |
-| **CU22** | **Progressive Web App (PWA) e Instalabilidad** | M6: Logística y Posventa | **Pendiente** | Cliente, Todos | Web |
-| **CU23** | **Consulta y navegación de catálogo offline en caché** | M6: Logística y Posventa | **Pendiente** | Cajero, Cliente, Encargado | Ambas |
-| **CU24** | **Restablecimiento y control de inventario por devoluciones y mermas** | M6: Logística y Posventa | **Hecho** | Encargado, Administrador | Web |
-| **CU25** | **Registro de ventas de contado y reservas en modo offline (POS)** | M6: Logística y Posventa | **Pendiente** | Cajero, Cliente | Ambas |
-| **CU26** | **Personalización de identidad y marca del tenant (Branding)** | M1: Plataforma SaaS y Seguridad | **Hecho** | Administrador, Superadministrador | Web / Móvil |
-| **CU27** | **Contratación y onboarding de suscripción B2B** | M1: Plataforma SaaS y Seguridad | **Hecho** | Prospecto / Marca B2B, Superadmin | Web |
-| **CU28** | **Monitoreo de consumo y cambio de plan B2B** | M1: Plataforma SaaS y Seguridad | **Hecho** | Administrador | Web |
-| **CU29** | **Monitor y gestión de cola local de operaciones pendientes (Offline Queue)** | M6: Logística y Posventa | **Pendiente** | Cajero, Administrador | Ambas |
-| **CU30** | **Sincronización diferida y resolución de conflictos de inventario** | M6: Logística y Posventa | **Pendiente** | Cajero, Admin, Sistema, Cliente | Ambas |
+| **CU22** | **Instalar la aplicación web progresiva (PWA)** | M6: Logística y Posventa | **Pendiente** | Cliente, Todos | Web |
+| **CU23** | **Consultar catálogo sin conexión (Offline)** | M6: Logística y Posventa | **Pendiente** | Cajero, Cliente, Encargado | Ambas |
+| **CU24** | **Reintegrar inventario por devoluciones y registrar mermas** | M6: Logística y Posventa | **Hecho** | Encargado, Administrador | Web |
+| **CU25** | **Registrar ventas y reservas sin conexión (POS Offline)** | M6: Logística y Posventa | **Pendiente** | Cajero, Cliente | Ambas |
+| **CU26** | **Personalizar la marca de la tienda (Branding)** | M1: Plataforma SaaS y Seguridad | **Hecho** | Administrador, Superadministrador | Web / Móvil |
+| **CU27** | **Contratar suscripción B2B (Onboarding)** | M1: Plataforma SaaS y Seguridad | **Hecho** | Prospecto / Marca B2B, Superadmin | Web |
+| **CU28** | **Monitorear consumo y cambiar plan de suscripción** | M1: Plataforma SaaS y Seguridad | **Hecho** | Administrador | Web |
+| **CU29** | **Gestionar cola de operaciones pendientes (Offline Queue)** | M6: Logística y Posventa | **Pendiente** | Cajero, Administrador | Ambas |
+| **CU30** | **Sincronizar operaciones offline y resolver conflictos de inventario** | M6: Logística y Posventa | **Pendiente** | Cajero, Admin, Sistema, Cliente | Ambas |
 
 ---
 
@@ -174,7 +174,7 @@ Para mantener la cohesión y respetar **estrictamente la estructura existente de
 
 ### Módulo 1: Plataforma SaaS, Seguridad y Comercial
 
-#### CU1 – Aprovisionamiento y gestión de organizaciones (Tenants)
+#### CU1 – Gestionar organizaciones (Tenants) de la plataforma
 * **Módulo:** M1: Plataforma SaaS y Seguridad
 * **Actor Principal:** Superadministrador
 * **Estado:** Hecho | **Plataforma:** Web
@@ -258,7 +258,7 @@ POST /api/saas/tenants/{tenant_id}/panel-session
 
 ---
 
-#### CU2 – Gestión del catálogo de planes de suscripción SaaS
+#### CU2 – Gestionar planes de suscripción SaaS
 * **Módulo:** M1: Plataforma SaaS y Seguridad
 * **Actor Principal:** Superadministrador
 * **Estado:** **Hecho** | **Plataforma:** Web
@@ -354,7 +354,7 @@ GET /api/saas/plans                                    (catálogo público de pl
 
 ---
 
-#### CU3 – Gestión granular de roles y permisos (RBAC dinámico)
+#### CU3 – Gestionar roles y permisos de usuario (RBAC)
 * **Módulo:** M1: Plataforma SaaS y Seguridad
 * **Actor Principal:** Superadministrador, Administrador
 * **Estado:** **Hecho** (`rbac_service.py`, `rbac_routes.py`, migración `0042`, `rbac-roles-page`) | **Plataforma:** Web
@@ -437,7 +437,7 @@ POST /api/rbac/users/{user_id}/roles
 
 ---
 
-#### CU4 – Landing page y catálogo de planes
+#### CU4 – Consultar página comercial y planes de suscripción
 * **Módulo:** M1: Plataforma SaaS y Seguridad
 * **Actor Principal:** Prospecto / Marca B2B (Visitante público)
 * **Estado:** **Hecho** | **Plataforma:** Web
@@ -509,7 +509,7 @@ Response 422 Unprocessable Entity:
 
 ---
 
-#### CU26 – Personalización de identidad y marca del tenant (Branding)
+#### CU26 – Personalizar la marca de la tienda (Branding)
 * **Módulo:** M1: Plataforma SaaS y Seguridad
 * **Actor Principal:** Administrador de Empresa, Superadministrador
 * **Estado:** **Hecho** | **Plataforma:** Web / Móvil
@@ -571,7 +571,7 @@ PATCH /api/saas/tenants/{tenant_id}                    (actualizar primary_color
 
 ---
 
-#### CU27 – Contratación y onboarding de suscripción B2B
+#### CU27 – Contratar suscripción B2B (Onboarding)
 * **Módulo:** M1: Plataforma SaaS y Seguridad
 * **Actor Principal:** Prospecto / Nueva Marca B2B, Superadministrador
 * **Estado:** **Hecho** | **Plataforma:** Web
@@ -638,7 +638,7 @@ POST /api/saas/tenants/with-subscription               (Superadministrador: alta
 
 ---
 
-#### CU28 – Monitoreo de consumo y cambio de plan B2B
+#### CU28 – Monitorear consumo y cambiar plan de suscripción
 * **Módulo:** M1: Plataforma SaaS y Seguridad
 * **Actor Principal:** Administrador de Tenant
 * **Estado:** **Hecho** | **Plataforma:** Web
@@ -731,7 +731,7 @@ Response 403 Forbidden:
 
 ### Módulo 2: Inteligencia Artificial y Automatización
 
-#### CU5 – Usar vestidor virtual en tiempo real
+#### CU5 – Probar prendas en el vestidor virtual
 * **Rama de IA:** **Visión por Computadora** (*Pose Estimation*) + **IA Generativa de Video** (Decart AI)
 * **Actor Principal:** Cliente
 * **Estado:** **Hecho** (Implementado en `mobile/lib/features/catalog/virtual_try_on_page.dart` y `frontend/public/decart-try-on.html`) | **Plataforma:** Móvil / Web
@@ -787,7 +787,7 @@ Response 422 Unprocessable Entity:
 
 ---
 
-#### CU6 – Recibir recomendaciones personalizadas de catálogo
+#### CU6 – Recibir recomendaciones personalizadas de prendas
 * **Rama de IA:** **Machine Learning** (Filtrado Colaborativo con Implicit ALS)
 * **Actor Principal:** Cliente
 * **Estado:** **Hecho** (`backend/app/services/recommendation_service.py`, `recommendation_routes.py`) | **Plataforma:** Ambas
@@ -839,7 +839,7 @@ Las demás señales se registran solas: carrito (`cart_service`), lista de deseo
 
 ---
 
-#### CU7 – Consultar asistente virtual / Chatbot
+#### CU7 – Consultar al asistente virtual (Chatbot)
 * **Rama de IA:** **Procesamiento de Lenguaje Natural (PLN)** + **IA Generativa** (Google Gemini)
 * **Actor Principal:** Cliente
 * **Estado:** **Hecho** (Implementado en `backend/app/services/chatbot_service.py` y `chatbot_routes.py`) | **Plataforma:** Ambas
@@ -897,7 +897,7 @@ GET /api/chatbot/messages
 
 ---
 
-#### CU8 – Generar reportes inteligentes con IA y Machine Learning
+#### CU8 – Generar reportes inteligentes con IA
 * **Rama de IA:** **Procesamiento de Lenguaje Natural (PLN)** + **IA Generativa** (*Text-to-Filters* con Gemini) + **Machine Learning** (Supervisado y No Supervisado con Scikit-Learn)
 * **Actor Principal:** Administrador
 * **Estado:** **Hecho** (NLP, regresión, K-Means, cuatro reportes y exportaciones con pruebas automatizadas; falta solo el ensayo en vivo con micrófono) | **Plataforma:** Web
@@ -1010,7 +1010,7 @@ Los endpoints ML exigen administrador y `ai_ml_smart_reports` (403 sin prestaci�
 
 ---
 
-#### CU9 – Reabastecimiento automático de stock (Sistema Experto)
+#### CU9 – Reabastecer stock automáticamente entre sucursales
 * **Rama de IA:** **Sistemas Expertos** (Motor de Inferencia de Reglas Determinísticas)
 * **Actor Principal:** Administrador, Sistema
 * **Estado:** **Hecho** (`expert_replenishment_service.py`, `expert_replenishment_routes.py`, migración `0043`, tarea periódica en `main.py`, `admin-expert-replenishment-page`) | **Plataforma:** Web
@@ -1087,7 +1087,7 @@ PUT /api/inventory/expert-replenishment/rules
 
 ---
 
-#### CU10 – Ingesta de mercadería con RPA e IA
+#### CU10 – Registrar ingreso de mercadería con RPA e IA
 * **Rama de IA:** **RPA con IA** (*Intelligent Document Processing* - IDP)
 * **Actor Principal:** Proveedor, Sistema
 * **Estado:** **Hecho** (`rpa_ingest_service.py`, `rpa_ingest_routes.py`, migración `0044`, `provider-rpa-ingest-page`) | **Plataforma:** Web
@@ -1173,7 +1173,7 @@ Response 201 Created:
 
 ### Módulo 3: Inventario y Operaciones de Sucursal
 
-#### CU11 – Traspaso manual de inventario
+#### CU11 – Transferir inventario entre sucursales
 * **Módulo:** M3: Inventario y Operaciones
 * **Actor Principal:** Administrador, Encargado de sucursal
 * **Estado:** **Hecho** (Implementado en `backend/app/routes/inventory_routes.py` endpoint `/inventory/movements/transfer`) | **Plataforma:** Web
@@ -1227,7 +1227,7 @@ Response 400 Bad Request:
 
 ---
 
-#### CU12 – Notificaciones push móviles
+#### CU12 – Recibir notificaciones push en el móvil
 * **Módulo:** M3: Inventario y Operaciones
 * **Actor Principal:** Cliente, Sistema
 * **Estado:** **Hecho** (Implementado con FCM en backend y Flutter móvil) | **Plataforma:** Móvil
@@ -1276,7 +1276,7 @@ PATCH /api/notifications/{notification_id}/read
 
 ### Módulo 4: Business Intelligence y Reportes
 
-#### CU13 – Dashboard de control y métricas
+#### CU13 – Consultar dashboard de métricas comerciales
 * **Módulo:** M4: Business Intelligence
 * **Actor Principal:** Administrador
 * **Estado:** **Hecho** (Implementado en `backend/app/routes/dashboard_routes.py` y `admin-home-page`) | **Plataforma:** Web
@@ -1319,7 +1319,7 @@ Response 403 Forbidden:
 
 ---
 
-#### CU14 – Generación y exportación de reportes
+#### CU14 – Generar y exportar reportes operativos
 * **Módulo:** M4: Business Intelligence
 * **Actor Principal:** Administrador
 * **Estado:** **Hecho** (Implementado en `backend/app/routes/report_routes.py`) | **Plataforma:** Web
@@ -1356,7 +1356,7 @@ Response 400 Bad Request:
 
 ### Módulo 5: Promociones, Fidelización y Experiencia de Cliente
 
-#### CU15 – Gestionar y aplicar cupones promocionales
+#### CU15 – Gestionar y aplicar cupones de descuento
 * **Módulo:** M5: Promociones y Fidelización
 * **Actor Principal:** Cliente (aplica), Administrador / Encargado (crean)
 * **Estado:** **Hecho** (Implementado en `promotion_routes.py`, `cart_service.py` y `promotions-page`) | **Plataforma:** Ambas
@@ -1498,7 +1498,7 @@ Response 400 Bad Request:
 
 ---
 
-#### CU17 – Fidelización y billetera de puntos (*Loyalty*)
+#### CU17 – Acumular y canjear puntos de fidelización (*Loyalty*)
 * **Módulo:** M5: Promociones y Fidelización
 * **Actor Principal:** Cliente, Cajero
 * **Estado:** **Hecho** (`loyalty_service.py`, `loyalty_routes.py`, migración `0046`) | **Plataforma:** Ambas
@@ -1576,7 +1576,7 @@ Response 400 Bad Request:
 
 ---
 
-#### CU18 – Emitir y comprar tarjetas de regalo (*Gift Cards*)
+#### CU18 – Comprar y emitir tarjetas de regalo (*Gift Cards*)
 * **Módulo:** M5: Promociones y Fidelización
 * **Actor Principal:** Cliente
 * **Estado:** **Hecho** (`gift_card_service.py`, `gift_card_routes.py`, migración `0053`) | **Plataforma:** Ambas
@@ -1734,7 +1734,7 @@ GET /api/wallet/transactions
 
 ### Módulo 6: Logística, Despacho y Posventa
 
-#### CU20 – Delivery y despacho a domicilio
+#### CU20 – Gestionar envío a domicilio con validación por PIN
 * **Módulo:** M6: Logística y Posventa
 * **Actor Principal:** Cliente (solicita y certifica con PIN), Delivery (despacha)
 * **Estado:** Pendiente | **Plataforma:** Ambas
@@ -2001,7 +2001,7 @@ Response 200 OK:
 
 ---
 
-#### CU22 – Progressive Web App (PWA) e Instalabilidad
+#### CU22 – Instalar la aplicación web progresiva (PWA)
 * **Módulo:** M6: Logística y Posventa
 * **Actor Principal:** Cliente, Administrador, Encargado, Cajero (Usuarios Web)
 * **Estado:** Pendiente | **Plataforma:** Web
@@ -2048,7 +2048,7 @@ Response 200 OK:
 
 ---
 
-#### CU23 – Consulta y Navegación de Catálogo Offline en Caché
+#### CU23 – Consultar catálogo sin conexión (Offline)
 * **Módulo:** M6: Logística y Posventa
 * **Actor Principal:** Cajero, Cliente, Encargado
 * **Estado:** Pendiente | **Plataforma:** Ambas (Web y Móvil)
@@ -2095,7 +2095,7 @@ Response 200 OK:
 
 ---
 
-#### CU24 – Restablecimiento y control de inventario por devoluciones y mermas
+#### CU24 – Reintegrar inventario por devoluciones y registrar mermas
 * **Módulo:** M6: Logística y Posventa
 * **Actor Principal:** Encargado de sucursal, Administrador
 * **Estado:** Pendiente | **Plataforma:** Web
@@ -2196,7 +2196,7 @@ Response 200 OK:
 
 ---
 
-#### CU25 – Registro de Ventas de Contado y Reservas en Modo Offline (POS de Contingencia)
+#### CU25 – Registrar ventas y reservas sin conexión (POS Offline)
 * **Módulo:** M6: Logística y Posventa
 * **Actor Principal:** Cajero (Terminal POS), Cliente
 * **Estado:** Pendiente | **Plataforma:** Ambas (Web y Móvil)
@@ -2214,7 +2214,7 @@ Response 200 OK:
 
 ---
 
-#### CU29 – Monitor y Gestión de Cola Local de Operaciones Pendientes (Offline Queue)
+#### CU29 – Gestionar cola de operaciones pendientes (Offline Queue)
 * **Módulo:** M6: Logística y Posventa
 * **Actor Principal:** Cajero, Administrador
 * **Estado:** Pendiente | **Plataforma:** Ambas (Web y Móvil)
@@ -2231,7 +2231,7 @@ Response 200 OK:
 
 ---
 
-#### CU30 – Sincronización Diferida y Resolución de Conflictos de Inventario
+#### CU30 – Sincronizar operaciones offline y resolver conflictos de inventario
 * **Módulo:** M6: Logística y Posventa
 * **Actor Principal:** Cajero, Administrador, Sistema, Cliente
 * **Estado:** Pendiente | **Plataforma:** Ambas (Web y Móvil)
