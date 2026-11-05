@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../network/api_client.dart';
 import 'offline_queue_models.dart';
 
 class OfflineQueueService {
@@ -113,6 +114,54 @@ class OfflineQueueService {
   Future<void> clearQueue() async {
     _operations.clear();
     await _storage.delete(key: _queueStorageKey);
+  }
+
+  /// CU30: Sincroniza las operaciones pendientes con el servidor central
+  Future<Map<String, int>> syncQueue(ApiClient apiClient) async {
+    await loadQueue();
+    final pending = _operations.where((op) => op.status == 'local_pending').toList();
+    if (pending.isEmpty) {
+      return {'synced': 0, 'conflicts': 0};
+    }
+
+    try {
+      final payload = {
+        'operations': pending.map((op) => op.toJson()).toList(),
+      };
+
+      final res = await apiClient.post<Map<String, dynamic>>(
+        '/api/offline/queue-sync',
+        data: payload,
+        parser: (data) => data as Map<String, dynamic>,
+      );
+
+      final data = res.data;
+      if (data != null) {
+        final syncedIds = (data['synced_ids'] as List<dynamic>?)?.cast<String>() ?? [];
+        final conflicts = (data['conflicts'] as List<dynamic>?) ?? [];
+
+        _operations.removeWhere((op) => syncedIds.contains(op.operationId));
+
+        for (final conflict in conflicts) {
+          if (conflict is Map<String, dynamic>) {
+            final opId = conflict['operation_id'] as String?;
+            final reason = conflict['reason'] as String?;
+            if (opId != null) {
+              await updateStatus(opId, 'conflict_rejected', error: reason);
+            }
+          }
+        }
+
+        await _saveQueue();
+        return {
+          'synced': syncedIds.length,
+          'conflicts': conflicts.length,
+        };
+      }
+      return {'synced': 0, 'conflicts': 0};
+    } catch (_) {
+      return {'synced': 0, 'conflicts': 0};
+    }
   }
 
   Future<void> _saveQueue() async {

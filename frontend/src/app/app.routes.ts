@@ -234,6 +234,12 @@ export const routes: Routes = [
           import('./features/cajero/pages/caja-page.component').then((m) => m.CajaPageComponent),
       },
       {
+        path: 'cajero/offline-conflicts',
+        canActivate: [roleGuard(['cajero', 'administrador', 'encargado'])],
+        loadComponent: () =>
+          import('./features/cajero/pages/offline-conflicts-page.component').then((m) => m.OfflineConflictsPageComponent),
+      },
+      {
         path: 'cajero/orders',
         canActivate: [roleGuard(['cajero'], 'orders:manage')],
         loadComponent: () => import('./features/encargado/pages/orders-page.component').then((m) => m.EncargadoOrdersPageComponent),
