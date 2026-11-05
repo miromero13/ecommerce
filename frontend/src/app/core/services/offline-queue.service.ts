@@ -1,5 +1,8 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import { IndexedDbService, STORES } from './indexeddb.service';
+import { environment } from '../../../environments/environment';
 
 export type OfflineOperationType = 'cash_sale' | 'reservation';
 export type OfflineOperationStatus = 'local_pending' | 'syncing' | 'synced' | 'conflict_rejected';
@@ -49,8 +52,11 @@ export type EnqueueOperationInput = Omit<
 })
 export class OfflineQueueService {
   private readonly idb = inject(IndexedDbService);
+  private readonly http = inject(HttpClient);
 
   readonly operations = signal<OfflineOperation[]>([]);
+  readonly isSyncing = signal<boolean>(false);
+  readonly lastSyncAttempt = signal<Date | null>(null);
   readonly pendingCount = computed(() =>
     this.operations().filter((op) => op.status === 'local_pending' || op.status === 'syncing').length
   );
@@ -133,6 +139,94 @@ export class OfflineQueueService {
   async clearQueue(): Promise<void> {
     await this.idb.clearStore(STORES.PENDING_OPERATIONS_QUEUE);
     this.operations.set([]);
+  }
+
+  /**
+   * CU29 / CU30: Dispara la sincronización del lote de operaciones pendientes
+   */
+  async syncBatchNow(): Promise<{ synced: number; conflicts: number; failed: number }> {
+    if (this.isSyncing()) {
+      return { synced: 0, conflicts: 0, failed: 0 };
+    }
+
+    const pending = this.operations().filter((op) => op.status === 'local_pending' || op.status === 'conflict_rejected');
+    if (!pending.length) {
+      return { synced: 0, conflicts: 0, failed: 0 };
+    }
+
+    this.isSyncing.set(true);
+    this.lastSyncAttempt.set(new Date());
+
+    try {
+      for (const op of pending) {
+        await this.updateStatus(op.operation_id, 'syncing');
+      }
+
+      const apiUrl = environment.apiBaseUrl || '/api';
+      const payload = {
+        operations: pending.map((op) => ({
+          operation_id: op.operation_id,
+          receipt_number: op.receipt_number,
+          type: op.type,
+          created_at: op.created_at,
+          tenant_id: op.tenant_id,
+          branch_id: op.branch_id,
+          cashier_id: op.cashier_id,
+          cashier_name: op.cashier_name,
+          customer_email: op.customer_email,
+          items: op.items.map((it) => ({
+            variant_id: it.variant_id,
+            quantity: it.quantity,
+            unit_price: it.unit_price,
+          })),
+          subtotal: op.subtotal,
+          discount: op.discount,
+          total: op.total,
+          cash_received: op.cash_received,
+          change_returned: op.change_returned,
+          notes: op.notes,
+        })),
+      };
+
+      const res = await firstValueFrom(
+        this.http.post<{
+          statusCode: number;
+          data: {
+            synced_count: number;
+            conflicts_count: number;
+            synced_ids: string[];
+            conflicts: Array<{ operation_id: string; reason: string }>;
+          };
+        }>(`${apiUrl}/offline/queue-sync`, payload)
+      );
+
+      const data = res?.data;
+      if (data) {
+        for (const syncedId of data.synced_ids || []) {
+          await this.removeOperation(syncedId);
+        }
+
+        for (const conflict of data.conflicts || []) {
+          await this.updateStatus(conflict.operation_id, 'conflict_rejected', conflict.reason);
+        }
+
+        return {
+          synced: data.synced_count || 0,
+          conflicts: data.conflicts_count || 0,
+          failed: 0,
+        };
+      }
+      return { synced: 0, conflicts: 0, failed: 0 };
+    } catch (err) {
+      console.warn('Error sincronizando lote offline con el servidor:', err);
+      for (const op of pending) {
+        await this.updateStatus(op.operation_id, 'local_pending', 'Error de conexión con el servidor central');
+      }
+      return { synced: 0, conflicts: 0, failed: pending.length };
+    } finally {
+      this.isSyncing.set(false);
+      await this.loadQueue();
+    }
   }
 
   private generateUuid(): string {

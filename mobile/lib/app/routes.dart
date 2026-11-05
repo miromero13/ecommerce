@@ -21,6 +21,7 @@ import '../features/profile/wallet_page.dart';
 import '../features/wishlist/wishlist_page.dart';
 import '../features/deliveries/deliveries_page.dart';
 import '../features/rma/rma_page.dart';
+import '../features/management/offline_queue_page.dart';
 import '../shared/widgets/app_scaffold.dart';
 
 abstract final class AppRoutes {
@@ -41,6 +42,7 @@ abstract final class AppRoutes {
   static const wallet = '/wallet';
   static const deliveries = '/deliveries';
   static const returns = '/returns';
+  static const offlineQueue = '/offline-queue';
 }
 
 abstract final class AppRouter {
@@ -168,6 +170,12 @@ abstract final class AppRouter {
         RmaPage(authController: authController),
         selectedIndex: 1,
         shellTitle: 'Mis Devoluciones y Cambios',
+      ),
+      AppRoutes.offlineQueue => _page(
+        settings,
+        const OfflineQueuePage(),
+        selectedIndex: 1,
+        shellTitle: 'Cola de Operaciones Offline',
       ),
       AppRoutes.login => _page(
         settings,

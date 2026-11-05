@@ -27,6 +27,24 @@
           }
         </button>
       }
+      <!-- Botón de Monitor de Cola Local (CU29) -->
+      <button
+        hlmBtn
+        type="button"
+        variant="outline"
+        (click)="showQueueModal.set(true)"
+        class="relative inline-flex items-center gap-1.5 cursor-pointer text-xs"
+        title="Ver monitor de operaciones offline pendientes"
+      >
+        <span>Cola local</span>
+        @if (offlineQueue.pendingCount() > 0) {
+          <span class="inline-flex size-5 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-white shadow-sm animate-pulse">
+            {{ offlineQueue.pendingCount() }}
+          </span>
+        } @else {
+          <span class="text-slate-400 text-[11px]">(0)</span>
+        }
+      </button>
       <button hlmBtn type="button" variant="outline" (click)="searchProducts()" [disabled]="loadingProducts()">Actualizar productos</button>
     </div>
   </header>
@@ -286,4 +304,11 @@
     [operation]="lastOfflineOperation()"
     (close)="lastOfflineOperation.set(null)"
   />
+
+  <!-- Modal de Monitor de Cola Local (CU29) -->
+  @if (showQueueModal()) {
+    <app-offline-queue-modal
+      (close)="showQueueModal.set(false)"
+    />
+  }
 </section>

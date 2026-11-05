@@ -27,6 +27,7 @@ import { LoyaltyApiService } from '../../shared/services/loyalty-api.service';
 import { OfflineCatalogProduct, OfflineCatalogService } from '../../../core/services/offline-catalog.service';
 import { OfflineOperation, OfflineQueueService, OfflineSaleItem } from '../../../core/services/offline-queue.service';
 import { OfflineProvisionalReceiptDialogComponent } from '../components/offline-provisional-receipt-dialog.component';
+import { OfflineQueueModalComponent } from '../components/offline-queue-modal.component';
 
 type SelectedSaleItem = {
   variant_id: string;
@@ -44,7 +45,7 @@ type SelectedSaleItem = {
 @Component({
   selector: 'app-cajero-caja-page',
   standalone: true,
-  imports: [CommonModule, HlmButton, QrPaymentPanelComponent, CashDrawerPanelComponent, ReceiptActionsComponent, OfflineProvisionalReceiptDialogComponent, ...HlmBadgeImports, ...HlmCardImports, ...HlmInputImports],
+  imports: [CommonModule, HlmButton, QrPaymentPanelComponent, CashDrawerPanelComponent, ReceiptActionsComponent, OfflineProvisionalReceiptDialogComponent, OfflineQueueModalComponent, ...HlmBadgeImports, ...HlmCardImports, ...HlmInputImports],
   templateUrl: './caja-page.component.html',
 })
 export class CajaPageComponent {
@@ -63,6 +64,21 @@ export class CajaPageComponent {
   protected readonly offlineCatalog = inject(OfflineCatalogService);
   protected readonly offlineQueue = inject(OfflineQueueService);
   protected readonly lastOfflineOperation = signal<OfflineOperation | null>(null);
+  protected readonly showQueueModal = signal<boolean>(false);
+
+  protected async syncOfflineQueue(): Promise<void> {
+    toast.info('Iniciando sincronización del lote offline...');
+    const result = await this.offlineQueue.syncBatchNow();
+    if (result.synced > 0) {
+      toast.success(`${result.synced} operaciones sincronizadas con éxito.`);
+    }
+    if (result.conflicts > 0) {
+      toast.warning(`${result.conflicts} operaciones presentaron conflictos de inventario.`);
+    }
+    if (result.failed > 0 && result.synced === 0) {
+      toast.error('No se pudo conectar con el servidor central para sincronizar el lote.');
+    }
+  }
   // A QR is issued for an exact total: any change to the items invalidates it.
   private readonly resetQrOnItemsChange = effect(() => {
     this.selectedItems();

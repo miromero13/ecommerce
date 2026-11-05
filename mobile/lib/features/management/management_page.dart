@@ -71,6 +71,13 @@ class ManagementPage extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         _ManagementCard(
+          icon: Icons.sync_problem_outlined,
+          title: 'Cola de operaciones offline',
+          subtitle: 'Ventas y reservas retenidas localmente pendientes de sincronizar.',
+          onTap: () => Navigator.of(context).pushNamed(AppRoutes.offlineQueue),
+        ),
+        const SizedBox(height: 12),
+        _ManagementCard(
           icon: Icons.notifications_none,
           title: 'Notificaciones',
           subtitle: 'Consulta novedades y cambios de estado.',
