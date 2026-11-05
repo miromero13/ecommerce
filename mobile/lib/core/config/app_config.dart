@@ -30,7 +30,7 @@ class AppConfig {
 
   static String get apiBaseUrl => '$backendUrl$apiPrefix';
 
-  static const connectTimeout = Duration(seconds: 15);
-  static const receiveTimeout = Duration(seconds: 15);
-  static const sendTimeout = Duration(seconds: 15);
+  static const connectTimeout = Duration(seconds: 60);
+  static const receiveTimeout = Duration(seconds: 60);
+  static const sendTimeout = Duration(seconds: 60);
 }
