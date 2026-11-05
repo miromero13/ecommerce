@@ -73,8 +73,10 @@ export class OfflineCartService {
       });
       return true;
     } catch (error) {
-      // La conexión se cortó durante la petición: la prenda no se pierde.
-      return isOffline() ? this.saveLocally(payload, productName, variantLabel) : false;
+      // La conexión se cortó durante la petición, o hay Wi-Fi sin internet (navigator.onLine sigue en true pero el servidor
+      // no responde: status 0): la prenda no se pierde, se guarda y se envía al volver la conexión.
+      const noResponse = error instanceof HttpErrorResponse && error.status === 0;
+      return isOffline() || noResponse ? this.saveLocally(payload, productName, variantLabel) : false;
     }
   }
 
