@@ -507,7 +507,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 ---
 
 #### CU18 – Comprar y emitir tarjetas de regalo (*Gift Cards*)
-* **Estado:** **Especificado / En Proceso**
+* **Estado:** **Hecho e Implementado**
 * **Actor de prueba:** Cliente
 * **Credenciales:** `maria.quispe@clientes.demo.bo` / `Cliente2026!`
 * **Ruta UI prevista:** `/app/cliente/gift-cards` y en perfil móvil.
@@ -535,7 +535,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 ---
 
 #### CU19 – Gestionar billetera digital (*Store Wallet*)
-* **Estado:** **Especificado / En Proceso**
+* **Estado:** **Hecho e Implementado**
 * **Actor de prueba:** Cliente
 * **Credenciales:** `maria.quispe@clientes.demo.bo` / `Cliente2026!`
 * **Ruta UI prevista:** `/app/cliente/wallet` y opción *"Mi Billetera Digital"* en el menú de perfil móvil.
@@ -554,7 +554,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 ### MÓDULO 6: Logística, Despacho y Posventa
 
 #### CU20 – Gestionar envío a domicilio con validación por PIN
-* **Estado:** **Hecho e Implementado en Backend y Web**
+* **Estado:** **Hecho e Implementado**
 * **Actor de prueba:**
   * Cliente: `maria.quispe@clientes.demo.bo` / `Cliente2026!`
   * Repartidor: `javier.mamani@repartidores.demo.bo` / `Fashion2026!`
@@ -582,7 +582,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 ---
 
 #### CU21 – Solicitar y procesar cambios y devoluciones (RMA)
-* **Estado:** **Especificado / En Proceso**
+* **Estado:** **Hecho e Implementado**
 * **Actor de prueba:**
   * Cliente (Solicita): `maria.quispe@clientes.demo.bo` / `Cliente2026!`
   * Encargado (Resuelve): `rodrigo.choque@ayni-moda.demo.bo` / `Fashion2026!`
@@ -617,7 +617,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 ---
 
 #### CU22 – Instalar la aplicación web progresiva (PWA)
-* **Estado:** **Especificado / En Proceso**
+* **Estado:** **Hecho e Implementado**
 * **Plataforma:** **Web**
 * **Actor de prueba:** Cualquier usuario en navegador Chromium / Safari
 * **Ruta:** Raíz de la aplicación web `http://localhost:4200`

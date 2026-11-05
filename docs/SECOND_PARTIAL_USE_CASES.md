@@ -156,7 +156,7 @@ Para mantener la cohesión y respetar **estrictamente la estructura existente de
 | **CU19** | **Gestionar billetera digital (*Store Wallet*)** | M5: Promociones y Fidelización | **Hecho** | Cliente, Cajero | Ambas |
 | **CU20** | **Gestionar envío a domicilio con validación por PIN** | M6: Logística y Posventa | **Hecho** | Cliente, Delivery | Ambas |
 | **CU21** | **Solicitar y procesar cambios y devoluciones (RMA)** | M6: Logística y Posventa | **Hecho** | Cliente, Encargado, Admin | Ambas |
-| **CU22** | **Instalar la aplicación web progresiva (PWA)** | M6: Logística y Posventa | **Pendiente** | Cliente, Todos | Web |
+| **CU22** | **Instalar la aplicación web progresiva (PWA)** | M6: Logística y Posventa | **Hecho** | Cliente, Todos | Web |
 | **CU23** | **Consultar catálogo sin conexión (Offline)** | M6: Logística y Posventa | **Pendiente** | Cajero, Cliente, Encargado | Ambas |
 | **CU24** | **Reintegrar inventario por devoluciones y registrar mermas** | M6: Logística y Posventa | **Hecho** | Encargado, Administrador | Web |
 | **CU25** | **Registrar ventas y reservas sin conexión (POS Offline)** | M6: Logística y Posventa | **Pendiente** | Cajero, Cliente | Ambas |
@@ -1737,7 +1737,7 @@ GET /api/wallet/transactions
 #### CU20 – Gestionar envío a domicilio con validación por PIN
 * **Módulo:** M6: Logística y Posventa
 * **Actor Principal:** Cliente (solicita y certifica con PIN), Delivery (despacha)
-* **Estado:** Pendiente | **Plataforma:** Ambas
+* **Estado:** **Hecho** (`delivery_service.py`, `delivery_routes.py`, `my-deliveries-page`, `delivery-home-page`, `mobile/lib/features/deliveries`) | **Plataforma:** Ambas
 * **Descripción Funcional:** Despacho de pedidos a domicilio con libreta de direcciones, cotización de flete por distancia y estados (`shipped`, `in_transit`, `delivered`). Incorpora hoja de ruta para el repartidor y validación de entrega mediante código PIN de seguridad provisto por el cliente.
 
 ##### Regla de Navegación e Integración UI
@@ -1840,12 +1840,12 @@ GET /api/delivery/my-orders
 * **Mensajes en UI:** El toast proyecta `res.message`: `"Entrega confirmada y registrada exitosamente"` o `"El código PIN de seguridad es incorrecto"` según la respuesta del backend.
 
 ##### Checklist de Implementación
-- [ ] Backend: Modelar tablas `delivery_addresses` y `delivery_orders` con generación de `security_pin` de 4 dígitos.
-- [ ] Backend: Servicio de cotización de flete geográfico y endpoint `/api/delivery/confirm-delivery`.
-- [ ] Frontend: Implementar `ActiveDeliveryCardComponent` en `cliente-home-page`.
-- [ ] Frontend: Añadir página `my-deliveries-page` y enlace en el menú de perfil / sidebar.
-- [ ] Frontend: Pantalla de hoja de ruta y validación de PIN para el rol delivery (`delivery-routes-page`).
-- [ ] Móvil: Tarjeta en Home de pedido en curso con PIN visible y listado en Menú de Perfil.
+- [x] Backend: Modelar tablas `delivery_addresses` y `delivery_orders` con generación de `security_pin` de 4 dígitos.
+- [x] Backend: Servicio de cotización de flete geográfico y endpoint `/api/delivery/confirm-delivery`.
+- [x] Frontend: Implementar `ActiveDeliveryCardComponent` en `cliente-home-page`.
+- [x] Frontend: Añadir página `my-deliveries-page` y enlace en el menú de perfil / sidebar.
+- [x] Frontend: Pantalla de hoja de ruta y validación de PIN para el rol delivery (`delivery-home-page`).
+- [x] Móvil: Tarjeta en Home de pedido en curso con PIN visible y listado en Menú de Perfil.
 - [ ] Verificación: Crear pedido con delivery, verificar tarjeta activa en Home y confirmar con PIN correcto/incorrecto.
 
 ---
@@ -1853,7 +1853,7 @@ GET /api/delivery/my-orders
 #### CU21 – Solicitar y procesar cambios y devoluciones (RMA)
 * **Módulo:** M6: Logística y Posventa
 * **Actor Principal:** Cliente (solicita), Encargado de sucursal / Administrador (inspecciona y resuelve)
-* **Estado:** Pendiente | **Plataforma:** Ambas
+* **Estado:** **Hecho** (`rma_service.py`, `rma_routes.py`, `rma_pdf_service.py`, `rma-review-page`, `mobile/lib/features/rma`) | **Plataforma:** Ambas
 * **Descripción Funcional:** Circuito integral de logística inversa y posventa (RMA). Permite al cliente gestionar cambios de prendas o devoluciones de sus compras realizadas dentro de los **30 días** posteriores a la entrega.
   1. **Vista "Mis Devoluciones y Cambios":** El cliente visualiza el listado histórico de sus solicitudes de RMA con estado en tiempo real (`pending_inspection`, `approved`, `partially_approved`, `rejected`, `completed`) y el botón para **Descargar la Ficha Oficial en PDF**. Si no posee trámites, dispone de un botón principal para iniciar una nueva solicitud.
   2. **Filtrado de Compras Elegibles:** Al crear una solicitud, el sistema filtra y lista exclusivamente las ventas del cliente entregadas en los últimos 30 días.
@@ -1991,12 +1991,12 @@ Response 200 OK:
 * **Notificaciones:** Integración con `create_notification()` en `notification_service.py`.
 
 ##### Checklist de Implementación
-- [ ] Backend: Modelar tablas `rma_requests` y `rma_request_items` con soporte multilínea y estados compuestos (`pending_inspection`, `approved`, `partially_approved`, `rejected`, `completed`).
-- [ ] Backend: Endpoint `GET /api/rma/eligible-orders` con validación estricta de plazo de 30 días posteriores a la entrega.
-- [ ] Backend: Selector de variante alternativa para cambios si la requerida carece de existencias, o conversión a crédito en `Store Wallet` (CU19).
-- [ ] Backend: Lógica de dictamen granular: aceptación/rechazo independiente por ítem y bifurcación según condición física (`intact`, `factory_damaged`, `customer_damaged`).
-- [ ] Frontend: Desarrollar pantalla de selección de ítems para cliente con verificación de variantes y stock.
-- [ ] Frontend: Desarrollar consola de inspección para encargado con dictamen independiente por prenda.
+- [x] Backend: Modelar tablas `rma_requests` y `rma_request_items` con soporte multilínea y estados compuestos (`pending_inspection`, `approved`, `partially_approved`, `rejected`, `completed`).
+- [x] Backend: Endpoint `GET /api/rma/eligible-orders` con validación estricta de plazo de 30 días posteriores a la entrega.
+- [x] Backend: Selector de variante alternativa para cambios si la requerida carece de existencias, o conversión a crédito en `Store Wallet` (CU19).
+- [x] Backend: Lógica de dictamen granular: aceptación/rechazo independiente por ítem y bifurcación según condición física (`intact`, `factory_damaged`, `customer_damaged`).
+- [x] Frontend: Desarrollar pantalla de selección de ítems para cliente con verificación de variantes y stock.
+- [x] Frontend: Desarrollar consola de inspección para encargado con dictamen independiente por prenda.
 - [ ] Verificación: Probar solicitud mixta (1 cambio de talle intacto + 1 falla de fábrica a merma + 1 prenda usada rechazada) y verificar inventario, billetera y actas.
 
 ---
@@ -2004,7 +2004,7 @@ Response 200 OK:
 #### CU22 – Instalar la aplicación web progresiva (PWA)
 * **Módulo:** M6: Logística y Posventa
 * **Actor Principal:** Cliente, Administrador, Encargado, Cajero (Usuarios Web)
-* **Estado:** Pendiente | **Plataforma:** Web
+* **Estado:** **Hecho** (`pwa.service.ts`, `pwa-install-prompt`, `pwa-update-prompt`, `ngsw-config.json`, `manifest.webmanifest`, `pwa_routes.py`) | **Plataforma:** Web
 * **Descripción Funcional:** Transformación del frontend Angular en una Progressive Web App (PWA) instalable y de alto rendimiento. Implementa Web App Manifest dinámico/estático (`manifest.webmanifest`), Service Worker con estrategias de caché (`ngsw-config.json` para assets estáticos, fuentes, íconos y vistas del shell), soporte de instalación en pantalla de inicio (*Add to Home Screen* / A2HS), captura del evento `beforeinstallprompt` con prompt personalizado, y detección automática de nuevas versiones para actualizar la app en segundo plano sin fricción.
 
 ##### Endpoints Backend
@@ -2039,11 +2039,11 @@ Response 200 OK:
   - Alerta de actualización: `"Hay una nueva versión disponible de la plataforma. Hacé clic para actualizar."`
 
 ##### Checklist de Implementación
-- [ ] Frontend: Configurar paquete `@angular/pwa` y archivo de configuración `ngsw-config.json` con grupos de recursos de aplicación y assets.
-- [ ] Frontend: Diseñar y registrar `manifest.webmanifest` con iconos en múltiples resoluciones (192x192, 512x512, maskable) y colores corporativos.
-- [ ] Frontend: Implementar `PwaService` para interceptar el evento `beforeinstallprompt` del navegador y exponer el trigger de instalación.
-- [ ] Frontend: Desarrollar componente `pwa-install-prompt` integrado de forma no invasiva en el layout principal (`app-shell.component.html`).
-- [ ] Frontend: Suscribirse a `SwUpdate.versionUpdates` para notificar al usuario cuando haya un nuevo release desplegado y forzar la recarga limpia.
+- [x] Frontend: Configurar paquete `@angular/pwa` y archivo de configuración `ngsw-config.json` con grupos de recursos de aplicación y assets.
+- [x] Frontend: Diseñar y registrar `manifest.webmanifest` con iconos en múltiples resoluciones (192x192, 512x512, maskable) y colores corporativos.
+- [x] Frontend: Implementar `PwaService` para interceptar el evento `beforeinstallprompt` del navegador y exponer el trigger de instalación.
+- [x] Frontend: Desarrollar componente `pwa-install-prompt` integrado de forma no invasiva en el layout principal (`app-shell.component.html`).
+- [x] Frontend: Suscribirse a `SwUpdate.versionUpdates` para notificar al usuario cuando haya un nuevo release desplegado y forzar la recarga limpia.
 - [ ] Verificación: Realizar auditoría Lighthouse PWA validando que cumple los criterios de instalabilidad y probar la instalación en escritorio y navegador móvil.
 
 ---
@@ -2098,7 +2098,7 @@ Response 200 OK:
 #### CU24 – Reintegrar inventario por devoluciones y registrar mermas
 * **Módulo:** M6: Logística y Posventa
 * **Actor Principal:** Encargado de sucursal, Administrador
-* **Estado:** Pendiente | **Plataforma:** Web
+* **Estado:** **Hecho** (`rma_service.py`, `rma-review-page`) | **Plataforma:** Web
 * **Descripción Funcional:** Gestión física, contable y operativa del inventario derivado de procesos de cambio y devolución (RMA). Cuando una o varias prendas son recibidas físicamente en sucursal tras la solicitud de un cliente (CU21), el encargado efectúa la inspección técnica de cada ítem:
   1. **Reingreso Comercial (`restock_available`):** Si la prenda devuelta por talle, color o arrepentimiento se encuentra **intacta** (sin uso, limpia y con etiquetas de origen), el sistema registra un reingreso de existencias (`rma_restock`), incrementando atómicamente el stock comercializable en la sucursal receptora.
   2. **Baja Técnica a Merma / Cuarentena (`scrap_quarantine`):** Si la prenda fue aceptada por **defecto de fábrica comprobado** (`factory_defect`), el sistema prohíbe terminantemente su reincorporación al catálogo vendible. Genera un movimiento de baja por merma y aislamiento físico en cuarentena técnica (`scrap_quarantine`) con código identificador oficial (`quarantine_record`), justificación técnica y registro de auditoría.
@@ -2314,4 +2314,6 @@ Response 200 OK:
 | **M4: Business Intelligence** | 2 (`CU13`, `CU14`) | 0 | 2 |
 | **M5: Promociones y Fidelización** | 1 (`CU15`) | 4 (`CU16`, `CU17`, `CU18`, `CU19`) | 5 |
 | **M6: Logística y Posventa** | 0 | 8 (`CU20`, `CU21`, `CU22`, `CU23`, `CU24`, `CU25`, `CU29`, `CU30`) | 8 |
-| **TOTALES** | **11 HECHOS** | **19 PENDIENTES** | **30** |
+| **TOTALES** | **11 (base)** | **19 (nuevos)** | **30** |
+
+> **Estado actual en código:** 26 casos de uso **Hecho** y 4 **Pendientes** (`CU23`, `CU25`, `CU29`, `CU30`, todos del módulo offline).
