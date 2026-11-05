@@ -24,6 +24,7 @@ import { ReceiptActionsComponent } from '../../shared/components/receipt-actions
 import { CashSessionApiService } from '../../shared/services/cash-session-api.service';
 import { LoyaltyBalance } from '../../shared/models/loyalty.model';
 import { LoyaltyApiService } from '../../shared/services/loyalty-api.service';
+import { OfflineCatalogProduct, OfflineCatalogService } from '../../../core/services/offline-catalog.service';
 
 type SelectedSaleItem = {
   variant_id: string;
@@ -57,6 +58,7 @@ export class CajaPageComponent {
   private readonly loyaltyApi = inject(LoyaltyApiService);
   protected readonly pointsToRedeem = signal(0);
   protected readonly customerPoints = signal<LoyaltyBalance | null>(null);
+  protected readonly offlineCatalog = inject(OfflineCatalogService);
   // A QR is issued for an exact total: any change to the items invalidates it.
   private readonly resetQrOnItemsChange = effect(() => {
     this.selectedItems();
@@ -92,17 +94,68 @@ export class CajaPageComponent {
 
   constructor() {
     void this.searchProducts();
+    void this.syncOfflineCatalog();
+  }
+
+  protected async syncOfflineCatalog(manual: boolean = false): Promise<void> {
+    const branchId = this.branchId();
+    const count = await this.offlineCatalog.syncCatalog(branchId ?? undefined);
+    if (manual && count > 0) {
+      toast.success(`Catálogo local actualizado: ${count} productos en caché.`);
+    }
+  }
+
+  private mapOfflineToCatalogProduct(offline: OfflineCatalogProduct): CatalogProduct {
+    return {
+      id: offline.id,
+      tenant_id: offline.tenant_id,
+      name: offline.name,
+      description: offline.description,
+      category_id: offline.category_id ?? '',
+      collection_id: null,
+      provider_id: null,
+      discount_type: (offline.discount_type as any) ?? null,
+      discount_value: offline.discount_value !== null ? String(offline.discount_value) : null,
+      image_url: offline.variants.find((v) => v.image_url)?.image_url ?? null,
+      variants: offline.variants.map((v) => ({
+        id: v.id,
+        product_id: offline.id,
+        sku: v.sku,
+        price: String(v.price),
+        original_price: String(v.price),
+        size_id: v.size_id,
+        color_id: v.color_id,
+        image_url: v.image_url,
+        status: 'active' as const,
+        garment_points: null,
+        branch_quantity: v.available_stock,
+      })),
+    };
   }
 
   protected async searchProducts(): Promise<void> {
     const branchId = this.branchId();
     this.loadingProducts.set(true);
+
+    if (this.offlineCatalog.isOffline()) {
+      const offlineResults = await this.offlineCatalog.searchProducts(this.searchTerm());
+      this.products.set(offlineResults.map((p) => this.mapOfflineToCatalogProduct(p)));
+      this.loadingProducts.set(false);
+      return;
+    }
+
     try {
       const response = await firstValueFrom(this.catalogApi.listProducts({ q: this.searchTerm() || undefined, branch_id: branchId ?? undefined }));
       this.products.set((response.data ?? []) as CatalogProduct[]);
     } catch (error) {
-      toast.error(getErrorMessage(error, 'No se pudieron cargar los productos.'));
-      this.products.set([]);
+      const offlineResults = await this.offlineCatalog.searchProducts(this.searchTerm());
+      if (offlineResults.length > 0) {
+        toast.info('Sin conexión al servidor: usando catálogo local en caché.');
+        this.products.set(offlineResults.map((p) => this.mapOfflineToCatalogProduct(p)));
+      } else {
+        toast.error(getErrorMessage(error, 'No se pudieron cargar los productos.'));
+        this.products.set([]);
+      }
     } finally {
       this.loadingProducts.set(false);
     }
