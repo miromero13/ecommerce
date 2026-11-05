@@ -152,17 +152,19 @@ Para mantener la cohesión y respetar **estrictamente la estructura existente de
 | **CU15** | **Gestionar y aplicar cupones promocionales** | M5: Promociones y Fidelización | **Hecho** | Cliente, Admin, Encargado | Ambas |
 | **CU16** | **Gestionar lista de deseos (*Wishlist*)** | M5: Promociones y Fidelización | **Hecho** | Cliente | Ambas |
 | **CU17** | **Fidelización y billetera de puntos (*Loyalty*)** | M5: Promociones y Fidelización | **Hecho** | Cliente, Cajero | Ambas |
-| **CU18** | **Emitir y comprar tarjetas de regalo (*Gift Cards*)** | M5: Promociones y Fidelización | **Pendiente** | Cliente | Ambas |
-| **CU19** | **Gestionar billetera digital (*Store Wallet*)** | M5: Promociones y Fidelización | **Pendiente** | Cliente, Cajero | Ambas |
-| **CU20** | **Delivery y despacho a domicilio** | M6: Logística y Posventa | **Pendiente** | Cliente, Delivery | Ambas |
-| **CU21** | **Solicitar y procesar cambios y devoluciones (RMA)** | M6: Logística y Posventa | **Pendiente** | Cliente, Encargado, Admin | Ambas |
+| **CU18** | **Emitir y comprar tarjetas de regalo (*Gift Cards*)** | M5: Promociones y Fidelización | **Hecho** | Cliente | Ambas |
+| **CU19** | **Gestionar billetera digital (*Store Wallet*)** | M5: Promociones y Fidelización | **Hecho** | Cliente, Cajero | Ambas |
+| **CU20** | **Delivery y despacho a domicilio** | M6: Logística y Posventa | **Hecho** | Cliente, Delivery | Ambas |
+| **CU21** | **Solicitar y procesar cambios y devoluciones (RMA)** | M6: Logística y Posventa | **Hecho** | Cliente, Encargado, Admin | Ambas |
 | **CU22** | **Progressive Web App (PWA) e Instalabilidad** | M6: Logística y Posventa | **Pendiente** | Cliente, Todos | Web |
-| **CU23** | **Modo Offline y Sincronización Diferida (Offline-First)** | M6: Logística y Posventa | **Pendiente** | Cajero, Cliente, Delivery | Ambas |
-| **CU24** | **Restablecimiento y control de inventario por devoluciones y mermas** | M6: Logística y Posventa | **Pendiente** | Encargado, Administrador | Web |
-| **CU25** | **Resolución de conflictos de inventario y notificación en ventas offline** | M6: Logística y Posventa | **Pendiente** | Cajero, Cliente, Sistema | Ambas |
+| **CU23** | **Consulta y navegación de catálogo offline en caché** | M6: Logística y Posventa | **Pendiente** | Cajero, Cliente, Encargado | Ambas |
+| **CU24** | **Restablecimiento y control de inventario por devoluciones y mermas** | M6: Logística y Posventa | **Hecho** | Encargado, Administrador | Web |
+| **CU25** | **Registro de ventas de contado y reservas en modo offline (POS)** | M6: Logística y Posventa | **Pendiente** | Cajero, Cliente | Ambas |
 | **CU26** | **Personalización de identidad y marca del tenant (Branding)** | M1: Plataforma SaaS y Seguridad | **Hecho** | Administrador, Superadministrador | Web / Móvil |
 | **CU27** | **Contratación y onboarding de suscripción B2B** | M1: Plataforma SaaS y Seguridad | **Hecho** | Prospecto / Marca B2B, Superadmin | Web |
 | **CU28** | **Monitoreo de consumo y cambio de plan B2B** | M1: Plataforma SaaS y Seguridad | **Hecho** | Administrador | Web |
+| **CU29** | **Monitor y gestión de cola local de operaciones pendientes (Offline Queue)** | M6: Logística y Posventa | **Pendiente** | Cajero, Administrador | Ambas |
+| **CU30** | **Sincronización diferida y resolución de conflictos de inventario** | M6: Logística y Posventa | **Pendiente** | Cajero, Admin, Sistema, Cliente | Ambas |
 
 ---
 
@@ -2046,15 +2048,15 @@ Response 200 OK:
 
 ---
 
-#### CU23 – Modo Offline y Sincronización Diferida (Offline-First)
+#### CU23 – Consulta y Navegación de Catálogo Offline en Caché
 * **Módulo:** M6: Logística y Posventa
-* **Actor Principal:** Cajero, Cliente, Encargado, Delivery
-* **Estado:** Pendiente | **Plataforma:** Ambas
-* **Descripción Funcional:** Arquitectura de tolerancia a desconexión (*Offline-First*). Permite consultar el catálogo cacheado sin conexión a internet y, fundamentalmente, habilita al cajero en la terminal POS de sucursal física (o repartidor en entrega) para registrar ventas y cobros en contingencia. Las transacciones se encolan localmente en IndexedDB (Web) y SQLite (Móvil) con identificadores únicos locales (`operation_id`). Al restablecerse la red, un despachador en segundo plano sincroniza automáticamente los lotes pendientes contra el backend, gestionando el impacto en inventario y resolviendo potenciales conflictos.
+* **Actor Principal:** Cajero, Cliente, Encargado
+* **Estado:** Pendiente | **Plataforma:** Ambas (Web y Móvil)
+* **Descripción Funcional:** Disponibilidad y búsqueda del catálogo de productos y existencias sin conexión a internet. Descarga un snapshot liviano de las prendas de la sucursal activa con sus variantes (SKU, nombre, talles, colores, precios y stock conocido) y lo persiste localmente en **IndexedDB** (`cached_catalog`) en Web y **SQLite** en la app móvil Flutter. Permite al usuario o cajero buscar prendas por nombre o escanear código de barras en plena desconexión sin recibir pantallas de error.
 
 ##### Endpoints Backend
 ```http
-GET /api/offline/catalog-sync?last_sync_timestamp=2026-04-09T00:00:00Z
+GET /api/offline/catalog-sync?branch_id=b1&last_sync_timestamp=2026-04-09T00:00:00Z
 Headers: Authorization: Bearer <jwt>
 Response 200 OK:
 {
@@ -2062,57 +2064,34 @@ Response 200 OK:
   "message": "Delta de catálogo para sincronización offline obtenido",
   "data": {
     "server_timestamp": "2026-04-10T12:00:00Z",
-    "updated_products": [ ... ],
-    "removed_product_ids": [ ... ]
+    "branch_id": "b1",
+    "products": [
+      {
+        "id": "p1",
+        "name": "Camisa Oxford",
+        "category": "Camisas",
+        "price": 180.0,
+        "variants": [
+          { "variant_id": "v1", "sku": "OXF-M-BLU", "size": "M", "color": "Azul", "stock": 10 }
+        ]
+      }
+    ]
   }
 }
 ```
-```http
-POST /api/offline/queue-sync
-Headers: Authorization: Bearer <jwt>
-Request Body:
-{
-  "queued_operations": [
-    {
-      "operation_id": "op_local_01",
-      "entity": "sale",
-      "action": "create",
-      "payload": { "branch_id": "b1", "total": 120.00 },
-      "created_at_offline": "2026-04-10T11:20:00Z"
-    }
-  ]
-}
-Response 200 OK:
-{
-  "statusCode": 200,
-  "message": "Sincronización completada. Se procesaron 1 operaciones locales.",
-  "data": { "processed_count": 1, "conflicts": [] }
-}
 
-Response 400 Bad Request:
-{
-  "statusCode": 400,
-  "message": "Conflicto en sincronización: una o más operaciones offline no pudieron ser aplicadas por inconsistencia de datos",
-  "error": "HTTPException"
-}
-```
-
-##### Ubicación en Frontend (Angular & Móvil)
-* **Servicio de Sincronización:** `frontend/src/app/core/services/offline-sync.service.ts`
+##### Ubicación en Frontend y Móvil
 * **Persistencia Local Web (IndexedDB):** `frontend/src/app/core/services/indexeddb.service.ts`
-* **Banner de Conexión:** `frontend/src/app/features/shared/components/offline-indicator-banner.component.ts`
-* **Módulo de Caja (Modo Contingencia):** `frontend/src/app/features/cajero/pages/caja-page.component.ts`
-* **Móvil Flutter:** Base de datos SQLite y `SyncManager` en `mobile/lib/core/services/offline_sync_service.dart`.
-* **Mensajes en UI:** Banner: `"Estás trabajando en modo sin conexión. Tus ventas y cambios se guardan localmente y se sincronizarán al recuperar internet."` Toast: `"Sincronización completada. Se procesaron 1 operaciones locales."`.
+* **Servicio de Catálogo Offline Web:** `frontend/src/app/core/services/offline-catalog.service.ts`
+* **Móvil Flutter:** Base de datos SQLite y servicio de catálogo local en `mobile/lib/core/services/offline_catalog_service.dart`.
+* **Mensajes en UI:** Toast: `"Catálogo offline actualizado para la sucursal."`
 
 ##### Checklist de Implementación
-- [ ] Backend: Endpoints `/api/offline/catalog-sync` y `/api/offline/queue-sync` con procesamiento atómico de lotes e idempotencia por `operation_id`.
-- [ ] Frontend: Servicio `IndexedDbService` para cachear catálogo de productos y almacenar la cola `pending_sales_queue`.
-- [ ] Frontend: Habilitar emisión de ventas en modo contingencia en `caja-page.component.ts` cuando `navigator.onLine == false`.
-- [ ] Frontend: Escucha reactiva de eventos `online` / `offline` para mostrar `OfflineIndicatorBannerComponent`.
-- [ ] Frontend: Despacho automático de la cola en `offline-sync.service.ts` en cuanto se restablece la conexión.
-- [ ] Móvil: Cola de mutaciones locales en SQLite con sincronización automática en reconexión.
-- [ ] Verificación: Registrar venta en caja sin conexión, reconectar y validar guardado exitoso en base de datos sin duplicados.
+- [ ] Backend: Endpoint `/api/offline/catalog-sync` con filtrado por `branch_id` y timestamp de última sincronización.
+- [ ] Frontend: Store `cached_catalog` en `IndexedDbService` con índices por SKU y nombre de prenda.
+- [ ] Frontend: Fallback transparente en la búsqueda de productos en caja cuando `navigator.onLine == false`.
+- [ ] Móvil: Tabla `cached_products` en SQLite para consulta desconectada.
+- [ ] Verificación: Desconectar la red, buscar productos en caja y verificar renderizado instantáneo desde la caché.
 
 ---
 
@@ -2217,24 +2196,90 @@ Response 200 OK:
 
 ---
 
-#### CU25 – Resolución de conflictos de inventario y notificación en ventas offline
+#### CU25 – Registro de Ventas de Contado y Reservas en Modo Offline (POS de Contingencia)
 * **Módulo:** M6: Logística y Posventa
-* **Actor Principal:** Cajero, Cliente, Administrador, Sistema
-* **Estado:** Pendiente | **Plataforma:** Ambas
-* **Descripción Funcional:** Circuito transaccional de contingencia y compensación ante quiebres de inventario durante sincronizaciones diferidas. Cuando una venta de contado o reserva en efectivo se emite localmente sin conexión (CU23) y, al recuperar la conectividad, el backend detecta que el stock fue consumido en paralelo por otro canal o sucursal (colisión transaccional), el servidor rechaza la transacción con código `conflict_rejected` / `inventory_collision`. El sistema activa automáticamente el protocolo de resolución:
-  1. **Rollback de Orden:** Si la orden corresponde a una reserva o despacho pendiente, se cancela automáticamente en base de datos.
-  2. **Compensación Económica:** Se instruye al cajero la devolución física del efectivo en caja o se acredita de forma inmediata el importe equivalente en la billetera virtual (`Store Wallet`) del cliente con un bono de cortesía.
-  3. **Rotura de Stock en Mostrador:** Si la prenda ya fue entregada físicamente en mostrador durante la caída de red, se genera una alerta prioritaria de auditoría para forzar el ajuste manual de inventario negativo controlado por el Administrador.
-  4. **Notificación Multicanal:** Se despacha una notificación push a la aplicación móvil del cliente y un correo electrónico formal informando la causa del quiebre y las opciones de reembolso o sustitución; simultáneamente, la pantalla del cajero resalta la transacción en rojo con el detalle del conflicto para su atención inmediata.
+* **Actor Principal:** Cajero (Terminal POS), Cliente
+* **Estado:** Pendiente | **Plataforma:** Ambas (Web y Móvil)
+* **Descripción Funcional:** Circuito transaccional de contingencia en terminal de punto de venta (POS) y aplicación móvil ante pérdida total de conexión a internet.
+  1. **Detección y Advertencia:** Escucha reactiva de conectividad. Al perder la red, la interfaz de caja (`caja-page.component.ts`) despliega un banner de advertencia superior en color ámbar (`OfflineIndicatorBannerComponent`): *"Estás trabajando en modo sin conexión. Tus ventas se guardan localmente."*
+  2. **Restricción Estricta de Medios de Pago:** Se bloquean pasarelas externas, transferencias o tarjetas online. Se habilita de manera exclusiva el cobro en **Efectivo / Contado** y la emisión de **Reservas presenciales** de prendas.
+  3. **Persistencia Local Idempotente:** Se genera un identificador local universal (`operation_id` UUIDv4) y la venta o reserva se almacena en el store `pending_operations_queue` de **IndexedDB** (en Web) y **SQLite** (en Móvil) con estado `local_pending`.
+  4. **Comprobante Provisional:** La caja imprime o despliega un comprobante provisional de contingencia con la leyenda oficial: *"Comprobante emitido en contingencia - Pendiente de sincronización"*.
+
+##### Ubicación en Frontend y Móvil
+* **Módulo de Caja POS (Web):** `frontend/src/app/features/cajero/pages/caja-page.component.ts`
+* **Banner de Conexión:** `frontend/src/app/features/shared/components/offline-indicator-banner.component.ts`
+* **Móvil Flutter:** Módulo de contingencia en `mobile/lib/features/cajero/` y `mobile/lib/features/orders/`.
+* **Mensajes en UI:** Banner: `"Estás trabajando en modo sin conexión. Tus ventas se guardan localmente."` Comprobante: `"Comprobante emitido en contingencia"`.
+
+---
+
+#### CU29 – Monitor y Gestión de Cola Local de Operaciones Pendientes (Offline Queue)
+* **Módulo:** M6: Logística y Posventa
+* **Actor Principal:** Cajero, Administrador
+* **Estado:** Pendiente | **Plataforma:** Ambas (Web y Móvil)
+* **Descripción Funcional:** Panel de control y auditoría de las transacciones retenidas en el almacenamiento local de la terminal o dispositivo (`pending_operations_queue`).
+  1. **Persistencia Garantizada (RNF03 y RNF06):** Los datos en cola sobreviven al reinicio de la computadora, cierre intempestivo del navegador o reinicio de la app móvil.
+  2. **Panel Visual de Cola:** Indicador en la barra superior de la caja con badge de contador: *"X transacciones pendientes de sincronización"*.
+  3. **Detalle de Auditoría:** Modal o vista donde el cajero puede revisar el listado de operaciones offline: `operation_id`, tipo (`sale` o `reservation`), hora de emisión, prendas, cliente y total cobrado en efectivo.
+  4. **Disparador Manual:** Botón "Sincronizar ahora" para forzar el reintento de envío si el cajero observa que la conexión ya responde.
+
+##### Ubicación en Frontend y Móvil
+* **Componente Modal de Cola (Web):** `frontend/src/app/features/cajero/components/offline-queue-modal.component.ts`
+* **Móvil Flutter:** Modal de cola pendiente en `mobile/lib/features/cajero/offline_queue_sheet.dart`.
+* **Mensajes en UI:** Badge: `"{count} pendientes de sincronizar"`. Botón: `"Sincronizar ahora"`.
+
+---
+
+#### CU30 – Sincronización Diferida y Resolución de Conflictos de Inventario
+* **Módulo:** M6: Logística y Posventa
+* **Actor Principal:** Cajero, Administrador, Sistema, Cliente
+* **Estado:** Pendiente | **Plataforma:** Ambas (Web y Móvil)
+* **Descripción Funcional:** Circuito transaccional de sincronización en lote, detección de colisiones de inventario y protocolos de compensación.
+  1. **Despacho Automático e Idempotente (`POST /api/offline/queue-sync`):** Al detectar restablecimiento de red (`online`), el despachador background envía el lote de transacciones acumuladas. El backend valida cada `operation_id` para garantizar idempotencia y descontar stock atómicamente.
+  2. **Detección de Colisión de Stock:** Si mientras la caja estuvo desconectada el inventario de una prenda fue vendido por la web o en otra sucursal, el servidor rechaza esa operación con código `conflict_rejected` / `inventory_collision`, procesando las restantes operaciones válidas del lote.
+  3. **Consola de Resolución para el Cajero (`/app/cajero/offline-conflicts`):** Vista especializada que resalta las ventas rechazadas en rojo con diagnóstico del quiebre.
+  4. **Protocolos de Compensación (`POST /api/offline/conflicts/{operation_id}/resolve`):** El cajero selecciona una de las 3 vías oficiales:
+     * **Vía A (Devolución física de efectivo):** Se anula la orden y se emite recibo de egreso de caja.
+     * **Vía B (Acreditación en Store Wallet + Bono 10%):** Se acredita el 100% de lo pagado en la billetera virtual del cliente con un 10% de cortesía compensatoria.
+     * **Vía C (Ajuste por rotura de stock):** Si la prenda ya fue entregada físicamente antes de reconectar, se registra un ajuste forzado de stock negativo para control del Administrador.
+  5. **Notificación Multicanal:** Despacho de alerta por correo y push al cliente informando la solución adoptada.
 
 ##### Endpoints Backend
+```http
+POST /api/offline/queue-sync
+Headers: Authorization: Bearer <jwt>
+Request Body:
+{
+  "queued_operations": [
+    {
+      "operation_id": "op_local_01",
+      "entity": "sale",
+      "action": "create",
+      "payload": {
+        "branch_id": "b1",
+        "items": [{ "variant_id": "v1", "quantity": 1, "unit_price": 180.0 }],
+        "total_amount": 180.0,
+        "payment_method": "cash",
+        "created_at_offline": "2026-04-10T11:20:00Z"
+      }
+    }
+  ]
+}
+Response 200 OK:
+{
+  "statusCode": 200,
+  "message": "Sincronización completada. Se procesaron 1 operaciones locales.",
+  "data": { "processed_count": 1, "conflicts": [] }
+}
+```
 ```http
 POST /api/offline/conflicts/{operation_id}/resolve
 Headers: Authorization: Bearer <cajero_jwt>
 Request Body:
 {
   "resolution_type": "store_credit",
-  "refund_amount": 180.00,
+  "refund_amount": 180.0,
   "client_id": "usr_9912",
   "reason": "inventory_collision_out_of_stock",
   "notes": "Cliente aceptó acreditación en billetera virtual con 10% adicional"
@@ -2246,16 +2291,16 @@ Response 200 OK:
   "data": {
     "operation_id": "op_98124",
     "status": "resolved_compensated",
-    "wallet_credited": 198.00
+    "wallet_credited": 198.0
   }
 }
 ```
 
-##### Ubicación en Frontend (Angular & Móvil)
-* **Página y Vista:** `frontend/src/app/features/cajero/pages/offline-conflicts-page.component.ts`
+##### Ubicación en Frontend y Móvil
+* **Servicio de Sincronización:** `frontend/src/app/core/services/offline-sync.service.ts`
+* **Consola de Conflictos Web:** `frontend/src/app/features/cajero/pages/offline-conflicts-page.component.ts`
 * **Móvil Flutter:** `mobile/lib/features/cajero/offline_conflicts_page.dart`
-* **Servicio API:** `frontend/src/app/core/services/offline-sync.service.ts`
-* **Mensajes en UI:** Modal: `"Conflicto de sincronización: El producto ya no contaba con existencias al reconectar. Seleccioná el mecanismo de compensación para el cliente."` Toast: `"Rollback ejecutado exitosamente."`.
+* **Mensajes en UI:** Toast: `"Sincronización completada. Se procesaron 1 operaciones locales."`. Alerta: `"Se detectaron colisiones de inventario. Abrir consola de resolución."`
 
 ---
 
@@ -2268,5 +2313,5 @@ Response 200 OK:
 | **M3: Inventario y Operaciones** | 2 (`CU11`, `CU12`) | 0 | 2 |
 | **M4: Business Intelligence** | 2 (`CU13`, `CU14`) | 0 | 2 |
 | **M5: Promociones y Fidelización** | 1 (`CU15`) | 4 (`CU16`, `CU17`, `CU18`, `CU19`) | 5 |
-| **M6: Logística y Posventa** | 0 | 6 (`CU20`, `CU21`, `CU22`, `CU23`, `CU24`, `CU25`) | 6 |
-| **TOTALES** | **11 HECHOS** | **17 PENDIENTES** | **28** |
+| **M6: Logística y Posventa** | 0 | 8 (`CU20`, `CU21`, `CU22`, `CU23`, `CU24`, `CU25`, `CU29`, `CU30`) | 8 |
+| **TOTALES** | **11 HECHOS** | **19 PENDIENTES** | **30** |

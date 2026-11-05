@@ -618,82 +618,109 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 
 #### CU22 – Progressive Web App (PWA) e Instalabilidad
 * **Estado:** **Especificado / En Proceso**
+* **Plataforma:** **Web**
 * **Actor de prueba:** Cualquier usuario en navegador Chromium / Safari
 * **Ruta:** Raíz de la aplicación web `http://localhost:4200`
 
 ##### Pasos para probar según especificación:
 1. Abrí la aplicación web en Google Chrome, Edge o navegador móvil.
-2. Verificá la presencia del archivo de manifiesto en `http://localhost:4200/manifest.webmanifest`.
+2. Verificá la presencia del endpoint dinámico y archivo en `http://localhost:4200/api/pwa/manifest` y `/manifest.webmanifest`.
 3. Observá el botón o banner emergente **"Instalar aplicación"** provisto por el componente de interceptación de `beforeinstallprompt`.
 4. Hacé clic en el icono de instalación de la barra de direcciones de Chrome ("Instalar FashionStore").
 5. **Resultado esperado:**
    * La app se instala como aplicación independiente de escritorio (*standalone*), abriendo en su propia ventana sin barra de URL del navegador.
-   * Al desconectar la red, los assets principales y vistas cacheadas por el Service Worker continúan visualizándose.
+   * Al desconectar la red, los assets principales y vistas cacheadas por el Service Worker continúan visualizándose (App Shell sin pantalla de dinosaurio).
 
 ---
 
-#### CU23 – Modo Offline y Sincronización Diferida (Offline-First)
+#### CU23 – Consulta y Navegación de Catálogo Offline en Caché
 * **Estado:** **Especificado / En Proceso**
-* **Actor de prueba:** Cajero en POS físico (`lucia.apaza@ayni-moda.demo.bo`)
-* **Ruta UI:** `/app/cajero/caja`
+* **Plataforma:** **Ambas (Web y Móvil)**
+* **Actor de prueba:** Cajero en POS físico (`lucia.apaza@ayni-moda.demo.bo`) o Cliente
+* **Ruta UI:** `/app/cajero/caja` (Web) y Catálogo (Móvil)
 
 ##### Pasos para probar según especificación:
-1. Iniciá sesión como Cajera en `/app/cajero/caja`. El sistema precarga el catálogo de prendas en el almacenamiento local (**IndexedDB** en Web o **SQLite** en Móvil).
-2. Abrí las herramientas de desarrollador del navegador (F12) -> pestaña **Red (Network)** -> seleccioná **Offline** (o desconectá el cable de red / Wi-Fi).
-3. Observá el banner de alerta visual: *"Estás trabajando en modo sin conexión. Tus ventas se guardan localmente."*
-4. Emití una venta de contado en efectivo: seleccioná prendas, cobrá y confirmá.
-5. **Resultado en contingencia:**
-   * La venta no falla; se genera un identificador local universal (`operation_id`) y se encola en la lista de operaciones pendientes de IndexedDB.
-6. Volvé a activar la red (**Online**).
-7. **Resultado de sincronización:**
-   * El despachador automático en segundo plano detecta la red, envía el lote a `/api/offline/queue-sync` y muestra el toast: `"Sincronización completada. Se procesaron 1 operaciones locales."`.
+1. Iniciá sesión en la terminal de caja (`/app/cajero/caja`). El sistema precarga automáticamente el snapshot de catálogo de la sucursal en **IndexedDB** (`cached_catalog`) en Web o **SQLite** en Móvil.
+2. Desconectá la red (F12 -> Red -> Offline o apagá Wi-Fi).
+3. Escribí en el buscador de la caja el nombre de un producto o ingresá un SKU.
+4. **Resultado esperado:**
+   * Las prendas coinciden y se renderizan al instante con sus talles, colores, precios y stock conocido, sin lanzar errores de red.
 
 ---
 
 #### CU24 – Restablecimiento y Control de Inventario por Devoluciones y Mermas
-* **Estado:** **Especificado / En Proceso**
+* **Estado:** **Hecho / Verificado**
+* **Plataforma:** **Web**
 * **Actor de prueba:** Encargado de Sucursal o Administrador
 * **Credenciales:** `rodrigo.choque@ayni-moda.demo.bo` / `Fashion2026!`
-* **Ruta UI prevista:** `/app/encargado/rma/inspection` (o pestaña de inspección en `/app/encargado/returns`)
+* **Ruta UI:** `/app/encargado/returns`
 
 ##### Pasos para probar según especificación:
 1. Iniciá sesión como Encargado e ingresá al módulo de inspección técnica de devoluciones sobre un ítem de RMA.
 2. Evaluá los siguientes escenarios operativos:
-   * **Escenario A (Reintegro comercial por prenda intacta):**
-     * Seleccioná estado físico: *Intacto / Con etiquetas*. Acción: *Reintegrar al stock vendible*.
-     * Si la resolución es cambio de prenda y hay stock: se confirma el egreso de la nueva prenda (`exchange_dispatch`).
-     * **Resultado:** Toast: `"Prenda reintegrada exitosamente al inventario comercializable y reposición apartada"`. El stock de la sucursal receptora se actualiza atómicamente.
-   * **Escenario B (Falta de stock para el cambio y selección de alternativa):**
-     * Al intentar despachar el cambio solicitado por el cliente, el sistema advierte: *"Variante sin existencias en esta sucursal"*.
-     * El encargado abre el selector de prendas y elige una variante o prenda alternativa del catálogo de igual valor acordada con el cliente (o activa conmutación a saldo en billetera).
-     * **Resultado:** Toast: `"Prenda devuelta reintegrada y variante alternativa asignada y apartada exitosamente"`.
-   * **Escenario C (Descarte a merma técnica por defecto de fábrica):**
-     * Seleccioná condición: *Defecto de confección/fábrica*. Acción: *Derivar a merma técnica / cuarentena*.
-     * Completá el informe técnico (ej. *"Costura de sisa rota de fábrica"*).
-     * **Resultado:** Toast: `"Prenda registrada en inventario de merma y baja técnica"`. Se genera el acta `QR-2026-XXXX`. El stock comercial vendible NO se incrementa. Se autoriza el crédito o cambio sin perjuicio para el cliente.
-   * **Escenario D (Rechazo por uso/daño del cliente en reclamo por talle):**
-     * Seleccioná condición: *Dañado por el cliente / Prenda usada*. Acción: *Rechazar y devolver al cliente*.
-     * **Resultado:** Toast: `"Ítem de RMA rechazado. Se emite acta de rechazo para restitución al cliente"`. No se mueve stock ni se acredita saldo.
+   * **Escenario A (Reintegro comercial por prenda intacta):** Prenda devuelta en perfecto estado se reintegra al stock comercializable y reposición apartada.
+   * **Escenario B (Falta de stock para el cambio y selección de alternativa):** Se selecciona prenda alternativa o se conmuta a saldo en billetera.
+   * **Escenario C (Descarte a merma técnica por defecto de fábrica):** Se genera acta oficial de cuarentena `QR-2026-XXXX` y merma técnica.
+   * **Escenario D (Rechazo por uso/daño del cliente):** Se emite acta de rechazo formal sin alterar existencias.
 
 ---
 
-#### CU25 – Resolución de Conflictos de Inventario en Ventas Offline
+#### CU25 – Registro de Ventas de Contado y Reservas en Modo Offline (POS de Contingencia)
 * **Estado:** **Especificado / En Proceso**
-* **Actor de prueba:** Cajero y Sistema
-* **Credenciales:** `lucia.apaza@ayni-moda.demo.bo` / `Fashion2026!`
-* **Ruta UI prevista:** `/app/cajero/offline-conflicts`
+* **Plataforma:** **Ambas (Web y Móvil)**
+* **Actor de prueba:** Cajero en POS físico (`lucia.apaza@ayni-moda.demo.bo`)
+* **Ruta UI:** `/app/cajero/caja`
 
 ##### Pasos para probar según especificación:
-1. Simulá una venta offline en caja de la última unidad física de una prenda (stock = 1).
-2. Mientras la caja sigue offline, vendé esa misma prenda por la web o en otra caja conectada (stock pasa a 0).
-3. Reconectá la caja offline para forzar la sincronización.
-4. **Resultado de colisión:**
-   * El servidor detecta la falta de existencias y rechaza la operación con código de conflicto de inventario.
-   * La interfaz de la cajera resalta la transacción en rojo con el aviso: *"Conflicto de sincronización: El producto ya no contaba con existencias al reconectar."*
-5. La cajera selecciona la acción de resolución:
-   * **Opción 1:** Devolución física del efectivo en mostrador.
-   * **Opción 2:** Acreditación de saldo en la Billetera Digital del cliente con bono compensatorio.
-6. Se despacha notificación automática al cliente y el inventario queda conciliado.
+1. En `/app/cajero/caja`, desconectá la red (**Offline**).
+2. Observá la barra de alerta ámbar: *"Estás trabajando en modo sin conexión. Tus ventas se guardan localmente."*
+3. Seleccioná productos del catálogo cacheado para agregar al carrito.
+4. Intentá cobrar: verificá que las opciones de pasarela electrónica / tarjeta estén inhabilitadas y solo se permita **Efectivo / Contado** o **Reserva presencial**.
+5. Confirmá el cobro.
+6. **Resultado esperado:**
+   * La transacción genera un identificador local único (`operation_id`) y se encola en `pending_operations_queue`.
+   * Se emite un comprobante provisional de venta/reserva con la leyenda oficial de contingencia.
+
+---
+
+#### CU29 – Monitor y Gestión de Cola Local de Operaciones Pendientes (Offline Queue)
+* **Estado:** **Especificado / En Proceso**
+* **Plataforma:** **Ambas (Web y Móvil)**
+* **Actor de prueba:** Cajero y Administrador
+* **Ruta UI:** Barra superior de `/app/cajero/caja` y modal de auditoría
+
+##### Pasos para probar según especificación:
+1. Tras registrar una o más ventas o reservas en contingencia sin internet, observá el badge numérico en la barra de caja: *"X transacciones pendientes"*.
+2. Hacé clic en el badge para abrir el modal `OfflineQueueModal`.
+3. Verificá que se listen todas las operaciones encoladas con hora, cliente, tipo (`sale`/`reservation`) y total cobrado.
+4. Cerrá y volvé a abrir el navegador; comprobá que la cola se mantiene intacta (persistencia garantizada RNF03).
+5. Observá el botón **"Sincronizar ahora"** disponible para forzar el despacho manual cuando vuelva el internet.
+
+---
+
+#### CU30 – Sincronización Diferida y Resolución de Conflictos de Inventario
+* **Estado:** **Especificado / En Proceso**
+* **Plataforma:** **Ambas (Web y Móvil)**
+* **Actor de prueba:** Cajero, Administrador y Cliente
+* **Ruta UI:** `/app/cajero/caja` y `/app/cajero/offline-conflicts`
+
+##### Pasos para probar según especificación:
+1. **Prueba de Sincronización Exitosa (Sin colisión):**
+   * Teniendo ventas offline en cola, restablecé la red (**Online**).
+   * El despachador envía el lote a `/api/offline/queue-sync`.
+   * **Resultado:** Toast verde: *"Sincronización completada. Se procesaron X operaciones locales."* El stock en PostgreSQL se descuenta y la cola local queda vacía.
+2. **Prueba de Colisión de Stock (Conflicto de inventario):**
+   * Simulá una venta offline de la última prenda (stock = 1).
+   * Por otro navegador (tienda online o admin), vendé o transferí esa misma prenda para dejar el stock en 0.
+   * Reconectá la caja offline.
+   * **Resultado:** El backend rechaza la operación con código `conflict_rejected` / `inventory_collision` y la caja muestra alerta: *"Se detectaron colisiones de inventario"*.
+3. **Resolución en Consola de Conflictos (`/app/cajero/offline-conflicts`):**
+   * Ingresá a la consola de conflictos. Observá la venta resaltada en rojo con el detalle del quiebre.
+   * Seleccioná la resolución:
+     - **Opción A:** Devolución de efectivo físico.
+     - **Opción B:** Acreditación de saldo en la Billetera Digital (`Store Wallet`) con bono de cortesía del 10%.
+     - **Opción C:** Ajuste de rotura de inventario negativo si la prenda ya fue retirada.
+   * Confirmá y validá la conciliación contable y la notificación enviada al cliente.
 
 ---
 

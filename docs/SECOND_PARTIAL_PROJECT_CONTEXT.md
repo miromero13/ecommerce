@@ -180,17 +180,19 @@ El desarrollo del segundo parcial atiende a cuatro problemáticas operativas y d
 | **CU17** | **Fidelización y Billetera de Puntos (Loyalty)** | M5: Promociones y Fidelidad | Pendiente | Cliente, Cajero | Ambas |
 | **CU18** | **Emitir y Comprar Tarjetas de Regalo (Gift Cards)** | M5: Promociones y Fidelidad | Pendiente | Cliente | Ambas |
 | **CU19** | **Gestionar Billetera Digital (Store Wallet)** | M5: Promociones y Fidelidad | Pendiente | Cliente, Cajero | Ambas |
-| **CU20** | **Delivery y Despacho a Domicilio con PIN** | M6: Logística y Posventa | Pendiente | Cliente, Delivery | Ambas |
-| **CU21** | **Solicitar y Procesar Cambios y Devoluciones (RMA)** | M6: Logística y Posventa | Pendiente | Cliente, Encargado | Ambas |
+| **CU20** | **Delivery y Despacho a Domicilio con PIN** | M6: Logística y Posventa | **Hecho** | Cliente, Delivery | Ambas |
+| **CU21** | **Solicitar y Procesar Cambios y Devoluciones (RMA)** | M6: Logística y Posventa | **Hecho** | Cliente, Encargado | Ambas |
 | **CU22** | **Progressive Web App (PWA) e Instalabilidad** | M6: Logística y Posventa | Pendiente | Cliente, Todos | Web |
-| **CU23** | **Modo Offline y Sincronización Diferida (Offline-First)** | M6: Logística y Posventa | Pendiente | Cajero, Cliente, Delivery | Ambas |
-| **CU24** | **Restablecimiento y Control de Inventario por Devolución/Merma** | M6: Logística y Posventa | Pendiente | Encargado, Admin Tenant | Web |
-| **CU25** | **Resolución de Conflictos de Inventario y Notificación Offline** | M6: Logística y Posventa | Pendiente | Cajero, Cliente, Sistema | Ambas |
+| **CU23** | **Consulta y Navegación de Catálogo Offline en Caché** | M6: Logística y Posventa | Pendiente | Cajero, Cliente, Encargado | Ambas |
+| **CU24** | **Restablecimiento y Control de Inventario por Devolución/Merma** | M6: Logística y Posventa | **Hecho** | Encargado, Admin Tenant | Web |
+| **CU25** | **Registro de Ventas de Contado y Reservas en Modo Offline (POS)** | M6: Logística y Posventa | Pendiente | Cajero, Cliente | Ambas |
 | **CU26** | **Personalización de Identidad y Marca del Tenant (Branding)** | M1: SaaS y Seguridad | **Hecho** | Admin Tenant, Superadmin | Web / Móvil |
 | **CU27** | **Contratación y Onboarding de Suscripción B2B** | M1: SaaS y Seguridad | **Hecho** | Prospecto B2B, Superadmin | Web |
 | **CU28** | **Monitoreo de Consumo y Cambio de Plan B2B** | M1: SaaS y Seguridad | **Hecho** | Admin Tenant | Web |
+| **CU29** | **Monitor y Gestión de Cola Local de Operaciones Pendientes (Offline Queue)** | M6: Logística y Posventa | Pendiente | Cajero, Administrador | Ambas |
+| **CU30** | **Sincronización Diferida y Resolución de Conflictos de Inventario** | M6: Logística y Posventa | Pendiente | Cajero, Admin, Sistema, Cliente | Ambas |
 
-* **Total de Casos de Uso:** 28 (11 Implementados en Base + 17 Pendientes de Evolución Segundo Parcial).
+* **Total de Casos de Uso:** 30 (13 Implementados en Base + 17 Evolución Segundo Parcial).
 
 ---
 
