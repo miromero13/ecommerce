@@ -127,6 +127,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/cliente/pages/orders-page.component').then((m) => m.OrdersPageComponent),
       },
       {
+        path: 'cliente/deliveries',
+        canActivate: [roleGuard(['cliente'])],
+        loadComponent: () => import('./features/cliente/pages/my-deliveries-page.component').then((m) => m.MyDeliveriesPageComponent),
+      },
+      {
         path: 'cliente/returns',
         canActivate: [roleGuard(['cliente'])],
         loadComponent: () => import('./features/cliente/pages/rma-history-page.component').then((m) => m.RmaHistoryPageComponent),

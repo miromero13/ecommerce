@@ -4,6 +4,9 @@
     <p class="text-sm text-slate-500">Tus reservas, compras y carrito.</p>
   </header>
 
+  <!-- Tarjeta de seguimiento en vivo de delivery (CU20) -->
+  <app-active-delivery-card [deliveries]="deliveries()" />
+
   <section hlmCard class="bg-white shadow-sm">
   <div hlmCardContent class="grid gap-2 sm:grid-cols-3">
     <article class="rounded-xl border border-slate-200 p-4">

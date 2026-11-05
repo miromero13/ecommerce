@@ -3,7 +3,7 @@ import { Component, computed, effect, inject, signal, untracked } from '@angular
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideBell, lucideBrainCircuit, lucideBuilding2, lucideCalendarDays, lucideClipboardList, lucideLayoutDashboard, lucideLogOut, lucideMail, lucidePackageSearch, lucideShield, lucideShoppingCart, lucideTicket, lucideUser, lucideUserRound, lucideUsers, lucideHeart, lucideGift, lucideWallet, lucideRotateCcw } from '@ng-icons/lucide';
+import { lucideBell, lucideBrainCircuit, lucideBuilding2, lucideCalendarDays, lucideClipboardList, lucideLayoutDashboard, lucideLogOut, lucideMail, lucidePackageSearch, lucideShield, lucideShoppingCart, lucideTicket, lucideUser, lucideUserRound, lucideUsers, lucideHeart, lucideGift, lucideWallet, lucideRotateCcw, lucideTruck } from '@ng-icons/lucide';
 
 import {
   HlmSidebar,
@@ -78,6 +78,7 @@ type SidebarSection = {
       lucideGift,
       lucideWallet,
       lucideRotateCcw,
+      lucideTruck,
     }),
   ],
   templateUrl: './app-shell.component.html',
@@ -324,6 +325,7 @@ export class AppShellComponent {
               { label: 'Mi Billetera', route: '/app/cliente/wallet', icon: 'lucideWallet' },
               { label: 'Carrito', route: '/app/cliente/cart', icon: 'lucideShoppingCart' },
               { label: 'Pedidos', route: '/app/cliente/orders', icon: 'lucideClipboardList' },
+              { label: 'Mis Envíos', route: '/app/cliente/deliveries', icon: 'lucideTruck' },
               { label: 'Devoluciones y Cambios', route: '/app/cliente/returns', icon: 'lucideRotateCcw' },
             ],
           },

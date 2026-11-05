@@ -18,6 +18,9 @@ import '../cart/cart_api.dart';
 import '../chatbot/chatbot_page.dart';
 import '../reservations/reservation_models.dart';
 import '../../app/theme.dart';
+import '../deliveries/active_delivery_card.dart';
+import '../deliveries/delivery_api.dart';
+import '../deliveries/delivery_models.dart';
 import 'catalog_api.dart';
 import 'catalog_controller.dart';
 import 'catalog_models.dart';
@@ -51,6 +54,7 @@ class _CatalogPageState extends State<CatalogPage> {
   final Set<String> _addingProductIds = {};
   List<Product> _recommendedProducts = const [];
   var _recommendationsRequestVersion = 0;
+  List<DeliveryOrder> _activeDeliveries = const [];
 
   @override
   void initState() {
@@ -69,11 +73,15 @@ class _CatalogPageState extends State<CatalogPage> {
     if (_controller.status == CatalogStatus.idle) {
       unawaited(
         _controller.load().then((_) {
-          if (mounted) unawaited(_loadRecommendations());
+          if (mounted) {
+            unawaited(_loadRecommendations());
+            unawaited(_loadActiveDeliveries());
+          }
         }),
       );
     } else if (_controller.status == CatalogStatus.ready) {
       unawaited(_loadRecommendations());
+      unawaited(_loadActiveDeliveries());
     }
   }
 
@@ -98,6 +106,10 @@ class _CatalogPageState extends State<CatalogPage> {
                 subtitle: 'Explora las prendas disponibles en FashionStore.',
               ),
               const SizedBox(height: 16),
+              if (_isCliente && _activeDeliveries.isNotEmpty) ...[
+                ActiveDeliveryCard(deliveries: _activeDeliveries),
+                const SizedBox(height: 8),
+              ],
               _shortcuts(),
               const SizedBox(height: 14),
               _tenantSelector(),
@@ -1619,6 +1631,23 @@ class _CatalogPageState extends State<CatalogPage> {
   bool get _isCliente =>
       widget.authController?.isAuthenticated == true &&
       widget.authController?.user?.rol.value == 'cliente';
+
+  Future<void> _loadActiveDeliveries() async {
+    if (!_isCliente) return;
+    try {
+      final api = DeliveryApi(
+        tokenProvider: () => widget.authController?.accessToken,
+        onUnauthorized: widget.authController?.handleUnauthorized,
+      );
+      final list = await api.getMyDeliveries();
+      if (!mounted) return;
+      setState(() {
+        _activeDeliveries = list.where((d) => d.isActive).toList(growable: false);
+      });
+    } catch (_) {
+      // Deliveries failure must not interrupt catalog browsing
+    }
+  }
 
   static String? _emptyAsNull(String? value) =>
       value == null || value.isEmpty ? null : value;

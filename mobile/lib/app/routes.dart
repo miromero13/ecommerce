@@ -19,6 +19,8 @@ import '../features/loyalty/loyalty_page.dart';
 import '../features/profile/gift_cards_page.dart';
 import '../features/profile/wallet_page.dart';
 import '../features/wishlist/wishlist_page.dart';
+import '../features/deliveries/deliveries_page.dart';
+import '../features/rma/rma_page.dart';
 import '../shared/widgets/app_scaffold.dart';
 
 abstract final class AppRoutes {
@@ -37,6 +39,8 @@ abstract final class AppRoutes {
   static const loyalty = '/loyalty';
   static const giftCards = '/gift-cards';
   static const wallet = '/wallet';
+  static const deliveries = '/deliveries';
+  static const returns = '/returns';
 }
 
 abstract final class AppRouter {
@@ -152,6 +156,18 @@ abstract final class AppRouter {
         WalletPage(authController: authController),
         selectedIndex: 1,
         shellTitle: 'Mi Billetera Digital',
+      ),
+      AppRoutes.deliveries => _page(
+        settings,
+        DeliveriesPage(authController: authController),
+        selectedIndex: 1,
+        shellTitle: 'Mis Envíos',
+      ),
+      AppRoutes.returns => _page(
+        settings,
+        RmaPage(authController: authController),
+        selectedIndex: 1,
+        shellTitle: 'Mis Devoluciones y Cambios',
       ),
       AppRoutes.login => _page(
         settings,

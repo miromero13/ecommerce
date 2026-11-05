@@ -43,6 +43,20 @@ class ManagementPage extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         _ManagementCard(
+          icon: Icons.local_shipping_outlined,
+          title: 'Mis envíos',
+          subtitle: 'Seguimiento de pedidos a domicilio y código PIN de entrega.',
+          onTap: () => Navigator.of(context).pushNamed(AppRoutes.deliveries),
+        ),
+        const SizedBox(height: 12),
+        _ManagementCard(
+          icon: Icons.assignment_return_outlined,
+          title: 'Mis devoluciones y cambios',
+          subtitle: 'Gestiona solicitudes de RMA, cambios de talle y fichas.',
+          onTap: () => Navigator.of(context).pushNamed(AppRoutes.returns),
+        ),
+        const SizedBox(height: 12),
+        _ManagementCard(
           icon: Icons.favorite_border,
           title: 'Lista de deseos',
           subtitle: 'Tus prendas favoritas, listas para mover al carrito.',

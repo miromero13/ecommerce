@@ -86,12 +86,16 @@ class _WalletPageState extends State<WalletPage> with SingleTickerProviderStateM
       ]);
 
       if (mounted) {
+        final bData = results[0].data is Map ? results[0].data as Map<String, dynamic> : null;
+        final txData = results[1].data is List ? results[1].data as List<dynamic> : const [];
+        final lbData = results[2].data is List ? results[2].data as List<dynamic> : const [];
+        final lmData = results[3].data is List ? results[3].data as List<dynamic> : const [];
         setState(() {
-          _balance = (results[0].data?['balance'] as num?)?.toDouble() ?? 0.0;
-          _currency = results[0].data?['currency']?.toString() ?? 'BOB';
-          _transactions = (results[1].data ?? const []).map((r) => Map<String, dynamic>.from(r as Map)).toList();
-          _loyaltyBalances = (results[2].data ?? const []).map((r) => Map<String, dynamic>.from(r as Map)).toList();
-          _loyaltyMovements = (results[3].data ?? const []).map((r) => Map<String, dynamic>.from(r as Map)).toList();
+          _balance = (bData?['balance'] as num?)?.toDouble() ?? 0.0;
+          _currency = bData?['currency']?.toString() ?? 'BOB';
+          _transactions = txData.map((r) => Map<String, dynamic>.from(r as Map)).toList();
+          _loyaltyBalances = lbData.map((r) => Map<String, dynamic>.from(r as Map)).toList();
+          _loyaltyMovements = lmData.map((r) => Map<String, dynamic>.from(r as Map)).toList();
         });
       }
     } catch (_) {

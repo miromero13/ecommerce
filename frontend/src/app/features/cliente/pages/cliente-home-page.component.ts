@@ -14,20 +14,33 @@ import { CartApiService } from '../../shared/services/cart-api.service';
 import { Reservation } from '../../shared/models/reservation.model';
 import { Order } from '../../shared/models/order.model';
 import { Cart } from '../../shared/models/cart.model';
+import { DeliveryOrder } from '../../shared/models/delivery.model';
+import { DeliveryApiService } from '../../shared/services/delivery-api.service';
+import { ActiveDeliveryCardComponent } from '../components/active-delivery-card.component';
 
 @Component({
   selector: 'app-cliente-home-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, DonutChartComponent, OnBrowserDirective, ...HlmBadgeImports, ...HlmCardImports],
+  imports: [
+    CommonModule,
+    RouterLink,
+    DonutChartComponent,
+    OnBrowserDirective,
+    ActiveDeliveryCardComponent,
+    ...HlmBadgeImports,
+    ...HlmCardImports,
+  ],
   templateUrl: './cliente-home-page.component.html',
 })
 export class ClienteHomePageComponent {
   private readonly reservationsApi = inject(ReservationApiService);
   private readonly checkoutApi = inject(CheckoutApiService);
   private readonly cartApi = inject(CartApiService);
+  private readonly deliveryApi = inject(DeliveryApiService);
   protected readonly reservations = signal<Reservation[]>([]);
   protected readonly orders = signal<Order[]>([]);
   protected readonly cart = signal<Cart | null>(null);
+  protected readonly deliveries = signal<DeliveryOrder[]>([]);
   private readonly statusInfo: Record<Reservation['status'], { name: string; color: string }> = {
     pending_payment: { name: 'Esperando anticipo', color: '#f97316' },
     pending: { name: 'Pendientes', color: '#f59e0b' }, confirmed: { name: 'Confirmadas', color: '#0ea5e9' },
@@ -43,6 +56,19 @@ export class ClienteHomePageComponent {
     Object.fromEntries(this.reservationDistribution().map(({ key, info }) => [key, { name: info.name, color: info.color }])));
   constructor() { void this.load(); }
   private async load(): Promise<void> {
-    try { const [reservations, orders, cart] = await Promise.all([firstValueFrom(this.reservationsApi.listMyReservations()), firstValueFrom(this.checkoutApi.listOrders()), firstValueFrom(this.cartApi.getCurrentCart())]); this.reservations.set(reservations.data ?? []); this.orders.set(orders.data ?? []); this.cart.set(cart.data ?? null); } catch { /* keep the dashboard empty */ }
+    try {
+      const [reservations, orders, cart, deliveries] = await Promise.all([
+        firstValueFrom(this.reservationsApi.listMyReservations()),
+        firstValueFrom(this.checkoutApi.listOrders()),
+        firstValueFrom(this.cartApi.getCurrentCart()),
+        firstValueFrom(this.deliveryApi.myOrders()),
+      ]);
+      this.reservations.set(reservations.data ?? []);
+      this.orders.set(orders.data ?? []);
+      this.cart.set(cart.data ?? null);
+      this.deliveries.set(deliveries.data ?? []);
+    } catch {
+      /* keep the dashboard empty */
+    }
   }
 }

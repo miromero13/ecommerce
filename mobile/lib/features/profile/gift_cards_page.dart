@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 
 import '../../core/network/api_client.dart';
 import '../../core/network/api_exception.dart';
-import '../../shared/widgets/app_badge.dart';
 import '../../shared/widgets/app_button.dart';
 import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/app_dialog.dart';
@@ -84,7 +83,7 @@ class _GiftCardsPageState extends State<GiftCardsPage> {
     final msg = _customMessageController.text.trim();
 
     if (amount < 10) {
-      AppSnackBar.show(context, 'El importe debe ser mayor o igual a $10.00',
+      AppSnackBar.show(context, 'El importe debe ser mayor o igual a \$10.00',
           tone: AppSnackBarTone.error);
       return;
     }
