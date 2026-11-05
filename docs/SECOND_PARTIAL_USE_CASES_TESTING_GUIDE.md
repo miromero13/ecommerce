@@ -507,7 +507,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 ---
 
 #### CU18 – Comprar y emitir tarjetas de regalo (*Gift Cards*)
-* **Estado:** **Especificado / En Proceso**
+* **Estado:** **Hecho e Implementado**
 * **Actor de prueba:** Cliente
 * **Credenciales:** `maria.quispe@clientes.demo.bo` / `Cliente2026!`
 * **Ruta UI prevista:** `/app/cliente/gift-cards` y en perfil móvil.
@@ -535,7 +535,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 ---
 
 #### CU19 – Gestionar billetera digital (*Store Wallet*)
-* **Estado:** **Especificado / En Proceso**
+* **Estado:** **Hecho e Implementado**
 * **Actor de prueba:** Cliente
 * **Credenciales:** `maria.quispe@clientes.demo.bo` / `Cliente2026!`
 * **Ruta UI prevista:** `/app/cliente/wallet` y opción *"Mi Billetera Digital"* en el menú de perfil móvil.
