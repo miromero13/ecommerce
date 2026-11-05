@@ -14,9 +14,16 @@
 | 4 | CU10 Ingesta RPA | ✅ Hecho (commit `4633449`) | Presentación 2/3 |
 | 5 | CU16 Wishlist | ✅ Hecho (commit `e34967e`) | Presentación 2/3 |
 | 6 | CU17 Loyalty | ✅ Hecho (commit `9456c75`) | Presentación 2/3 |
-| 7 | CU21 Devoluciones (RMA, 30 días) | 0 % — añadido por D3 (sección 1.7) | Presentación 3 |
-
-Fuera de alcance de este plan: CU18–CU20, CU22, CU23.
+| 7 | CU18 Gift Cards | ✅ Hecho (commit `5cb3ea9`) | Presentación 3 |
+| 8 | CU19 Store Wallet | ✅ Hecho (commit `5cb3ea9`) | Presentación 3 |
+| 9 | CU20 Delivery Tracking con PIN | ✅ Hecho (commit `2f0a22b`) | Presentación 3 |
+| 10 | CU21 Devoluciones y Cambios RMA (30 días) | ✅ Hecho (commit `2f0a22b`) | Presentación 3 |
+| 11 | CU22 PWA e Instalabilidad Multitenant | ✅ Hecho (commit `2b73456`) | Presentación 3 |
+| 12 | CU23 Catálogo Offline en Caché (IndexedDB/SQLite) | ✅ Hecho (commit `ffde962`) | Presentación 3 |
+| 13 | CU24 Reingreso de Stock y Mermas Técnicas | ✅ Hecho | Presentación 3 |
+| 14 | CU25 Ventas y Reservas en Contingencia POS | ✅ Hecho (commit `7ef756f`) | Presentación 3 |
+| 15 | CU29 Monitor de Cola Local y Auditoría | ✅ Hecho (commit `d92a22a`) | Presentación 3 |
+| 16 | CU30 Sincronización Diferida y Resolución de Conflictos | ✅ Hecho (commit `2426368`) | Presentación 3 |
 
 ---
 
@@ -712,6 +719,14 @@ Bitácora de evoluciones implementadas desde el commit `594717a` hasta `HEAD`:
 | `POST /rpa/ingest/upload-document` · `GET /rpa/ingest/jobs`, `/jobs/{id}` · `PATCH /jobs/{id}/items` · `POST /jobs/{id}/commit` | proveedor, administrador, encargado (confirmar: admin/encargado) | Ingesta RPA (CU10) |
 | `GET /wishlist` · `POST /wishlist/items` · `DELETE /wishlist/items/{product_id}` · `POST /wishlist/items/{product_id}/move-to-cart` | cliente | Lista de deseos (CU16) |
 | `GET /loyalty/balance`, `/loyalty/transactions` · `points_to_redeem` en `/payments/cash|stripe|qr/checkout` | cliente | Puntos por empresa y canje al pagar (CU17) |
+| `GET /gift-cards/my-cards`, `POST /gift-cards/purchase`, `POST /gift-cards/redeem` | cliente | Comprar y redimir tarjetas de regalo (CU18) |
+| `GET /wallet/me`, `GET /wallet/transactions` | cliente | Saldo en Bs y movimientos de billetera (CU19) |
+| `POST /delivery/quotes`, `GET /delivery/my-orders`, `POST /delivery/confirm-delivery` | cliente, repartidor | Seguimiento de envíos activos con PIN (CU20) |
+| `GET /rma/eligible-orders`, `POST /rma/requests`, `GET /rma/requests`, `POST /rma/requests/{id}/inspect`, `GET /rma/requests/{id}/pdf` | cliente, encargado, admin | Solicitud y dictamen de cambios/devoluciones (CU21/CU24) |
+| `GET /pwa/manifest`, `GET /pwa/manifest.json` | público | Manifiesto dinámico por tenant y marketplace global (CU22) |
+| `GET /offline/catalog-sync` | cajero, móvil | Descarga liviana de catálogo para contingencia local (CU23) |
+| `POST /offline/queue-sync` | cajero, sistema | Sincronización de lote de operaciones con idempotencia estricta (CU30) |
+| `POST /offline/conflicts/{id}/resolve` | cajero, admin | Resolución de colisiones con Billetera (+10%) o devolución (CU30) |
 | `GET /loyalty/customer?email=` | cajero | Saldo del cliente en su empresa (CU17) |
 | `GET /cash-sessions/current` · `POST /cash-sessions/open` · `POST /cash-sessions/current/movements` · `POST /cash-sessions/current/close` | cajero | Abrir caja, ingresos/retiros y cierre con arqueo (1P-CU18) |
 | `GET /cash-sessions?branch_id=&day=` · `GET /cash-sessions/{id}` | administrador (por sucursal), encargado (su sucursal), cajero (sus cajas) | Cajas y movimientos |
@@ -785,4 +800,80 @@ Se generan **con los servicios reales** (los mismos que usa la API) y después c
 **Contenido:** superadministrador, 4 repartidores de la plataforma, 66 clientes y 4 empresas (una por plan) con 11 sucursales en La Paz, El Alto, Cochabamba, Santa Cruz, Sucre, Tarija y Oruro. Cada empresa tiene su administrador y sus proveedores; cada sucursal, un encargado y dos cajeros. El catálogo se reparte por estilo de marca (Ayni Moda: blusas, sastrería y vestidos; Kantuta Boutique: vestidos y enterizos; Urbana Denim: jeans y básicos; Luna Satén: pijamas) con stock propio por sucursal. Historial de unos 200 días: cajas abiertas y cerradas con vuelto, ventas en efectivo o QR con cupones y puntos, pedidos web pagados con Stripe (retiro y envío con repartidor y PIN), reservas con anticipo, favoritos, vistas, solicitudes a proveedores, renovaciones del plan y liquidaciones diarias. El estado de hoy deja cajas abiertas, pedidos para entregar o despachar, reservas por atender o esperando anticipo, solicitudes en cada estado y stock crítico para el sistema experto.
 
 **Notas:** los correos usan dominios `.demo.bo` (ningún comprobante llega a una casilla real) y los comprobantes del historial quedan como ya enviados. Con imágenes locales, el vestidor web funciona (el backend lee `/demo-assets` del disco sin abrir excepciones de red); el vestidor del móvil (Decart) necesita URLs públicas: usar `--storage cloudinary` cuando haya credenciales reales.
+
+---
+
+## 13. Implementación de Logística, Posventa y Subsistema Offline (CU20, CU21, CU22, CU23, CU25, CU29, CU30)
+
+Resumen de archivos creados, modificados y verificados en el sprint final del segundo parcial:
+
+### 13.1 CU20 – Delivery Tracking y Código PIN de 4 Dígitos
+* **Backend:**
+  - `backend/app/routes/delivery_routes.py`: endpoint `GET /api/delivery/my-orders` retornando órdenes activas en despacho con su código PIN.
+* **Frontend Web:**
+  - `frontend/src/app/features/cliente/components/active-delivery-card.component.ts`: tarjeta destacada con estado en tiempo real y PIN de 4 dígitos.
+  - `frontend/src/app/features/cliente/pages/my-deliveries-page.component.ts`: página completa `/app/cliente/deliveries`.
+  - Integración en `cliente-home-page.component.ts` y barra lateral con icono `lucideTruck`.
+* **Móvil Flutter:**
+  - `mobile/lib/features/deliveries/delivery_models.dart` y `delivery_api.dart`.
+  - `mobile/lib/features/deliveries/active_delivery_card.dart` integrado en `CatalogPage`.
+  - `mobile/lib/features/deliveries/deliveries_page.dart` en ruta `/deliveries` con enlace en `ManagementPage`.
+
+### 13.2 CU21 – Devoluciones y Cambios de Prendas (RMA 30 días)
+* **Backend:**
+  - `backend/app/models/rma.py`: tablas `rma_requests`, `rma_items`, actas de merma técnica y liquidación programada a fin de mes.
+  - `backend/app/routes/rma_routes.py`: `/api/rma/eligible-orders`, `/requests`, `/{id}/inspect`, `/{id}/pdf`.
+* **Frontend Web:**
+  - `frontend/src/app/features/cliente/pages/returns-page.component.ts`: selector de compras de los últimos 30 días, selección multilínea y motivos.
+  - `frontend/src/app/features/cliente/pages/rma-history-page.component.ts`: listado histórico con estado y PDF oficial.
+* **Móvil Flutter:**
+  - `mobile/lib/features/rma/rma_models.dart`, `rma_api.dart`, `rma_create_dialog.dart`, `rma_page.dart`.
+  - Acceso desde `Gestiones` (`/returns`).
+
+### 13.3 CU22 – PWA e Instalabilidad Multitenant
+* **Backend:**
+  - `backend/app/routes/pwa_routes.py`: `GET /api/pwa/manifest` y `/manifest.json` retornando branding dinámico según tenant (`X-Tenant-ID`) o marketplace global FashionStore (#111827).
+* **Frontend Web:**
+  - `@angular/service-worker` configurado en `frontend/angular.json` y `app.config.ts`.
+  - `frontend/ngsw-config.json`, `frontend/public/manifest.webmanifest`, íconos en `public/icons/icon-192x192.png` y `512x512.png`.
+  - `PwaService` (`frontend/src/app/core/services/pwa.service.ts`): gestión de `beforeinstallprompt`, detección de standalone y dynamic manifest.
+  - `PwaInstallPromptComponent`: banner flotante con temporizador animado de 5 segundos, autocierre y pausa en hover.
+  - `app-shell.component.html/.ts`: opción **"Descargar app"** permanente en el menú desplegable del avatar/perfil y modal de guía interactivo.
+
+### 13.4 CU23 – Consulta de Catálogo Offline en Caché
+* **Backend:**
+  - `backend/app/routes/offline_routes.py`: `GET /api/offline/catalog-sync` con stock disponible por variante y sucursal.
+* **Frontend Web:**
+  - `IndexedDbService` (`frontend/src/app/core/services/indexeddb.service.ts`): Base de datos `FashionStoreOfflineDB` con store `cached_catalog`.
+  - `OfflineCatalogService` (`frontend/src/app/core/services/offline-catalog.service.ts`): descarga y refresco automático, búsqueda local en IndexedDB.
+  - `CajaPageComponent` (`caja-page.component.ts/.html`): chip de estado reactivo y fallback transparente a catálogo local ante caída de red.
+* **Móvil Flutter:**
+  - `mobile/lib/core/offline/offline_catalog_models.dart` y `offline_catalog_service.dart`: almacenamiento seguro local y búsqueda offline.
+
+### 13.5 CU25 – Registro de Ventas de Contado y Reservas en Modo Offline (POS)
+* **Frontend Web:**
+  - `OfflineQueueService` (`frontend/src/app/core/services/offline-queue.service.ts`): encolado atómico en store `pending_operations_queue` con UUID y numeración `CONT-YYYYMMDD-XXXX`.
+  - `CajaPageComponent`: detección offline, barra de advertencia superior ámbar, bloqueo de QR y restricción a efectivo/reserva.
+  - `OfflineProvisionalReceiptDialogComponent`: modal de ticket con desglose de prendas, totales, efectivo recibido, cambio, aviso legal de contingencia e impresión térmica (`window.print()`).
+* **Móvil Flutter:**
+  - `mobile/lib/core/offline/offline_queue_models.dart` y `offline_queue_service.dart`.
+
+### 13.6 CU29 – Monitor y Gestión de Cola Local de Operaciones Pendientes
+* **Frontend Web:**
+  - `OfflineQueueModalComponent` (`frontend/src/app/features/cajero/components/offline-queue-modal.component.ts`): tarjetas de métricas (operaciones en cola, total retenido en Bs), tabla de comprobantes y auditoría desplegable de prendas.
+  - Botón con badge numérico interactivo en la barra superior de `caja-page.component.html`.
+  - Disparador manual de sincronización `syncBatchNow()`.
+* **Móvil Flutter:**
+  - `mobile/lib/features/management/offline_queue_page.dart` en ruta `/offline-queue` con tarjeta en `management_page.dart`.
+
+### 13.7 CU30 – Sincronización Diferida y Resolución de Conflictos de Inventario
+* **Backend:**
+  - `POST /api/offline/queue-sync`: validación de stock por variant_id/branch_id con `with_for_update()`, registro de `Sale`/`SaleItem`, descuento de inventario y detección de colisiones (`conflict_rejected`). Idempotencia garantizada por `cash_reference: OFFLINE:{operation_id}:{receipt_number}`.
+  - `POST /api/offline/conflicts/{id}/resolve`: resolución con **110% de compensación a Billetera Digital (`UserWallet`)** o devolución física de efectivo en caja.
+* **Frontend Web:**
+  - `OfflineSyncService` (`frontend/src/app/core/services/offline-sync.service.ts`): listener al evento `online` del navegador para sincronización automática en segundo plano.
+  - `OfflineConflictsPageComponent` (`frontend/src/app/features/cajero/pages/offline-conflicts-page.component.ts`): pantalla dedicada `/app/cajero/offline-conflicts` para resolver colisiones en 1 clic.
+* **Móvil Flutter:**
+  - Método `syncQueue(apiClient)` en `offline_queue_service.dart`.
+
 

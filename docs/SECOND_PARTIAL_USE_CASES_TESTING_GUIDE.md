@@ -554,7 +554,7 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 ### MÓDULO 6: Logística, Despacho y Posventa
 
 #### CU20 – Gestionar envío a domicilio con validación por PIN
-* **Estado:** **Hecho e Implementado en Backend y Web**
+* **Estado:** **Hecho e Implementado en Backend, Web y Móvil**
 * **Actor de prueba:**
   * Cliente: `maria.quispe@clientes.demo.bo` / `Cliente2026!`
   * Repartidor: `javier.mamani@repartidores.demo.bo` / `Fashion2026!`
@@ -562,89 +562,118 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 * **Ruta UI:**
   * Superadministrador: `/app/superadmin/drivers` (Gestión de repartidores de plataforma)
   * Repartidor: `/app/delivery` (Hoja de ruta del día y confirmación con PIN)
-  * Cliente: `/app/cliente/cart` (Cotización de flete) y `/app/cliente/orders`
+  * Cliente Web: `/app/cliente/cart` (Cotización de flete), `/app/cliente/deliveries` (Mis envíos activos con PIN) y `/app/cliente/orders`
+  * Cliente Móvil: Home/Catálogo (`ActiveDeliveryCard`), y menú `Gestiones` -> *"Mis envíos"* (`/deliveries`)
 
 ##### Pasos para probar:
-1. **Cotización y Pedido con Delivery (Cliente):**
+1. **Cotización y Pedido con Delivery (Cliente Web o Móvil):**
    * Iniciá como cliente, agregá prendas al carrito y seleccioná despacho a domicilio en `/app/cliente/cart`.
    * El sistema calcula el flete con `/api/delivery/quotes` según la distancia de la sucursal.
    * Pagá el pedido con tarjeta de prueba en Stripe.
    * En el detalle del pedido generado, observá el **Código PIN de seguridad de 4 dígitos** asignado a la entrega (ej. `8492`).
-2. **Reclamar y Despachar Pedido (Repartidor):**
+   * **En Web:** En la barra lateral navegá a **"Mis envíos"** (`/app/cliente/deliveries`) o al inicio del cliente. Observá la tarjeta `ActiveDeliveryCard` con el estado en tiempo real (`in_transit`) y el PIN destacado en color y tamaño grande.
+   * **En App Móvil (Flutter):** Abrí la app. En la parte superior del catálogo aparece la tarjeta `ActiveDeliveryCard` mostrando el estado del pedido y el PIN de 4 dígitos. También podés entrar a `Gestiones` -> *"Mis envíos"* (`AppRoutes.deliveries`) para ver los pedidos en tránsito y el historial de entregados.
+2. **Reclamar y Despachar Pedido (Repartidor Web):**
    * En otra pestaña o sesión, ingresá como Repartidor (`javier.mamani@repartidores.demo.bo`).
    * Accedé a `/app/delivery`. En la lista de pedidos disponibles, reclamá el pedido para entrega (`in_transit`).
 3. **Entrega y Validación con PIN:**
    * Hacé clic en **"Confirmar Entrega"**.
    * Ingresá un PIN incorrecto (`0000`). Observá el error: `"El código PIN de seguridad es incorrecto"`.
    * Ingresá el PIN real del cliente (`8492`) y confirmá.
-   * **Resultado:** Toast verde: `"Entrega confirmada y registrada exitosamente"`. El pedido pasa a estado `delivered`.
+   * **Resultado:** Toast verde: `"Entrega confirmada y registrada exitosamente"`. El pedido pasa a estado `delivered` tanto en Web como en Móvil.
 
 ---
 
 #### CU21 – Solicitar y procesar cambios y devoluciones (RMA)
-* **Estado:** **Especificado / En Proceso**
+* **Estado:** **Hecho e Implementado en Backend, Web y Móvil**
 * **Actor de prueba:**
   * Cliente (Solicita): `maria.quispe@clientes.demo.bo` / `Cliente2026!`
   * Encargado (Resuelve): `rodrigo.choque@ayni-moda.demo.bo` / `Fashion2026!`
-* **Ruta UI prevista:** `/app/cliente/returns/new` (desde `/app/cliente/orders`) y `/app/encargado/returns`.
+* **Ruta UI:**
+  * Cliente Web: `/app/cliente/returns` (Historial), `/app/cliente/returns/new` (Nueva solicitud) y `/app/cliente/orders`
+  * Cliente Móvil: Menú `Gestiones` -> *"Mis devoluciones y cambios"* (`/returns`)
+  * Encargado Web: `/app/encargado/returns` (Inspección y dictamen técnico)
 
-##### Pasos para probar según especificación:
-1. **Listado de Órdenes Elegibles (Cliente):**
+##### Pasos para probar:
+1. **Listado de Órdenes Elegibles y Solicitud (Cliente Web):**
    * Iniciá sesión como Cliente (`maria.quispe@clientes.demo.bo`).
-   * Ingresá a la sección de devoluciones (`/app/cliente/returns/new`).
-   * **Resultado esperado:** La interfaz lista **exclusivamente las ventas entregadas dentro de los últimos 30 días**. Si una compra tiene más de 30 días, no aparece o figura deshabilitada con el aviso de plazo vencido.
-2. **Armado de Solicitud Multilínea (Cliente):**
-   * Seleccioná una orden que contenga 2 o más prendas.
-   * **Prenda 1:** Seleccioná motivo *"Talle incorrecto"*, resolución *"Cambio de prenda"* y elegí la variante deseada (ej. talle L). Si el selector indica *"Sin stock en esta variante"*, elegí una variante/prenda alternativa de igual valor o conmutá a *"Crédito en tienda"*.
+   * Ingresá a `/app/cliente/returns/new`. La interfaz lista **exclusivamente las compras entregadas dentro de los últimos 30 días**. Si una compra tiene más de 30 días no califica para RMA.
+   * Seleccioná una orden con prendas.
+   * **Prenda 1:** Seleccioná motivo *"Talle incorrecto"*, resolución *"Cambio de prenda"* y elegí la variante deseada (talle o color alternativo).
    * **Prenda 2:** Seleccioná motivo *"Defecto de fábrica"*, resolución *"Crédito en tienda"* y redactá la nota explicativa.
    * Presioná **"Enviar Solicitud de RMA"**.
-   * **Resultado:** Notificación verde con el número de reclamo generado (ej. `RMA-2026-0914`) en estado `pending_inspection` conteniendo los ítems seleccionados.
-3. **Inspección Física y Dictamen Ítem por Ítem (Encargado):**
+   * **Resultado:** Se genera la solicitud en estado `pending_inspection` con código `RMA-YYYY-XXXX` y se habilita el botón para **Descargar Ficha en PDF**.
+2. **Solicitud desde App Móvil (Flutter):**
+   * Iniciá sesión en la app móvil con `maria.quispe@clientes.demo.bo`.
+   * En la pestaña **Gestiones**, tocá la tarjeta **"Mis devoluciones y cambios"**.
+   * Tocá el botón *"Solicitar devolución"* para abrir el diálogo `RmaCreateDialog`.
+   * Elegí la orden entregada, la prenda a cambiar, el motivo y la resolución. Confirmá el envío.
+   * La solicitud aparece en la lista con su chip de estado `Pendiente de inspección`.
+3. **Inspección Física y Dictamen Ítem por Ítem (Encargado Web):**
    * Iniciá sesión como Encargado (`rodrigo.choque@ayni-moda.demo.bo`) e ingresá a `/app/encargado/returns`.
-   * Abrí la solicitud `RMA-2026-0914`.
-   * **Ítem 1 (Cambio por talle):** Inspeccioná la prenda física.
-     * Si está **Intacta** (con etiquetas y sin uso): Marcá `Aprobado`, reingreso a stock comercial (`rma_restock`) y confirmá el despacho de la nueva prenda. Si la variante solicitada no tuviese stock en la sucursal, el modal te permite seleccionar una prenda alternativa en acuerdo con el cliente o conmutar a reembolso en billetera.
-     * Si presenta **Daño atribuible al cliente** (mancha, uso): Marcá `Rechazado` con nota de rechazo.
-   * **Ítem 2 (Defecto de fábrica):**
-     * Constatá la falla de origen. Marcá `Aprobado por defecto de fábrica`, derivando el ítem físico a **merma/cuarentena** (`scrap_quarantine`) y autorizando el saldo a la billetera digital.
-   * **Resultado final:**
-     * La solicitud padre pasa a estado `approved` (si todos los ítems fueron aprobados) o `partially_approved` (si uno fue aprobado y otro rechazado).
-     * El saldo de las prendas con reembolso queda programado con fecha al cierre del mes corriente (`scheduled_month_end`) para preservar el control contable y de inventario.
-     * **Notificación al Cliente:** El cliente recibe inmediatamente una notificación push y alerta interna: *"Tu solicitud de devolución fue dictaminada. Se programó la acreditación de Bs. 220.00 en tu Billetera Digital al cierre del mes."*
-     * El botón **"Descargar Ficha PDF"** permite obtener la ficha actualizada con el dictamen técnico y firmas de sucursal.
-     * El stock comercial de la prenda devuelta intacta aumenta en +1, la reposición entregada en el acto se descuenta en -1, y la prenda defectuosa queda radicada en el libro de mermas técnicas.
+   * Abrí la solicitud recién creada.
+   * **Ítem 1 (Cambio por talle):** Prenda intacta. Marcá `Aprobado` y reingreso a stock comercial (`rma_restock`).
+   * **Ítem 2 (Defecto de fábrica):** Marcá `Aprobado por defecto de fábrica`, derivando el ítem físico a **merma/cuarentena** (`scrap_quarantine`, CU24) y programando la acreditación de saldo en Billetera Digital al cierre del mes corriente.
+   * **Resultado:** La solicitud pasa a `approved` o `partially_approved`. El stock comercial se ajusta automáticamente y la prenda defectuosa queda radicada en el libro de mermas técnicas.
 
 ---
 
 #### CU22 – Instalar la aplicación web progresiva (PWA)
-* **Estado:** **Especificado / En Proceso**
-* **Plataforma:** **Web**
-* **Actor de prueba:** Cualquier usuario en navegador Chromium / Safari
-* **Ruta:** Raíz de la aplicación web `http://localhost:4200`
+* **Estado:** **Hecho e Implementado en Backend y Web**
+* **Plataforma:** **Web (Chromium, Safari, Edge, Android, iOS)**
+* **Actor de prueba:** Cualquier usuario o cliente sin registrar
+* **Ruta:** Raíz de la aplicación web `http://localhost:4200` y API `/api/pwa/manifest`
 
-##### Pasos para probar según especificación:
-1. Abrí la aplicación web en Google Chrome, Edge o navegador móvil.
-2. Verificá la presencia del endpoint dinámico y archivo en `http://localhost:4200/api/pwa/manifest` y `/manifest.webmanifest`.
-3. Observá el botón o banner emergente **"Instalar aplicación"** provisto por el componente de interceptación de `beforeinstallprompt`.
-4. Hacé clic en el icono de instalación de la barra de direcciones de Chrome ("Instalar FashionStore").
-5. **Resultado esperado:**
-   * La app se instala como aplicación independiente de escritorio (*standalone*), abriendo en su propia ventana sin barra de URL del navegador.
-   * Al desconectar la red, los assets principales y vistas cacheadas por el Service Worker continúan visualizándose (App Shell sin pantalla de dinosaurio).
+##### Pasos para probar:
+1. **Manifiesto Dinámico Multitenant (Backend):**
+   * Probá con `curl` el manifiesto sin tenant (cliente marketplace global):
+     ```bash
+     curl -s http://localhost:8000/api/pwa/manifest.json
+     ```
+     Verificá que devuelve `name: "FashionStore"`, color `#111827` y logos globales.
+   * Probá con el encabezado de una marca (`X-Tenant-ID: ayni-moda`):
+     ```bash
+     curl -s -H "X-Tenant-ID: ayni-moda" http://localhost:8000/api/pwa/manifest.json
+     ```
+     Verificá que entrega dinámicamente `name: "Ayni Moda"`, color bordó `#8B2E3C` y los logos de esa empresa.
+2. **Banner Flotante Auto-Cerrable de 5 Segundos (Web):**
+   * Abrí `http://localhost:4200` en tu navegador.
+   * En la esquina inferior derecha aparece el banner flotante: *"Instalar FashionStore: Instalá nuestra app en tu dispositivo para un acceso rápido y directo"*.
+   * Observá la **barrita animada** en la parte inferior: disminuye durante 5 segundos y el banner **se cierra solo**.
+   * Si pasás el cursor del mouse por encima (`hover`), el temporizador se pausa para permitirte leer o presionar el botón con tranquilidad.
+3. **Acceso Permanente a Instalación en el Menú de Usuario:**
+   * Hacé clic en tu avatar o menú de usuario en la esquina superior derecha del header.
+   * Dentro del dropdown desplegable, observá la opción destacada: **"Descargar app"** con el icono de descarga.
+4. **Instalación y Guía Interactiva:**
+   * Al presionar "Descargar app", si el navegador soporta el evento nativo `beforeinstallprompt`, dispara la instalación directa del sistema operativo.
+   * Si estás en modo desarrollo o en navegadores que requieren activación manual (Safari en iOS, Chrome desktop), se abre el modal interactivo con instrucciones paso a paso:
+     - *En Chrome/Edge (PC):* Clic en el icono de monitor/instalar en la barra de direcciones o Menú (⋮) -> *"Instalar FashionStore"*.
+     - *En Android:* Menú (⋮) -> *"Instalar aplicación"*.
+     - *En iPhone/iPad (Safari):* Compartir -> *"Agregar a pantalla de inicio"*.
+   * Una vez instalada, la app abre en ventana independiente (*display standalone*) y funciona con Service Worker (`ngsw-worker.js`).
 
 ---
 
 #### CU23 – Consultar catálogo sin conexión (Offline)
-* **Estado:** **Especificado / En Proceso**
+* **Estado:** **Hecho e Implementado en Backend, Web y Móvil**
 * **Plataforma:** **Ambas (Web y Móvil)**
-* **Actor de prueba:** Cajero en POS físico (`lucia.apaza@ayni-moda.demo.bo`) o Cliente
+* **Actor de prueba:** Cajero en POS físico (`lucia.apaza@ayni-moda.demo.bo`) o Cliente en App Móvil
 * **Ruta UI:** `/app/cajero/caja` (Web) y Catálogo (Móvil)
 
-##### Pasos para probar según especificación:
-1. Iniciá sesión en la terminal de caja (`/app/cajero/caja`). El sistema precarga automáticamente el snapshot de catálogo de la sucursal en **IndexedDB** (`cached_catalog`) en Web o **SQLite** en Móvil.
-2. Desconectá la red (F12 -> Red -> Offline o apagá Wi-Fi).
-3. Escribí en el buscador de la caja el nombre de un producto o ingresá un SKU.
-4. **Resultado esperado:**
-   * Las prendas coinciden y se renderizan al instante con sus talles, colores, precios y stock conocido, sin lanzar errores de red.
+##### Pasos para probar:
+1. **Precarga en Base de Datos Local IndexedDB (Web):**
+   * Iniciá sesión como cajera (`lucia.apaza@ayni-moda.demo.bo`) e ingresá a `/app/cajero/caja`.
+   * En segundo plano, `OfflineCatalogService` consulta `GET /api/offline/catalog-sync?branch_id=...` y guarda todo el catálogo optimizado (SKU, talles, precios y stock) en la base **IndexedDB** `FashionStoreOfflineDB` (almacén `cached_catalog`).
+   * En la cabecera observá el botón: `Caché local: X ítems` (podés hacer clic para forzar un refresco manual).
+2. **Prueba de Búsqueda Sin Conexión (Web):**
+   * Desconectá la red en el navegador: Abrí F12 -> pestaña *Network / Red* -> cambiá *No throttling* a **Offline** (o apagá Wi-Fi).
+   * Observá que la cabecera cambia inmediatamente a un chip ámbar pulsante:
+     `Modo Offline (Catálogo local: X ítems)`.
+   * Escribí en el buscador de la caja el nombre de un producto (ej. `"Blusa"` o `"Camisa"`) o un SKU.
+   * **Resultado esperado:** Los productos y sus variantes se filtran al instante desde IndexedDB con talles, precios y existencias locales, sin ningún error HTTP.
+3. **Prueba en App Móvil (Flutter):**
+   * En la app móvil, el servicio `OfflineCatalogService` persiste el catálogo en almacenamiento seguro.
+   * Al apagar los datos/Wi-Fi del dispositivo, el buscador local filtra y muestra las prendas disponibles en caché.
 
 ---
 
@@ -666,61 +695,87 @@ Guía detallada paso a paso para probar **cada uno de los 28 casos de uso (CU1 a
 ---
 
 #### CU25 – Registrar ventas y reservas sin conexión (POS Offline)
-* **Estado:** **Especificado / En Proceso**
+* **Estado:** **Hecho e Implementado en Web y Móvil**
 * **Plataforma:** **Ambas (Web y Móvil)**
 * **Actor de prueba:** Cajero en POS físico (`lucia.apaza@ayni-moda.demo.bo`)
 * **Ruta UI:** `/app/cajero/caja`
 
-##### Pasos para probar según especificación:
-1. En `/app/cajero/caja`, desconectá la red (**Offline**).
-2. Observá la barra de alerta ámbar: *"Estás trabajando en modo sin conexión. Tus ventas se guardan localmente."*
-3. Seleccioná productos del catálogo cacheado para agregar al carrito.
-4. Intentá cobrar: verificá que las opciones de pasarela electrónica / tarjeta estén inhabilitadas y solo se permita **Efectivo / Contado** o **Reserva presencial**.
-5. Confirmá el cobro.
-6. **Resultado esperado:**
-   * La transacción genera un identificador local único (`operation_id`) y se encola en `pending_operations_queue`.
-   * Se emite un comprobante provisional de venta/reserva con la leyenda oficial de contingencia.
+##### Pasos para probar:
+1. **Activar Modo Contingencia Offline:**
+   * Estando en `/app/cajero/caja`, desconectá la red (**Offline** en DevTools).
+   * Aparece la barra superior destacada de aviso de contingencia:
+     `Modo Contingencia POS Activo: Sin conexión a internet. Los cobros se registran al contado o reserva y se resguardan en IndexedDB.`
+2. **Seleccionar prendas del catálogo en caché:**
+   * Buscá y agregá 1 o más prendas al carrito de venta.
+3. **Restricción Segura de Medios de Pago:**
+   * Observá la sección de formas de pago: El botón **QR se encuentra deshabilitado** y muestra `QR (Offline)`, impidiendo transacciones electrónicas fallidas.
+   * La venta queda restringida estrictamente a **Efectivo / Contado** o **Reserva presencial**.
+4. **Cobro y Registro en Cola Local:**
+   * Ingresá el monto de efectivo entregado por el cliente en *"Efectivo recibido"*.
+   * Presioná el botón **"Registrar venta"**.
+5. **Resultado esperado:**
+   * Notificación Toast verde: `"Venta en contingencia registrada exitosamente (CONT-YYYYMMDD-XXXX)"`.
+   * La operación se guarda con un UUID único en IndexedDB (`pending_operations_queue`) con estado `local_pending`.
+   * El carrito de la caja se limpia automáticamente.
+   * Se abre el modal **Comprobante Provisional de Contingencia** (`OfflineProvisionalReceiptDialogComponent`):
+     - Muestra el N° de comprobante `CONT-...`, fecha, cajero, prendas, precios, total pagado, efectivo recibido y cambio entregado.
+     - Incluye la leyenda legal oficial de contingencia.
+     - Botón **"Imprimir ticket"** para imprimir el comprobante en la impresora térmica del mostrador (`window.print()`).
 
 ---
 
 #### CU29 – Gestionar cola de operaciones pendientes (Offline Queue)
-* **Estado:** **Especificado / En Proceso**
+* **Estado:** **Hecho e Implementado en Web y Móvil**
 * **Plataforma:** **Ambas (Web y Móvil)**
 * **Actor de prueba:** Cajero y Administrador
-* **Ruta UI:** Barra superior de `/app/cajero/caja` y modal de auditoría
+* **Ruta UI:** Cabecera de `/app/cajero/caja` (Web) y menú Gestiones -> *"Cola de operaciones offline"* (Móvil)
 
-##### Pasos para probar según especificación:
-1. Tras registrar una o más ventas o reservas en contingencia sin internet, observá el badge numérico en la barra de caja: *"X transacciones pendientes"*.
-2. Hacé clic en el badge para abrir el modal `OfflineQueueModal`.
-3. Verificá que se listen todas las operaciones encoladas con hora, cliente, tipo (`sale`/`reservation`) y total cobrado.
-4. Cerrá y volvé a abrir el navegador; comprobá que la cola se mantiene intacta (persistencia garantizada RNF03).
-5. Observá el botón **"Sincronizar ahora"** disponible para forzar el despacho manual cuando vuelva el internet.
+##### Pasos para probar:
+1. **Monitor Reactivo en Caja POS (Web):**
+   * Tras realizar una o más ventas en contingencia offline, observá el botón en la cabecera: **"Cola local"** con su badge numérico pulsante (ej. `2`).
+   * Hacé clic en el botón para abrir el modal `OfflineQueueModalComponent`:
+     - **Métricas:** Cantidad de operaciones retenidas, monto total en Bs acumulado y estado de red.
+     - **Tabla de operaciones:** Lista de comprobantes `CONT-...`, fecha, cliente y total cobrado.
+2. **Auditoría Prenda por Prenda:**
+   * Hacé clic en el botón **"Auditar prendas"** en cualquiera de las operaciones de la tabla.
+   * Se despliega el detalle exacto de las prendas que salieron del local: nombre, SKU, cantidad, precio unitario y subtotal.
+3. **Garantía de Persistencia y Resiliencia (RNF03):**
+   * Con operaciones en cola, cerrá la pestaña, recargá la página con `Ctrl+F5` o reiniciá el navegador.
+   * Volvé a entrar a `/app/cajero/caja`: comprobá que el contador sigue marcando exactamente las operaciones pendientes con todos sus datos intactos en IndexedDB.
+4. **Monitor en App Móvil (Flutter):**
+   * En la app móvil, abrí la pestaña **Gestiones** y tocá la tarjeta **"Cola de operaciones offline"** (`AppRoutes.offlineQueue`).
+   * Visualizá el listado de transacciones retenidas en el dispositivo móvil con sus montos y desglose de prendas.
 
 ---
 
 #### CU30 – Sincronizar operaciones offline y resolver conflictos de inventario
-* **Estado:** **Especificado / En Proceso**
+* **Estado:** **Hecho e Implementado en Backend, Web y Móvil**
 * **Plataforma:** **Ambas (Web y Móvil)**
 * **Actor de prueba:** Cajero, Administrador y Cliente
 * **Ruta UI:** `/app/cajero/caja` y `/app/cajero/offline-conflicts`
 
-##### Pasos para probar según especificación:
-1. **Prueba de Sincronización Exitosa (Sin colisión):**
-   * Teniendo ventas offline en cola, restablecé la red (**Online**).
-   * El despachador envía el lote a `/api/offline/queue-sync`.
-   * **Resultado:** Toast verde: *"Sincronización completada. Se procesaron X operaciones locales."* El stock en PostgreSQL se descuenta y la cola local queda vacía.
-2. **Prueba de Colisión de Stock (Conflicto de inventario):**
-   * Simulá una venta offline de la última prenda (stock = 1).
-   * Por otro navegador (tienda online o admin), vendé o transferí esa misma prenda para dejar el stock en 0.
-   * Reconectá la caja offline.
-   * **Resultado:** El backend rechaza la operación con código `conflict_rejected` / `inventory_collision` y la caja muestra alerta: *"Se detectaron colisiones de inventario"*.
-3. **Resolución en Consola de Conflictos (`/app/cajero/offline-conflicts`):**
-   * Ingresá a la consola de conflictos. Observá la venta resaltada en rojo con el detalle del quiebre.
-   * Seleccioná la resolución:
-     - **Opción A:** Devolución de efectivo físico.
-     - **Opción B:** Acreditación de saldo en la Billetera Digital (`Store Wallet`) con bono de cortesía del 10%.
-     - **Opción C:** Ajuste de rotura de inventario negativo si la prenda ya fue retirada.
-   * Confirmá y validá la conciliación contable y la notificación enviada al cliente.
+##### Pasos para probar:
+1. **Prueba de Sincronización Exitosa (Sin Colisión):**
+   * Teniendo ventas en la cola local, volvé a habilitar la red en el navegador (**Online**).
+   * El servicio `OfflineSyncService` detecta el evento de reconexión y dispara automáticamente `POST /api/offline/queue-sync` en segundo plano (o podés presionar *"Sincronizar lote ahora"* desde el modal de cola).
+   * **Resultado en Backend:**
+     - Procesa de forma atómica e idempotente por `operation_id` (almacenado en `cash_reference` con prefijo `OFFLINE:{operation_id}:{receipt_number}`).
+     - Descuenta el stock de las variantes en PostgreSQL y registra la salida en `InventoryMovement`.
+     - Crea los registros formales de `Sale` y `SaleItem`.
+   * **Resultado en Frontend:** Toast verde: *"X operaciones offline consolidadas en el servidor central"*. La cola de IndexedDB se vacía automáticamente y el badge vuelve a `(0)`.
+2. **Prueba de Colisión de Inventario (Quiebre de Stock):**
+   * Simulá una venta offline de una prenda cuyo stock en el servidor llegó a 0 debido a una compra simultánea por la tienda online.
+   * Al sincronizar el lote, el backend rechaza esa transacción específica por falta de existencias y devuelve el objeto con estado `conflict_rejected` y el detalle: *"Stock insuficiente para SKU X (Disponible: 0, Requerido: 1)"*.
+   * La app web muestra una alerta con botón directo: *"Atención: Se detectaron colisiones de inventario. Ver conflictos"*.
+3. **Resolución de Conflictos en Pantalla Dedicada (`/app/cajero/offline-conflicts`):**
+   * Ingresá a `/app/cajero/offline-conflicts`.
+   * Observá la tarjeta roja con el comprobante en colisión, el motivo exacto del quiebre y el cliente afectado.
+   * **Resolución A (Compensación a Billetera Digital + 10% de Bono):**
+     - Presioná el botón verde: **"Compensar Billetera (+10% = Bs XXX.XX)"**.
+     - El endpoint `POST /api/offline/conflicts/{id}/resolve` acredita el monto pagado más un **10% extra** en la `UserWallet` del cliente con concepto `rma_refund` y registro inmutable en `WalletTransaction`.
+     - La tarjeta se remueve de los conflictos con toast verde de confirmación.
+   * **Resolución B (Devolución física en caja):**
+     - Presioná **"Devolver efectivo"**. Se registra formalmente la devolución física del dinero en el mostrador.
 
 ---
 

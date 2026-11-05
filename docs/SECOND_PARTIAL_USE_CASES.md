@@ -156,15 +156,15 @@ Para mantener la cohesión y respetar **estrictamente la estructura existente de
 | **CU19** | **Gestionar billetera digital (*Store Wallet*)** | M5: Promociones y Fidelización | **Hecho** | Cliente, Cajero | Ambas |
 | **CU20** | **Gestionar envío a domicilio con validación por PIN** | M6: Logística y Posventa | **Hecho** | Cliente, Delivery | Ambas |
 | **CU21** | **Solicitar y procesar cambios y devoluciones (RMA)** | M6: Logística y Posventa | **Hecho** | Cliente, Encargado, Admin | Ambas |
-| **CU22** | **Instalar la aplicación web progresiva (PWA)** | M6: Logística y Posventa | **Pendiente** | Cliente, Todos | Web |
-| **CU23** | **Consultar catálogo sin conexión (Offline)** | M6: Logística y Posventa | **Pendiente** | Cajero, Cliente, Encargado | Ambas |
+| **CU22** | **Instalar la aplicación web progresiva (PWA)** | M6: Logística y Posventa | **Hecho** | Cliente, Todos | Web |
+| **CU23** | **Consultar catálogo sin conexión (Offline)** | M6: Logística y Posventa | **Hecho** | Cajero, Cliente, Encargado | Ambas |
 | **CU24** | **Reintegrar inventario por devoluciones y registrar mermas** | M6: Logística y Posventa | **Hecho** | Encargado, Administrador | Web |
-| **CU25** | **Registrar ventas y reservas sin conexión (POS Offline)** | M6: Logística y Posventa | **Pendiente** | Cajero, Cliente | Ambas |
+| **CU25** | **Registrar ventas y reservas sin conexión (POS Offline)** | M6: Logística y Posventa | **Hecho** | Cajero, Cliente | Ambas |
 | **CU26** | **Personalizar la marca de la tienda (Branding)** | M1: Plataforma SaaS y Seguridad | **Hecho** | Administrador, Superadministrador | Web / Móvil |
 | **CU27** | **Contratar suscripción B2B (Onboarding)** | M1: Plataforma SaaS y Seguridad | **Hecho** | Prospecto / Marca B2B, Superadmin | Web |
 | **CU28** | **Monitorear consumo y cambiar plan de suscripción** | M1: Plataforma SaaS y Seguridad | **Hecho** | Administrador | Web |
-| **CU29** | **Gestionar cola de operaciones pendientes (Offline Queue)** | M6: Logística y Posventa | **Pendiente** | Cajero, Administrador | Ambas |
-| **CU30** | **Sincronizar operaciones offline y resolver conflictos de inventario** | M6: Logística y Posventa | **Pendiente** | Cajero, Admin, Sistema, Cliente | Ambas |
+| **CU29** | **Gestionar cola de operaciones pendientes (Offline Queue)** | M6: Logística y Posventa | **Hecho** | Cajero, Administrador | Ambas |
+| **CU30** | **Sincronizar operaciones offline y resolver conflictos de inventario** | M6: Logística y Posventa | **Hecho** | Cajero, Admin, Sistema, Cliente | Ambas |
 
 ---
 
@@ -1853,7 +1853,7 @@ GET /api/delivery/my-orders
 #### CU21 – Solicitar y procesar cambios y devoluciones (RMA)
 * **Módulo:** M6: Logística y Posventa
 * **Actor Principal:** Cliente (solicita), Encargado de sucursal / Administrador (inspecciona y resuelve)
-* **Estado:** Pendiente | **Plataforma:** Ambas
+* **Estado:** Hecho | **Plataforma:** Ambas
 * **Descripción Funcional:** Circuito integral de logística inversa y posventa (RMA). Permite al cliente gestionar cambios de prendas o devoluciones de sus compras realizadas dentro de los **30 días** posteriores a la entrega.
   1. **Vista "Mis Devoluciones y Cambios":** El cliente visualiza el listado histórico de sus solicitudes de RMA con estado en tiempo real (`pending_inspection`, `approved`, `partially_approved`, `rejected`, `completed`) y el botón para **Descargar la Ficha Oficial en PDF**. Si no posee trámites, dispone de un botón principal para iniciar una nueva solicitud.
   2. **Filtrado de Compras Elegibles:** Al crear una solicitud, el sistema filtra y lista exclusivamente las ventas del cliente entregadas en los últimos 30 días.
@@ -2004,7 +2004,7 @@ Response 200 OK:
 #### CU22 – Instalar la aplicación web progresiva (PWA)
 * **Módulo:** M6: Logística y Posventa
 * **Actor Principal:** Cliente, Administrador, Encargado, Cajero (Usuarios Web)
-* **Estado:** Pendiente | **Plataforma:** Web
+* **Estado:** Hecho | **Plataforma:** Web
 * **Descripción Funcional:** Transformación del frontend Angular en una Progressive Web App (PWA) instalable y de alto rendimiento. Implementa Web App Manifest dinámico/estático (`manifest.webmanifest`), Service Worker con estrategias de caché (`ngsw-config.json` para assets estáticos, fuentes, íconos y vistas del shell), soporte de instalación en pantalla de inicio (*Add to Home Screen* / A2HS), captura del evento `beforeinstallprompt` con prompt personalizado, y detección automática de nuevas versiones para actualizar la app en segundo plano sin fricción.
 
 ##### Endpoints Backend
@@ -2051,7 +2051,7 @@ Response 200 OK:
 #### CU23 – Consultar catálogo sin conexión (Offline)
 * **Módulo:** M6: Logística y Posventa
 * **Actor Principal:** Cajero, Cliente, Encargado
-* **Estado:** Pendiente | **Plataforma:** Ambas (Web y Móvil)
+* **Estado:** Hecho | **Plataforma:** Ambas (Web y Móvil)
 * **Descripción Funcional:** Disponibilidad y búsqueda del catálogo de productos y existencias sin conexión a internet. Descarga un snapshot liviano de las prendas de la sucursal activa con sus variantes (SKU, nombre, talles, colores, precios y stock conocido) y lo persiste localmente en **IndexedDB** (`cached_catalog`) en Web y **SQLite** en la app móvil Flutter. Permite al usuario o cajero buscar prendas por nombre o escanear código de barras en plena desconexión sin recibir pantallas de error.
 
 ##### Endpoints Backend
@@ -2199,7 +2199,7 @@ Response 200 OK:
 #### CU25 – Registrar ventas y reservas sin conexión (POS Offline)
 * **Módulo:** M6: Logística y Posventa
 * **Actor Principal:** Cajero (Terminal POS), Cliente
-* **Estado:** Pendiente | **Plataforma:** Ambas (Web y Móvil)
+* **Estado:** Hecho | **Plataforma:** Ambas (Web y Móvil)
 * **Descripción Funcional:** Circuito transaccional de contingencia en terminal de punto de venta (POS) y aplicación móvil ante pérdida total de conexión a internet.
   1. **Detección y Advertencia:** Escucha reactiva de conectividad. Al perder la red, la interfaz de caja (`caja-page.component.ts`) despliega un banner de advertencia superior en color ámbar (`OfflineIndicatorBannerComponent`): *"Estás trabajando en modo sin conexión. Tus ventas se guardan localmente."*
   2. **Restricción Estricta de Medios de Pago:** Se bloquean pasarelas externas, transferencias o tarjetas online. Se habilita de manera exclusiva el cobro en **Efectivo / Contado** y la emisión de **Reservas presenciales** de prendas.
@@ -2217,7 +2217,7 @@ Response 200 OK:
 #### CU29 – Gestionar cola de operaciones pendientes (Offline Queue)
 * **Módulo:** M6: Logística y Posventa
 * **Actor Principal:** Cajero, Administrador
-* **Estado:** Pendiente | **Plataforma:** Ambas (Web y Móvil)
+* **Estado:** Hecho | **Plataforma:** Ambas (Web y Móvil)
 * **Descripción Funcional:** Panel de control y auditoría de las transacciones retenidas en el almacenamiento local de la terminal o dispositivo (`pending_operations_queue`).
   1. **Persistencia Garantizada (RNF03 y RNF06):** Los datos en cola sobreviven al reinicio de la computadora, cierre intempestivo del navegador o reinicio de la app móvil.
   2. **Panel Visual de Cola:** Indicador en la barra superior de la caja con badge de contador: *"X transacciones pendientes de sincronización"*.
@@ -2234,7 +2234,7 @@ Response 200 OK:
 #### CU30 – Sincronizar operaciones offline y resolver conflictos de inventario
 * **Módulo:** M6: Logística y Posventa
 * **Actor Principal:** Cajero, Administrador, Sistema, Cliente
-* **Estado:** Pendiente | **Plataforma:** Ambas (Web y Móvil)
+* **Estado:** Hecho | **Plataforma:** Ambas (Web y Móvil)
 * **Descripción Funcional:** Circuito transaccional de sincronización en lote, detección de colisiones de inventario y protocolos de compensación.
   1. **Despacho Automático e Idempotente (`POST /api/offline/queue-sync`):** Al detectar restablecimiento de red (`online`), el despachador background envía el lote de transacciones acumuladas. El backend valida cada `operation_id` para garantizar idempotencia y descontar stock atómicamente.
   2. **Detección de Colisión de Stock:** Si mientras la caja estuvo desconectada el inventario de una prenda fue vendido por la web o en otra sucursal, el servidor rechaza esa operación con código `conflict_rejected` / `inventory_collision`, procesando las restantes operaciones válidas del lote.
@@ -2313,5 +2313,5 @@ Response 200 OK:
 | **M3: Inventario y Operaciones** | 2 (`CU11`, `CU12`) | 0 | 2 |
 | **M4: Business Intelligence** | 2 (`CU13`, `CU14`) | 0 | 2 |
 | **M5: Promociones y Fidelización** | 1 (`CU15`) | 4 (`CU16`, `CU17`, `CU18`, `CU19`) | 5 |
-| **M6: Logística y Posventa** | 0 | 8 (`CU20`, `CU21`, `CU22`, `CU23`, `CU24`, `CU25`, `CU29`, `CU30`) | 8 |
-| **TOTALES** | **11 HECHOS** | **19 PENDIENTES** | **30** |
+| **M6: Logística y Posventa** | 8 (`CU20`, `CU21`, `CU22`, `CU23`, `CU24`, `CU25`, `CU29`, `CU30`) | 0 | 8 |
+| **TOTALES** | **30 HECHOS** | **0 PENDIENTES** | **30** |
