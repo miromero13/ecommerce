@@ -34,6 +34,22 @@
   <!-- 1P-CU18: the cashier's drawer; nothing can be sold or charged while it is closed. -->
   <app-cash-drawer-panel />
 
+  <!-- Alerta de contingencia offline si el cajero no tiene internet -->
+  @if (offlineCatalog.isOffline()) {
+    <aside class="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-amber-900 dark:text-amber-200">
+      <div class="flex items-center gap-2.5 text-xs">
+        <span class="size-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+        <span class="font-bold uppercase tracking-wider">Modo Contingencia POS Activo:</span>
+        <span>Sin conexión a internet. Los cobros se registran al contado o reserva y se resguardan en IndexedDB.</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-semibold px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-800 dark:text-amber-300">
+          {{ offlineQueue.pendingCount() }} en cola local
+        </span>
+      </div>
+    </aside>
+  }
+
   <section class="grid gap-4 xl:grid-cols-[1.2fr_1fr]">
     <div class="space-y-4">
        <section hlmCard class="bg-white shadow-sm">
@@ -177,7 +193,16 @@
             </div>
             <div class="grid grid-cols-2 gap-2">
               <button hlmBtn type="button" [variant]="paymentMethod() === 'cash' ? 'default' : 'outline'" (click)="selectPaymentMethod('cash')">Efectivo</button>
-              <button hlmBtn type="button" [variant]="paymentMethod() === 'qr' ? 'default' : 'outline'" (click)="selectPaymentMethod('qr')">QR</button>
+              <button
+                hlmBtn
+                type="button"
+                [variant]="paymentMethod() === 'qr' ? 'default' : 'outline'"
+                [disabled]="offlineCatalog.isOffline()"
+                (click)="selectPaymentMethod('qr')"
+                [title]="offlineCatalog.isOffline() ? 'QR no disponible en modo offline' : 'Cobro por QR'"
+              >
+                QR @if (offlineCatalog.isOffline()) { <span class="text-[10px] opacity-60">(Offline)</span> }
+              </button>
             </div>
             @if (paymentMethod() === 'cash') {
               <div class="space-y-2 rounded-xl border border-slate-200 p-3">
@@ -255,4 +280,10 @@
 
     </aside>
   </section>
+
+  <!-- Modal de Comprobante Provisional de Contingencia (CU25) -->
+  <app-offline-provisional-receipt-dialog
+    [operation]="lastOfflineOperation()"
+    (close)="lastOfflineOperation.set(null)"
+  />
 </section>

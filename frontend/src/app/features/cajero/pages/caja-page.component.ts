@@ -25,6 +25,8 @@ import { CashSessionApiService } from '../../shared/services/cash-session-api.se
 import { LoyaltyBalance } from '../../shared/models/loyalty.model';
 import { LoyaltyApiService } from '../../shared/services/loyalty-api.service';
 import { OfflineCatalogProduct, OfflineCatalogService } from '../../../core/services/offline-catalog.service';
+import { OfflineOperation, OfflineQueueService, OfflineSaleItem } from '../../../core/services/offline-queue.service';
+import { OfflineProvisionalReceiptDialogComponent } from '../components/offline-provisional-receipt-dialog.component';
 
 type SelectedSaleItem = {
   variant_id: string;
@@ -42,7 +44,7 @@ type SelectedSaleItem = {
 @Component({
   selector: 'app-cajero-caja-page',
   standalone: true,
-  imports: [CommonModule, HlmButton, QrPaymentPanelComponent, CashDrawerPanelComponent, ReceiptActionsComponent, ...HlmBadgeImports, ...HlmCardImports, ...HlmInputImports],
+  imports: [CommonModule, HlmButton, QrPaymentPanelComponent, CashDrawerPanelComponent, ReceiptActionsComponent, OfflineProvisionalReceiptDialogComponent, ...HlmBadgeImports, ...HlmCardImports, ...HlmInputImports],
   templateUrl: './caja-page.component.html',
 })
 export class CajaPageComponent {
@@ -59,6 +61,8 @@ export class CajaPageComponent {
   protected readonly pointsToRedeem = signal(0);
   protected readonly customerPoints = signal<LoyaltyBalance | null>(null);
   protected readonly offlineCatalog = inject(OfflineCatalogService);
+  protected readonly offlineQueue = inject(OfflineQueueService);
+  protected readonly lastOfflineOperation = signal<OfflineOperation | null>(null);
   // A QR is issued for an exact total: any change to the items invalidates it.
   private readonly resetQrOnItemsChange = effect(() => {
     this.selectedItems();
@@ -238,8 +242,66 @@ export class CajaPageComponent {
       return;
     }
 
-    if (!this.cash.current()) {
+    if (!this.cash.current() && !this.offlineCatalog.isOffline()) {
       toast.warning('Abre tu caja para registrar ventas.');
+      return;
+    }
+
+    if (this.offlineCatalog.isOffline()) {
+      if (this.paymentMethod() === 'qr') {
+        this.paymentMethod.set('cash');
+        toast.warning('En contingencia offline el cobro se registra en Efectivo/Contado.');
+      }
+
+      this.submitting.set(true);
+      try {
+        const items: OfflineSaleItem[] = this.selectedItems().map((it) => ({
+          variant_id: it.variant_id,
+          product_name: it.product_name,
+          variant_sku: it.variant_sku,
+          size_name: it.size_name,
+          color_name: it.color_name,
+          unit_price: Number(it.unit_price),
+          original_unit_price: Number(it.original_unit_price),
+          quantity: it.quantity,
+          subtotal: Number(it.unit_price) * it.quantity,
+        }));
+
+        const cashier = this.session.user();
+        const cashierName = cashier?.name || 'Cajero';
+
+        const op = await this.offlineQueue.enqueueOperation({
+          type: 'cash_sale',
+          tenant_id: cashier?.tenant_id,
+          branch_id: branchId,
+          cashier_id: cashier?.id,
+          cashier_name: cashierName || 'Cajero',
+          customer_name: this.customerEmail() || 'Cliente Mostrador',
+          customer_email: this.customerEmail() || null,
+          items,
+          subtotal: Number(this.subtotal()),
+          discount: Number(this.discount()),
+          total: Number(this.total()),
+          cash_received: this.cashReceived() !== '' ? Number(this.cashReceived()) : Number(this.total()),
+          change_returned: this.estimatedChange() > 0 ? this.estimatedChange() : 0,
+          notes: this.cashReference() || 'Venta de contingencia offline',
+        });
+
+        this.lastOfflineOperation.set(op);
+        this.selectedItems.set([]);
+        this.cashReference.set('');
+        this.cashReceived.set('');
+        this.couponCode.set('');
+        this.customerEmail.set('');
+        this.pointsToRedeem.set(0);
+        this.customerPoints.set(null);
+        this.saleQr.set(null);
+        toast.success(`Venta en contingencia registrada exitosamente (${op.receipt_number})`);
+      } catch (err) {
+        toast.error('Error al guardar la venta offline en el almacenamiento local.');
+      } finally {
+        this.submitting.set(false);
+      }
       return;
     }
 
