@@ -378,6 +378,7 @@ export class AppShellComponent {
     }
   });
 
+  // [CU12 - Secuencia: Paso 4] El Cliente ejecuta logout() en AppShellComponent
   protected async logout(): Promise<void> {
     await this.notifications.logout();
     await this.session.logout(true);

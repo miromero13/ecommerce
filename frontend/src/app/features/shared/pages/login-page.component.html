@@ -1,7 +1,7 @@
 <div class="grid min-h-screen lg:grid-cols-2">
-  <section class="flex items-center justify-center px-4 py-10 sm:px-8 lg:px-12">
-    <section class="mx-auto w-full max-w-md space-y-5 p-6 backdrop-blur sm:p-8">
-      <div hlmCardContent class="space-y-8 p-0">
+  <section class="flex items-center justify-center px-4 py-8 sm:px-8 lg:px-12">
+    <section class="mx-auto w-full max-w-xl space-y-5 p-6 backdrop-blur sm:p-8">
+      <div hlmCardContent class="space-y-6 p-0">
         <hlm-tabs [tab]="activeTab()" class="w-full" (tabActivated)="selectTab($event)">
           <hlm-tabs-list class="grid w-full grid-cols-2" aria-label="Tipo de acceso">
             <button hlmTabsTrigger="cliente" type="button" class="w-full">
@@ -9,7 +9,7 @@
             </button>
 
             <button hlmTabsTrigger="administrativo" type="button" class="w-full">
-              <span>Administrativos</span>
+              <span>Administrativos / Personal</span>
             </button>
           </hlm-tabs-list>
         </hlm-tabs>
@@ -17,11 +17,11 @@
         <div class="space-y-1 text-center p-0">
           <h1 class="text-3xl font-bold tracking-tight text-slate-900">Iniciar sesión</h1>
           <p class="text-sm text-slate-500">
-            {{ activeTab() === 'cliente' ? 'Ingresa para explorar prendas y hacer pedidos.' : 'Acceso para tiendas y administración SaaS.' }}
+            {{ activeTab() === 'cliente' ? 'Ingresa para explorar prendas y hacer pedidos.' : 'Acceso para tiendas, proveedores, reparto y administración SaaS.' }}
           </p>
         </div>
 
-        <form class="space-y-6 text-left" [formGroup]="form" (ngSubmit)="submit()">
+        <form class="space-y-4 text-left" [formGroup]="form" (ngSubmit)="submit()">
           <div hlmFieldGroup>
             <div hlmField class="space-y-1">
               <label hlmFieldLabel for="email">Correo</label>
@@ -42,12 +42,132 @@
           </button>
         </form>
 
-        @if (activeTab() === 'cliente') {
-          <p class="text-center text-sm text-slate-600">
-            ¿No tienes cuenta?
-            <a routerLink="/auth/register" class="font-medium text-slate-900 underline">Regístrate</a>
-          </p>
-        }
+        <p class="text-center text-sm text-slate-600">
+          ¿No tienes cuenta de cliente?
+          <a routerLink="/auth/register" class="font-medium text-slate-900 underline">Regístrate aquí</a>
+        </p>
+
+        <!-- =================================================================== -->
+        <!-- 🚀 SECCIÓN DE ACCESOS DIRECTOS DEMO (TRIBUNAL / EVALUACIÓN)        -->
+        <!-- =================================================================== -->
+        <div class="pt-5 border-t border-slate-200">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-800">⚡ Accesos Rápidos Demo (1 Clic)</span>
+            </div>
+            <span class="text-[11px] text-slate-500 font-medium">Haz clic para entrar sin escribir</span>
+          </div>
+
+          <!-- BOTÓN DESTACADO: SUPERADMINISTRADOR GLOBAL -->
+          <button
+            type="button"
+            (click)="quickLogin(superadminAccount)"
+            [disabled]="loading()"
+            class="w-full mb-3 p-3 rounded-xl border-2 border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 shadow-sm hover:shadow transition-all text-left flex items-center justify-between cursor-pointer group"
+          >
+            <div class="flex items-center gap-3">
+              <span class="text-2xl p-1 bg-white rounded-lg shadow-sm border border-amber-200">👑</span>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-bold text-amber-950 group-hover:text-amber-800">Superadministrador (SaaS Global)</span>
+                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 font-bold border border-amber-300">
+                    SaaS Core
+                  </span>
+                </div>
+                <div class="text-[11px] text-amber-800 font-mono">superadmin&#64;fashionstore.com</div>
+                <div class="text-[10px] text-slate-600">Gestión de Tenants, Planes, Auditoría y Banderas de Características</div>
+              </div>
+            </div>
+            <span class="text-xs font-semibold px-2.5 py-1 rounded-md bg-amber-600 text-white shadow-sm group-hover:bg-amber-700 transition-colors shrink-0">
+              Entrar ➔
+            </span>
+          </button>
+
+          <!-- Filtros de categoría -->
+          <div class="flex flex-wrap gap-1 p-1 bg-slate-100 rounded-lg text-xs font-medium text-slate-600 mb-3">
+            <button
+              type="button"
+              (click)="quickCategory.set('todos')"
+              [class]="quickCategory() === 'todos'
+                ? 'bg-white text-slate-900 shadow-sm font-semibold rounded-md px-2.5 py-1 transition-all'
+                : 'hover:text-slate-900 px-2.5 py-1 transition-all'"
+            >
+              🌟 Todos
+            </button>
+            <button
+              type="button"
+              (click)="quickCategory.set('tenant_admin')"
+              [class]="quickCategory() === 'tenant_admin'
+                ? 'bg-white text-slate-900 shadow-sm font-semibold rounded-md px-2.5 py-1 transition-all'
+                : 'hover:text-slate-900 px-2.5 py-1 transition-all'"
+            >
+              🏢 Admins Tenant
+            </button>
+            <button
+              type="button"
+              (click)="quickCategory.set('cliente')"
+              [class]="quickCategory() === 'cliente'
+                ? 'bg-white text-slate-900 shadow-sm font-semibold rounded-md px-2.5 py-1 transition-all'
+                : 'hover:text-slate-900 px-2.5 py-1 transition-all'"
+            >
+              🛍️ Clientes
+            </button>
+            <button
+              type="button"
+              (click)="quickCategory.set('cadena_suministro')"
+              [class]="quickCategory() === 'cadena_suministro'
+                ? 'bg-white text-slate-900 shadow-sm font-semibold rounded-md px-2.5 py-1 transition-all'
+                : 'hover:text-slate-900 px-2.5 py-1 transition-all'"
+            >
+              🚚 Repartidor & 🏭 Proveedor
+            </button>
+            <button
+              type="button"
+              (click)="quickCategory.set('sucursal')"
+              [class]="quickCategory() === 'sucursal'
+                ? 'bg-white text-slate-900 shadow-sm font-semibold rounded-md px-2.5 py-1 transition-all'
+                : 'hover:text-slate-900 px-2.5 py-1 transition-all'"
+            >
+              🏬 Encargado & Cajero
+            </button>
+          </div>
+
+          <!-- Grid de tarjetas de acceso rápido -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[380px] overflow-y-auto pr-1">
+            @for (acc of filteredAccounts(); track acc.email) {
+              <button
+                type="button"
+                (click)="quickLogin(acc)"
+                [disabled]="loading()"
+                class="group flex flex-col text-left p-2.5 rounded-xl border border-slate-200 hover:border-slate-400 bg-white hover:bg-slate-50 shadow-sm hover:shadow transition-all cursor-pointer relative overflow-hidden"
+              >
+                <div class="flex items-center justify-between w-full mb-1">
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-base">{{ acc.icon }}</span>
+                    <span class="text-xs font-bold text-slate-900 group-hover:text-primary transition-colors truncate max-w-[130px]">
+                      {{ acc.name }}
+                    </span>
+                  </div>
+                  <span class="text-[10px] px-1.5 py-0.5 rounded border {{ acc.badgeClass }} font-medium">
+                    {{ acc.badge }}
+                  </span>
+                </div>
+
+                <div class="text-[11px] font-medium text-slate-700 truncate w-full">
+                  {{ acc.roleTitle }}
+                </div>
+                <div class="text-[10px] text-slate-500 font-mono truncate w-full mt-0.5">
+                  {{ acc.email }}
+                </div>
+                <div class="text-[10px] text-slate-500 line-clamp-1 mt-1">
+                  {{ acc.description }}
+                </div>
+              </button>
+            }
+          </div>
+        </div>
+
       </div>
     </section>
   </section>

@@ -34,6 +34,7 @@ router = APIRouter(
 )
 
 
+# [CU09 - Secuencia: Paso 3.1] AdminExpertReplenishmentPageComponent llama a evaluate_replenishment() de expert_replenishment_routes (POST /api/inventory/expert-replenishment/evaluate)
 @router.post(
     "/evaluate",
     # Compares and moves stock across ALL branches: only the company administrator (rule: a manager or a
@@ -52,6 +53,8 @@ def evaluate_replenishment(
     )
 
 
+# [CU09 - Secuencia: Paso 4.1] AdminExpertReplenishmentPageComponent llama a apply_replenishment_transfers(payload) de expert_replenishment_routes (POST /api/inventory/expert-replenishment/apply-transfers)
+# [CU09 - Secuencia: Paso 6.1] NotificationPageComponent llama a apply_replenishment_transfers(payload) de expert_replenishment_routes (POST /api/inventory/expert-replenishment/apply-transfers)
 @router.post(
     "/apply-transfers",
     # Compares and moves stock across ALL branches: only the company administrator (rule: a manager or a
@@ -77,6 +80,7 @@ def apply_replenishment_transfers(
     )
 
 
+# [CU09 - Secuencia: Paso 7.1] NotificationPageComponent llama a discard_replenishment_transfers(payload) de expert_replenishment_routes (POST /api/inventory/expert-replenishment/discard-transfers)
 @router.post(
     "/discard-transfers",
     dependencies=[Depends(require_roles(RolEnum.administrador)), Depends(require_permission("replenishment:manage"))],
@@ -98,6 +102,7 @@ def discard_replenishment_transfers(
     )
 
 
+# [CU09 - Secuencia: Paso 1.1] AdminExpertReplenishmentPageComponent llama a get_rules() de expert_replenishment_routes (GET /api/inventory/expert-replenishment/rules)
 @router.get(
     "/rules",
     # Compares and moves stock across ALL branches: only the company administrator (rule: a manager or a
@@ -116,6 +121,7 @@ def get_rules(
     )
 
 
+# [CU09 - Secuencia: Paso 5.1] AdminExpertReplenishmentPageComponent llama a update_replenishment_rules(payload) de expert_replenishment_routes (PUT /api/inventory/expert-replenishment/rules)
 @router.put(
     "/rules",
     # Compares and moves stock across ALL branches: only the company administrator (rule: a manager or a
@@ -135,6 +141,7 @@ def update_replenishment_rules(
     )
 
 
+# [CU09 - Secuencia: Pasos 2.1, 4.9] AdminExpertReplenishmentPageComponent llama a get_suggestions(status_filter) de expert_replenishment_routes (GET /api/inventory/expert-replenishment/suggestions)
 @router.get(
     "/suggestions",
     # Compares and moves stock across ALL branches: only the company administrator (rule: a manager or a

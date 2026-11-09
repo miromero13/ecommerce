@@ -12,10 +12,12 @@ from app.services.notification_delivery import deliver_notification
 logger = logging.getLogger(__name__)
 
 
+# [CU12 - Secuencia: Pasos 1.8, 2.4] notification_routes invoca _serialize(notification) sobre la entidad Notificacion
 def _serialize(notification: Notification) -> dict:
     return NotificationRead.model_validate(notification).model_dump()
 
 
+# [CU12 - Secuencia: Paso 1.6] notification_routes invoca list_notifications(user_id, limit) sobre la entidad Notificacion
 def list_notifications(db: Session, user_id: UUID, limit: int = 100) -> list[dict]:
     notifications = (
         db.query(Notification)
@@ -27,6 +29,7 @@ def list_notifications(db: Session, user_id: UUID, limit: int = 100) -> list[dic
     return [_serialize(notification) for notification in notifications]
 
 
+# [CU12 - Secuencia: Paso 1.12] notification_routes invoca unread_count(user_id) sobre la entidad Notificacion
 def unread_count(db: Session, user_id: UUID) -> int:
     return (
         db.query(Notification)
@@ -35,6 +38,7 @@ def unread_count(db: Session, user_id: UUID) -> int:
     )
 
 
+# [CU12 - Secuencia: Paso 2.2] notification_routes invoca mark_notification_read(user_id, notification_id) sobre la entidad Notificacion
 def mark_notification_read(db: Session, user_id: UUID, notification_id: UUID) -> dict | None:
     notification = (
         db.query(Notification)
@@ -50,6 +54,7 @@ def mark_notification_read(db: Session, user_id: UUID, notification_id: UUID) ->
     return _serialize(notification)
 
 
+# [CU12 - Secuencia: Paso 3.2] notification_routes invoca mark_all_notifications_read(user_id) sobre la entidad Notificacion
 def mark_all_notifications_read(db: Session, user_id: UUID) -> int:
     updated = (
         db.query(Notification)
@@ -60,6 +65,7 @@ def mark_all_notifications_read(db: Session, user_id: UUID) -> int:
     return updated
 
 
+# [CU12 - Secuencia: Paso 1.2] notification_routes invoca register_device_token(user_id, payload) sobre la entidad TokenDispositivo
 def register_device_token(db: Session, user_id: UUID, payload: DeviceTokenUpsert) -> dict:
     token = payload.token.strip()
     device = db.query(DeviceToken).filter(DeviceToken.token == token).first()
@@ -75,6 +81,7 @@ def register_device_token(db: Session, user_id: UUID, payload: DeviceTokenUpsert
     return {"id": device.id, "token": device.token, "platform": device.platform}
 
 
+# [CU12 - Secuencia: Paso 4.2] notification_routes invoca unregister_device_token(user_id, token) sobre la entidad TokenDispositivo
 def unregister_device_token(db: Session, user_id: UUID, token: str) -> bool:
     device = (
         db.query(DeviceToken)
@@ -88,6 +95,8 @@ def unregister_device_token(db: Session, user_id: UUID, token: str) -> bool:
     return True
 
 
+# [CU21 - Secuencia: Pasos 4.10, 5.6] rma_routes invoca create_notification(user_id, title, body, data, dedupe_key) sobre la entidad Notificacion
+# [CU24 - Secuencia: Paso 1.10] rma_routes invoca create_notification(user_id, title, body, data, dedupe_key) sobre la entidad Notificacion
 def create_notification(
     db: Session,
     user_id: UUID,

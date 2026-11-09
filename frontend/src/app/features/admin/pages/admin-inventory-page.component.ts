@@ -188,6 +188,7 @@ export class AdminInventoryPageComponent {
     return this.movements().length;
   }
 
+  // [CU11 - Secuencia: Paso 1] El Administrador del tenant ejecuta refresh() en AdminInventoryPageComponent
   protected async refresh(): Promise<void> {
     await this.loadInventoryData();
   }
@@ -431,6 +432,7 @@ export class AdminInventoryPageComponent {
   protected setReportFromDate(event: Event): void { this.reportFromDate.set((event.target as HTMLInputElement).value); }
   protected setReportToDate(event: Event): void { this.reportToDate.set((event.target as HTMLInputElement).value); }
 
+  // [CU14 - Secuencia: Paso 2] El Administrador del tenant ejecuta generateReport() en AdminInventoryPageComponent
   protected async generateReport(): Promise<void> {
     const fromDate = this.reportFromDate();
     const toDate = this.reportToDate();
@@ -556,6 +558,7 @@ export class AdminInventoryPageComponent {
     }
   }
 
+  // [CU11 - Secuencia: Paso 2] El Administrador del tenant ejecuta registerTransfer() en AdminInventoryPageComponent
   protected async registerTransfer(): Promise<void> {
     if (this.transferForm.invalid) {
       this.transferForm.markAllAsTouched();

@@ -74,6 +74,7 @@ export class OfflineCatalogService {
 
   async refreshCachedCount(): Promise<number> {
     try {
+      // [CU23 - Secuencia: Paso 1.14] OfflineCatalogService ejecuta count(STORES.CACHED_CATALOG) sobre la entidad local OfflineCatalogProduct (IndexedDB)
       const count = await this.idb.count(STORES.CACHED_CATALOG);
       this.cachedCount.set(count);
       return count;
@@ -85,6 +86,7 @@ export class OfflineCatalogService {
   /**
    * CU23: Descarga y sincroniza el catálogo de la sucursal en IndexedDB
    */
+  // [CU23 - Secuencia: Paso 1.1] CajaPageComponent invoca syncCatalog(branchId) en OfflineCatalogService
   async syncCatalog(branchId?: string): Promise<number> {
     if (this.isOffline()) {
       return this.cachedCount();
@@ -104,7 +106,9 @@ export class OfflineCatalogService {
 
       if (res?.data?.products) {
         // Reemplazar almacén local con los productos sincronizados
+        // [CU23 - Secuencia: Paso 1.12] OfflineCatalogService ejecuta clearStore(STORES.CACHED_CATALOG) sobre la entidad local OfflineCatalogProduct (IndexedDB)
         await this.idb.clearStore(STORES.CACHED_CATALOG);
+        // [CU23 - Secuencia: Paso 1.13] OfflineCatalogService ejecuta putItems(STORES.CACHED_CATALOG, res.data.products) sobre la entidad local OfflineCatalogProduct (IndexedDB)
         await this.idb.putItems(STORES.CACHED_CATALOG, res.data.products);
 
         const newCount = res.data.products.length;
@@ -126,8 +130,12 @@ export class OfflineCatalogService {
   /**
    * Búsqueda en catálogo local cuando no hay conexión a internet
    */
+  // [CU23 - Secuencia: Pasos 2.1, 2.3] CajaPageComponent invoca searchProducts(query, category) en OfflineCatalogService
+  // [CU25 - Secuencia: Pasos 1.4, 1.6] CajaPageComponent invoca searchProducts(query, category) en OfflineCatalogService
   async searchProducts(query: string = '', category: string = ''): Promise<OfflineCatalogProduct[]> {
     try {
+      // [CU23 - Secuencia: Paso 2.2] OfflineCatalogService ejecuta getAll(STORES.CACHED_CATALOG) sobre la entidad local OfflineCatalogProduct (IndexedDB)
+      // [CU25 - Secuencia: Paso 1.5] OfflineCatalogService ejecuta getAll(STORES.CACHED_CATALOG) sobre la entidad local OfflineCatalogProduct (IndexedDB)
       const all = await this.idb.getAll<OfflineCatalogProduct>(STORES.CACHED_CATALOG);
       const cleanQuery = query.trim().toLowerCase();
       const cleanCategory = category.trim().toLowerCase();

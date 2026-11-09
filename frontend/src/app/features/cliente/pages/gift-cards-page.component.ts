@@ -10,8 +10,9 @@ import { HlmFieldImports } from '../../../components/field/src';
 import { HlmInput } from '../../../components/input/src';
 import { HlmSelectImports } from '../../../components/select/src';
 import { getErrorMessage } from '../../../core/utils/http-error.util';
-import { GiftCard } from '../../shared/models/gift-card.model';
+import { GiftCard, GiftCardPaymentIntent } from '../../shared/models/gift-card.model';
 import { GiftCardApiService } from '../../shared/services/gift-card-api.service';
+import { StripeCardPaymentComponent } from '../../shared/components/stripe-card-payment.component';
 
 /** CU18: Emitir y comprar tarjetas de regalo (Gift Cards) con Spartan UI. */
 @Component({
@@ -25,6 +26,7 @@ import { GiftCardApiService } from '../../shared/services/gift-card-api.service'
     ...HlmCardImports,
     ...HlmFieldImports,
     ...HlmSelectImports,
+    StripeCardPaymentComponent,
   ],
   template: `
     <section class="space-y-8 text-slate-700">
@@ -111,19 +113,27 @@ import { GiftCardApiService } from '../../shared/services/gift-card-api.service'
               </div>
             </div>
 
-            <button
-              hlmBtn
-              type="button"
-              class="w-full font-bold"
-              [disabled]="isSubmitting() || amount() < 10 || !recipientName.trim() || !recipientEmail.trim()"
-              (click)="purchase()"
-            >
-              @if (isSubmitting()) {
-                Procesando compra...
-              } @else {
-                Comprar Gift Card por \${{ amount() }} BOB
-              }
-            </button>
+            @if (pendingPayment(); as pago) {
+              <app-stripe-card-payment
+                [title]="'Pagar la tarjeta de regalo de ' + pago.amount + ' BOB'"
+                [clientSecret]="pago.client_secret"
+                (paid)="onGiftCardPaid()"
+              />
+            } @else {
+              <button
+                hlmBtn
+                type="button"
+                class="w-full font-bold"
+                [disabled]="isSubmitting() || amount() < 10 || !recipientName.trim() || !recipientEmail.trim()"
+                (click)="purchase()"
+              >
+                @if (isSubmitting()) {
+                  Procesando compra...
+                } @else {
+                  Comprar Gift Card por \${{ amount() }} BOB
+                }
+              </button>
+            }
           </section>
         </div>
 
@@ -234,6 +244,7 @@ export class GiftCardsPageComponent {
 
   protected readonly isSubmitting = signal<boolean>(false);
   protected readonly myPurchases = signal<GiftCard[]>([]);
+  protected readonly pendingPayment = signal<GiftCardPaymentIntent | null>(null);
 
   constructor() {
     void this.loadPurchases();
@@ -268,6 +279,7 @@ export class GiftCardsPageComponent {
     }
   }
 
+  // [CU18 - Secuencia: Paso 1] El Cliente ejecuta loadPurchases() en GiftCardsPageComponent
   private async loadPurchases(): Promise<void> {
     try {
       const res = await firstValueFrom(this.giftCardApi.myPurchases());
@@ -277,6 +289,7 @@ export class GiftCardsPageComponent {
     }
   }
 
+  // [CU18 - Secuencia: Paso 2] El Cliente ejecuta purchase() en GiftCardsPageComponent
   protected async purchase(): Promise<void> {
     if (this.amount() < 10) {
       toast.error('El importe de la tarjeta de regalo debe ser mayor o igual a $10.00');
@@ -293,15 +306,29 @@ export class GiftCardsPageComponent {
           payment_method: 'stripe',
         })
       );
+      this.pendingPayment.set(res.data ?? null);
+      toast.info(res.message || 'Pago con Stripe iniciado: ingresa los datos de la tarjeta');
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'No se pudo completar la compra de la tarjeta de regalo.'));
+    } finally {
+      this.isSubmitting.set(false);
+    }
+  }
+
+  // [CU18 - Secuencia: Paso 3] El Cliente ejecuta onGiftCardPaid() en GiftCardsPageComponent
+  protected async onGiftCardPaid(): Promise<void> {
+    const pago = this.pendingPayment();
+    if (!pago) return;
+    try {
+      const res = await firstValueFrom(this.giftCardApi.confirmPayment(pago.id));
       toast.success(res.message || 'Tarjeta de regalo adquirida y enviada por correo al destinatario');
+      this.pendingPayment.set(null);
       this.recipientName = '';
       this.recipientEmail = '';
       this.customMessage = '';
       void this.loadPurchases();
     } catch (error) {
-      toast.error(getErrorMessage(error, 'No se pudo completar la compra de la tarjeta de regalo.'));
-    } finally {
-      this.isSubmitting.set(false);
+      toast.error(getErrorMessage(error, 'No se pudo confirmar el pago de la tarjeta de regalo.'));
     }
   }
 }

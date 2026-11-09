@@ -19,6 +19,8 @@ router = APIRouter(prefix="/wallet", tags=["Wallet"])
 CUSTOMER = require_roles(RolEnum.cliente)
 
 
+# [CU19 - Secuencia: Pasos 1.1, 2.7, 3.9] WalletPageComponent llama a balance_route() de wallet_routes (GET /api/wallet/balance)
+# [CU19 - Secuencia: Paso 4.19] CartPageComponent llama a balance_route() de wallet_routes (GET /api/wallet/balance)
 @router.get("/balance")
 def balance_route(
     db: Session = Depends(get_db),
@@ -32,6 +34,7 @@ def balance_route(
     )
 
 
+# [CU19 - Secuencia: Paso 2.1] WalletPageComponent llama a redeem_gift_card_route(payload) de wallet_routes (POST /api/wallet/redeem-gift-card)
 @router.post("/redeem-gift-card")
 def redeem_gift_card_route(
     payload: WalletRedeemRequest,
@@ -46,6 +49,7 @@ def redeem_gift_card_route(
     )
 
 
+# [CU19 - Secuencia: Paso 3.1] WalletPageComponent llama a convert_points_route(payload) de wallet_routes (POST /api/wallet/convert-points)
 @router.post("/convert-points")
 def convert_points_route(
     payload: WalletConvertPointsRequest,
@@ -79,6 +83,7 @@ def pay_route(
     )
 
 
+# [CU19 - Secuencia: Paso 4.1] CartPageComponent llama a checkout_route(payload) de wallet_routes (POST /api/wallet/checkout)
 @router.post("/checkout")
 def checkout_route(
     payload: WalletCheckoutRequest,
@@ -99,6 +104,7 @@ def checkout_route(
     )
 
 
+# [CU19 - Secuencia: Pasos 1.5, 2.11, 3.13] WalletPageComponent llama a transactions_route() de wallet_routes (GET /api/wallet/transactions)
 @router.get("/transactions")
 def transactions_route(
     db: Session = Depends(get_db),

@@ -36,6 +36,7 @@ import { PwaService } from '../../../core/services/pwa.service';
 export class PwaUpdatePromptComponent {
   readonly pwaService = inject(PwaService);
 
+  // [CU22 - Secuencia: Paso 3] El Cliente ejecuta update() en PwaUpdatePromptComponent
   update(): void {
     this.pwaService.applyUpdate();
   }

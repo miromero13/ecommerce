@@ -67,6 +67,7 @@ export class RbacRolesPageComponent implements OnInit {
     await this.loadData();
   }
 
+  // [CU03 - Secuencia: Paso 1] El Administrador del tenant ejecuta loadData() en RbacRolesPageComponent
   async loadData(): Promise<void> {
     this.isLoading.set(true);
     try {
@@ -138,6 +139,7 @@ export class RbacRolesPageComponent implements OnInit {
     return modulePerms.every((p) => this.selectedPermissionIds().has(p.id));
   }
 
+  // [CU03 - Secuencia: Paso 2] El Administrador del tenant ejecuta saveRole() en RbacRolesPageComponent
   async saveRole(): Promise<void> {
     if (this.roleForm.invalid) {
       this.roleForm.markAllAsTouched();

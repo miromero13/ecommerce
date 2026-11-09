@@ -33,6 +33,7 @@ from app.services.inventory_service import (
 )
 
 
+# [CU09 - Secuencia: Pasos 1.2, 3.4, 5.4] expert_replenishment_routes invoca get_or_create_rules(tenant_id) sobre la entidad ReglaReposicionExperta
 def get_or_create_rules(db: Session, tenant_id: UUID) -> ExpertReplenishmentRule:
     rule = (
         db.query(ExpertReplenishmentRule)
@@ -52,6 +53,7 @@ def get_or_create_rules(db: Session, tenant_id: UUID) -> ExpertReplenishmentRule
     return rule
 
 
+# [CU09 - Secuencia: Paso 5.2] expert_replenishment_routes invoca update_rules(tenant_id, data) sobre la entidad ReglaReposicionExperta
 def update_rules(
     db: Session, tenant_id: UUID, data: ExpertRuleUpdate
 ) -> ExpertReplenishmentRule:
@@ -67,6 +69,7 @@ def update_rules(
     return rule
 
 
+# [CU09 - Secuencia: Paso 3.2] expert_replenishment_routes invoca evaluate(tenant_id) sobre la entidad SugerenciaTrasladoExperto
 def evaluate(db: Session, tenant_id: UUID) -> list[ExpertSuggestionRead]:
     rules = get_or_create_rules(db, tenant_id)
     lookback_days = max(rules.lookback_days or 7, 1)
@@ -223,6 +226,7 @@ def evaluate(db: Session, tenant_id: UUID) -> list[ExpertSuggestionRead]:
     return list_suggestions(db, tenant_id, status=SuggestionStatusEnum.pending.value)
 
 
+# [CU09 - Secuencia: Pasos 2.2, 3.12, 4.10] expert_replenishment_routes invoca list_suggestions(tenant_id, status) sobre la entidad SugerenciaTrasladoExperto
 def list_suggestions(
     db: Session, tenant_id: UUID, status: str | None = None
 ) -> list[ExpertSuggestionRead]:
@@ -274,6 +278,7 @@ def list_suggestions(
     return results
 
 
+# [CU09 - Secuencia: Pasos 4.2, 6.2] expert_replenishment_routes invoca apply_transfers(tenant_id, transfer_ids, user_id) sobre la entidad SugerenciaTrasladoExperto
 def apply_transfers(
     db: Session,
     tenant_id: UUID,
@@ -349,6 +354,7 @@ def apply_transfers(
     return applied_count
 
 
+# [CU09 - Secuencia: Paso 7.2] expert_replenishment_routes invoca discard_transfers(tenant_id, transfer_ids) sobre la entidad SugerenciaTrasladoExperto
 def discard_transfers(
     db: Session,
     tenant_id: UUID,
@@ -382,6 +388,7 @@ def evaluate_on_low_stock(db: Session, inventory: Inventory) -> list[ExpertSugge
         return []
 
 
+# [CU09 - Secuencia: Paso 3.10] expert_replenishment_routes invoca _notify_admins_new_suggestions(tenant_id, suggestions, branches_map) sobre la entidad Usuario
 def _notify_admins_new_suggestions(
     db: Session,
     tenant_id: UUID,

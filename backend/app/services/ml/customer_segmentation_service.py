@@ -32,6 +32,7 @@ def segment_customers(customers: list[tuple[float, float, float]]) -> dict:
             'segments': segments, 'data_source': source_metadata(len(customers), len(synthetic))}
 
 
+# [CU08 - Secuencia: Paso 4.2] report_routes invoca customer_clusters(tenant_id, use_synthetic_data) sobre la entidad Pedido
 def customer_clusters(db, tenant_id: UUID, *, use_synthetic_data: bool = False) -> dict:
     if use_synthetic_data:
         return segment_customers([])

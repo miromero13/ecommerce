@@ -74,6 +74,7 @@ export class PricingTableComponent implements OnInit {
     }
   }
 
+  // [CU04 - Secuencia: Paso 1] El Administrador del tenant ejecuta loadPlans() en PricingTableComponent
   async loadPlans(): Promise<void> {
     this.loading.set(true);
     try {

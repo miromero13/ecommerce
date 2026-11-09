@@ -150,6 +150,7 @@ def _resolve_items(db: Session, payload: SaleCreate, branch_id: UUID):
     return normalized_items
 
 
+# [CU17 - Secuencia: Paso 2.2] loyalty_routes invoca _registered_customer(email) sobre la entidad Usuario
 def _registered_customer(db: Session, email: str) -> User:
     customer = db.query(User).filter(User.email == email.strip().lower(), User.rol == RolEnum.cliente,
                                      User.is_active.is_(True)).first()

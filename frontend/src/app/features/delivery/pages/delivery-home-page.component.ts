@@ -29,6 +29,7 @@ export class DeliveryHomePageComponent {
     void this.load();
   }
 
+  // [CU20 - Secuencia: Paso 3] El Repartidor ejecuta load() en DeliveryHomePageComponent
   protected async load(): Promise<void> {
     try {
       const [available, route] = await Promise.all([
@@ -46,10 +47,12 @@ export class DeliveryHomePageComponent {
     this.pins.update((pins) => ({ ...pins, [orderId]: (event.target as HTMLInputElement).value.trim() }));
   }
 
+  // [CU20 - Secuencia: Paso 4] El Repartidor ejecuta claim(order) en DeliveryHomePageComponent
   protected async claim(order: DeliveryOrder): Promise<void> {
     await this.run(order.order_id, () => firstValueFrom(this.api.claim(order.order_id)), 'No se pudo tomar el pedido.');
   }
 
+  // [CU20 - Secuencia: Paso 5] El Repartidor ejecuta confirm(order) en DeliveryHomePageComponent
   protected async confirm(order: DeliveryOrder): Promise<void> {
     const pin = this.pins()[order.order_id] ?? '';
     await this.run(order.order_id, () => firstValueFrom(this.api.confirm(order.order_id, pin)), 'No se pudo confirmar la entrega.');

@@ -55,6 +55,7 @@ def _row_unit_price(row) -> Decimal:
     return discounted_price(row.original_unit_price, row.discount_type, row.discount_value)
 
 
+# [CU19 - Secuencia: Paso 4.16] wallet_routes invoca _serialize_order(order) sobre la entidad Pedido
 def _serialize_order(db: Session, order: Order) -> OrderRead:
     items = [OrderItemRead.model_validate({
         "id": row.id, "order_id": row.order_id, "variant_id": row.variant_id, "quantity": row.quantity,
@@ -119,6 +120,7 @@ def mark_order_ready(db: Session, order_id: UUID, branch_id: UUID, tenant_id: UU
     return _serialize_order(db, order).model_dump()
 
 
+# [CU19 - Secuencia: Paso 4.8] wallet_routes invoca _locked_cart(user_id) sobre la entidad Carrito
 def _locked_cart(db: Session, user_id: UUID) -> Cart:
     cart = db.query(Cart).filter(Cart.user_id == user_id).with_for_update().first()
     if not cart:
@@ -150,6 +152,8 @@ def _reserve_inventory(db: Session, rows, branch_id: UUID, user_id: UUID, tenant
             inventory.reserved_quantity += row.quantity
 
 
+# [CU19 - Secuencia: Paso 4.10] wallet_routes invoca _new_order(cart, user_id, branch_id, method, delivery, points_to_redeem) sobre la entidad Pedido
+# [CU19 - Secuencia: Paso 4.12] wallet_routes invoca _new_order(cart, user_id, branch_id, method, delivery, points_to_redeem) sobre la entidad DetallePedido
 def _new_order(db: Session, cart: Cart, user_id: UUID, branch_id: UUID, method: PaymentMethodEnum, delivery=None,
                points_to_redeem: int = 0) -> Order:
     rows = _cart_rows(db, cart.id)
@@ -387,6 +391,7 @@ def _release_order(db: Session, order: Order, payment_status: PaymentStatusEnum,
     loyalty_service.refund_redeem(db, "order", order.id)
 
 
+# [CU19 - Secuencia: Paso 4.6] wallet_routes invoca expire_due_orders() sobre la entidad Pedido
 def expire_due_orders(db: Session) -> None:
     expired = db.query(Order).filter(
         Order.payment_status == PaymentStatusEnum.pending,
@@ -419,6 +424,7 @@ def expire_due_orders(db: Session) -> None:
         pass
 
 
+# [CU19 - Secuencia: Paso 4.14] wallet_routes invoca _consume_order(order, collected_by) sobre la entidad MovimientoInventario
 def _consume_order(db: Session, order: Order, collected_by: UUID | None = None) -> None:
     reservation_ids = {item.reservation_id for item in order.items if item.reservation_id}
     for item in order.items:
@@ -529,6 +535,15 @@ def process_stripe_event(db: Session, event) -> None:
     except IntegrityError:
         return
     data = event["data"]["object"]
+    if (data.get("metadata") or {}).get("gift_card_id"):
+        # CU18: la tarjeta de regalo se activa cuando Stripe confirma el cobro; se devuelve para enviar su correo.
+        activated_card = None
+        if event["type"] == "payment_intent.succeeded":
+            from app.services.gift_card_service import activate_paid_gift_card
+            card, activated = activate_paid_gift_card(db, data)
+            activated_card = card if activated else None
+        db.commit()
+        return activated_card
     reservation_id = (data.get("metadata") or {}).get("reservation_id")
     if reservation_id:
         if event["type"] == "payment_intent.succeeded":

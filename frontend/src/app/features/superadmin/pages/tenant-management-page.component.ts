@@ -159,6 +159,7 @@ export class TenantManagementPageComponent {
   // Only plans on sale; the superadmin may have created or deactivated some.
   protected readonly plans = signal<SubscriptionPlan[]>([]);
 
+  // [CU01 - Secuencia: Paso 2] El Superadministrador ejecuta loadPlans() en TenantManagementPageComponent
   protected async loadPlans(): Promise<void> {
     try {
       const res = await firstValueFrom(this.subscriptionApi.getPlans());
@@ -179,6 +180,7 @@ export class TenantManagementPageComponent {
     });
   }
 
+  // [CU01 - Secuencia: Paso 1] El Superadministrador ejecuta loadTenants() en TenantManagementPageComponent
   protected async loadTenants(): Promise<void> {
     this.loading.set(true);
     try {
@@ -236,6 +238,7 @@ export class TenantManagementPageComponent {
   }
 
   /** CU1: the superadmin works inside the company's panel as its administrator. */
+  // [CU01 - Secuencia: Paso 5] El Superadministrador ejecuta enterPanel(tenant) en TenantManagementPageComponent
   protected async enterPanel(tenant: Tenant): Promise<void> {
     this.closeMenu();
     this.submitting.set(true);
@@ -253,6 +256,7 @@ export class TenantManagementPageComponent {
     }
   }
 
+  // [CU01 - Secuencia: Paso 6] El Superadministrador ejecuta registerAdmin(tenant) en TenantManagementPageComponent
   protected async registerAdmin(tenant: Tenant): Promise<void> {
     if (this.adminForm.invalid) return;
     this.submitting.set(true);
@@ -300,6 +304,7 @@ export class TenantManagementPageComponent {
     }
   }
 
+  // [CU01 - Secuencia: Paso 3] El Superadministrador ejecuta saveTenant() en TenantManagementPageComponent
   protected async saveTenant(): Promise<void> {
     if (this.createForm.invalid) return;
 
@@ -330,6 +335,7 @@ export class TenantManagementPageComponent {
     }
   }
 
+  // [CU01 - Secuencia: Paso 4] El Superadministrador ejecuta toggleTenantStatus(tenant) en TenantManagementPageComponent
   protected async toggleTenantStatus(tenant: Tenant): Promise<void> {
     this.closeMenu();
     const nextStatus: TenantStatus = tenant.status === 'active' ? 'suspended' : 'active';

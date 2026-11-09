@@ -47,6 +47,7 @@ async def catalog_garment_route(
     return response(status_code=status.HTTP_200_OK, message="Prenda preparada exitosamente", data=data)
 
 
+# [CU05 - Secuencia: Paso 2.1] PhotoTryOnComponent llama a virtual_try_on_route(variant_id, photo) de garment_routes (POST /api/catalog/try-on)
 @router.post("/try-on")
 async def virtual_try_on_route(
     variant_id: UUID = Form(...),
@@ -56,6 +57,7 @@ async def virtual_try_on_route(
 ):
     """Put a catalog garment on the customer's photo (CU5, Hugging Face IDM-VTON)."""
     row = (
+        # [CU05 - Secuencia: Paso 2.2] garment_routes ejecuta db.query(ProductVariant, Product, Tenant) sobre la entidad VarianteProducto
         db.query(ProductVariant, Product, Tenant)
         .join(Product, Product.id == ProductVariant.product_id)
         .join(Tenant, Tenant.id == ProductVariant.tenant_id)

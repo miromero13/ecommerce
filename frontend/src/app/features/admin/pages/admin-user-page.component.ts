@@ -229,6 +229,7 @@ export class AdminUserPageComponent {
     }
   }
 
+  // [CU03 - Secuencia: Paso 3] El Administrador del tenant ejecuta submitUser() en AdminUserPageComponent
   protected async submitUser(): Promise<void> {
     if (this.userForm.invalid || (!this.isCreateMode() && !this.editingUserId())) {
       this.userForm.markAllAsTouched();

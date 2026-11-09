@@ -24,6 +24,7 @@ from app.utils.response import response
 router = APIRouter(prefix="/rma", tags=["RMA - Cambios y Devoluciones"])
 
 
+# [CU21 - Secuencia: Paso 1.1] RmaHistoryPageComponent llama a get_eligible_orders_endpoint() de rma_routes (GET /api/rma/eligible-orders)
 @router.get("/eligible-orders")
 async def get_eligible_orders_endpoint(
     db: Session = Depends(get_db),
@@ -39,6 +40,7 @@ async def get_eligible_orders_endpoint(
     )
 
 
+# [CU21 - Secuencia: Paso 2.1] RmaHistoryPageComponent llama a create_rma_request_endpoint(payload) de rma_routes (POST /api/rma/requests)
 @router.post("/requests", status_code=status.HTTP_201_CREATED)
 async def create_rma_request_endpoint(
     payload: RmaRequestCreate,
@@ -55,6 +57,8 @@ async def create_rma_request_endpoint(
     )
 
 
+# [CU21 - Secuencia: Paso 2.9] RmaHistoryPageComponent llama a list_rma_requests_endpoint(status_filter) de rma_routes (GET /api/rma/requests)
+# [CU21 - Secuencia: Pasos 3.1, 4.15, 5.9] RmaReviewPageComponent llama a list_rma_requests_endpoint(status_filter) de rma_routes (GET /api/rma/requests)
 @router.get("/requests")
 async def list_rma_requests_endpoint(
     status_filter: str | None = Query(None, alias="status"),
@@ -87,6 +91,7 @@ async def get_rma_request_endpoint(
     )
 
 
+# [CU21 - Secuencia: Paso 2.15] RmaHistoryPageComponent llama a download_rma_pdf_endpoint(rma_id) de rma_routes (GET /api/rma/requests/{rma_id}/pdf)
 @router.get("/requests/{rma_id}/pdf")
 async def download_rma_pdf_endpoint(
     rma_id: UUID,
@@ -116,6 +121,8 @@ async def download_rma_pdf_endpoint(
     )
 
 
+# [CU21 - Secuencia: Paso 4.1] RmaReviewPageComponent llama a review_rma_item_endpoint(rma_id, rma_item_id, payload) de rma_routes (PATCH /api/rma/requests/{rma_id}/items/{rma_item_id}/review)
+# [CU24 - Secuencia: Paso 1.1] RmaReviewPageComponent llama a review_rma_item_endpoint(rma_id, rma_item_id, payload) de rma_routes (PATCH /api/rma/requests/{rma_id}/items/{rma_item_id}/review)
 @router.patch("/requests/{rma_id}/items/{rma_item_id}/review")
 async def review_rma_item_endpoint(
     rma_id: UUID,
@@ -142,6 +149,7 @@ async def review_rma_item_endpoint(
     )
 
 
+# [CU21 - Secuencia: Paso 5.1] RmaReviewPageComponent llama a settle_monthly_wallets_endpoint() de rma_routes (POST /api/rma/settle-monthly-wallets)
 @router.post("/settle-monthly-wallets")
 async def settle_monthly_wallets_endpoint(
     db: Session = Depends(get_db),

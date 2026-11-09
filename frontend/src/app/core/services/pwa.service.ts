@@ -93,6 +93,7 @@ export class PwaService {
       });
   }
 
+  // [CU22 - Secuencia: Paso 1] El sistema dispara loadDynamicManifest() en PwaService (evento del navegador)
   loadDynamicManifest(): void {
     const apiUrl = environment.apiBaseUrl || '/api';
     this.http.get<{ statusCode: number; data: PwaManifestData }>(`${apiUrl}/pwa/manifest`).subscribe({
@@ -119,6 +120,7 @@ export class PwaService {
     meta.setAttribute('content', color);
   }
 
+  // [CU22 - Secuencia: Paso 2.1] PwaInstallPromptComponent invoca promptInstall() en PwaService
   async promptInstall(): Promise<boolean> {
     if (this.deferredPrompt) {
       try {
@@ -148,6 +150,7 @@ export class PwaService {
     this.showInstallGuide.set(false);
   }
 
+  // [CU22 - Secuencia: Paso 3.1] PwaUpdatePromptComponent invoca applyUpdate() en PwaService
   async applyUpdate(): Promise<void> {
     if (!this.swUpdate || !this.swUpdate.isEnabled) {
       if (typeof window !== 'undefined') {

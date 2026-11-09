@@ -177,6 +177,7 @@ export class PwaInstallPromptComponent implements OnDestroy {
     }
   }
 
+  // [CU22 - Secuencia: Paso 2] El Cliente ejecuta install() en PwaInstallPromptComponent
   install(): void {
     this.clearTimer();
     this.pwaService.promptInstall();

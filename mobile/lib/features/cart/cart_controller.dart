@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../../core/network/api_exception.dart';
+import '../../core/offline/offline_cart_service.dart';
 import 'cart_api.dart';
 import 'cart_models.dart';
 
@@ -16,7 +17,15 @@ class CartController extends ChangeNotifier {
   String? errorMessage;
   String? feedbackMessage;
 
-  Future<void> load() => _run(_api.getCurrent);
+  /// CU30: antes de leer el carrito se envían las prendas agregadas sin conexión.
+  Future<void> load() async {
+    final rejected = await OfflineCartService().syncPending(_api);
+    await _run(_api.getCurrent);
+    if (rejected.isNotEmpty) {
+      feedbackMessage = rejected.join(' ');
+      notifyListeners();
+    }
+  }
 
   Future<void> addItem({required String variantId, required int quantity}) {
     return _run(() => _api.addItem(variantId: variantId, quantity: quantity));

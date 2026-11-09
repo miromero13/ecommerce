@@ -149,6 +149,7 @@ def extract_profile_updates(message: str) -> dict[str, str]:
     return updates
 
 
+# [CU07 - Secuencia: Paso 2.8] chatbot_routes invoca upsert_profile(user_id, updates, commit) sobre la entidad PerfilCorporal
 def upsert_profile(db: Session, user_id: UUID, updates: dict[str, str], commit: bool = True) -> UserBodyProfile | None:
     if not updates:
         return db.query(UserBodyProfile).filter(UserBodyProfile.user_id == user_id).first()
@@ -202,6 +203,7 @@ def _catalog_context(db: Session, message: str, profile: UserBodyProfile | None,
     return {"filters": filters, "search_terms": terms, "products": result, "profile": _profile_dict(profile)}
 
 
+# [CU07 - Secuencia: Pasos 2.10, 2.18] chatbot_routes invoca _has_meaningful_profile(profile) sobre la entidad PerfilCorporal
 def _has_meaningful_profile(profile: UserBodyProfile | None) -> bool:
     return bool(profile and any((getattr(profile, field, None) or "").strip() for field in _profile_fields()))
 
@@ -251,6 +253,7 @@ def _available_quantity(variant: ProductVariant) -> int:
     return sum(max((item.quantity or 0) - (item.reserved_quantity or 0), 0) for item in getattr(variant, "inventory", []) or [])
 
 
+# [CU07 - Secuencia: Paso 2.16] chatbot_routes invoca _catalog_candidates() sobre la entidad VarianteProducto
 def _catalog_candidates(db: Session) -> list[dict[str, Any]]:
     rows = (
         db.query(ProductVariant, Product, Category, Collection, Season, Size, Color)
@@ -328,6 +331,7 @@ def _parse_selected_ids(raw: str, candidate_ids: set[str]) -> list[str]:
         return []
 
 
+# [CU07 - Secuencia: Paso 2.20] chatbot_routes invoca _select_catalog_ids(message, candidates, profile) sobre la entidad PerfilCorporal
 async def _select_catalog_ids(message: str, candidates: list[dict[str, Any]], profile: UserBodyProfile | None) -> tuple[list[str], bool]:
     fallback = _fallback_selected_ids(message, candidates, profile)
     if not settings.gemini_api_key or not candidates:
@@ -348,6 +352,7 @@ async def _select_catalog_ids(message: str, candidates: list[dict[str, Any]], pr
         return fallback, True
 
 
+# [CU07 - Secuencia: Paso 2.22] chatbot_routes invoca _catalog_final_context(selected_ids, profile) sobre la entidad VarianteProducto
 def _catalog_final_context(db: Session, selected_ids: list[str], profile: UserBodyProfile | None) -> dict[str, Any]:
     if not selected_ids:
         return {"products": [], "profile": _profile_dict(profile), "selected_variant_ids": []}
@@ -398,6 +403,7 @@ def _catalog_final_context(db: Session, selected_ids: list[str], profile: UserBo
     return {"products": result, "profile": _profile_dict(profile), "selected_variant_ids": selected_variant_ids}
 
 
+# [CU07 - Secuencia: Paso 2.24] chatbot_routes invoca _orders_context(user_id) sobre la entidad Pedido
 def _orders_context(db: Session, user_id: UUID) -> dict[str, Any]:
     orders = db.query(Order).filter(Order.user_id == user_id).order_by(Order.created_at.desc()).limit(20).all()
     return {"orders": [{

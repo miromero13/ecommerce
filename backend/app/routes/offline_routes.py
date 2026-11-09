@@ -68,6 +68,7 @@ class ConflictResolveRequest(BaseModel):
     notes: Optional[str] = None
 
 
+# [CU23 - Secuencia: Paso 1.2] OfflineCatalogService llama a get_offline_catalog_sync(branch_id) de offline_routes (GET /api/offline/catalog-sync)
 @router.get("/catalog-sync")
 def get_offline_catalog_sync(
     request: Request,
@@ -85,11 +86,13 @@ def get_offline_catalog_sync(
     if tenant_ref:
         try:
             val = uuid.UUID(str(tenant_ref))
+            # [CU23 - Secuencia: Pasos 1.3, 1.5] offline_routes ejecuta select(Tenant) sobre la entidad Empresa
             tenant = db.scalars(select(Tenant).where(Tenant.id == val)).first()
         except (ValueError, AttributeError):
             tenant = db.scalars(select(Tenant).where(Tenant.slug == str(tenant_ref))).first()
 
     query = (
+        # [CU23 - Secuencia: Paso 1.7] offline_routes ejecuta db.query(Product) sobre la entidad Producto
         db.query(Product)
         .options(
             selectinload(Product.variants).joinedload(ProductVariant.size),
@@ -102,6 +105,7 @@ def get_offline_catalog_sync(
         query = query.filter(Product.tenant_id == tenant.id)
 
     products = query.all()
+    # [CU23 - Secuencia: Paso 1.9] offline_routes ejecuta db.query(Category) sobre la entidad Categoria
     categories = {c.id: c.name for c in db.query(Category).all()}
     now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
     catalog_items = []
@@ -160,6 +164,7 @@ def get_offline_catalog_sync(
     )
 
 
+# [CU30 - Secuencia: Pasos 1.5, 2.5] OfflineQueueService llama a sync_offline_queue(payload) de offline_routes (POST /api/offline/queue-sync)
 @router.post("/queue-sync")
 def sync_offline_queue(
     payload: OfflineQueueSyncRequest,
@@ -176,6 +181,7 @@ def sync_offline_queue(
     for op in payload.operations:
         # 1. Idempotencia: Verificar si ya existe una venta procesada con este operation_id
         ref_prefix = f"OFFLINE:{op.operation_id}:"
+        # [CU30 - Secuencia: Pasos 1.6, 2.6] offline_routes ejecuta db.query(Sale) sobre la entidad Venta
         existing = db.query(Sale).filter(Sale.cash_reference.like(f"{ref_prefix}%")).first()
         if existing:
             synced_ids.append(op.operation_id)
@@ -199,6 +205,7 @@ def sync_offline_queue(
 
         for item in op.items:
             inv = (
+                # [CU30 - Secuencia: Pasos 1.8, 2.8] offline_routes ejecuta db.query(Inventory) sobre la entidad Inventario
                 db.query(Inventory)
                 .filter(
                     Inventory.variant_id == item.variant_id,
@@ -211,6 +218,7 @@ def sync_offline_queue(
             available = (inv.quantity - inv.reserved_quantity) if inv else 0
             if available < item.quantity:
                 has_stock_collision = True
+                # [CU30 - Secuencia: Pasos 1.10, 2.10] offline_routes ejecuta db.query(ProductVariant) sobre la entidad VarianteProducto
                 variant = db.query(ProductVariant).filter(ProductVariant.id == item.variant_id).first()
                 sku = variant.sku if variant else str(item.variant_id)
                 collision_reason = f"Stock insuficiente para SKU {sku} (Disponible: {available}, Requerido: {item.quantity})"
@@ -233,6 +241,7 @@ def sync_offline_queue(
         for inv, qty in inventories_to_update:
             inv.quantity -= qty
             # Movimiento de inventario por venta offline consolidada
+            # [CU30 - Secuencia: Pasos 1.12, 2.12] offline_routes ejecuta InventoryMovement(tenant_id, variant_id, branch_id, quantity, movement_type, reference) sobre la entidad MovimientoInventario
             movement = InventoryMovement(
                 tenant_id=inv.tenant_id,
                 variant_id=inv.variant_id,
@@ -246,6 +255,7 @@ def sync_offline_queue(
         # 5. Obtener usuario cajero o fallback
         cashier_user = None
         if op.cashier_id:
+            # [CU30 - Secuencia: Pasos 1.14, 1.16, 2.14, 2.16] offline_routes ejecuta db.query(User) sobre la entidad Usuario
             cashier_user = db.query(User).filter(User.id == op.cashier_id).first()
         if not cashier_user:
             cashier_user = db.query(User).first()
@@ -253,10 +263,12 @@ def sync_offline_queue(
         # Obtener tenant_id
         resolved_tenant_id = op.tenant_id or (cashier_user.tenant_id if cashier_user else None)
         if not resolved_tenant_id:
+            # [CU30 - Secuencia: Pasos 1.18, 2.18] offline_routes ejecuta db.query(Tenant) sobre la entidad Empresa
             tenant = db.query(Tenant).first()
             resolved_tenant_id = tenant.id if tenant else uuid.uuid4()
 
         # 6. Crear registro de Venta (Sale)
+        # [CU30 - Secuencia: Pasos 1.20, 2.20] offline_routes ejecuta Sale(tenant_id, branch_id, user_id, status, payment_method, payment_status, cash_reference, subtotal, discount_amount, total_amount, currency) sobre la entidad Venta
         sale = Sale(
             tenant_id=resolved_tenant_id,
             branch_id=op.branch_id,
@@ -275,6 +287,7 @@ def sync_offline_queue(
 
         # 7. Crear ítems de venta
         for item in op.items:
+            # [CU30 - Secuencia: Pasos 1.22, 2.22] offline_routes ejecuta SaleItem(sale_id, variant_id, quantity, unit_price) sobre la entidad DetalleVenta
             sale_item = SaleItem(
                 sale_id=sale.id,
                 variant_id=item.variant_id,
@@ -299,6 +312,7 @@ def sync_offline_queue(
     )
 
 
+# [CU30 - Secuencia: Pasos 4.2, 5.2] OfflineSyncService llama a resolve_offline_conflict(operation_id, payload) de offline_routes (POST /api/offline/conflicts/{operation_id}/resolve)
 @router.post("/conflicts/{operation_id}/resolve")
 def resolve_offline_conflict(
     operation_id: str,
@@ -316,6 +330,7 @@ def resolve_offline_conflict(
         # Buscar usuario cliente por correo
         customer = None
         if payload.customer_email:
+            # [CU30 - Secuencia: Pasos 4.3, 4.5, 5.3, 5.5] offline_routes ejecuta db.query(User) sobre la entidad Usuario
             customer = db.query(User).filter(User.email == payload.customer_email.strip().lower()).first()
 
         if not customer:
@@ -329,8 +344,10 @@ def resolve_offline_conflict(
             )
 
         # Buscar o crear billetera
+        # [CU30 - Secuencia: Pasos 4.7, 5.7] offline_routes ejecuta db.query(UserWallet) sobre la entidad BilleteraUsuario
         wallet = db.query(UserWallet).filter(UserWallet.user_id == customer.id).first()
         if not wallet:
+            # [CU30 - Secuencia: Pasos 4.9, 5.9] offline_routes ejecuta UserWallet(user_id, currency, balance) sobre la entidad BilleteraUsuario
             wallet = UserWallet(user_id=customer.id, currency="BOB", balance=Decimal("0.00"))
             db.add(wallet)
             db.flush()
@@ -342,6 +359,7 @@ def resolve_offline_conflict(
 
         wallet.balance += credit_amount
 
+        # [CU30 - Secuencia: Pasos 4.11, 5.11] offline_routes ejecuta WalletTransaction(wallet_id, type, amount, balance_after, concept, description, created_at) sobre la entidad MovimientoBilletera
         transaction = WalletTransaction(
             wallet_id=wallet.id,
             type="credit",

@@ -10,7 +10,7 @@ class GiftCardPurchaseRequest(BaseModel):
     recipient_name: str = Field(..., min_length=2, max_length=120)
     recipient_email: EmailStr
     custom_message: str | None = Field(default=None, max_length=500)
-    payment_method: str = Field(default="stripe", description="stripe, card o wallet")
+    payment_method: str = Field(default="stripe", description="Solo stripe: la tarjeta se paga con tarjeta a través de Stripe")
     tenant_id: UUID | None = Field(default=None, description="Opcional: empresa emisora de la tarjeta")
 
 

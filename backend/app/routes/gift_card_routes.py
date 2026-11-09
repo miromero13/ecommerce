@@ -18,6 +18,7 @@ router = APIRouter(prefix="/gift-cards", tags=["GiftCards"])
 CUSTOMER = require_roles(RolEnum.cliente)
 
 
+# [CU18 - Secuencia: Paso 2.1] GiftCardsPageComponent llama a purchase_route(payload) de gift_card_routes (POST /api/gift-cards/purchase)
 @router.post("/purchase", status_code=status.HTTP_201_CREATED)
 async def purchase_route(
     payload: GiftCardPurchaseRequest,
@@ -25,10 +26,32 @@ async def purchase_route(
     db: Session = Depends(get_db),
     user: dict = Depends(CUSTOMER),
 ):
-    card = service.purchase_gift_card(db, UUID(user["sub"]), payload)
-    background_tasks.add_task(service.send_gift_card_email, card)
+    card, client_secret = service.purchase_gift_card(db, UUID(user["sub"]), payload)
     return response(
         status_code=status.HTTP_201_CREATED,
+        message="Pago con Stripe iniciado: ingresa los datos de la tarjeta",
+        data={
+            "id": str(card.id),
+            "client_secret": client_secret,
+            "amount": float(card.amount),
+            "status": card.status,
+        },
+    )
+
+
+# [CU18 - Secuencia: Paso 3.1] GiftCardsPageComponent llama a confirm_payment_route(card_id) de gift_card_routes (POST /api/gift-cards/{card_id}/confirm-payment)
+@router.post("/{card_id}/confirm-payment")
+async def confirm_payment_route(
+    card_id: UUID,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    user: dict = Depends(CUSTOMER),
+):
+    card, activated = service.confirm_gift_card_payment(db, UUID(user["sub"]), card_id)
+    if activated:
+        background_tasks.add_task(service.send_gift_card_email, card)
+    return response(
+        status_code=status.HTTP_200_OK,
         message="Tarjeta de regalo adquirida y enviada por correo al destinatario",
         data={
             "id": str(card.id),
@@ -42,6 +65,7 @@ async def purchase_route(
     )
 
 
+# [CU18 - Secuencia: Pasos 1.1, 3.7] GiftCardsPageComponent llama a my_purchases_route() de gift_card_routes (GET /api/gift-cards/my-purchases)
 @router.get("/my-purchases")
 def my_purchases_route(
     db: Session = Depends(get_db),

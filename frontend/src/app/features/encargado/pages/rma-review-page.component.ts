@@ -398,6 +398,7 @@ export class RmaReviewPageComponent {
     void this.loadRequests();
   }
 
+  // [CU21 - Secuencia: Paso 3] El Encargado de sucursal ejecuta loadRequests() en RmaReviewPageComponent
   protected async loadRequests(): Promise<void> {
     this.loading.set(true);
     try {
@@ -427,6 +428,8 @@ export class RmaReviewPageComponent {
     this.inspectingRma.set(null);
   }
 
+  // [CU21 - Secuencia: Paso 4] El Encargado de sucursal ejecuta submitReview(item, decisionStatus) en RmaReviewPageComponent
+  // [CU24 - Secuencia: Paso 1] El Encargado de sucursal ejecuta submitReview(item, decisionStatus) en RmaReviewPageComponent
   protected async submitReview(item: RmaItem, decisionStatus: 'approved' | 'rejected'): Promise<void> {
     const rma = this.inspectingRma();
     if (!rma) return;
@@ -463,6 +466,7 @@ export class RmaReviewPageComponent {
     }
   }
 
+  // [CU21 - Secuencia: Paso 5] El Administrador del tenant ejecuta triggerSettlement() en RmaReviewPageComponent
   protected async triggerSettlement(): Promise<void> {
     this.settling.set(true);
     try {

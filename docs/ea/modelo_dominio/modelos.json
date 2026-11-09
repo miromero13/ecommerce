@@ -1,0 +1,5229 @@
+{
+ "branches": {
+  "class": "Branch",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "tenant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "tenants",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "name",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "city",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "latitude",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "longitude",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "is_default",
+    "type": "bool",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "is_active",
+    "type": "bool",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": [
+   "tenants"
+  ]
+ },
+ "carts": {
+  "class": "Cart",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "tenant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "tenants",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "branch_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "branches",
+    "ondelete": "SET NULL"
+   },
+   {
+    "column": "user_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": true,
+    "fk": "users",
+    "ondelete": ""
+   },
+   {
+    "column": "promotion_code_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "promotion_codes",
+    "ondelete": ""
+   },
+   {
+    "column": "status",
+    "type": "CartStatusEnum",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "subtotal",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "discount_amount",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "total_amount",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "created_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "updated_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ },
+ "cart_items": {
+  "class": "CartItem",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "cart_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "carts",
+    "ondelete": ""
+   },
+   {
+    "column": "reservation_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "reservations",
+    "ondelete": ""
+   },
+   {
+    "column": "variant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "product_variants",
+    "ondelete": ""
+   },
+   {
+    "column": "quantity",
+    "type": "int",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "unit_price",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": [
+   "carts"
+  ]
+ },
+ "cash_sessions": {
+  "class": "CashSession",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "tenant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "tenants",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "branch_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "branches",
+    "ondelete": ""
+   },
+   {
+    "column": "cashier_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": true,
+    "fk": "users",
+    "ondelete": ""
+   },
+   {
+    "column": "status",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "opening_amount",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "opened_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "expected_amount",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "counted_amount",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "difference",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "closing_note",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "closed_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ },
+ "cash_movements": {
+  "class": "CashMovement",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "session_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "cash_sessions",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "type",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "method",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "amount",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "cash_received",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "change_given",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "source_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "reason",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "created_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ },
+ "categories": {
+  "class": "Category",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "tenant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "tenants",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "name",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ },
+ "collections": {
+  "class": "Collection",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "tenant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "tenants",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "name",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "season_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "seasons",
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ },
+ "colors": {
+  "class": "Color",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "name",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": true,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "hex_code",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ },
+ "conversations": {
+  "class": "Conversation",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "user_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": true,
+    "fk": "users",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "created_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": [
+   "users"
+  ]
+ },
+ "conversation_messages": {
+  "class": "ConversationMessage",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "conversation_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "conversations",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "role",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "content",
+    "type": "Text",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "message_data",
+    "type": "JSON",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "created_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": [
+   "conversations"
+  ]
+ },
+ "expert_replenishment_rules": {
+  "class": "ExpertReplenishmentRule",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "tenant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": true,
+    "fk": "tenants",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "lookback_days",
+    "type": "int",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "coverage_days",
+    "type": "int",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "is_auto_enabled",
+    "type": "bool",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "created_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "updated_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": [
+   "tenants"
+  ]
+ },
+ "expert_transfer_suggestions": {
+  "class": "ExpertTransferSuggestion",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "tenant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "tenants",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "variant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "product_variants",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "source_branch_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "branches",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "target_branch_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "branches",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "suggested_quantity",
+    "type": "int",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "reason",
+    "type": "Text",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "status",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "created_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "applied_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": [
+   "tenants"
+  ]
+ },
+ "gift_cards": {
+  "class": "GiftCard",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "tenant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "tenants",
+    "ondelete": "SET NULL"
+   },
+   {
+    "column": "buyer_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "users",
+    "ondelete": "SET NULL"
+   },
+   {
+    "column": "code",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": true,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "amount",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "balance",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "recipient_name",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "recipient_email",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "custom_message",
+    "type": "Text",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "status",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "payment_method",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "stripe_payment_intent_id",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "qr_code_url",
+    "type": "Text",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "expires_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "redeemed_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "redeemed_by_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "users",
+    "ondelete": "SET NULL"
+   },
+   {
+    "column": "created_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "updated_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ },
+ "inventory": {
+  "class": "Inventory",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "tenant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "tenants",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "variant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "product_variants",
+    "ondelete": ""
+   },
+   {
+    "column": "branch_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "branches",
+    "ondelete": ""
+   },
+   {
+    "column": "quantity",
+    "type": "int",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "reserved_quantity",
+    "type": "int",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "minimum_stock",
+    "type": "int",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": [
+   "product_variants"
+  ]
+ },
+ "inventory_movements": {
+  "class": "InventoryMovement",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "tenant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "tenants",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "variant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "product_variants",
+    "ondelete": ""
+   },
+   {
+    "column": "branch_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "branches",
+    "ondelete": ""
+   },
+   {
+    "column": "movement_type",
+    "type": "InventoryMovementTypeEnum",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "quantity",
+    "type": "int",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "reference_branch_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "branches",
+    "ondelete": ""
+   },
+   {
+    "column": "note",
+    "type": "Text",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "created_by",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "users",
+    "ondelete": ""
+   },
+   {
+    "column": "created_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ },
+ "loyalty_accounts": {
+  "class": "LoyaltyAccount",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "tenant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "tenants",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "user_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "users",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "points_balance",
+    "type": "int",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "lifetime_points",
+    "type": "int",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "created_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "updated_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ },
+ "loyalty_ledger": {
+  "class": "LoyaltyLedger",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "account_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "loyalty_accounts",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "type",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "points",
+    "type": "int",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "source_type",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "source_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "created_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ },
+ "notifications": {
+  "class": "Notification",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "user_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "users",
+    "ondelete": ""
+   },
+   {
+    "column": "title",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "body",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "data",
+    "type": "JSON",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "read_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "dedupe_key",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": true,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "created_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ },
+ "device_tokens": {
+  "class": "DeviceToken",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "user_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "users",
+    "ondelete": ""
+   },
+   {
+    "column": "token",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": true,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "platform",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "is_active",
+    "type": "bool",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "created_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "updated_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ },
+ "orders": {
+  "class": "Order",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "tenant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "tenants",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "user_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "users",
+    "ondelete": ""
+   },
+   {
+    "column": "promotion_code_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "promotion_codes",
+    "ondelete": ""
+   },
+   {
+    "column": "status",
+    "type": "OrderStatusEnum",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "payment_method",
+    "type": "PaymentMethodEnum",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "payment_status",
+    "type": "PaymentStatusEnum",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "stripe_payment_intent_id",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "cash_reference",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "pickup_branch_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "branches",
+    "ondelete": ""
+   },
+   {
+    "column": "pickup_expires_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "pickup_code",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": true,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "fulfillment_status",
+    "type": "FulfillmentStatusEnum",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "subtotal",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "discount_amount",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "total_amount",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "fulfillment_type",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "delivery_address",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "delivery_reference",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "delivery_latitude",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "delivery_longitude",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "delivery_distance_km",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "shipping_cost",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "deposit_applied",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "loyalty_discount",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "delivery_pin",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "delivery_driver_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "users",
+    "ondelete": ""
+   },
+   {
+    "column": "delivered_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "currency",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "created_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "updated_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ },
+ "order_items": {
+  "class": "OrderItem",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "order_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "orders",
+    "ondelete": ""
+   },
+   {
+    "column": "reservation_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "reservations",
+    "ondelete": ""
+   },
+   {
+    "column": "variant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "product_variants",
+    "ondelete": ""
+   },
+   {
+    "column": "quantity",
+    "type": "int",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "unit_price",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "line_total",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "product_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "product_name",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "variant_sku",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "size_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "color_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "image_url",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "image_public_id",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": [
+   "orders"
+  ]
+ },
+ "payment_attempts": {
+  "class": "PaymentAttempt",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "order_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "orders",
+    "ondelete": ""
+   },
+   {
+    "column": "cart_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "carts",
+    "ondelete": ""
+   },
+   {
+    "column": "stripe_payment_intent_id",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": true,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "status",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "idempotency_key",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": true,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "created_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "updated_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ },
+ "payment_receipts": {
+  "class": "PaymentReceipt",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "tenant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "tenants",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "issuer",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "series",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "number",
+    "type": "int",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "kind",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "source_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "branch_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "branches",
+    "ondelete": ""
+   },
+   {
+    "column": "customer_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "users",
+    "ondelete": ""
+   },
+   {
+    "column": "customer_name",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "customer_email",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "payment_method",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "currency",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "total",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "lines",
+    "type": "JSON",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "summary",
+    "type": "JSON",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "issued_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "emailed_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "email_attempts",
+    "type": "int",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ },
+ "settlements": {
+  "class": "Settlement",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "tenant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "tenants",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "period_date",
+    "type": "Date",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "gross_amount",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "fee_amount",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "net_amount",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "transactions_count",
+    "type": "int",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "currency",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "status",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "bank_name",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "bank_account_number",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "bank_account_holder",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "transfer_reference",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "paid_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "paid_by",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "users",
+    "ondelete": ""
+   },
+   {
+    "column": "created_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ },
+ "payment_transactions": {
+  "class": "PaymentTransaction",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "tenant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "tenants",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "source_type",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "source_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "method",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "gross_amount",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "fee_amount",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "net_amount",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "currency",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "provider_reference",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "settlement_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "settlements",
+    "ondelete": ""
+   },
+   {
+    "column": "created_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ },
+ "qr_payments": {
+  "class": "QrPayment",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "tenant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "tenants",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "reference",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": true,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "purpose",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "source_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "branch_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "branches",
+    "ondelete": ""
+   },
+   {
+    "column": "created_by",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "users",
+    "ondelete": ""
+   },
+   {
+    "column": "amount",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "currency",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "status",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "expires_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "paid_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "created_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ },
+ "products": {
+  "class": "Product",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "tenant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "tenants",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "name",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "description",
+    "type": "Text",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "provider_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "providers",
+    "ondelete": ""
+   },
+   {
+    "column": "category_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "categories",
+    "ondelete": ""
+   },
+   {
+    "column": "collection_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "collections",
+    "ondelete": ""
+   },
+   {
+    "column": "discount_type",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "discount_value",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ },
+ "providers": {
+  "class": "Provider",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "tenant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "tenants",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "user_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": true,
+    "fk": "users",
+    "ondelete": ""
+   },
+   {
+    "column": "business_name",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "contact_name",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "phone",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "status",
+    "type": "ProviderStatusEnum",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ },
+ "seasons": {
+  "class": "Season",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "tenant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "tenants",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "name",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ },
+ "sizes": {
+  "class": "Size",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "name",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": true,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ },
+ "product_variants": {
+  "class": "ProductVariant",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "tenant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "tenants",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "product_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "products",
+    "ondelete": ""
+   },
+   {
+    "column": "sku",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": true,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "price",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "size_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "sizes",
+    "ondelete": ""
+   },
+   {
+    "column": "color_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "colors",
+    "ondelete": ""
+   },
+   {
+    "column": "image_url",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "image_public_id",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "try_on_image_url",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "garment_points",
+    "type": "JSON",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "status",
+    "type": "ProductStatusEnum",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": [
+   "products"
+  ]
+ },
+ "promotion_codes": {
+  "class": "PromotionCode",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "tenant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "tenants",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "code",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": true,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "discount_type",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "discount_value",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "valid_from",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "valid_until",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "branch_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "branches",
+    "ondelete": ""
+   },
+   {
+    "column": "created_by",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "users",
+    "ondelete": ""
+   },
+   {
+    "column": "is_active",
+    "type": "bool",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "created_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ },
+ "promotion_code_usages": {
+  "class": "PromotionCodeUsage",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "promotion_code_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "promotion_codes",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "user_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "users",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "used_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": [
+   "promotion_codes"
+  ]
+ },
+ "provider_variant_availability": {
+  "class": "ProviderVariantAvailability",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "provider_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "providers",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "variant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "product_variants",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "quantity",
+    "type": "int",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ },
+ "role_permissions": {
+  "class": null,
+  "columns": [
+   {
+    "column": "role_id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": "roles",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "permission_id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": "permissions",
+    "ondelete": "CASCADE"
+   }
+  ],
+  "cascade_from": []
+ },
+ "user_roles": {
+  "class": null,
+  "columns": [
+   {
+    "column": "user_id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": "users",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "role_id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": "roles",
+    "ondelete": "CASCADE"
+   }
+  ],
+  "cascade_from": []
+ },
+ "permissions": {
+  "class": "Permission",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "name",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": true,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "module",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "description",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "created_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ },
+ "roles": {
+  "class": "Role",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "tenant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "tenants",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "code",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "name",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "base_rol",
+    "type": "RolEnum",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "is_system",
+    "type": "bool",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "created_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "updated_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ },
+ "users": {
+  "class": "User",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "tenant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "tenants",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "name",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "email",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": true,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "hashed_password",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "gender",
+    "type": "GenderEnum",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "rol",
+    "type": "RolEnum",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "branch_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "branches",
+    "ondelete": ""
+   },
+   {
+    "column": "is_active",
+    "type": "bool",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": [
+   "tenants"
+  ]
+ },
+ "tenants": {
+  "class": "Tenant",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "name",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": true,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "slug",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": true,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "contact_email",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "currency",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "country",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "logo_url",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "logo_public_id",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "primary_color",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "bank_name",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "bank_account_number",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "bank_account_holder",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "platform_fee_percent",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "status",
+    "type": "TenantStatusEnum",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "created_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "updated_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ },
+ "tenant_subscriptions": {
+  "class": "TenantSubscription",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "tenant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "tenants",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "plan_id",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "saas_plans",
+    "ondelete": "RESTRICT"
+   },
+   {
+    "column": "billing_cycle",
+    "type": "BillingCycleEnum",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "status",
+    "type": "SubscriptionStatusEnum",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "payment_method",
+    "type": "SubscriptionPaymentMethodEnum",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "amount",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "start_date",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "end_date",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "created_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "updated_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": [
+   "tenants",
+   "saas_plans"
+  ]
+ },
+ "saas_plans": {
+  "class": "SubscriptionPlan",
+  "columns": [
+   {
+    "column": "id",
+    "type": "String",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "name",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "slug",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": true,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "description",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "price_monthly",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "price_yearly",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "max_branches",
+    "type": "int",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "max_garments",
+    "type": "int",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "features",
+    "type": "JSON",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "is_active",
+    "type": "bool",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "created_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "updated_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ },
+ "user_body_profiles": {
+  "class": "UserBodyProfile",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "user_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": true,
+    "fk": "users",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "top_size",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "bottom_size",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "shoe_size",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "body_shape",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "fit_preference",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "notes",
+    "type": "Text",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": [
+   "users"
+  ]
+ },
+ "user_product_interactions": {
+  "class": "UserProductInteraction",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "user_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "users",
+    "ondelete": ""
+   },
+   {
+    "column": "product_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "products",
+    "ondelete": ""
+   },
+   {
+    "column": "interaction_type",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "weight",
+    "type": "int",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "order_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "orders",
+    "ondelete": ""
+   },
+   {
+    "column": "variant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "product_variants",
+    "ondelete": ""
+   },
+   {
+    "column": "branch_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "branches",
+    "ondelete": ""
+   },
+   {
+    "column": "created_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ },
+ "collaborative_embeddings": {
+  "class": "CollaborativeEmbedding",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "subject_type",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "subject_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "vector",
+    "type": "Text",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "updated_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ },
+ "replenishment_requests": {
+  "class": "ReplenishmentRequest",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "tenant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "tenants",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "provider_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "providers",
+    "ondelete": ""
+   },
+   {
+    "column": "branch_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "branches",
+    "ondelete": ""
+   },
+   {
+    "column": "requested_by",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "users",
+    "ondelete": ""
+   },
+   {
+    "column": "status",
+    "type": "ReplenishmentStatusEnum",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "created_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "updated_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "accepted_by",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "users",
+    "ondelete": ""
+   },
+   {
+    "column": "accepted_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "preparing_by",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "users",
+    "ondelete": ""
+   },
+   {
+    "column": "preparing_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "awaiting_receipt_by",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "users",
+    "ondelete": ""
+   },
+   {
+    "column": "awaiting_receipt_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "delivered_by",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "users",
+    "ondelete": ""
+   },
+   {
+    "column": "delivered_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ },
+ "replenishment_request_items": {
+  "class": "ReplenishmentRequestItem",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "request_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "replenishment_requests",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "variant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "product_variants",
+    "ondelete": ""
+   },
+   {
+    "column": "requested_quantity",
+    "type": "int",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": [
+   "replenishment_requests"
+  ]
+ },
+ "reservations": {
+  "class": "Reservation",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "tenant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "tenants",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "branch_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "branches",
+    "ondelete": ""
+   },
+   {
+    "column": "user_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "users",
+    "ondelete": ""
+   },
+   {
+    "column": "cart_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": true,
+    "fk": "carts",
+    "ondelete": ""
+   },
+   {
+    "column": "visit_date",
+    "type": "Date",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "expires_at",
+    "type": "Date",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "status",
+    "type": "ReservationStatusEnum",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "total_amount",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "deposit_amount",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "deposit_status",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "payment_expires_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "stripe_payment_intent_id",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": true,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "created_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "updated_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ },
+ "reservation_items": {
+  "class": "ReservationItem",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "reservation_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "reservations",
+    "ondelete": ""
+   },
+   {
+    "column": "variant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "product_variants",
+    "ondelete": ""
+   },
+   {
+    "column": "quantity",
+    "type": "int",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "unit_price",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": [
+   "reservations"
+  ]
+ },
+ "rma_requests": {
+  "class": "RmaRequest",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "tenant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "tenants",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "order_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "orders",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "user_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "users",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "rma_number",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": true,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "status",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "customer_notes",
+    "type": "Text",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "created_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "updated_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ },
+ "rma_request_items": {
+  "class": "RmaRequestItem",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "rma_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "rma_requests",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "order_item_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "order_items",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "quantity",
+    "type": "int",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "reason",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "preferred_resolution",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "requested_variant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "product_variants",
+    "ondelete": "SET NULL"
+   },
+   {
+    "column": "customer_notes",
+    "type": "Text",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "item_condition",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "action",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "status",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "replacement_variant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "product_variants",
+    "ondelete": "SET NULL"
+   },
+   {
+    "column": "branch_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "branches",
+    "ondelete": "SET NULL"
+   },
+   {
+    "column": "inspection_notes",
+    "type": "Text",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "quarantine_record",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "restock_movement_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "inventory_movements",
+    "ondelete": "SET NULL"
+   },
+   {
+    "column": "dispatch_movement_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "inventory_movements",
+    "ondelete": "SET NULL"
+   },
+   {
+    "column": "refund_amount",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "wallet_settlement_date",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "settlement_status",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "inspected_by",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "users",
+    "ondelete": "SET NULL"
+   },
+   {
+    "column": "inspected_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "created_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "updated_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": [
+   "rma_requests"
+  ]
+ },
+ "rpa_ingest_jobs": {
+  "class": "RpaIngestJob",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "tenant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "tenants",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "uploaded_by",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "users",
+    "ondelete": ""
+   },
+   {
+    "column": "filename",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "mime_type",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "status",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "extracted_items",
+    "type": "JSON",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "error_message",
+    "type": "Text",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "target_branch_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "branches",
+    "ondelete": ""
+   },
+   {
+    "column": "committed_by",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "users",
+    "ondelete": ""
+   },
+   {
+    "column": "committed_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "created_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ },
+ "sales": {
+  "class": "Sale",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "tenant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "tenants",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "branch_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "branches",
+    "ondelete": ""
+   },
+   {
+    "column": "user_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "users",
+    "ondelete": ""
+   },
+   {
+    "column": "customer_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "users",
+    "ondelete": ""
+   },
+   {
+    "column": "promotion_code_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": "promotion_codes",
+    "ondelete": ""
+   },
+   {
+    "column": "reservation_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": true,
+    "fk": "reservations",
+    "ondelete": ""
+   },
+   {
+    "column": "status",
+    "type": "SaleStatusEnum",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "payment_method",
+    "type": "PaymentMethodEnum",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "payment_status",
+    "type": "PaymentStatusEnum",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "cash_reference",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "subtotal",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "discount_amount",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "total_amount",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "currency",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "created_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "updated_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ },
+ "sale_items": {
+  "class": "SaleItem",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "sale_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "sales",
+    "ondelete": ""
+   },
+   {
+    "column": "variant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "product_variants",
+    "ondelete": ""
+   },
+   {
+    "column": "quantity",
+    "type": "int",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "unit_price",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "line_total",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "product_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "product_name",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "variant_sku",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "size_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "color_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "image_url",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "image_public_id",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": [
+   "sales"
+  ]
+ },
+ "stripe_events": {
+  "class": "StripeEvent",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "stripe_event_id",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": true,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "created_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ },
+ "user_wallets": {
+  "class": "UserWallet",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "user_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": true,
+    "fk": "users",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "balance",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "currency",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "created_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "updated_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ },
+ "wallet_transactions": {
+  "class": "WalletTransaction",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "wallet_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "user_wallets",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "type",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "amount",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "balance_after",
+    "type": "Decimal",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "concept",
+    "type": "String",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "source_type",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "source_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "description",
+    "type": "String",
+    "pk": false,
+    "nullable": true,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "created_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": [
+   "user_wallets"
+  ]
+ },
+ "wishlist_items": {
+  "class": "WishlistItem",
+  "columns": [
+   {
+    "column": "id",
+    "type": "UUID",
+    "pk": true,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   },
+   {
+    "column": "tenant_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "tenants",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "user_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "users",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "product_id",
+    "type": "UUID",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": "products",
+    "ondelete": "CASCADE"
+   },
+   {
+    "column": "created_at",
+    "type": "DateTime",
+    "pk": false,
+    "nullable": false,
+    "unique": false,
+    "fk": null,
+    "ondelete": ""
+   }
+  ],
+  "cascade_from": []
+ }
+}

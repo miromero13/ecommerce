@@ -20,7 +20,8 @@ class ApiException implements Exception {
 
     return ApiException(
       statusCode: exception.response?.statusCode,
-      message: exception.message ?? 'No se pudo conectar con el servidor',
+      // Sin respuesta del servidor: casi siempre es falta de conexión (el pago con Stripe también la requiere).
+      message: 'Sin conexión con el servidor. Revisa tu internet e intenta nuevamente.',
     );
   }
 

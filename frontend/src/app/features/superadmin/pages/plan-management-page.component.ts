@@ -60,6 +60,7 @@ export class PlanManagementPageComponent {
     void this.loadPlans();
   }
 
+  // [CU02 - Secuencia: Paso 1] El Superadministrador ejecuta loadPlans() en PlanManagementPageComponent
   protected async loadPlans(): Promise<void> {
     this.loading.set(true);
     try {
@@ -114,6 +115,7 @@ export class PlanManagementPageComponent {
     return this.features.find((feature) => feature.key === key)?.label ?? key;
   }
 
+  // [CU02 - Secuencia: Paso 2] El Superadministrador ejecuta save() en PlanManagementPageComponent
   protected async save(): Promise<void> {
     if (this.form.invalid || this.submitting()) {
       this.form.markAllAsTouched();
@@ -148,6 +150,7 @@ export class PlanManagementPageComponent {
     }
   }
 
+  // [CU02 - Secuencia: Paso 3] El Superadministrador ejecuta toggleActive(plan) en PlanManagementPageComponent
   protected async toggleActive(plan: SubscriptionPlan): Promise<void> {
     try {
       const res = await firstValueFrom(this.api.updatePlan(plan.id, { is_active: !plan.is_active }));

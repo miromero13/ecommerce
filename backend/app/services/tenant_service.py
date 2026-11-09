@@ -19,6 +19,8 @@ LOGO_CONTENT_TYPES = {"image/png", "image/jpeg", "image/webp"}
 LOGO_MAX_BYTES = 2 * 1024 * 1024
 
 
+# [CU01 - Secuencia: Pasos 1.4, 3.18, 4.4, 4.10, 6.8, 6.14] tenant_routes invoca _serialize_tenant(tenant) sobre la entidad Empresa
+# [CU26 - Secuencia: Pasos 1.4, 4.4] tenant_routes invoca _serialize_tenant(tenant) sobre la entidad Empresa
 def _serialize_tenant(db: Session, tenant: Tenant) -> dict:
     branches_count = (
         db.query(func.count(Branch.id))
@@ -62,12 +64,14 @@ def _plan_info(db: Session, tenant_id: UUID) -> dict:
     }
 
 
+# [CU01 - Secuencia: Pasos 5.4, 6.4] tenant_routes invoca _active_admin(tenant_id) sobre la entidad Usuario
 def _active_admin(db: Session, tenant_id: UUID) -> User | None:
     return (db.query(User)
             .filter(User.tenant_id == tenant_id, User.rol == RolEnum.administrador, User.is_active.is_(True))
             .order_by(User.email).first())
 
 
+# [CU01 - Secuencia: Paso 6.6] tenant_routes invoca _add_admin(tenant_id, admin) sobre la entidad Usuario
 def _add_admin(db: Session, tenant_id: UUID, admin: TenantAdminCreate) -> User:
     from app.services.user_service import ensure_email_available, normalize_email, pwd_context
 
@@ -79,6 +83,7 @@ def _add_admin(db: Session, tenant_id: UUID, admin: TenantAdminCreate) -> User:
     return user
 
 
+# [CU01 - Secuencia: Pasos 1.2, 3.16, 4.8, 6.12] tenant_routes invoca list_tenants(skip, limit, search, status) sobre la entidad Empresa
 def list_tenants(
     db: Session,
     skip: int = 0,
@@ -144,6 +149,7 @@ def create_tenant(db: Session, payload: TenantCreate) -> dict:
         raise ValueError("Error de integridad al registrar la empresa") from exc
 
 
+# [CU01 - Secuencia: Paso 6.2] tenant_routes invoca register_tenant_admin(tenant_id, admin) sobre la entidad Empresa
 def register_tenant_admin(db: Session, tenant_id: UUID, admin: TenantAdminCreate) -> dict | None:
     """For companies created before the administrator was required."""
     tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
@@ -164,6 +170,7 @@ class NoTenantAdmin(Exception):
     pass
 
 
+# [CU01 - Secuencia: Paso 5.2] tenant_routes invoca open_tenant_panel(tenant_id, superadmin_id) sobre la entidad Empresa
 def open_tenant_panel(db: Session, tenant_id: UUID, superadmin_id: UUID) -> dict | None:
     """Session of the company's administrator for the superadmin (full access, like the administrator).
     The token keeps `impersonated_by` so the action can be traced back to the superadmin."""
@@ -189,6 +196,7 @@ def open_tenant_panel(db: Session, tenant_id: UUID, superadmin_id: UUID) -> dict
     return {"access_token": token, "token_type": "bearer", "user": user_out, "tenant_name": tenant.name}
 
 
+# [CU26 - Secuencia: Pasos 1.2, 4.2] tenant_routes invoca update_tenant(tenant_id, payload) sobre la entidad Empresa
 def update_tenant(db: Session, tenant_id: UUID, payload: TenantUpdate) -> dict | None:
     tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
     if not tenant:
@@ -239,6 +247,7 @@ def update_tenant(db: Session, tenant_id: UUID, payload: TenantUpdate) -> dict |
         raise ValueError("Error de integridad al actualizar la empresa") from exc
 
 
+# [CU01 - Secuencia: Paso 4.2] tenant_routes invoca update_tenant_status(tenant_id, new_status) sobre la entidad Empresa
 def update_tenant_status(db: Session, tenant_id: UUID, new_status: TenantStatusEnum) -> dict | None:
     tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
     if not tenant:
@@ -249,16 +258,19 @@ def update_tenant_status(db: Session, tenant_id: UUID, new_status: TenantStatusE
     return _serialize_tenant(db, tenant)
 
 
+# [CU26 - Secuencia: Pasos 1.10, 1.16, 2.4, 3.4, 3.10, 4.10, 4.16] tenant_routes invoca _branding(tenant) sobre la entidad Empresa
 def _branding(tenant: Tenant) -> dict:
     return TenantBrandingRead(tenant_id=tenant.id, name=tenant.name, logo_url=tenant.logo_url,
                               primary_color=tenant.primary_color, currency=tenant.currency).model_dump()
 
 
+# [CU26 - Secuencia: Pasos 1.14, 2.2, 3.2, 4.14] tenant_routes invoca get_branding(tenant_id) sobre la entidad Empresa
 def get_branding(db: Session, tenant_id: UUID) -> dict | None:
     tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
     return _branding(tenant) if tenant else None
 
 
+# [CU26 - Secuencia: Pasos 1.8, 4.8] tenant_routes invoca update_branding_color(tenant_id, primary_color) sobre la entidad Empresa
 def update_branding_color(db: Session, tenant_id: UUID, primary_color: str | None) -> dict:
     tenant = db.query(Tenant).filter(Tenant.id == tenant_id).one()
     tenant.primary_color = primary_color.lower() if primary_color else None
@@ -286,6 +298,7 @@ def update_tenant_logo(db: Session, tenant_id: UUID, content: bytes, content_typ
     return _branding(tenant)
 
 
+# [CU26 - Secuencia: Paso 3.8] tenant_routes invoca delete_tenant_logo(tenant_id) sobre la entidad Empresa
 def delete_tenant_logo(db: Session, tenant_id: UUID) -> dict | None:
     tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
     if not tenant:

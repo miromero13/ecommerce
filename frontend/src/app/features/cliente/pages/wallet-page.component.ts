@@ -25,6 +25,8 @@ import { getErrorMessage } from '../../../core/utils/http-error.util';
 import { LoyaltyBalance, LoyaltyMovement } from '../../shared/models/loyalty.model';
 import { WalletBalance, WalletTransaction } from '../../shared/models/wallet.model';
 import { GiftCardApiService } from '../../shared/services/gift-card-api.service';
+import { GiftCardPaymentIntent } from '../../shared/models/gift-card.model';
+import { StripeCardPaymentComponent } from '../../shared/components/stripe-card-payment.component';
 import { LoyaltyApiService } from '../../shared/services/loyalty-api.service';
 import { WalletApiService } from '../../shared/services/wallet-api.service';
 
@@ -58,6 +60,7 @@ const LOYALTY_LABELS: Record<LoyaltyMovement['type'], string> = {
     ...HlmFieldImports,
     ...HlmSelectImports,
     ...HlmBadgeImports,
+    StripeCardPaymentComponent,
   ],
   providers: [
     provideIcons({
@@ -469,19 +472,29 @@ const LOYALTY_LABELS: Record<LoyaltyMovement['type'], string> = {
                   </div>
                 </div>
 
-                <div class="pt-4 flex gap-2 justify-end">
-                  <button hlmBtn variant="outline" type="button" (click)="showGiftModal.set(false)">
-                    Cancelar
-                  </button>
-                  <button
-                    hlmBtn
-                    type="button"
-                    [disabled]="isPurchasingGift() || giftAmount() < 10 || !recipientName.trim() || !recipientEmail.trim()"
-                    (click)="purchaseGiftCard()"
-                  >
-                    {{ isPurchasingGift() ? 'Comprando...' : 'Comprar ($' + giftAmount() + ')' }}
-                  </button>
-                </div>
+                @if (pendingGiftPayment(); as pago) {
+                  <div class="pt-4">
+                    <app-stripe-card-payment
+                      [title]="'Pagar la tarjeta de regalo de ' + pago.amount + ' BOB'"
+                      [clientSecret]="pago.client_secret"
+                      (paid)="onGiftCardPaid()"
+                    />
+                  </div>
+                } @else {
+                  <div class="pt-4 flex gap-2 justify-end">
+                    <button hlmBtn variant="outline" type="button" (click)="showGiftModal.set(false)">
+                      Cancelar
+                    </button>
+                    <button
+                      hlmBtn
+                      type="button"
+                      [disabled]="isPurchasingGift() || giftAmount() < 10 || !recipientName.trim() || !recipientEmail.trim()"
+                      (click)="purchaseGiftCard()"
+                    >
+                      {{ isPurchasingGift() ? 'Comprando...' : 'Comprar ($' + giftAmount() + ')' }}
+                    </button>
+                  </div>
+                }
               </div>
             </div>
           </section>
@@ -518,6 +531,7 @@ export class WalletPageComponent {
   protected recipientEmail = '';
   protected customGiftMessage = '';
   protected readonly isPurchasingGift = signal<boolean>(false);
+  protected readonly pendingGiftPayment = signal<GiftCardPaymentIntent | null>(null);
 
   constructor() {
     void this.loadAll();
@@ -540,6 +554,7 @@ export class WalletPageComponent {
   }
 
   protected openGiftModal(): void {
+    this.pendingGiftPayment.set(null);
     this.showGiftModal.set(true);
   }
 
@@ -572,6 +587,7 @@ export class WalletPageComponent {
     }
   }
 
+  // [CU19 - Secuencia: Paso 1] El Cliente ejecuta loadAll() en WalletPageComponent
   private async loadAll(): Promise<void> {
     try {
       const [balRes, txRes, loyaltyBalRes, loyaltyMovRes] = await Promise.all([
@@ -589,6 +605,7 @@ export class WalletPageComponent {
     }
   }
 
+  // [CU19 - Secuencia: Paso 2] El Cliente ejecuta redeemCard() en WalletPageComponent
   protected async redeemCard(): Promise<void> {
     const code = this.cardCodeInput.trim();
     if (!code) return;
@@ -606,6 +623,7 @@ export class WalletPageComponent {
     }
   }
 
+  // [CU19 - Secuencia: Paso 3] El Cliente ejecuta convertPoints(row) en WalletPageComponent
   protected async convertPoints(row: LoyaltyBalance): Promise<void> {
     const pointsToConvert = Math.floor(row.points_balance / 100) * 100;
     if (pointsToConvert < 100) return;
@@ -643,16 +661,29 @@ export class WalletPageComponent {
           payment_method: 'stripe',
         })
       );
+      this.pendingGiftPayment.set(res.data ?? null);
+      toast.info(res.message || 'Pago con Stripe iniciado: ingresa los datos de la tarjeta');
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'No se pudo completar la compra de la tarjeta de regalo.'));
+    } finally {
+      this.isPurchasingGift.set(false);
+    }
+  }
+
+  protected async onGiftCardPaid(): Promise<void> {
+    const pago = this.pendingGiftPayment();
+    if (!pago) return;
+    try {
+      const res = await firstValueFrom(this.giftCardApi.confirmPayment(pago.id));
       toast.success(res.message || 'Tarjeta de regalo adquirida y enviada por correo al destinatario');
+      this.pendingGiftPayment.set(null);
       this.recipientName = '';
       this.recipientEmail = '';
       this.customGiftMessage = '';
       this.showGiftModal.set(false);
       void this.loadAll();
     } catch (error) {
-      toast.error(getErrorMessage(error, 'No se pudo completar la compra de la tarjeta de regalo.'));
-    } finally {
-      this.isPurchasingGift.set(false);
+      toast.error(getErrorMessage(error, 'No se pudo confirmar el pago de la tarjeta de regalo.'));
     }
   }
 }

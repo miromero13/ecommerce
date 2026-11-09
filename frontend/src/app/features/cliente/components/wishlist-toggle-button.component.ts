@@ -39,6 +39,7 @@ export class WishlistToggleButtonComponent implements OnInit {
     void this.wishlist.ensureLoaded();
   }
 
+  // [CU16 - Secuencia: Paso 2] El Cliente ejecuta toggle(event) en WishlistToggleButtonComponent
   protected async toggle(event: Event): Promise<void> {
     event.stopPropagation(); // the card itself opens the product detail
     this.busy.set(true);

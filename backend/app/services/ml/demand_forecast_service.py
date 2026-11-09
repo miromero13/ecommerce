@@ -53,6 +53,7 @@ def forecast_from_history(history: dict[date, float], weeks: int, *, today: date
             'forecast': forecast, 'data_source': source_metadata(len(real), synthetic_count)}
 
 
+# [CU08 - Secuencia: Paso 3.2] report_routes invoca predict_demand(tenant_id, request) sobre la entidad Venta
 def predict_demand(db, tenant_id: UUID, request: DemandForecastRequest) -> dict:
     if request.use_synthetic_data:
         return forecast_from_history({}, request.target_period_weeks)

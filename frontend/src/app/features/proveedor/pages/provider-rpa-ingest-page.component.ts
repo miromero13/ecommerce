@@ -60,6 +60,7 @@ export class ProviderRpaIngestPageComponent implements OnDestroy {
     if (file) void this.upload(file);
   }
 
+  // [CU10 - Secuencia: Paso 1] El Proveedor ejecuta onPick(event) en ProviderRpaIngestPageComponent
   protected onPick(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
@@ -90,6 +91,7 @@ export class ProviderRpaIngestPageComponent implements OnDestroy {
     }
   }
 
+  // [CU10 - Secuencia: Paso 2] El Proveedor ejecuta open(job) en ProviderRpaIngestPageComponent
   protected async open(job: RpaJob): Promise<void> {
     this.stopPolling();
     if (job.status === 'processing') {
@@ -134,6 +136,7 @@ export class ProviderRpaIngestPageComponent implements OnDestroy {
     this.items.update((items) => items.filter((_, i) => i !== index));
   }
 
+  // [CU10 - Secuencia: Paso 3] El Proveedor ejecuta saveCorrections() en ProviderRpaIngestPageComponent
   protected async saveCorrections(): Promise<void> {
     const job = this.selected();
     if (!job || !this.items().length) return;
@@ -144,6 +147,7 @@ export class ProviderRpaIngestPageComponent implements OnDestroy {
     }, 'No se pudieron guardar las correcciones.');
   }
 
+  // [CU10 - Secuencia: Paso 4] El Proveedor ejecuta commit() en ProviderRpaIngestPageComponent
   protected async commit(): Promise<void> {
     const job = this.selected();
     if (!job || !this.branchId()) {

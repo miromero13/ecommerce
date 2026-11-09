@@ -200,6 +200,7 @@ export class MyDeliveriesPageComponent {
     void this.load();
   }
 
+  // [CU20 - Secuencia: Paso 2] El Cliente ejecuta load() en MyDeliveriesPageComponent
   protected async load(): Promise<void> {
     this.loading.set(true);
     try {

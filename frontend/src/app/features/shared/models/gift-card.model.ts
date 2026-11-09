@@ -23,6 +23,14 @@ export interface GiftCardPurchasePayload {
   tenant_id?: string;
 }
 
+/** Respuesta de POST /gift-cards/purchase: la tarjeta queda pendiente hasta que Stripe confirma el cobro. */
+export interface GiftCardPaymentIntent {
+  id: string;
+  client_secret: string;
+  amount: number;
+  status: string;
+}
+
 export interface GiftCardVerify {
   code: string;
   amount: number;

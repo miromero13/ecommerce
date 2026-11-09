@@ -50,6 +50,7 @@ def _ml_tenant(
     return tenant_id
 
 
+# [CU08 - Secuencia: Paso 3.1] AdminReportsPageComponent llama a predict_demand_route() de report_routes (POST /api/reports/ml/predict-demand)
 @router.post("/ml/predict-demand")
 def predict_demand_route(
     request: DemandForecastRequest,
@@ -67,6 +68,7 @@ def predict_demand_route(
     return response(status_code=200, message="Predicción de demanda con modelo supervisado generada exitosamente", data=data)
 
 
+# [CU08 - Secuencia: Paso 4.1] AdminReportsPageComponent llama a customer_clusters_route() de report_routes (POST /api/reports/ml/customer-clusters)
 @router.post("/ml/customer-clusters")
 def customer_clusters_route(
     request: CustomerClustersRequest | None = None,
@@ -81,6 +83,7 @@ def customer_clusters_route(
     return response(status_code=200, message="Segmentación de clientes con modelo no supervisado generada", data=data)
 
 
+# [CU08 - Secuencia: Paso 1.1] AdminReportsPageComponent llama a natural_report_route() de report_routes (POST /api/reports/query)
 @router.post("/query")
 async def natural_report_route(
     request: NaturalReportRequest,
@@ -153,6 +156,7 @@ def _smart_report(db: Session, filters: ReportQuery, current_user: dict, report_
     return function(db, filters, UUID(current_user["tenant_id"]))
 
 
+# [CU08 - Secuencia: Paso 1.9] AdminReportsPageComponent llama a top_products_route() de report_routes (GET /api/reports/top-products)
 @router.get("/top-products")
 def top_products_route(
     db: Session = Depends(get_db), filters: ReportQuery = Depends(_filters),
@@ -190,6 +194,7 @@ def _export_file(db: Session, filters: ReportQuery, current_user: dict, report_t
                     headers={"Content-Disposition": f'attachment; filename="{report_type}-report.{extension}"'})
 
 
+# [CU08 - Secuencia: Paso 2.1] AdminReportsPageComponent llama a excel_export_route(type) de report_routes (GET /api/reports/export/excel)
 @router.get("/export/excel")
 def excel_export_route(
     type: SmartReportType = Query(default="sales"),
@@ -199,6 +204,7 @@ def excel_export_route(
     return _export_file(db, filters, current_user, type, "excel")
 
 
+# [CU08 - Secuencia: Paso 2.3] AdminReportsPageComponent llama a pdf_export_route(type) de report_routes (GET /api/reports/export/pdf)
 @router.get("/export/pdf")
 def pdf_export_route(
     type: SmartReportType = Query(default="sales"),
@@ -208,6 +214,7 @@ def pdf_export_route(
     return _export_file(db, filters, current_user, type, "pdf")
 
 
+# [CU14 - Secuencia: Paso 1.1] SalesHistoryPageComponent llama a sales_report_route() de report_routes (GET /api/reports/sales)
 @router.get("/sales")
 async def sales_report_route(
     db: Session = Depends(get_db),
@@ -233,6 +240,7 @@ async def sales_report_export_route(
     )
 
 
+# [CU14 - Secuencia: Paso 2.1] AdminInventoryPageComponent llama a inventory_report_route() de report_routes (GET /api/reports/inventory)
 @router.get("/inventory")
 async def inventory_report_route(
     db: Session = Depends(get_db),
@@ -258,6 +266,7 @@ async def inventory_report_export_route(
     )
 
 
+# [CU14 - Secuencia: Paso 2.3] AdminInventoryPageComponent llama a movements_report_route() de report_routes (GET /api/reports/movements)
 @router.get("/movements")
 async def movements_report_route(
     db: Session = Depends(get_db),

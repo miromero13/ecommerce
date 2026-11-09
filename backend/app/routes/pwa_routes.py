@@ -13,6 +13,7 @@ from app.utils.response import response
 router = APIRouter(prefix="/pwa", tags=["PWA"])
 
 
+# [CU22 - Secuencia: Paso 1.1] PwaService llama a get_pwa_manifest(raw) de pwa_routes (GET /api/pwa/manifest.json)
 @router.get("/manifest")
 @router.get("/manifest.json")
 def get_pwa_manifest(request: Request, raw: bool = False, db: Session = Depends(get_db)):
@@ -29,6 +30,7 @@ def get_pwa_manifest(request: Request, raw: bool = False, db: Session = Depends(
             is_uuid = False
 
         if is_uuid:
+            # [CU22 - Secuencia: Pasos 1.2, 1.4] pwa_routes ejecuta select(Tenant) sobre la entidad Empresa
             tenant = db.scalars(select(Tenant).where(Tenant.id == val)).first()
         else:
             tenant = db.scalars(select(Tenant).where(Tenant.slug == str(tenant_ref))).first()

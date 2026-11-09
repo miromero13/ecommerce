@@ -12,6 +12,7 @@ from app.models.wallet import UserWallet, WalletTransaction
 from app.schemas.order_schema import PaymentMethodEnum, PaymentStatusEnum
 
 
+# [CU19 - Secuencia: Pasos 1.2, 1.8, 2.8, 2.14, 3.10, 3.16, 4.20] wallet_routes invoca get_or_create_wallet(user_id) sobre la entidad BilleteraUsuario
 def get_or_create_wallet(db: Session, user_id: UUID) -> UserWallet:
     wallet = db.query(UserWallet).filter(UserWallet.user_id == user_id).first()
     if not wallet:
@@ -30,6 +31,8 @@ def get_wallet_balance(db: Session, user_id: UUID) -> dict:
     }
 
 
+# [CU19 - Secuencia: Paso 2.2] wallet_routes invoca redeem_gift_card(user_id, card_code) sobre la entidad BilleteraUsuario
+# [CU19 - Secuencia: Paso 2.4] wallet_routes invoca redeem_gift_card(user_id, card_code) sobre la entidad MovimientoBilletera
 def redeem_gift_card(db: Session, user_id: UUID, card_code: str) -> dict:
     code = card_code.strip().upper()
     now = datetime.now(timezone.utc)
@@ -96,6 +99,8 @@ def redeem_gift_card(db: Session, user_id: UUID, card_code: str) -> dict:
     }
 
 
+# [CU19 - Secuencia: Paso 3.2] wallet_routes invoca convert_loyalty_points(user_id, tenant_id, points) sobre la entidad BilleteraUsuario
+# [CU19 - Secuencia: Paso 3.4] wallet_routes invoca convert_loyalty_points(user_id, tenant_id, points) sobre la entidad MovimientoBilletera
 def convert_loyalty_points(db: Session, user_id: UUID, tenant_id: UUID, points: int) -> dict:
     from app.models.tenant import Tenant
     from app.services import loyalty_service
@@ -219,6 +224,8 @@ def pay_order_with_wallet(db: Session, user_id: UUID, order_id: UUID, amount_to_
     db.commit()
 
 
+# [CU19 - Secuencia: Paso 4.2] wallet_routes invoca checkout_with_wallet(user_id, pickup_branch_id, delivery, points_to_redeem) sobre la entidad BilleteraUsuario
+# [CU19 - Secuencia: Paso 4.4] wallet_routes invoca checkout_with_wallet(user_id, pickup_branch_id, delivery, points_to_redeem) sobre la entidad MovimientoBilletera
 def checkout_with_wallet(
     db: Session,
     user_id: UUID,
@@ -333,6 +340,7 @@ def credit_wallet(
     return wallet
 
 
+# [CU19 - Secuencia: Pasos 1.6, 2.12, 3.14] wallet_routes invoca list_transactions(user_id) sobre la entidad MovimientoBilletera
 def list_transactions(db: Session, user_id: UUID) -> list[dict]:
     wallet = get_or_create_wallet(db, user_id)
     txs = (

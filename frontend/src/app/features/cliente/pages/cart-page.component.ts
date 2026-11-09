@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, ElementRef, ViewChild, inject, signal } from '@angular/core';
+import { Component, DestroyRef, ElementRef, ViewChild, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { Stripe, StripeElements, StripePaymentElement, loadStripe } from '@stripe/stripe-js';
@@ -19,6 +19,7 @@ import { BrandingService } from '../../../core/services/branding.service';
 import { Cart } from '../../shared/models/cart.model';
 import { CatalogBranch } from '../../shared/models/catalog.model';
 import { CartApiService } from '../../shared/services/cart-api.service';
+import { OfflineCartService } from '../../../core/services/offline-cart.service';
 import { LoyaltyApiService } from '../../shared/services/loyalty-api.service';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideCreditCard, lucideMapPin, lucideStar, lucideStore, lucideWallet } from '@ng-icons/lucide';
@@ -58,6 +59,9 @@ import { LocationPickerMapComponent } from '../../shared/components/location-pic
 export class CartPageComponent {
   private readonly branding = inject(BrandingService);
   private readonly cartApi = inject(CartApiService);
+  /** CU25/CU30: prendas agregadas sin conexión, pendientes de enviarse al carrito. */
+  protected readonly offlineCart = inject(OfflineCartService);
+  protected readonly online = signal(navigator.onLine);
   private readonly catalogApi = inject(CatalogApiService);
   private readonly checkoutApi = inject(CheckoutApiService);
   private readonly walletApi = inject(WalletApiService);
@@ -107,6 +111,24 @@ export class CartPageComponent {
   constructor() {
     // Pickup branches belong to the cart's company, so they load after the cart.
     void this.loadCart().then(() => this.loadBranches());
+    window.addEventListener('offline', this.onConnectionChange);
+    window.addEventListener('online', this.onConnectionChange);
+    inject(DestroyRef).onDestroy(() => {
+      window.removeEventListener('offline', this.onConnectionChange);
+      window.removeEventListener('online', this.onConnectionChange);
+    });
+  }
+
+  private readonly onConnectionChange = (): void => {
+    this.online.set(navigator.onLine);
+    if (navigator.onLine) void this.loadCart();
+  };
+
+  /** El pago con tarjeta (Stripe) necesita internet: sin conexión no se inicia ni se confirma. */
+  private requireConnection(): boolean {
+    if (navigator.onLine) return true;
+    toast.warning('Sin conexión: el pago con tarjeta (Stripe) requiere internet. Tu carrito se conserva hasta que vuelva la conexión.');
+    return false;
   }
 
   protected goToStep(step: 'resumen' | 'entrega' | 'pago'): void {
@@ -179,6 +201,7 @@ export class CartPageComponent {
     }
   }
 
+  // [CU15 - Secuencia: Paso 3] El Cliente ejecuta applyCoupon() en CartPageComponent
   protected async applyCoupon(): Promise<void> {
     const code = this.couponCode().trim();
     if (!code) {
@@ -196,6 +219,7 @@ export class CartPageComponent {
     }
   }
 
+  // [CU15 - Secuencia: Paso 4] El Cliente ejecuta removeCoupon() en CartPageComponent
   protected async removeCoupon(): Promise<void> {
     try {
       const response = await requestWithToast(
@@ -208,7 +232,9 @@ export class CartPageComponent {
     }
   }
 
+  // [CU19 - Secuencia: Paso 4] El Cliente ejecuta checkout() en CartPageComponent
   protected async checkout(): Promise<void> {
+    if (!this.requireConnection()) return;
     if (!this.cart()?.items?.length) {
       toast.warning('Tu carrito está vacío.');
       return;
@@ -320,6 +346,7 @@ export class CartPageComponent {
     );
   }
 
+  // [CU20 - Secuencia: Paso 1] El Cliente ejecuta quoteDelivery() en CartPageComponent
   protected async quoteDelivery(): Promise<void> {
     const latitude = Number(this.latitude());
     const longitude = Number(this.longitude());
@@ -360,6 +387,7 @@ export class CartPageComponent {
   }
 
   protected async confirmStripePayment(): Promise<void> {
+    if (!this.requireConnection()) return;
     if (!this.stripe || !this.stripeElements) {
       toast.warning('Primero inicia el pago con Stripe.');
       return;
@@ -406,12 +434,16 @@ export class CartPageComponent {
   private async loadCart(): Promise<void> {
     this.loading.set(true);
     try {
+      await this.offlineCart.syncPending(); // CU30: primero se envían las prendas guardadas sin conexión
       const response = await firstValueFrom(this.cartApi.getCurrentCart());
       this.cart.set(response.data ?? null);
       void this.loadPoints();
     } catch (error) {
-      toast.error(getErrorMessage(error, 'No se pudo cargar el carrito.'));
-      this.cart.set(null);
+      // Sin conexión se conserva el último carrito cargado y se muestran las prendas pendientes.
+      if (navigator.onLine) {
+        toast.error(getErrorMessage(error, 'No se pudo cargar el carrito.'));
+        this.cart.set(null);
+      }
     } finally {
       this.loading.set(false);
     }

@@ -54,6 +54,7 @@ export class OfflineQueueService {
   private readonly idb = inject(IndexedDbService);
   private readonly http = inject(HttpClient);
 
+  // [CU29 - Secuencia: Paso 2.1] OfflineQueueModalComponent invoca operations() en OfflineQueueService (senal que lee la plantilla)
   readonly operations = signal<OfflineOperation[]>([]);
   readonly isSyncing = signal<boolean>(false);
   readonly lastSyncAttempt = signal<Date | null>(null);
@@ -70,8 +71,12 @@ export class OfflineQueueService {
     void this.loadQueue();
   }
 
+  // [CU29 - Secuencia: Paso 1] El sistema dispara loadQueue() en OfflineQueueService (evento del navegador)
   async loadQueue(): Promise<OfflineOperation[]> {
     try {
+      // [CU25 - Secuencia: Paso 1.3] OfflineQueueService ejecuta getAll(STORES.PENDING_OPERATIONS_QUEUE) sobre la entidad local OfflineOperation (IndexedDB)
+      // [CU29 - Secuencia: Paso 1.1] OfflineQueueService ejecuta getAll<OfflineOperation>(STORES.PENDING_OPERATIONS_QUEUE) sobre la entidad local OfflineOperation (IndexedDB)
+      // [CU30 - Secuencia: Pasos 1.4, 2.4, 4.16, 5.16] OfflineQueueService ejecuta getAll(STORES.PENDING_OPERATIONS_QUEUE) sobre la entidad local OfflineOperation (IndexedDB)
       const items = await this.idb.getAll<OfflineOperation>(STORES.PENDING_OPERATIONS_QUEUE);
       // Ordenar por fecha descendente
       items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -86,6 +91,7 @@ export class OfflineQueueService {
   /**
    * CU25: Encola una venta en efectivo o reserva realizada en contingencia offline
    */
+  // [CU25 - Secuencia: Paso 1.1] CajaPageComponent invoca enqueueOperation(input) en OfflineQueueService
   async enqueueOperation(input: EnqueueOperationInput): Promise<OfflineOperation> {
     const uuid = this.generateUuid();
     const receiptNumber = this.generateReceiptNumber();
@@ -99,6 +105,7 @@ export class OfflineQueueService {
       created_at: nowIso,
     };
 
+    // [CU25 - Secuencia: Paso 1.2] OfflineQueueService ejecuta putItem(STORES.PENDING_OPERATIONS_QUEUE, operation) sobre la entidad local OfflineOperation (IndexedDB)
     await this.idb.putItem(STORES.PENDING_OPERATIONS_QUEUE, operation);
     await this.loadQueue();
 
@@ -107,6 +114,7 @@ export class OfflineQueueService {
 
   async getOperation(operationId: string): Promise<OfflineOperation | null> {
     try {
+      // [CU30 - Secuencia: Pasos 1.2, 2.2] OfflineQueueService ejecuta getItem(STORES.PENDING_OPERATIONS_QUEUE, operationId) sobre la entidad local OfflineOperation (IndexedDB)
       return await this.idb.getItem<OfflineOperation>(STORES.PENDING_OPERATIONS_QUEUE, operationId);
     } catch {
       return null;
@@ -127,11 +135,14 @@ export class OfflineQueueService {
       sync_error: syncError ?? op.sync_error,
     };
 
+    // [CU30 - Secuencia: Pasos 1.3, 2.3] OfflineQueueService ejecuta putItem(STORES.PENDING_OPERATIONS_QUEUE, updated) sobre la entidad local OfflineOperation (IndexedDB)
     await this.idb.putItem(STORES.PENDING_OPERATIONS_QUEUE, updated);
     await this.loadQueue();
   }
 
+  // [CU30 - Secuencia: Pasos 4.14, 5.14] OfflineSyncService invoca removeOperation(operationId) en OfflineQueueService
   async removeOperation(operationId: string): Promise<void> {
+    // [CU30 - Secuencia: Pasos 1.25, 2.25, 4.15, 5.15] OfflineQueueService ejecuta deleteItem(STORES.PENDING_OPERATIONS_QUEUE, operationId) sobre la entidad local OfflineOperation (IndexedDB)
     await this.idb.deleteItem(STORES.PENDING_OPERATIONS_QUEUE, operationId);
     await this.loadQueue();
   }
@@ -144,6 +155,8 @@ export class OfflineQueueService {
   /**
    * CU29 / CU30: Dispara la sincronización del lote de operaciones pendientes
    */
+  // [CU30 - Secuencia: Paso 1.1] OfflineSyncService invoca syncBatchNow() en OfflineQueueService
+  // [CU30 - Secuencia: Paso 2.1] CajaPageComponent invoca syncBatchNow() en OfflineQueueService
   async syncBatchNow(): Promise<{ synced: number; conflicts: number; failed: number }> {
     if (this.isSyncing()) {
       return { synced: 0, conflicts: 0, failed: 0 };

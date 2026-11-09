@@ -112,6 +112,8 @@ def issue_deposit_receipt(db: Session, reservation, currency: str) -> PaymentRec
                   customer_email=customer.email if customer else None, branch_id=reservation.branch_id)
 
 
+# [CU01 - Secuencia: Paso 3.12] subscription_routes invoca issue_subscription_receipt(subscription, plan) sobre la entidad ComprobantePago
+# [CU27 - Secuencia: Paso 2.12] subscription_routes invoca issue_subscription_receipt(subscription, plan) sobre la entidad ComprobantePago
 def issue_subscription_receipt(db: Session, subscription, plan) -> PaymentReceipt:
     from app.models.tenant import Tenant
 

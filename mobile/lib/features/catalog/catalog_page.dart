@@ -15,6 +15,7 @@ import '../../shared/widgets/product_card.dart';
 import '../auth/auth_controller.dart';
 import '../auth/login_dialog.dart';
 import '../cart/cart_api.dart';
+import '../../core/offline/offline_cart_service.dart';
 import '../chatbot/chatbot_page.dart';
 import '../reservations/reservation_models.dart';
 import '../../app/theme.dart';
@@ -1350,7 +1351,9 @@ class _CatalogPageState extends State<CatalogPage> {
       // One cart per company: the backend rejects another company's item with a clear message.
 
       setState(() => _addingProductIds.add(product.id));
-      final res = await api.addItem(
+      // CU25: sin conexión la prenda se guarda en el dispositivo y se envía al volver la red (CU30).
+      final message = await OfflineCartService().addItem(
+        api,
         variantId: primaryVariant.id,
         quantity: 1,
       );
@@ -1365,8 +1368,10 @@ class _CatalogPageState extends State<CatalogPage> {
       if (mounted) {
         AppSnackBar.show(
           context,
-          res.message,
-          tone: AppSnackBarTone.success,
+          message,
+          tone: message == OfflineCartService.savedOfflineMessage
+              ? AppSnackBarTone.warning
+              : AppSnackBarTone.success,
         );
       }
     } catch (e) {

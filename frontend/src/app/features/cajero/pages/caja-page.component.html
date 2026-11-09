@@ -28,6 +28,7 @@
         </button>
       }
       <!-- Botón de Monitor de Cola Local (CU29) -->
+      <!-- [CU29 - Secuencia: Paso 2] El Cajero ejecuta showQueueModal.set(true) en CajaPageComponent (en la plantilla) -->
       <button
         hlmBtn
         type="button"
@@ -309,6 +310,7 @@
   @if (showQueueModal()) {
     <app-offline-queue-modal
       (close)="showQueueModal.set(false)"
+      (syncNow)="syncOfflineQueue()"
     />
   }
 </section>

@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
 
+import '../../core/config/app_config.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_exception.dart';
 import '../../shared/widgets/app_button.dart';
@@ -98,9 +100,14 @@ class _GiftCardsPageState extends State<GiftCardsPage> {
       return;
     }
 
+    if (AppConfig.stripePublishableKey.isEmpty) {
+      AppSnackBar.show(context, 'Configura STRIPE_PUBLISHABLE_KEY para pagar con tarjeta.', tone: AppSnackBarTone.error);
+      return;
+    }
+
     setState(() => _isSubmitting = true);
     try {
-      final res = await _client.post<Map<String, dynamic>>(
+      final intent = await _client.post<Map<String, dynamic>>(
         'gift-cards/purchase',
         data: {
           'amount': amount,
@@ -111,11 +118,12 @@ class _GiftCardsPageState extends State<GiftCardsPage> {
         },
         parser: (data) => Map<String, dynamic>.from(data as Map),
       );
+      final message = await payGiftCardWithStripe(_client, intent.data!);
 
       if (!mounted) return;
       AppSnackBar.show(
         context,
-        res.message ?? 'Tarjeta de regalo adquirida y enviada por correo al destinatario',
+        message ?? 'Tarjeta de regalo adquirida y enviada por correo al destinatario',
         tone: AppSnackBarTone.success,
       );
 
@@ -125,6 +133,9 @@ class _GiftCardsPageState extends State<GiftCardsPage> {
       _customAmountController.clear();
       setState(() => _isCustomAmount = false);
       _loadPurchases();
+    } on StripeException catch (error) {
+      if (!mounted) return;
+      AppSnackBar.show(context, error.error.localizedMessage ?? 'No se pudo completar el pago.', tone: AppSnackBarTone.error);
     } catch (error) {
       if (!mounted) return;
       AppSnackBar.show(
@@ -293,4 +304,20 @@ class _GiftCardsPageState extends State<GiftCardsPage> {
       ],
     );
   }
+}
+
+/// CU18: cobra la tarjeta de regalo con el PaymentSheet de Stripe y confirma el pago en el backend.
+Future<String?> payGiftCardWithStripe(ApiClient client, Map<String, dynamic> intent) async {
+  await Stripe.instance.initPaymentSheet(
+    paymentSheetParameters: SetupPaymentSheetParameters(
+      merchantDisplayName: 'FashionStore',
+      paymentIntentClientSecret: intent['client_secret'].toString(),
+    ),
+  );
+  await Stripe.instance.presentPaymentSheet();
+  final res = await client.post<Map<String, dynamic>>(
+    'gift-cards/${intent['id']}/confirm-payment',
+    parser: (data) => Map<String, dynamic>.from(data as Map),
+  );
+  return res.message;
 }

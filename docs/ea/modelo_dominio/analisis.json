@@ -1,0 +1,3815 @@
+{
+ "cu_tablas": {
+  "CU1": [
+   "branches",
+   "payment_receipts",
+   "roles",
+   "saas_plans",
+   "tenant_subscriptions",
+   "tenants",
+   "users"
+  ],
+  "CU2": [
+   "saas_plans"
+  ],
+  "CU3": [
+   "branches",
+   "permissions",
+   "roles",
+   "users"
+  ],
+  "CU4": [
+   "saas_plans"
+  ],
+  "CU5": [
+   "product_variants",
+   "products",
+   "saas_plans",
+   "tenant_subscriptions",
+   "tenants"
+  ],
+  "CU6": [
+   "collaborative_embeddings",
+   "collections",
+   "inventory",
+   "product_variants",
+   "products",
+   "tenants",
+   "user_product_interactions"
+  ],
+  "CU7": [
+   "categories",
+   "collections",
+   "colors",
+   "conversation_messages",
+   "conversations",
+   "orders",
+   "product_variants",
+   "products",
+   "seasons",
+   "sizes",
+   "user_body_profiles"
+  ],
+  "CU8": [
+   "branches",
+   "order_items",
+   "orders",
+   "product_variants",
+   "products",
+   "saas_plans",
+   "sale_items",
+   "sales",
+   "tenant_subscriptions"
+  ],
+  "CU9": [
+   "branches",
+   "expert_replenishment_rules",
+   "expert_transfer_suggestions",
+   "inventory",
+   "inventory_movements",
+   "notifications",
+   "product_variants",
+   "products",
+   "sale_items",
+   "sales",
+   "users"
+  ],
+  "CU10": [
+   "branches",
+   "inventory",
+   "inventory_movements",
+   "product_variants",
+   "rpa_ingest_jobs"
+  ],
+  "CU11": [
+   "branches",
+   "colors",
+   "inventory",
+   "inventory_movements",
+   "product_variants",
+   "products",
+   "sizes"
+  ],
+  "CU12": [
+   "branches",
+   "device_tokens",
+   "expert_replenishment_rules",
+   "expert_transfer_suggestions",
+   "inventory",
+   "notifications",
+   "orders",
+   "product_variants",
+   "products",
+   "reservations",
+   "sale_items",
+   "sales",
+   "users"
+  ],
+  "CU13": [
+   "branches",
+   "inventory",
+   "inventory_movements",
+   "product_variants",
+   "products",
+   "reservations",
+   "sale_items",
+   "sales"
+  ],
+  "CU14": [
+   "branches",
+   "inventory",
+   "inventory_movements",
+   "order_items",
+   "orders",
+   "product_variants",
+   "products",
+   "sale_items",
+   "sales"
+  ],
+  "CU15": [
+   "branches",
+   "cart_items",
+   "carts",
+   "colors",
+   "product_variants",
+   "products",
+   "promotion_code_usages",
+   "promotion_codes",
+   "reservations",
+   "sizes",
+   "tenants",
+   "users"
+  ],
+  "CU16": [
+   "branches",
+   "cart_items",
+   "carts",
+   "colors",
+   "inventory",
+   "order_items",
+   "orders",
+   "product_variants",
+   "products",
+   "promotion_codes",
+   "reservation_items",
+   "reservations",
+   "sizes",
+   "tenants",
+   "user_product_interactions",
+   "wishlist_items"
+  ],
+  "CU17": [
+   "loyalty_accounts",
+   "loyalty_ledger",
+   "tenants",
+   "users"
+  ],
+  "CU18": [
+   "gift_cards",
+   "tenants"
+  ],
+  "CU19": [
+   "branches",
+   "cart_items",
+   "carts",
+   "colors",
+   "gift_cards",
+   "inventory",
+   "inventory_movements",
+   "loyalty_accounts",
+   "loyalty_ledger",
+   "order_items",
+   "orders",
+   "payment_attempts",
+   "payment_transactions",
+   "product_variants",
+   "products",
+   "promotion_code_usages",
+   "promotion_codes",
+   "reservation_items",
+   "reservations",
+   "sizes",
+   "tenants",
+   "user_product_interactions",
+   "user_wallets",
+   "wallet_transactions"
+  ],
+  "CU20": [
+   "branches",
+   "orders",
+   "tenants",
+   "users"
+  ],
+  "CU21": [
+   "branches",
+   "device_tokens",
+   "inventory",
+   "inventory_movements",
+   "notifications",
+   "order_items",
+   "orders",
+   "product_variants",
+   "rma_request_items",
+   "rma_requests",
+   "tenants",
+   "user_wallets",
+   "wallet_transactions"
+  ],
+  "CU22": [
+   "tenants"
+  ],
+  "CU23": [
+   "categories",
+   "product_variants",
+   "products",
+   "tenants"
+  ],
+  "CU24": [
+   "branches",
+   "device_tokens",
+   "inventory",
+   "inventory_movements",
+   "notifications",
+   "rma_request_items",
+   "rma_requests"
+  ],
+  "CU25": [
+   "branches",
+   "cart_items",
+   "carts",
+   "colors",
+   "inventory",
+   "order_items",
+   "orders",
+   "product_variants",
+   "products",
+   "promotion_codes",
+   "reservation_items",
+   "reservations",
+   "sizes",
+   "tenants",
+   "user_product_interactions"
+  ],
+  "CU26": [
+   "branches",
+   "tenants",
+   "users"
+  ],
+  "CU27": [
+   "payment_receipts",
+   "saas_plans",
+   "tenant_subscriptions",
+   "tenants",
+   "users"
+  ],
+  "CU28": [
+   "branches",
+   "products",
+   "saas_plans",
+   "tenant_subscriptions",
+   "tenants"
+  ],
+  "CU29": [],
+  "CU30": [
+   "branches",
+   "cart_items",
+   "carts",
+   "colors",
+   "inventory",
+   "inventory_movements",
+   "order_items",
+   "orders",
+   "product_variants",
+   "products",
+   "promotion_codes",
+   "reservation_items",
+   "reservations",
+   "sale_items",
+   "sales",
+   "sizes",
+   "tenants",
+   "user_product_interactions",
+   "user_wallets",
+   "users",
+   "wallet_transactions"
+  ]
+ },
+ "modulos": {
+  "M1": {
+   "titulo": "SaaS y Seguridad",
+   "casos": [
+    "CU1",
+    "CU2",
+    "CU3",
+    "CU4",
+    "CU26",
+    "CU27",
+    "CU28"
+   ],
+   "tablas": [
+    "branches",
+    "payment_receipts",
+    "permissions",
+    "products",
+    "roles",
+    "saas_plans",
+    "tenant_subscriptions",
+    "tenants",
+    "users"
+   ]
+  },
+  "M2": {
+   "titulo": "Inteligencia Artificial",
+   "casos": [
+    "CU5",
+    "CU6",
+    "CU7",
+    "CU8",
+    "CU9",
+    "CU10"
+   ],
+   "tablas": [
+    "branches",
+    "categories",
+    "collaborative_embeddings",
+    "collections",
+    "colors",
+    "conversation_messages",
+    "conversations",
+    "expert_replenishment_rules",
+    "expert_transfer_suggestions",
+    "inventory",
+    "inventory_movements",
+    "notifications",
+    "order_items",
+    "orders",
+    "product_variants",
+    "products",
+    "rpa_ingest_jobs",
+    "saas_plans",
+    "sale_items",
+    "sales",
+    "seasons",
+    "sizes",
+    "tenant_subscriptions",
+    "tenants",
+    "user_body_profiles",
+    "user_product_interactions",
+    "users"
+   ]
+  },
+  "M3": {
+   "titulo": "Inventario y Operaciones",
+   "casos": [
+    "CU11",
+    "CU12"
+   ],
+   "tablas": [
+    "branches",
+    "colors",
+    "device_tokens",
+    "expert_replenishment_rules",
+    "expert_transfer_suggestions",
+    "inventory",
+    "inventory_movements",
+    "notifications",
+    "orders",
+    "product_variants",
+    "products",
+    "reservations",
+    "sale_items",
+    "sales",
+    "sizes",
+    "users"
+   ]
+  },
+  "M4": {
+   "titulo": "Business Intelligence",
+   "casos": [
+    "CU13",
+    "CU14"
+   ],
+   "tablas": [
+    "branches",
+    "inventory",
+    "inventory_movements",
+    "order_items",
+    "orders",
+    "product_variants",
+    "products",
+    "reservations",
+    "sale_items",
+    "sales"
+   ]
+  },
+  "M5": {
+   "titulo": "Promociones y Fidelización",
+   "casos": [
+    "CU15",
+    "CU16",
+    "CU17",
+    "CU18",
+    "CU19"
+   ],
+   "tablas": [
+    "branches",
+    "cart_items",
+    "carts",
+    "colors",
+    "gift_cards",
+    "inventory",
+    "inventory_movements",
+    "loyalty_accounts",
+    "loyalty_ledger",
+    "order_items",
+    "orders",
+    "payment_attempts",
+    "payment_transactions",
+    "product_variants",
+    "products",
+    "promotion_code_usages",
+    "promotion_codes",
+    "reservation_items",
+    "reservations",
+    "sizes",
+    "tenants",
+    "user_product_interactions",
+    "user_wallets",
+    "users",
+    "wallet_transactions",
+    "wishlist_items"
+   ]
+  },
+  "M6": {
+   "titulo": "Logística y Posventa",
+   "casos": [
+    "CU20",
+    "CU21",
+    "CU22",
+    "CU23",
+    "CU24",
+    "CU25",
+    "CU29",
+    "CU30"
+   ],
+   "tablas": [
+    "branches",
+    "cart_items",
+    "carts",
+    "categories",
+    "colors",
+    "device_tokens",
+    "inventory",
+    "inventory_movements",
+    "notifications",
+    "order_items",
+    "orders",
+    "product_variants",
+    "products",
+    "promotion_codes",
+    "reservation_items",
+    "reservations",
+    "rma_request_items",
+    "rma_requests",
+    "sale_items",
+    "sales",
+    "sizes",
+    "tenants",
+    "user_product_interactions",
+    "user_wallets",
+    "users",
+    "wallet_transactions"
+   ]
+  }
+ },
+ "operaciones": {
+  "branches": [
+   {
+    "nombre": "create_branch",
+    "params": [
+     "branch",
+     "tenant_id"
+    ],
+    "tipos": [
+     "BranchCreate",
+     "UUID | None"
+    ],
+    "firma": "create_branch(branch: BranchCreate, tenant_id: UUID | None)",
+    "archivo": "backend/app/services/branch_service.py"
+   },
+   {
+    "nombre": "delete_branch",
+    "params": [
+     "branch_id",
+     "tenant_id"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID | None"
+    ],
+    "firma": "delete_branch(branch_id: UUID, tenant_id: UUID | None)",
+    "archivo": "backend/app/services/branch_service.py"
+   },
+   {
+    "nombre": "get_branches",
+    "params": [
+     "branch_id",
+     "tenant_id"
+    ],
+    "tipos": [
+     "UUID | None",
+     "UUID | None"
+    ],
+    "firma": "get_branches(branch_id: UUID | None, tenant_id: UUID | None)",
+    "archivo": "backend/app/services/branch_service.py"
+   },
+   {
+    "nombre": "get_dashboard",
+    "params": [
+     "filters",
+     "tenant_id"
+    ],
+    "tipos": [
+     "DashboardQuery",
+     "UUID"
+    ],
+    "firma": "get_dashboard(filters: DashboardQuery, tenant_id: UUID)",
+    "archivo": "backend/app/services/dashboard_service.py"
+   },
+   {
+    "nombre": "move_all_to_cart",
+    "params": [
+     "user_id",
+     "tenant_id",
+     "branch_id",
+     "clear_conflict"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID",
+     "UUID",
+     "bool"
+    ],
+    "firma": "move_all_to_cart(user_id: UUID, tenant_id: UUID, branch_id: UUID, clear_conflict: bool)",
+    "archivo": "backend/app/services/wishlist_service.py"
+   },
+   {
+    "nombre": "set_branch_active",
+    "params": [
+     "branch_id",
+     "is_active",
+     "tenant_id"
+    ],
+    "tipos": [
+     "UUID",
+     "bool",
+     "UUID | None"
+    ],
+    "firma": "set_branch_active(branch_id: UUID, is_active: bool, tenant_id: UUID | None)",
+    "archivo": "backend/app/services/branch_service.py"
+   },
+   {
+    "nombre": "set_cart_branch",
+    "params": [
+     "user_id",
+     "branch_id"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID | None"
+    ],
+    "firma": "set_cart_branch(user_id: UUID, branch_id: UUID | None)",
+    "archivo": "backend/app/services/cart_service.py"
+   },
+   {
+    "nombre": "shipping_quote",
+    "params": [
+     "branch_id",
+     "latitude",
+     "longitude"
+    ],
+    "tipos": [
+     "UUID",
+     "",
+     ""
+    ],
+    "firma": "shipping_quote(branch_id: UUID, latitude, longitude)",
+    "archivo": "backend/app/services/delivery_service.py"
+   },
+   {
+    "nombre": "update_branch",
+    "params": [
+     "branch_id",
+     "update_data",
+     "tenant_id"
+    ],
+    "tipos": [
+     "UUID",
+     "",
+     "UUID | None"
+    ],
+    "firma": "update_branch(branch_id: UUID, update_data, tenant_id: UUID | None)",
+    "archivo": "backend/app/services/branch_service.py"
+   }
+  ],
+  "carts": [
+   {
+    "nombre": "refresh_cart_totals",
+    "params": [
+     "cart"
+    ],
+    "tipos": [
+     "Cart"
+    ],
+    "firma": "refresh_cart_totals(cart: Cart)",
+    "archivo": "backend/app/services/cart_service.py"
+   },
+   {
+    "nombre": "validate_cart_company",
+    "params": [
+     "cart",
+     "tenant_id"
+    ],
+    "tipos": [
+     "Cart",
+     "UUID"
+    ],
+    "firma": "validate_cart_company(cart: Cart, tenant_id: UUID)",
+    "archivo": "backend/app/services/cart_service.py"
+   }
+  ],
+  "cart_items": [
+   {
+    "nombre": "add_cart_item",
+    "params": [
+     "user_id",
+     "payload"
+    ],
+    "tipos": [
+     "UUID",
+     "CartItemCreate"
+    ],
+    "firma": "add_cart_item(user_id: UUID, payload: CartItemCreate)",
+    "archivo": "backend/app/services/cart_service.py"
+   },
+   {
+    "nombre": "cart_has_product_discount",
+    "params": [
+     "cart_id"
+    ],
+    "tipos": [
+     "UUID"
+    ],
+    "firma": "cart_has_product_discount(cart_id: UUID)",
+    "archivo": "backend/app/services/promotion_service.py"
+   },
+   {
+    "nombre": "clear_cart",
+    "params": [
+     "user_id"
+    ],
+    "tipos": [
+     "UUID"
+    ],
+    "firma": "clear_cart(user_id: UUID)",
+    "archivo": "backend/app/services/cart_service.py"
+   },
+   {
+    "nombre": "remove_cart_item",
+    "params": [
+     "user_id",
+     "item_id"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID"
+    ],
+    "firma": "remove_cart_item(user_id: UUID, item_id: UUID)",
+    "archivo": "backend/app/services/cart_service.py"
+   },
+   {
+    "nombre": "transfer_reservation_to_cart",
+    "params": [
+     "user_id",
+     "reservation_id"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID"
+    ],
+    "firma": "transfer_reservation_to_cart(user_id: UUID, reservation_id: UUID)",
+    "archivo": "backend/app/services/reservation_service.py"
+   },
+   {
+    "nombre": "update_cart_item",
+    "params": [
+     "user_id",
+     "item_id",
+     "payload"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID",
+     "CartItemUpdate"
+    ],
+    "firma": "update_cart_item(user_id: UUID, item_id: UUID, payload: CartItemUpdate)",
+    "archivo": "backend/app/services/cart_service.py"
+   }
+  ],
+  "cash_sessions": [
+   {
+    "nombre": "expected_cash",
+    "params": [],
+    "tipos": [],
+    "firma": "expected_cash()",
+    "archivo": "backend/app/services/cash_session_service.py"
+   },
+   {
+    "nombre": "get_open_session",
+    "params": [
+     "cashier_id",
+     "lock"
+    ],
+    "tipos": [
+     "UUID",
+     "bool"
+    ],
+    "firma": "get_open_session(cashier_id: UUID, lock: bool)",
+    "archivo": "backend/app/services/cash_session_service.py"
+   },
+   {
+    "nombre": "get_session",
+    "params": [
+     "session_id",
+     "tenant_id",
+     "branch_id",
+     "cashier_id"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID",
+     "UUID | None",
+     "UUID | None"
+    ],
+    "firma": "get_session(session_id: UUID, tenant_id: UUID, branch_id: UUID | None, cashier_id: UUID | None)",
+    "archivo": "backend/app/services/cash_session_service.py"
+   },
+   {
+    "nombre": "list_sessions",
+    "params": [
+     "tenant_id",
+     "branch_id",
+     "cashier_id",
+     "day"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID | None",
+     "UUID | None",
+     "date | None"
+    ],
+    "firma": "list_sessions(tenant_id: UUID, branch_id: UUID | None, cashier_id: UUID | None, day: date | None)",
+    "archivo": "backend/app/services/cash_session_service.py"
+   },
+   {
+    "nombre": "open_session",
+    "params": [
+     "cashier",
+     "opening_amount"
+    ],
+    "tipos": [
+     "User",
+     ""
+    ],
+    "firma": "open_session(cashier: User, opening_amount)",
+    "archivo": "backend/app/services/cash_session_service.py"
+   },
+   {
+    "nombre": "require_open_session",
+    "params": [
+     "cashier_id",
+     "branch_id",
+     "tenant_id"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID | None",
+     "UUID | None"
+    ],
+    "firma": "require_open_session(cashier_id: UUID, branch_id: UUID | None, tenant_id: UUID | None)",
+    "archivo": "backend/app/services/cash_session_service.py"
+   },
+   {
+    "nombre": "serialize",
+    "params": [
+     "with_movements"
+    ],
+    "tipos": [
+     "bool"
+    ],
+    "firma": "serialize(with_movements: bool)",
+    "archivo": "backend/app/services/cash_session_service.py"
+   }
+  ],
+  "cash_movements": [
+   {
+    "nombre": "add_manual_movement",
+    "params": [
+     "cashier",
+     "type_",
+     "amount",
+     "reason"
+    ],
+    "tipos": [
+     "User",
+     "str",
+     "",
+     "str"
+    ],
+    "firma": "add_manual_movement(cashier: User, type_: str, amount, reason: str)",
+    "archivo": "backend/app/services/cash_session_service.py"
+   },
+   {
+    "nombre": "record_sale",
+    "params": [
+     "sale",
+     "cash_received"
+    ],
+    "tipos": [
+     "",
+     ""
+    ],
+    "firma": "record_sale(sale, cash_received)",
+    "archivo": "backend/app/services/cash_session_service.py"
+   }
+  ],
+  "categories": [
+   {
+    "nombre": "delete_category",
+    "params": [
+     "category_id"
+    ],
+    "tipos": [
+     ""
+    ],
+    "firma": "delete_category(category_id)",
+    "archivo": "backend/app/services/catalog_service.py"
+   }
+  ],
+  "collections": [
+   {
+    "nombre": "create_collection",
+    "params": [
+     "payload",
+     "tenant_id"
+    ],
+    "tipos": [
+     "CollectionCreate",
+     ""
+    ],
+    "firma": "create_collection(payload: CollectionCreate, tenant_id)",
+    "archivo": "backend/app/services/catalog_service.py"
+   },
+   {
+    "nombre": "delete_collection",
+    "params": [
+     "collection_id"
+    ],
+    "tipos": [
+     ""
+    ],
+    "firma": "delete_collection(collection_id)",
+    "archivo": "backend/app/services/catalog_service.py"
+   }
+  ],
+  "colors": [
+   {
+    "nombre": "create_color",
+    "params": [
+     "payload"
+    ],
+    "tipos": [
+     "ColorCreate"
+    ],
+    "firma": "create_color(payload: ColorCreate)",
+    "archivo": "backend/app/services/catalog_service.py"
+   },
+   {
+    "nombre": "delete_color",
+    "params": [
+     "color_id"
+    ],
+    "tipos": [
+     ""
+    ],
+    "firma": "delete_color(color_id)",
+    "archivo": "backend/app/services/catalog_service.py"
+   }
+  ],
+  "conversations": [
+   {
+    "nombre": "clear_conversation",
+    "params": [
+     "user_id"
+    ],
+    "tipos": [
+     "UUID"
+    ],
+    "firma": "clear_conversation(user_id: UUID)",
+    "archivo": "backend/app/services/conversation_service.py"
+   },
+   {
+    "nombre": "get_or_create_conversation",
+    "params": [
+     "user_id"
+    ],
+    "tipos": [
+     "UUID"
+    ],
+    "firma": "get_or_create_conversation(user_id: UUID)",
+    "archivo": "backend/app/services/conversation_service.py"
+   },
+   {
+    "nombre": "reset_conversation",
+    "params": [
+     "user_id"
+    ],
+    "tipos": [
+     "UUID"
+    ],
+    "firma": "reset_conversation(user_id: UUID)",
+    "archivo": "backend/app/services/conversation_service.py"
+   }
+  ],
+  "conversation_messages": [
+   {
+    "nombre": "append_message",
+    "params": [
+     "conversation",
+     "role",
+     "content",
+     "message_data"
+    ],
+    "tipos": [
+     "Conversation",
+     "str",
+     "str",
+     "object | None"
+    ],
+    "firma": "append_message(conversation: Conversation, role: str, content: str, message_data: object | None)",
+    "archivo": "backend/app/services/conversation_service.py"
+   },
+   {
+    "nombre": "list_messages",
+    "params": [
+     "user_id"
+    ],
+    "tipos": [
+     "UUID"
+    ],
+    "firma": "list_messages(user_id: UUID)",
+    "archivo": "backend/app/services/conversation_service.py"
+   },
+   {
+    "nombre": "load_recent_messages",
+    "params": [
+     "conversation"
+    ],
+    "tipos": [
+     "Conversation"
+    ],
+    "firma": "load_recent_messages(conversation: Conversation)",
+    "archivo": "backend/app/services/conversation_service.py"
+   }
+  ],
+  "expert_replenishment_rules": [
+   {
+    "nombre": "get_or_create_rules",
+    "params": [
+     "tenant_id"
+    ],
+    "tipos": [
+     "UUID"
+    ],
+    "firma": "get_or_create_rules(tenant_id: UUID)",
+    "archivo": "backend/app/services/expert_replenishment_service.py"
+   },
+   {
+    "nombre": "run_auto_evaluation_all_tenants",
+    "params": [],
+    "tipos": [],
+    "firma": "run_auto_evaluation_all_tenants()",
+    "archivo": "backend/app/services/expert_replenishment_service.py"
+   },
+   {
+    "nombre": "update_rules",
+    "params": [
+     "tenant_id",
+     "data"
+    ],
+    "tipos": [
+     "UUID",
+     "ExpertRuleUpdate"
+    ],
+    "firma": "update_rules(tenant_id: UUID, data: ExpertRuleUpdate)",
+    "archivo": "backend/app/services/expert_replenishment_service.py"
+   }
+  ],
+  "expert_transfer_suggestions": [
+   {
+    "nombre": "apply_transfers",
+    "params": [
+     "tenant_id",
+     "transfer_ids",
+     "user_id"
+    ],
+    "tipos": [
+     "UUID",
+     "list[UUID]",
+     "UUID | None"
+    ],
+    "firma": "apply_transfers(tenant_id: UUID, transfer_ids: list[UUID], user_id: UUID | None)",
+    "archivo": "backend/app/services/expert_replenishment_service.py"
+   },
+   {
+    "nombre": "discard_transfers",
+    "params": [
+     "tenant_id",
+     "transfer_ids"
+    ],
+    "tipos": [
+     "UUID",
+     "list[UUID]"
+    ],
+    "firma": "discard_transfers(tenant_id: UUID, transfer_ids: list[UUID])",
+    "archivo": "backend/app/services/expert_replenishment_service.py"
+   },
+   {
+    "nombre": "evaluate",
+    "params": [
+     "tenant_id"
+    ],
+    "tipos": [
+     "UUID"
+    ],
+    "firma": "evaluate(tenant_id: UUID)",
+    "archivo": "backend/app/services/expert_replenishment_service.py"
+   },
+   {
+    "nombre": "list_suggestions",
+    "params": [
+     "tenant_id",
+     "status"
+    ],
+    "tipos": [
+     "UUID",
+     "str | None"
+    ],
+    "firma": "list_suggestions(tenant_id: UUID, status: str | None)",
+    "archivo": "backend/app/services/expert_replenishment_service.py"
+   }
+  ],
+  "gift_cards": [
+   {
+    "nombre": "activate_paid_gift_card",
+    "params": [
+     "payment_intent"
+    ],
+    "tipos": [
+     ""
+    ],
+    "firma": "activate_paid_gift_card(payment_intent)",
+    "archivo": "backend/app/services/gift_card_service.py"
+   },
+   {
+    "nombre": "confirm_gift_card_payment",
+    "params": [
+     "buyer_id",
+     "card_id"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID"
+    ],
+    "firma": "confirm_gift_card_payment(buyer_id: UUID, card_id: UUID)",
+    "archivo": "backend/app/services/gift_card_service.py"
+   },
+   {
+    "nombre": "generate_unique_code",
+    "params": [],
+    "tipos": [],
+    "firma": "generate_unique_code()",
+    "archivo": "backend/app/services/gift_card_service.py"
+   },
+   {
+    "nombre": "list_my_purchases",
+    "params": [
+     "buyer_id"
+    ],
+    "tipos": [
+     "UUID"
+    ],
+    "firma": "list_my_purchases(buyer_id: UUID)",
+    "archivo": "backend/app/services/gift_card_service.py"
+   },
+   {
+    "nombre": "purchase_gift_card",
+    "params": [
+     "buyer_id",
+     "payload"
+    ],
+    "tipos": [
+     "UUID",
+     "GiftCardPurchaseRequest"
+    ],
+    "firma": "purchase_gift_card(buyer_id: UUID, payload: GiftCardPurchaseRequest)",
+    "archivo": "backend/app/services/gift_card_service.py"
+   },
+   {
+    "nombre": "send_gift_card_email",
+    "params": [
+     "card"
+    ],
+    "tipos": [
+     "GiftCard"
+    ],
+    "firma": "send_gift_card_email(card: GiftCard)",
+    "archivo": "backend/app/services/gift_card_service.py"
+   },
+   {
+    "nombre": "verify_gift_card",
+    "params": [
+     "code"
+    ],
+    "tipos": [
+     "str"
+    ],
+    "firma": "verify_gift_card(code: str)",
+    "archivo": "backend/app/services/gift_card_service.py"
+   }
+  ],
+  "inventory": [
+   {
+    "nombre": "create_or_update_inventory",
+    "params": [
+     "variant_id",
+     "branch_id",
+     "quantity",
+     "tenant_id"
+    ],
+    "tipos": [
+     "",
+     "",
+     "int",
+     ""
+    ],
+    "firma": "create_or_update_inventory(variant_id, branch_id, quantity: int, tenant_id)",
+    "archivo": "backend/app/services/catalog_service.py"
+   },
+   {
+    "nombre": "evaluate_on_low_stock",
+    "params": [
+     "inventory"
+    ],
+    "tipos": [
+     "Inventory"
+    ],
+    "firma": "evaluate_on_low_stock(inventory: Inventory)",
+    "archivo": "backend/app/services/expert_replenishment_service.py"
+   },
+   {
+    "nombre": "get_branch_quantity",
+    "params": [
+     "variant_id",
+     "branch_id"
+    ],
+    "tipos": [
+     "",
+     ""
+    ],
+    "firma": "get_branch_quantity(variant_id, branch_id)",
+    "archivo": "backend/app/services/catalog_service.py"
+   },
+   {
+    "nombre": "get_critical_inventory_report",
+    "params": [
+     "filters",
+     "tenant_id"
+    ],
+    "tipos": [
+     "ReportQuery",
+     "UUID"
+    ],
+    "firma": "get_critical_inventory_report(filters: ReportQuery, tenant_id: UUID)",
+    "archivo": "backend/app/services/report_service.py"
+   },
+   {
+    "nombre": "notify_low_stock",
+    "params": [
+     "inventory"
+    ],
+    "tipos": [
+     "Inventory"
+    ],
+    "firma": "notify_low_stock(inventory: Inventory)",
+    "archivo": "backend/app/services/notification_delivery.py"
+   },
+   {
+    "nombre": "update_minimum_stock",
+    "params": [
+     "payload",
+     "tenant_id"
+    ],
+    "tipos": [
+     "InventoryThresholdUpdate",
+     ""
+    ],
+    "firma": "update_minimum_stock(payload: InventoryThresholdUpdate, tenant_id)",
+    "archivo": "backend/app/services/inventory_service.py"
+   }
+  ],
+  "inventory_movements": [
+   {
+    "nombre": "list_movements",
+    "params": [
+     "variant_id",
+     "branch_id",
+     "movement_type",
+     "limit",
+     "tenant_id"
+    ],
+    "tipos": [
+     "",
+     "",
+     "InventoryMovementTypeEnum | None",
+     "int",
+     ""
+    ],
+    "firma": "list_movements(variant_id, branch_id, movement_type: InventoryMovementTypeEnum | None, limit: int, tenant_id)",
+    "archivo": "backend/app/services/inventory_service.py"
+   },
+   {
+    "nombre": "receive_request",
+    "params": [
+     "request",
+     "actor_id"
+    ],
+    "tipos": [
+     "ReplenishmentRequest",
+     "UUID"
+    ],
+    "firma": "receive_request(request: ReplenishmentRequest, actor_id: UUID)",
+    "archivo": "backend/app/services/replenishment_service.py"
+   },
+   {
+    "nombre": "register_outcome",
+    "params": [
+     "payload",
+     "created_by",
+     "tenant_id"
+    ],
+    "tipos": [
+     "InventoryMovementCreate",
+     "",
+     ""
+    ],
+    "firma": "register_outcome(payload: InventoryMovementCreate, created_by, tenant_id)",
+    "archivo": "backend/app/services/inventory_service.py"
+   },
+   {
+    "nombre": "review_rma_item",
+    "params": [
+     "rma_id",
+     "item_id",
+     "payload",
+     "reviewer",
+     "tenant_id"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID",
+     "RmaItemReview",
+     "User",
+     "UUID"
+    ],
+    "firma": "review_rma_item(rma_id: UUID, item_id: UUID, payload: RmaItemReview, reviewer: User, tenant_id: UUID)",
+    "archivo": "backend/app/services/rma_service.py"
+   }
+  ],
+  "loyalty_accounts": [
+   {
+    "nombre": "list_balances",
+    "params": [
+     "user_id"
+    ],
+    "tipos": [
+     "UUID"
+    ],
+    "firma": "list_balances(user_id: UUID)",
+    "archivo": "backend/app/services/loyalty_service.py"
+   }
+  ],
+  "loyalty_ledger": [
+   {
+    "nombre": "earn",
+    "params": [
+     "tenant_id",
+     "user_id",
+     "amount",
+     "source_type",
+     "source_id"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID",
+     "Decimal",
+     "str",
+     "UUID"
+    ],
+    "firma": "earn(tenant_id: UUID, user_id: UUID, amount: Decimal, source_type: str, source_id: UUID)",
+    "archivo": "backend/app/services/loyalty_service.py"
+   },
+   {
+    "nombre": "list_transactions",
+    "params": [
+     "user_id",
+     "limit"
+    ],
+    "tipos": [
+     "UUID",
+     "int"
+    ],
+    "firma": "list_transactions(user_id: UUID, limit: int)",
+    "archivo": "backend/app/services/loyalty_service.py"
+   },
+   {
+    "nombre": "redeem",
+    "params": [
+     "tenant_id",
+     "user_id",
+     "points",
+     "max_amount",
+     "source_type",
+     "source_id"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID",
+     "int",
+     "Decimal",
+     "str",
+     "UUID"
+    ],
+    "firma": "redeem(tenant_id: UUID, user_id: UUID, points: int, max_amount: Decimal, source_type: str, source_id: UUID)",
+    "archivo": "backend/app/services/loyalty_service.py"
+   },
+   {
+    "nombre": "refund_redeem",
+    "params": [
+     "source_type",
+     "source_id"
+    ],
+    "tipos": [
+     "str",
+     "UUID"
+    ],
+    "firma": "refund_redeem(source_type: str, source_id: UUID)",
+    "archivo": "backend/app/services/loyalty_service.py"
+   }
+  ],
+  "notifications": [
+   {
+    "nombre": "create_notification",
+    "params": [
+     "user_id",
+     "title",
+     "body",
+     "data",
+     "dedupe_key"
+    ],
+    "tipos": [
+     "UUID",
+     "str",
+     "str",
+     "dict | None",
+     "str | None"
+    ],
+    "firma": "create_notification(user_id: UUID, title: str, body: str, data: dict | None, dedupe_key: str | None)",
+    "archivo": "backend/app/services/notification_service.py"
+   },
+   {
+    "nombre": "deliver_notification",
+    "params": [
+     "notification"
+    ],
+    "tipos": [
+     "Notification"
+    ],
+    "firma": "deliver_notification(notification: Notification)",
+    "archivo": "backend/app/services/notification_delivery.py"
+   },
+   {
+    "nombre": "list_notifications",
+    "params": [
+     "user_id",
+     "limit"
+    ],
+    "tipos": [
+     "UUID",
+     "int"
+    ],
+    "firma": "list_notifications(user_id: UUID, limit: int)",
+    "archivo": "backend/app/services/notification_service.py"
+   },
+   {
+    "nombre": "mark_all_notifications_read",
+    "params": [
+     "user_id"
+    ],
+    "tipos": [
+     "UUID"
+    ],
+    "firma": "mark_all_notifications_read(user_id: UUID)",
+    "archivo": "backend/app/services/notification_service.py"
+   },
+   {
+    "nombre": "mark_notification_read",
+    "params": [
+     "user_id",
+     "notification_id"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID"
+    ],
+    "firma": "mark_notification_read(user_id: UUID, notification_id: UUID)",
+    "archivo": "backend/app/services/notification_service.py"
+   },
+   {
+    "nombre": "unread_count",
+    "params": [
+     "user_id"
+    ],
+    "tipos": [
+     "UUID"
+    ],
+    "firma": "unread_count(user_id: UUID)",
+    "archivo": "backend/app/services/notification_service.py"
+   }
+  ],
+  "device_tokens": [
+   {
+    "nombre": "register_device_token",
+    "params": [
+     "user_id",
+     "payload"
+    ],
+    "tipos": [
+     "UUID",
+     "DeviceTokenUpsert"
+    ],
+    "firma": "register_device_token(user_id: UUID, payload: DeviceTokenUpsert)",
+    "archivo": "backend/app/services/notification_service.py"
+   },
+   {
+    "nombre": "unregister_device_token",
+    "params": [
+     "user_id",
+     "token"
+    ],
+    "tipos": [
+     "UUID",
+     "str"
+    ],
+    "firma": "unregister_device_token(user_id: UUID, token: str)",
+    "archivo": "backend/app/services/notification_service.py"
+   }
+  ],
+  "orders": [
+   {
+    "nombre": "cancel_order",
+    "params": [
+     "user_id",
+     "order_id"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID"
+    ],
+    "firma": "cancel_order(user_id: UUID, order_id: UUID)",
+    "archivo": "backend/app/services/order_service.py"
+   },
+   {
+    "nombre": "customer_clusters",
+    "params": [
+     "tenant_id",
+     "use_synthetic_data"
+    ],
+    "tipos": [
+     "UUID",
+     "bool"
+    ],
+    "firma": "customer_clusters(tenant_id: UUID, use_synthetic_data: bool)",
+    "archivo": "backend/app/services/ml/customer_segmentation_service.py"
+   },
+   {
+    "nombre": "expire_due_orders",
+    "params": [],
+    "tipos": [],
+    "firma": "expire_due_orders()",
+    "archivo": "backend/app/services/order_service.py"
+   },
+   {
+    "nombre": "get_order",
+    "params": [
+     "user_id",
+     "order_id"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID"
+    ],
+    "firma": "get_order(user_id: UUID, order_id: UUID)",
+    "archivo": "backend/app/services/order_service.py"
+   },
+   {
+    "nombre": "hand_over_order",
+    "params": [
+     "order_id",
+     "pickup_code",
+     "staff_branch_id",
+     "tenant_id"
+    ],
+    "tipos": [
+     "UUID",
+     "str",
+     "UUID | None",
+     "UUID | None"
+    ],
+    "firma": "hand_over_order(order_id: UUID, pickup_code: str, staff_branch_id: UUID | None, tenant_id: UUID | None)",
+    "archivo": "backend/app/services/order_service.py"
+   },
+   {
+    "nombre": "list_eligible_orders",
+    "params": [
+     "user",
+     "tenant_id"
+    ],
+    "tipos": [
+     "User",
+     "UUID | None"
+    ],
+    "firma": "list_eligible_orders(user: User, tenant_id: UUID | None)",
+    "archivo": "backend/app/services/rma_service.py"
+   },
+   {
+    "nombre": "list_orders",
+    "params": [
+     "user_id"
+    ],
+    "tipos": [
+     "UUID"
+    ],
+    "firma": "list_orders(user_id: UUID)",
+    "archivo": "backend/app/services/order_service.py"
+   },
+   {
+    "nombre": "list_orders_by_branch",
+    "params": [
+     "branch_id",
+     "tenant_id"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID | None"
+    ],
+    "firma": "list_orders_by_branch(branch_id: UUID, tenant_id: UUID | None)",
+    "archivo": "backend/app/services/order_service.py"
+   },
+   {
+    "nombre": "mark_order_ready",
+    "params": [
+     "order_id",
+     "branch_id",
+     "tenant_id"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID",
+     "UUID | None"
+    ],
+    "firma": "mark_order_ready(order_id: UUID, branch_id: UUID, tenant_id: UUID | None)",
+    "archivo": "backend/app/services/order_service.py"
+   },
+   {
+    "nombre": "notify_order_event",
+    "params": [
+     "order_id",
+     "user_id",
+     "status"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID",
+     "str"
+    ],
+    "firma": "notify_order_event(order_id: UUID, user_id: UUID, status: str)",
+    "archivo": "backend/app/services/notification_delivery.py"
+   }
+  ],
+  "order_items": [
+   {
+    "nombre": "_new_order",
+    "params": [
+     "cart",
+     "user_id",
+     "branch_id",
+     "method",
+     "delivery",
+     "points_to_redeem"
+    ],
+    "tipos": [
+     "Cart",
+     "UUID",
+     "UUID",
+     "PaymentMethodEnum",
+     "",
+     "int"
+    ],
+    "firma": "_new_order(cart: Cart, user_id: UUID, branch_id: UUID, method: PaymentMethodEnum, delivery, points_to_redeem: int)",
+    "archivo": "backend/app/services/order_service.py"
+   }
+  ],
+  "payment_attempts": [
+   {
+    "nombre": "create_stripe_payment",
+    "params": [
+     "user_id",
+     "pickup_branch_id",
+     "delivery",
+     "points_to_redeem"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID",
+     "",
+     "int"
+    ],
+    "firma": "create_stripe_payment(user_id: UUID, pickup_branch_id: UUID, delivery, points_to_redeem: int)",
+    "archivo": "backend/app/services/order_service.py"
+   },
+   {
+    "nombre": "create_stripe_payment_for_order",
+    "params": [
+     "user_id",
+     "order_id"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID"
+    ],
+    "firma": "create_stripe_payment_for_order(user_id: UUID, order_id: UUID)",
+    "archivo": "backend/app/services/order_service.py"
+   }
+  ],
+  "payment_receipts": [
+   {
+    "nombre": "display_number",
+    "params": [
+     "receipt"
+    ],
+    "tipos": [
+     "PaymentReceipt"
+    ],
+    "firma": "display_number(receipt: PaymentReceipt)",
+    "archivo": "backend/app/services/receipt_service.py"
+   },
+   {
+    "nombre": "find_receipt",
+    "params": [
+     "user",
+     "kind",
+     "source_id"
+    ],
+    "tipos": [
+     "",
+     "str",
+     "UUID"
+    ],
+    "firma": "find_receipt(user, kind: str, source_id: UUID)",
+    "archivo": "backend/app/services/receipt_service.py"
+   },
+   {
+    "nombre": "issue_deposit_receipt",
+    "params": [
+     "reservation",
+     "currency"
+    ],
+    "tipos": [
+     "",
+     "str"
+    ],
+    "firma": "issue_deposit_receipt(reservation, currency: str)",
+    "archivo": "backend/app/services/receipt_service.py"
+   },
+   {
+    "nombre": "issue_order_receipt",
+    "params": [
+     "order"
+    ],
+    "tipos": [
+     ""
+    ],
+    "firma": "issue_order_receipt(order)",
+    "archivo": "backend/app/services/receipt_service.py"
+   },
+   {
+    "nombre": "issue_sale_receipt",
+    "params": [
+     "sale",
+     "items",
+     "cash_movement"
+    ],
+    "tipos": [
+     "",
+     "list[dict]",
+     ""
+    ],
+    "firma": "issue_sale_receipt(sale, items: list[dict], cash_movement)",
+    "archivo": "backend/app/services/receipt_service.py"
+   },
+   {
+    "nombre": "issue_subscription_receipt",
+    "params": [
+     "subscription",
+     "plan"
+    ],
+    "tipos": [
+     "",
+     ""
+    ],
+    "firma": "issue_subscription_receipt(subscription, plan)",
+    "archivo": "backend/app/services/receipt_service.py"
+   },
+   {
+    "nombre": "render_pdf",
+    "params": [
+     "receipt"
+    ],
+    "tipos": [
+     "PaymentReceipt"
+    ],
+    "firma": "render_pdf(receipt: PaymentReceipt)",
+    "archivo": "backend/app/services/receipt_service.py"
+   },
+   {
+    "nombre": "request_resend",
+    "params": [
+     "receipt"
+    ],
+    "tipos": [
+     "PaymentReceipt"
+    ],
+    "firma": "request_resend(receipt: PaymentReceipt)",
+    "archivo": "backend/app/services/receipt_service.py"
+   },
+   {
+    "nombre": "send_pending_receipts",
+    "params": [
+     "session_factory",
+     "email_service",
+     "limit"
+    ],
+    "tipos": [
+     "",
+     "",
+     "int"
+    ],
+    "firma": "send_pending_receipts(session_factory, email_service, limit: int)",
+    "archivo": "backend/app/services/receipt_service.py"
+   },
+   {
+    "nombre": "serialize",
+    "params": [
+     "receipt"
+    ],
+    "tipos": [
+     "PaymentReceipt"
+    ],
+    "firma": "serialize(receipt: PaymentReceipt)",
+    "archivo": "backend/app/services/receipt_service.py"
+   },
+   {
+    "nombre": "visible_query",
+    "params": [
+     "user"
+    ],
+    "tipos": [
+     ""
+    ],
+    "firma": "visible_query(user)",
+    "archivo": "backend/app/services/receipt_service.py"
+   }
+  ],
+  "settlements": [
+   {
+    "nombre": "list_settlements",
+    "params": [
+     "tenant_id"
+    ],
+    "tipos": [
+     "UUID | None"
+    ],
+    "firma": "list_settlements(tenant_id: UUID | None)",
+    "archivo": "backend/app/services/payout_service.py"
+   },
+   {
+    "nombre": "mark_settlement_paid",
+    "params": [
+     "settlement_id",
+     "transfer_reference",
+     "paid_by"
+    ],
+    "tipos": [
+     "UUID",
+     "str",
+     "UUID"
+    ],
+    "firma": "mark_settlement_paid(settlement_id: UUID, transfer_reference: str, paid_by: UUID)",
+    "archivo": "backend/app/services/payout_service.py"
+   },
+   {
+    "nombre": "run_daily_settlements",
+    "params": [
+     "today"
+    ],
+    "tipos": [
+     "date | None"
+    ],
+    "firma": "run_daily_settlements(today: date | None)",
+    "archivo": "backend/app/services/payout_service.py"
+   }
+  ],
+  "payment_transactions": [
+   {
+    "nombre": "record_payment",
+    "params": [
+     "tenant_id",
+     "source_type",
+     "source_id",
+     "method",
+     "amount",
+     "currency",
+     "provider_reference"
+    ],
+    "tipos": [
+     "UUID",
+     "str",
+     "UUID",
+     "str",
+     "",
+     "str",
+     "str | None"
+    ],
+    "firma": "record_payment(tenant_id: UUID, source_type: str, source_id: UUID, method: str, amount, currency: str, provider_reference: str | None)",
+    "archivo": "backend/app/services/payout_service.py"
+   }
+  ],
+  "qr_payments": [
+   {
+    "nombre": "confirm_qr_payment",
+    "params": [
+     "reference"
+    ],
+    "tipos": [
+     "str"
+    ],
+    "firma": "confirm_qr_payment(reference: str)",
+    "archivo": "backend/app/services/qr_payment_service.py"
+   },
+   {
+    "nombre": "consume_sale_qr",
+    "params": [
+     "reference",
+     "tenant_id",
+     "branch_id",
+     "amount",
+     "sale_id"
+    ],
+    "tipos": [
+     "str",
+     "UUID",
+     "UUID",
+     "",
+     "UUID"
+    ],
+    "firma": "consume_sale_qr(reference: str, tenant_id: UUID, branch_id: UUID, amount, sale_id: UUID)",
+    "archivo": "backend/app/services/qr_payment_service.py"
+   },
+   {
+    "nombre": "create_qr",
+    "params": [
+     "tenant_id",
+     "purpose",
+     "amount",
+     "currency",
+     "created_by",
+     "source_id",
+     "branch_id"
+    ],
+    "tipos": [
+     "UUID",
+     "str",
+     "",
+     "str",
+     "UUID",
+     "UUID | None",
+     "UUID | None"
+    ],
+    "firma": "create_qr(tenant_id: UUID, purpose: str, amount, currency: str, created_by: UUID, source_id: UUID | None, branch_id: UUID | None)",
+    "archivo": "backend/app/services/qr_payment_service.py"
+   },
+   {
+    "nombre": "get_qr",
+    "params": [
+     "reference",
+     "for_update"
+    ],
+    "tipos": [
+     "str",
+     "bool"
+    ],
+    "firma": "get_qr(reference: str, for_update: bool)",
+    "archivo": "backend/app/services/qr_payment_service.py"
+   },
+   {
+    "nombre": "serialize",
+    "params": [
+     "qr"
+    ],
+    "tipos": [
+     "QrPayment"
+    ],
+    "firma": "serialize(qr: QrPayment)",
+    "archivo": "backend/app/services/qr_payment_service.py"
+   }
+  ],
+  "products": [
+   {
+    "nombre": "create_product",
+    "params": [
+     "payload",
+     "provider_id",
+     "status",
+     "tenant_id"
+    ],
+    "tipos": [
+     "ProductCreate",
+     "",
+     "ProductStatusEnum",
+     ""
+    ],
+    "firma": "create_product(payload: ProductCreate, provider_id, status: ProductStatusEnum, tenant_id)",
+    "archivo": "backend/app/services/catalog_service.py"
+   },
+   {
+    "nombre": "delete_product",
+    "params": [
+     "product_id"
+    ],
+    "tipos": [
+     ""
+    ],
+    "firma": "delete_product(product_id)",
+    "archivo": "backend/app/services/catalog_service.py"
+   },
+   {
+    "nombre": "get_public_product",
+    "params": [
+     "product_id",
+     "branch_id"
+    ],
+    "tipos": [
+     "",
+     ""
+    ],
+    "firma": "get_public_product(product_id, branch_id)",
+    "archivo": "backend/app/services/catalog_service.py"
+   },
+   {
+    "nombre": "list_admin_products",
+    "params": [
+     "tenant_id"
+    ],
+    "tipos": [
+     ""
+    ],
+    "firma": "list_admin_products(tenant_id)",
+    "archivo": "backend/app/services/catalog_service.py"
+   },
+   {
+    "nombre": "list_pending_products",
+    "params": [
+     "tenant_id"
+    ],
+    "tipos": [
+     ""
+    ],
+    "firma": "list_pending_products(tenant_id)",
+    "archivo": "backend/app/services/catalog_service.py"
+   },
+   {
+    "nombre": "list_product_variants_for_admin",
+    "params": [
+     "product_id"
+    ],
+    "tipos": [
+     ""
+    ],
+    "firma": "list_product_variants_for_admin(product_id)",
+    "archivo": "backend/app/services/catalog_service.py"
+   },
+   {
+    "nombre": "list_provider_products",
+    "params": [
+     "provider_id",
+     "tenant_id"
+    ],
+    "tipos": [
+     "",
+     ""
+    ],
+    "firma": "list_provider_products(provider_id, tenant_id)",
+    "archivo": "backend/app/services/provider_service.py"
+   },
+   {
+    "nombre": "list_public_products",
+    "params": [
+     "branch_id",
+     "category_id",
+     "size_id",
+     "color_id",
+     "season_id",
+     "collection_id",
+     "q",
+     "tenant_id"
+    ],
+    "tipos": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "firma": "list_public_products(branch_id, category_id, size_id, color_id, season_id, collection_id, q, tenant_id)",
+    "archivo": "backend/app/services/catalog_service.py"
+   },
+   {
+    "nombre": "record_product_view",
+    "params": [
+     "user_id",
+     "product_id",
+     "variant_id",
+     "branch_id"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID",
+     "UUID | None",
+     "UUID | None"
+    ],
+    "firma": "record_product_view(user_id: UUID, product_id: UUID, variant_id: UUID | None, branch_id: UUID | None)",
+    "archivo": "backend/app/services/recommendation_service.py"
+   },
+   {
+    "nombre": "serialize_product",
+    "params": [
+     "product_id"
+    ],
+    "tipos": [
+     ""
+    ],
+    "firma": "serialize_product(product_id)",
+    "archivo": "backend/app/services/catalog_service.py"
+   }
+  ],
+  "providers": [
+   {
+    "nombre": "create_provider",
+    "params": [
+     "provider",
+     "tenant_id"
+    ],
+    "tipos": [
+     "ProviderCreate",
+     ""
+    ],
+    "firma": "create_provider(provider: ProviderCreate, tenant_id)",
+    "archivo": "backend/app/services/provider_service.py"
+   },
+   {
+    "nombre": "delete_user",
+    "params": [
+     "user_id",
+     "tenant_id"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID"
+    ],
+    "firma": "delete_user(user_id: UUID, tenant_id: UUID)",
+    "archivo": "backend/app/services/user_service.py"
+   },
+   {
+    "nombre": "update_provider_full",
+    "params": [
+     "provider_id",
+     "update_data",
+     "tenant_id"
+    ],
+    "tipos": [
+     "",
+     "",
+     ""
+    ],
+    "firma": "update_provider_full(provider_id, update_data, tenant_id)",
+    "archivo": "backend/app/services/provider_service.py"
+   },
+   {
+    "nombre": "update_provider_status",
+    "params": [
+     "provider_id",
+     "update_data",
+     "tenant_id"
+    ],
+    "tipos": [
+     "",
+     "ProviderStatusUpdate",
+     ""
+    ],
+    "firma": "update_provider_status(provider_id, update_data: ProviderStatusUpdate, tenant_id)",
+    "archivo": "backend/app/services/provider_service.py"
+   }
+  ],
+  "seasons": [
+   {
+    "nombre": "delete_season",
+    "params": [
+     "season_id"
+    ],
+    "tipos": [
+     ""
+    ],
+    "firma": "delete_season(season_id)",
+    "archivo": "backend/app/services/catalog_service.py"
+   }
+  ],
+  "sizes": [
+   {
+    "nombre": "delete_size",
+    "params": [
+     "size_id"
+    ],
+    "tipos": [
+     ""
+    ],
+    "firma": "delete_size(size_id)",
+    "archivo": "backend/app/services/catalog_service.py"
+   }
+  ],
+  "product_variants": [
+   {
+    "nombre": "create_product",
+    "params": [
+     "payload",
+     "provider_id",
+     "status",
+     "tenant_id"
+    ],
+    "tipos": [
+     "ProductCreate",
+     "",
+     "ProductStatusEnum",
+     ""
+    ],
+    "firma": "create_product(payload: ProductCreate, provider_id, status: ProductStatusEnum, tenant_id)",
+    "archivo": "backend/app/services/catalog_service.py"
+   },
+   {
+    "nombre": "get_variant_by_id",
+    "params": [
+     "variant_id"
+    ],
+    "tipos": [
+     ""
+    ],
+    "firma": "get_variant_by_id(variant_id)",
+    "archivo": "backend/app/services/catalog_service.py"
+   },
+   {
+    "nombre": "move_to_cart",
+    "params": [
+     "user_id",
+     "product_id",
+     "variant_id",
+     "branch_id",
+     "quantity"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID",
+     "UUID",
+     "UUID | None",
+     "int"
+    ],
+    "firma": "move_to_cart(user_id: UUID, product_id: UUID, variant_id: UUID, branch_id: UUID | None, quantity: int)",
+    "archivo": "backend/app/services/wishlist_service.py"
+   },
+   {
+    "nombre": "update_product",
+    "params": [
+     "product_id",
+     "payload"
+    ],
+    "tipos": [
+     "",
+     "ProductCreate"
+    ],
+    "firma": "update_product(product_id, payload: ProductCreate)",
+    "archivo": "backend/app/services/catalog_service.py"
+   },
+   {
+    "nombre": "update_product_status",
+    "params": [
+     "variant_id",
+     "update_data"
+    ],
+    "tipos": [
+     "",
+     "ProductVariantStatusUpdate"
+    ],
+    "firma": "update_product_status(variant_id, update_data: ProductVariantStatusUpdate)",
+    "archivo": "backend/app/services/catalog_service.py"
+   },
+   {
+    "nombre": "update_variant_garment_points",
+    "params": [
+     "variant_id",
+     "update_data"
+    ],
+    "tipos": [
+     "",
+     "ProductVariantGarmentPointsUpdate"
+    ],
+    "firma": "update_variant_garment_points(variant_id, update_data: ProductVariantGarmentPointsUpdate)",
+    "archivo": "backend/app/services/catalog_service.py"
+   }
+  ],
+  "promotion_codes": [
+   {
+    "nombre": "calculate_discount",
+    "params": [
+     "code",
+     "subtotal"
+    ],
+    "tipos": [
+     "PromotionCode",
+     "Decimal"
+    ],
+    "firma": "calculate_discount(code: PromotionCode, subtotal: Decimal)",
+    "archivo": "backend/app/services/promotion_service.py"
+   },
+   {
+    "nombre": "create_code",
+    "params": [
+     "payload",
+     "creator_id",
+     "tenant_id"
+    ],
+    "tipos": [
+     "PromotionCodeCreate",
+     "UUID",
+     "UUID"
+    ],
+    "firma": "create_code(payload: PromotionCodeCreate, creator_id: UUID, tenant_id: UUID)",
+    "archivo": "backend/app/services/promotion_service.py"
+   },
+   {
+    "nombre": "get_code",
+    "params": [
+     "code"
+    ],
+    "tipos": [
+     "str"
+    ],
+    "firma": "get_code(code: str)",
+    "archivo": "backend/app/services/promotion_service.py"
+   },
+   {
+    "nombre": "list_codes",
+    "params": [
+     "tenant_id",
+     "branch_id"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID | None"
+    ],
+    "firma": "list_codes(tenant_id: UUID, branch_id: UUID | None)",
+    "archivo": "backend/app/services/promotion_service.py"
+   },
+   {
+    "nombre": "validate_for_user",
+    "params": [
+     "code_value",
+     "user_id",
+     "branch_id",
+     "tenant_id"
+    ],
+    "tipos": [
+     "str",
+     "UUID",
+     "UUID | None",
+     "UUID | None"
+    ],
+    "firma": "validate_for_user(code_value: str, user_id: UUID, branch_id: UUID | None, tenant_id: UUID | None)",
+    "archivo": "backend/app/services/promotion_service.py"
+   }
+  ],
+  "promotion_code_usages": [
+   {
+    "nombre": "add_usage",
+    "params": [
+     "code_id",
+     "user_id"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID"
+    ],
+    "firma": "add_usage(code_id: UUID, user_id: UUID)",
+    "archivo": "backend/app/services/promotion_service.py"
+   }
+  ],
+  "provider_variant_availability": [
+   {
+    "nombre": "provider_availability_map",
+    "params": [
+     "provider_id",
+     "variant_ids",
+     "tenant_id"
+    ],
+    "tipos": [
+     "",
+     "",
+     ""
+    ],
+    "firma": "provider_availability_map(provider_id, variant_ids, tenant_id)",
+    "archivo": "backend/app/services/provider_service.py"
+   },
+   {
+    "nombre": "update_provider_availability",
+    "params": [
+     "provider_id",
+     "updates",
+     "tenant_id"
+    ],
+    "tipos": [
+     "",
+     "",
+     ""
+    ],
+    "firma": "update_provider_availability(provider_id, updates, tenant_id)",
+    "archivo": "backend/app/services/provider_service.py"
+   }
+  ],
+  "role_permissions": [],
+  "user_roles": [],
+  "permissions": [
+   {
+    "nombre": "list_permissions",
+    "params": [],
+    "tipos": [],
+    "firma": "list_permissions()",
+    "archivo": "backend/app/services/rbac_service.py"
+   },
+   {
+    "nombre": "seed_rbac_if_empty",
+    "params": [],
+    "tipos": [],
+    "firma": "seed_rbac_if_empty()",
+    "archivo": "backend/app/services/rbac_service.py"
+   }
+  ],
+  "roles": [
+   {
+    "nombre": "assign_user_roles",
+    "params": [
+     "current_tenant_id",
+     "user_id",
+     "data"
+    ],
+    "tipos": [
+     "UUID | None",
+     "UUID",
+     "UserRolesAssign"
+    ],
+    "firma": "assign_user_roles(current_tenant_id: UUID | None, user_id: UUID, data: UserRolesAssign)",
+    "archivo": "backend/app/services/rbac_service.py"
+   },
+   {
+    "nombre": "create_role",
+    "params": [
+     "tenant_id",
+     "data"
+    ],
+    "tipos": [
+     "UUID",
+     "RoleCreate"
+    ],
+    "firma": "create_role(tenant_id: UUID, data: RoleCreate)",
+    "archivo": "backend/app/services/rbac_service.py"
+   },
+   {
+    "nombre": "effective_permissions",
+    "params": [
+     "user"
+    ],
+    "tipos": [
+     "User"
+    ],
+    "firma": "effective_permissions(user: User)",
+    "archivo": "backend/app/services/rbac_service.py"
+   },
+   {
+    "nombre": "list_roles",
+    "params": [
+     "tenant_id"
+    ],
+    "tipos": [
+     "UUID | None"
+    ],
+    "firma": "list_roles(tenant_id: UUID | None)",
+    "archivo": "backend/app/services/rbac_service.py"
+   },
+   {
+    "nombre": "seed_rbac_if_empty",
+    "params": [],
+    "tipos": [],
+    "firma": "seed_rbac_if_empty()",
+    "archivo": "backend/app/services/rbac_service.py"
+   },
+   {
+    "nombre": "update_role",
+    "params": [
+     "tenant_id",
+     "role_id",
+     "data"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID",
+     "RoleUpdate"
+    ],
+    "firma": "update_role(tenant_id: UUID, role_id: UUID, data: RoleUpdate)",
+    "archivo": "backend/app/services/rbac_service.py"
+   }
+  ],
+  "users": [
+   {
+    "nombre": "close_session",
+    "params": [
+     "cashier",
+     "counted_amount",
+     "note"
+    ],
+    "tipos": [
+     "User",
+     "",
+     "str | None"
+    ],
+    "firma": "close_session(cashier: User, counted_amount, note: str | None)",
+    "archivo": "backend/app/services/cash_session_service.py"
+   },
+   {
+    "nombre": "create_admin_user",
+    "params": [
+     "user",
+     "tenant_id"
+    ],
+    "tipos": [
+     "AdminUserCreate",
+     "UUID | None"
+    ],
+    "firma": "create_admin_user(user: AdminUserCreate, tenant_id: UUID | None)",
+    "archivo": "backend/app/services/user_service.py"
+   },
+   {
+    "nombre": "create_driver",
+    "params": [
+     "payload"
+    ],
+    "tipos": [
+     ""
+    ],
+    "firma": "create_driver(payload)",
+    "archivo": "backend/app/services/delivery_service.py"
+   },
+   {
+    "nombre": "create_provider",
+    "params": [
+     "provider",
+     "tenant_id"
+    ],
+    "tipos": [
+     "ProviderCreate",
+     ""
+    ],
+    "firma": "create_provider(provider: ProviderCreate, tenant_id)",
+    "archivo": "backend/app/services/provider_service.py"
+   },
+   {
+    "nombre": "create_user",
+    "params": [
+     "user"
+    ],
+    "tipos": [
+     "UserCreate"
+    ],
+    "firma": "create_user(user: UserCreate)",
+    "archivo": "backend/app/services/user_service.py"
+   },
+   {
+    "nombre": "delete_provider",
+    "params": [
+     "provider_id",
+     "tenant_id"
+    ],
+    "tipos": [
+     "",
+     ""
+    ],
+    "firma": "delete_provider(provider_id, tenant_id)",
+    "archivo": "backend/app/services/provider_service.py"
+   },
+   {
+    "nombre": "get_user",
+    "params": [
+     "user_id",
+     "tenant_id"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID"
+    ],
+    "firma": "get_user(user_id: UUID, tenant_id: UUID)",
+    "archivo": "backend/app/services/user_service.py"
+   },
+   {
+    "nombre": "get_user_by_email",
+    "params": [
+     "email",
+     "exclude_user_id"
+    ],
+    "tipos": [
+     "str",
+     "UUID | None"
+    ],
+    "firma": "get_user_by_email(email: str, exclude_user_id: UUID | None)",
+    "archivo": "backend/app/services/user_service.py"
+   },
+   {
+    "nombre": "list_drivers",
+    "params": [],
+    "tipos": [],
+    "firma": "list_drivers()",
+    "archivo": "backend/app/services/delivery_service.py"
+   },
+   {
+    "nombre": "provision_tenant_by_superadmin",
+    "params": [
+     "payload"
+    ],
+    "tipos": [
+     "TenantWithSubscriptionCreate"
+    ],
+    "firma": "provision_tenant_by_superadmin(payload: TenantWithSubscriptionCreate)",
+    "archivo": "backend/app/services/subscription_service.py"
+   },
+   {
+    "nombre": "provision_tenant_onboarding",
+    "params": [
+     "payload"
+    ],
+    "tipos": [
+     "SubscriptionPurchaseSimulated"
+    ],
+    "firma": "provision_tenant_onboarding(payload: SubscriptionPurchaseSimulated)",
+    "archivo": "backend/app/services/subscription_service.py"
+   },
+   {
+    "nombre": "set_user_active",
+    "params": [
+     "user_id",
+     "is_active",
+     "tenant_id"
+    ],
+    "tipos": [
+     "UUID",
+     "bool",
+     "UUID"
+    ],
+    "firma": "set_user_active(user_id: UUID, is_active: bool, tenant_id: UUID)",
+    "archivo": "backend/app/services/user_service.py"
+   },
+   {
+    "nombre": "update_user_branch",
+    "params": [
+     "user_id",
+     "update_data",
+     "tenant_id"
+    ],
+    "tipos": [
+     "UUID",
+     "UserUpdateBranch",
+     "UUID"
+    ],
+    "firma": "update_user_branch(user_id: UUID, update_data: UserUpdateBranch, tenant_id: UUID)",
+    "archivo": "backend/app/services/user_service.py"
+   },
+   {
+    "nombre": "update_user_full",
+    "params": [
+     "user_id",
+     "update_data",
+     "tenant_id"
+    ],
+    "tipos": [
+     "UUID",
+     "",
+     "UUID"
+    ],
+    "firma": "update_user_full(user_id: UUID, update_data, tenant_id: UUID)",
+    "archivo": "backend/app/services/user_service.py"
+   },
+   {
+    "nombre": "update_user_profile",
+    "params": [
+     "user",
+     "update_data"
+    ],
+    "tipos": [
+     "User",
+     "UserProfileUpdate"
+    ],
+    "firma": "update_user_profile(user: User, update_data: UserProfileUpdate)",
+    "archivo": "backend/app/services/user_service.py"
+   },
+   {
+    "nombre": "update_user_rol",
+    "params": [
+     "user_id",
+     "update_data",
+     "tenant_id"
+    ],
+    "tipos": [
+     "UUID",
+     "UserUpdateRol",
+     "UUID"
+    ],
+    "firma": "update_user_rol(user_id: UUID, update_data: UserUpdateRol, tenant_id: UUID)",
+    "archivo": "backend/app/services/user_service.py"
+   }
+  ],
+  "tenants": [
+   {
+    "nombre": "balance_for",
+    "params": [
+     "tenant_id",
+     "user_id"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID"
+    ],
+    "firma": "balance_for(tenant_id: UUID, user_id: UUID)",
+    "archivo": "backend/app/services/loyalty_service.py"
+   },
+   {
+    "nombre": "create_deposit_stripe_payment",
+    "params": [
+     "user_id",
+     "reservation_id"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID"
+    ],
+    "firma": "create_deposit_stripe_payment(user_id: UUID, reservation_id: UUID)",
+    "archivo": "backend/app/services/order_service.py"
+   },
+   {
+    "nombre": "create_tenant",
+    "params": [
+     "payload"
+    ],
+    "tipos": [
+     "TenantCreate"
+    ],
+    "firma": "create_tenant(payload: TenantCreate)",
+    "archivo": "backend/app/services/tenant_service.py"
+   },
+   {
+    "nombre": "delete_tenant_logo",
+    "params": [
+     "tenant_id"
+    ],
+    "tipos": [
+     "UUID"
+    ],
+    "firma": "delete_tenant_logo(tenant_id: UUID)",
+    "archivo": "backend/app/services/tenant_service.py"
+   },
+   {
+    "nombre": "get_branding",
+    "params": [
+     "tenant_id"
+    ],
+    "tipos": [
+     "UUID"
+    ],
+    "firma": "get_branding(tenant_id: UUID)",
+    "archivo": "backend/app/services/tenant_service.py"
+   },
+   {
+    "nombre": "get_summary",
+    "params": [
+     "tenant_id"
+    ],
+    "tipos": [
+     "UUID"
+    ],
+    "firma": "get_summary(tenant_id: UUID)",
+    "archivo": "backend/app/services/payout_service.py"
+   },
+   {
+    "nombre": "get_tenant",
+    "params": [
+     "tenant_id"
+    ],
+    "tipos": [
+     "UUID"
+    ],
+    "firma": "get_tenant(tenant_id: UUID)",
+    "archivo": "backend/app/services/tenant_service.py"
+   },
+   {
+    "nombre": "get_tenant_subscription_summary",
+    "params": [
+     "tenant_id"
+    ],
+    "tipos": [
+     "UUID"
+    ],
+    "firma": "get_tenant_subscription_summary(tenant_id: UUID)",
+    "archivo": "backend/app/services/subscription_service.py"
+   },
+   {
+    "nombre": "list_subscription_history",
+    "params": [
+     "tenant_id"
+    ],
+    "tipos": [
+     "UUID"
+    ],
+    "firma": "list_subscription_history(tenant_id: UUID)",
+    "archivo": "backend/app/services/subscription_service.py"
+   },
+   {
+    "nombre": "list_tenants",
+    "params": [
+     "skip",
+     "limit",
+     "search",
+     "status"
+    ],
+    "tipos": [
+     "int",
+     "int",
+     "Optional[str]",
+     "Optional[TenantStatusEnum]"
+    ],
+    "firma": "list_tenants(skip: int, limit: int, search: Optional[str], status: Optional[TenantStatusEnum])",
+    "archivo": "backend/app/services/tenant_service.py"
+   },
+   {
+    "nombre": "open_tenant_panel",
+    "params": [
+     "tenant_id",
+     "superadmin_id"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID"
+    ],
+    "firma": "open_tenant_panel(tenant_id: UUID, superadmin_id: UUID)",
+    "archivo": "backend/app/services/tenant_service.py"
+   },
+   {
+    "nombre": "provision_tenant_by_superadmin",
+    "params": [
+     "payload"
+    ],
+    "tipos": [
+     "TenantWithSubscriptionCreate"
+    ],
+    "firma": "provision_tenant_by_superadmin(payload: TenantWithSubscriptionCreate)",
+    "archivo": "backend/app/services/subscription_service.py"
+   },
+   {
+    "nombre": "provision_tenant_onboarding",
+    "params": [
+     "payload"
+    ],
+    "tipos": [
+     "SubscriptionPurchaseSimulated"
+    ],
+    "firma": "provision_tenant_onboarding(payload: SubscriptionPurchaseSimulated)",
+    "archivo": "backend/app/services/subscription_service.py"
+   },
+   {
+    "nombre": "register_tenant_admin",
+    "params": [
+     "tenant_id",
+     "admin"
+    ],
+    "tipos": [
+     "UUID",
+     "TenantAdminCreate"
+    ],
+    "firma": "register_tenant_admin(tenant_id: UUID, admin: TenantAdminCreate)",
+    "archivo": "backend/app/services/tenant_service.py"
+   },
+   {
+    "nombre": "update_bank_account",
+    "params": [
+     "tenant_id",
+     "data"
+    ],
+    "tipos": [
+     "UUID",
+     "dict"
+    ],
+    "firma": "update_bank_account(tenant_id: UUID, data: dict)",
+    "archivo": "backend/app/services/payout_service.py"
+   },
+   {
+    "nombre": "update_branding_color",
+    "params": [
+     "tenant_id",
+     "primary_color"
+    ],
+    "tipos": [
+     "UUID",
+     "str | None"
+    ],
+    "firma": "update_branding_color(tenant_id: UUID, primary_color: str | None)",
+    "archivo": "backend/app/services/tenant_service.py"
+   },
+   {
+    "nombre": "update_tenant",
+    "params": [
+     "tenant_id",
+     "payload"
+    ],
+    "tipos": [
+     "UUID",
+     "TenantUpdate"
+    ],
+    "firma": "update_tenant(tenant_id: UUID, payload: TenantUpdate)",
+    "archivo": "backend/app/services/tenant_service.py"
+   },
+   {
+    "nombre": "update_tenant_logo",
+    "params": [
+     "tenant_id",
+     "content",
+     "content_type"
+    ],
+    "tipos": [
+     "UUID",
+     "bytes",
+     "str | None"
+    ],
+    "firma": "update_tenant_logo(tenant_id: UUID, content: bytes, content_type: str | None)",
+    "archivo": "backend/app/services/tenant_service.py"
+   },
+   {
+    "nombre": "update_tenant_status",
+    "params": [
+     "tenant_id",
+     "new_status"
+    ],
+    "tipos": [
+     "UUID",
+     "TenantStatusEnum"
+    ],
+    "firma": "update_tenant_status(tenant_id: UUID, new_status: TenantStatusEnum)",
+    "archivo": "backend/app/services/tenant_service.py"
+   }
+  ],
+  "tenant_subscriptions": [
+   {
+    "nombre": "create_or_update_tenant_subscription",
+    "params": [
+     "tenant_id",
+     "plan_id",
+     "billing_cycle",
+     "payment_method",
+     "duration_days"
+    ],
+    "tipos": [
+     "UUID",
+     "str",
+     "BillingCycleEnum",
+     "SubscriptionPaymentMethodEnum",
+     "int | None"
+    ],
+    "firma": "create_or_update_tenant_subscription(tenant_id: UUID, plan_id: str, billing_cycle: BillingCycleEnum, payment_method: SubscriptionPaymentMethodEnum, duration_days: int | None)",
+    "archivo": "backend/app/services/subscription_service.py"
+   },
+   {
+    "nombre": "get_active_subscription",
+    "params": [
+     "tenant_id"
+    ],
+    "tipos": [
+     "UUID"
+    ],
+    "firma": "get_active_subscription(tenant_id: UUID)",
+    "archivo": "backend/app/services/subscription_service.py"
+   },
+   {
+    "nombre": "provision_tenant_by_superadmin",
+    "params": [
+     "payload"
+    ],
+    "tipos": [
+     "TenantWithSubscriptionCreate"
+    ],
+    "firma": "provision_tenant_by_superadmin(payload: TenantWithSubscriptionCreate)",
+    "archivo": "backend/app/services/subscription_service.py"
+   },
+   {
+    "nombre": "provision_tenant_onboarding",
+    "params": [
+     "payload"
+    ],
+    "tipos": [
+     "SubscriptionPurchaseSimulated"
+    ],
+    "firma": "provision_tenant_onboarding(payload: SubscriptionPurchaseSimulated)",
+    "archivo": "backend/app/services/subscription_service.py"
+   },
+   {
+    "nombre": "tenant_features",
+    "params": [
+     "tenant_ids"
+    ],
+    "tipos": [
+     ""
+    ],
+    "firma": "tenant_features(tenant_ids)",
+    "archivo": "backend/app/services/subscription_service.py"
+   }
+  ],
+  "saas_plans": [
+   {
+    "nombre": "create_plan",
+    "params": [
+     "payload"
+    ],
+    "tipos": [
+     "SubscriptionPlanCreate"
+    ],
+    "firma": "create_plan(payload: SubscriptionPlanCreate)",
+    "archivo": "backend/app/services/subscription_service.py"
+   },
+   {
+    "nombre": "get_plan_by_id",
+    "params": [
+     "plan_id"
+    ],
+    "tipos": [
+     "str"
+    ],
+    "firma": "get_plan_by_id(plan_id: str)",
+    "archivo": "backend/app/services/subscription_service.py"
+   },
+   {
+    "nombre": "list_plans",
+    "params": [
+     "only_active"
+    ],
+    "tipos": [
+     "bool"
+    ],
+    "firma": "list_plans(only_active: bool)",
+    "archivo": "backend/app/services/subscription_service.py"
+   },
+   {
+    "nombre": "update_plan",
+    "params": [
+     "plan_id",
+     "payload"
+    ],
+    "tipos": [
+     "str",
+     "SubscriptionPlanUpdate"
+    ],
+    "firma": "update_plan(plan_id: str, payload: SubscriptionPlanUpdate)",
+    "archivo": "backend/app/services/subscription_service.py"
+   }
+  ],
+  "user_body_profiles": [
+   {
+    "nombre": "upsert_profile",
+    "params": [
+     "user_id",
+     "updates",
+     "commit"
+    ],
+    "tipos": [
+     "UUID",
+     "dict[str, str]",
+     "bool"
+    ],
+    "firma": "upsert_profile(user_id: UUID, updates: dict[str, str], commit: bool)",
+    "archivo": "backend/app/services/chatbot_service.py"
+   }
+  ],
+  "user_product_interactions": [
+   {
+    "nombre": "record_completed_order_interactions",
+    "params": [
+     "order"
+    ],
+    "tipos": [
+     ""
+    ],
+    "firma": "record_completed_order_interactions(order)",
+    "archivo": "backend/app/services/recommendation_service.py"
+   },
+   {
+    "nombre": "record_interaction",
+    "params": [
+     "user_id",
+     "product_id",
+     "interaction_type",
+     "order_id",
+     "variant_id",
+     "branch_id"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID",
+     "str",
+     "UUID | None",
+     "UUID | None",
+     "UUID | None"
+    ],
+    "firma": "record_interaction(user_id: UUID, product_id: UUID, interaction_type: str, order_id: UUID | None, variant_id: UUID | None, branch_id: UUID | None)",
+    "archivo": "backend/app/services/recommendation_service.py"
+   },
+   {
+    "nombre": "record_wishlist_interaction",
+    "params": [
+     "user_id",
+     "product_id"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID"
+    ],
+    "firma": "record_wishlist_interaction(user_id: UUID, product_id: UUID)",
+    "archivo": "backend/app/services/recommendation_service.py"
+   }
+  ],
+  "collaborative_embeddings": [
+   {
+    "nombre": "get_recommendations",
+    "params": [
+     "user_id",
+     "limit",
+     "branch_id"
+    ],
+    "tipos": [
+     "UUID",
+     "int",
+     "UUID | None"
+    ],
+    "firma": "get_recommendations(user_id: UUID, limit: int, branch_id: UUID | None)",
+    "archivo": "backend/app/services/recommendation_service.py"
+   },
+   {
+    "nombre": "train",
+    "params": [],
+    "tipos": [],
+    "firma": "train()",
+    "archivo": "backend/app/services/recommendation_service.py"
+   }
+  ],
+  "replenishment_requests": [
+   {
+    "nombre": "create_request",
+    "params": [
+     "payload",
+     "requested_by",
+     "tenant_id"
+    ],
+    "tipos": [
+     "ReplenishmentRequestCreate",
+     "UUID",
+     ""
+    ],
+    "firma": "create_request(payload: ReplenishmentRequestCreate, requested_by: UUID, tenant_id)",
+    "archivo": "backend/app/services/replenishment_service.py"
+   },
+   {
+    "nombre": "list_requests",
+    "params": [
+     "role",
+     "user_id",
+     "branch_id",
+     "tenant_id"
+    ],
+    "tipos": [
+     "str",
+     "UUID",
+     "UUID | None",
+     ""
+    ],
+    "firma": "list_requests(role: str, user_id: UUID, branch_id: UUID | None, tenant_id)",
+    "archivo": "backend/app/services/replenishment_service.py"
+   },
+   {
+    "nombre": "transition_request",
+    "params": [
+     "request_id",
+     "next_status",
+     "role",
+     "user_id",
+     "branch_id",
+     "tenant_id"
+    ],
+    "tipos": [
+     "UUID",
+     "ReplenishmentStatusEnum",
+     "str",
+     "UUID",
+     "UUID | None",
+     ""
+    ],
+    "firma": "transition_request(request_id: UUID, next_status: ReplenishmentStatusEnum, role: str, user_id: UUID, branch_id: UUID | None, tenant_id)",
+    "archivo": "backend/app/services/replenishment_service.py"
+   }
+  ],
+  "replenishment_request_items": [
+   {
+    "nombre": "create_request",
+    "params": [
+     "payload",
+     "requested_by",
+     "tenant_id"
+    ],
+    "tipos": [
+     "ReplenishmentRequestCreate",
+     "UUID",
+     ""
+    ],
+    "firma": "create_request(payload: ReplenishmentRequestCreate, requested_by: UUID, tenant_id)",
+    "archivo": "backend/app/services/replenishment_service.py"
+   }
+  ],
+  "reservations": [
+   {
+    "nombre": "complete_deposit_payment",
+    "params": [
+     "reservation_id",
+     "method",
+     "reference"
+    ],
+    "tipos": [
+     "UUID",
+     "str",
+     "str | None"
+    ],
+    "firma": "complete_deposit_payment(reservation_id: UUID, method: str, reference: str | None)",
+    "archivo": "backend/app/services/reservation_service.py"
+   },
+   {
+    "nombre": "create_reservation",
+    "params": [
+     "user_id",
+     "payload"
+    ],
+    "tipos": [
+     "UUID",
+     "ReservationCreate"
+    ],
+    "firma": "create_reservation(user_id: UUID, payload: ReservationCreate)",
+    "archivo": "backend/app/services/reservation_service.py"
+   },
+   {
+    "nombre": "create_sale",
+    "params": [
+     "user_id",
+     "payload",
+     "branch_id",
+     "tenant_id"
+    ],
+    "tipos": [
+     "UUID",
+     "SaleCreate",
+     "UUID",
+     "UUID | None"
+    ],
+    "firma": "create_sale(user_id: UUID, payload: SaleCreate, branch_id: UUID, tenant_id: UUID | None)",
+    "archivo": "backend/app/services/sales_service.py"
+   },
+   {
+    "nombre": "expire_due_reservations",
+    "params": [],
+    "tipos": [],
+    "firma": "expire_due_reservations()",
+    "archivo": "backend/app/services/reservation_service.py"
+   },
+   {
+    "nombre": "expire_transferred_reservations",
+    "params": [],
+    "tipos": [],
+    "firma": "expire_transferred_reservations()",
+    "archivo": "backend/app/services/reservation_service.py"
+   },
+   {
+    "nombre": "get_deposit_reservation",
+    "params": [
+     "user_id",
+     "reservation_id"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID"
+    ],
+    "firma": "get_deposit_reservation(user_id: UUID, reservation_id: UUID)",
+    "archivo": "backend/app/services/reservation_service.py"
+   },
+   {
+    "nombre": "list_reservations",
+    "params": [
+     "user_id"
+    ],
+    "tipos": [
+     "UUID"
+    ],
+    "firma": "list_reservations(user_id: UUID)",
+    "archivo": "backend/app/services/reservation_service.py"
+   },
+   {
+    "nombre": "list_reservations_by_branch",
+    "params": [
+     "branch_id"
+    ],
+    "tipos": [
+     "UUID"
+    ],
+    "firma": "list_reservations_by_branch(branch_id: UUID)",
+    "archivo": "backend/app/services/reservation_service.py"
+   },
+   {
+    "nombre": "notify_reservation_event",
+    "params": [
+     "reservation_id",
+     "user_id",
+     "status"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID",
+     "str"
+    ],
+    "firma": "notify_reservation_event(reservation_id: UUID, user_id: UUID, status: str)",
+    "archivo": "backend/app/services/notification_delivery.py"
+   },
+   {
+    "nombre": "transition_reservation",
+    "params": [
+     "reservation",
+     "target"
+    ],
+    "tipos": [
+     "Reservation",
+     "ReservationStatusEnum"
+    ],
+    "firma": "transition_reservation(reservation: Reservation, target: ReservationStatusEnum)",
+    "archivo": "backend/app/services/reservation_service.py"
+   }
+  ],
+  "reservation_items": [
+   {
+    "nombre": "create_reservation",
+    "params": [
+     "user_id",
+     "payload"
+    ],
+    "tipos": [
+     "UUID",
+     "ReservationCreate"
+    ],
+    "firma": "create_reservation(user_id: UUID, payload: ReservationCreate)",
+    "archivo": "backend/app/services/reservation_service.py"
+   }
+  ],
+  "rma_requests": [
+   {
+    "nombre": "create_rma_request",
+    "params": [
+     "user",
+     "payload",
+     "tenant_id"
+    ],
+    "tipos": [
+     "User",
+     "RmaRequestCreate",
+     "UUID | None"
+    ],
+    "firma": "create_rma_request(user: User, payload: RmaRequestCreate, tenant_id: UUID | None)",
+    "archivo": "backend/app/services/rma_service.py"
+   },
+   {
+    "nombre": "generate_rma_pdf",
+    "params": [
+     "rma"
+    ],
+    "tipos": [
+     "RmaRequest"
+    ],
+    "firma": "generate_rma_pdf(rma: RmaRequest)",
+    "archivo": "backend/app/services/rma_pdf_service.py"
+   },
+   {
+    "nombre": "get_rma_request",
+    "params": [
+     "rma_id",
+     "user",
+     "tenant_id"
+    ],
+    "tipos": [
+     "UUID",
+     "User",
+     "UUID | None"
+    ],
+    "firma": "get_rma_request(rma_id: UUID, user: User, tenant_id: UUID | None)",
+    "archivo": "backend/app/services/rma_service.py"
+   },
+   {
+    "nombre": "list_rma_requests",
+    "params": [
+     "user",
+     "tenant_id",
+     "status_filter"
+    ],
+    "tipos": [
+     "User",
+     "UUID | None",
+     "str | None"
+    ],
+    "firma": "list_rma_requests(user: User, tenant_id: UUID | None, status_filter: str | None)",
+    "archivo": "backend/app/services/rma_service.py"
+   }
+  ],
+  "rma_request_items": [
+   {
+    "nombre": "create_rma_request",
+    "params": [
+     "user",
+     "payload",
+     "tenant_id"
+    ],
+    "tipos": [
+     "User",
+     "RmaRequestCreate",
+     "UUID | None"
+    ],
+    "firma": "create_rma_request(user: User, payload: RmaRequestCreate, tenant_id: UUID | None)",
+    "archivo": "backend/app/services/rma_service.py"
+   }
+  ],
+  "rpa_ingest_jobs": [
+   {
+    "nombre": "commit_job",
+    "params": [
+     "job",
+     "branch_id",
+     "user_id"
+    ],
+    "tipos": [
+     "RpaIngestJob",
+     "UUID",
+     "UUID"
+    ],
+    "firma": "commit_job(job: RpaIngestJob, branch_id: UUID, user_id: UUID)",
+    "archivo": "backend/app/services/rpa_ingest_service.py"
+   },
+   {
+    "nombre": "correct_items",
+    "params": [
+     "job",
+     "items"
+    ],
+    "tipos": [
+     "RpaIngestJob",
+     "list[ExtractedItem]"
+    ],
+    "firma": "correct_items(job: RpaIngestJob, items: list[ExtractedItem])",
+    "archivo": "backend/app/services/rpa_ingest_service.py"
+   },
+   {
+    "nombre": "create_job",
+    "params": [
+     "tenant_id",
+     "user_id",
+     "filename",
+     "content_type"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID",
+     "str",
+     "str"
+    ],
+    "firma": "create_job(tenant_id: UUID, user_id: UUID, filename: str, content_type: str)",
+    "archivo": "backend/app/services/rpa_ingest_service.py"
+   },
+   {
+    "nombre": "get_job",
+    "params": [
+     "job_id",
+     "tenant_id",
+     "user_id",
+     "rol",
+     "branch_id"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID",
+     "UUID",
+     "str",
+     "UUID | None"
+    ],
+    "firma": "get_job(job_id: UUID, tenant_id: UUID, user_id: UUID, rol: str, branch_id: UUID | None)",
+    "archivo": "backend/app/services/rpa_ingest_service.py"
+   },
+   {
+    "nombre": "list_jobs",
+    "params": [
+     "tenant_id",
+     "user_id",
+     "rol",
+     "branch_id"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID",
+     "str",
+     "UUID | None"
+    ],
+    "firma": "list_jobs(tenant_id: UUID, user_id: UUID, rol: str, branch_id: UUID | None)",
+    "archivo": "backend/app/services/rpa_ingest_service.py"
+   },
+   {
+    "nombre": "process_job",
+    "params": [
+     "session_factory",
+     "job_id",
+     "content"
+    ],
+    "tipos": [
+     "Callable[[], Session]",
+     "UUID",
+     "bytes"
+    ],
+    "firma": "process_job(session_factory: Callable[[], Session], job_id: UUID, content: bytes)",
+    "archivo": "backend/app/services/rpa_ingest_service.py"
+   },
+   {
+    "nombre": "serialize",
+    "params": [
+     "job"
+    ],
+    "tipos": [
+     "RpaIngestJob"
+    ],
+    "firma": "serialize(job: RpaIngestJob)",
+    "archivo": "backend/app/services/rpa_ingest_service.py"
+   }
+  ],
+  "sales": [
+   {
+    "nombre": "get_sale",
+    "params": [
+     "branch_id",
+     "sale_id",
+     "user_id",
+     "tenant_id"
+    ],
+    "tipos": [
+     "UUID | None",
+     "UUID",
+     "UUID | None",
+     "UUID | None"
+    ],
+    "firma": "get_sale(branch_id: UUID | None, sale_id: UUID, user_id: UUID | None, tenant_id: UUID | None)",
+    "archivo": "backend/app/services/sales_service.py"
+   },
+   {
+    "nombre": "list_sales_by_branch",
+    "params": [
+     "branch_id",
+     "user_id",
+     "tenant_id"
+    ],
+    "tipos": [
+     "UUID | None",
+     "UUID | None",
+     "UUID | None"
+    ],
+    "firma": "list_sales_by_branch(branch_id: UUID | None, user_id: UUID | None, tenant_id: UUID | None)",
+    "archivo": "backend/app/services/sales_service.py"
+   },
+   {
+    "nombre": "predict_demand",
+    "params": [
+     "tenant_id",
+     "request"
+    ],
+    "tipos": [
+     "UUID",
+     "DemandForecastRequest"
+    ],
+    "firma": "predict_demand(tenant_id: UUID, request: DemandForecastRequest)",
+    "archivo": "backend/app/services/ml/demand_forecast_service.py"
+   }
+  ],
+  "sale_items": [
+   {
+    "nombre": "_create_sale_from_items",
+    "params": [
+     "branch_id",
+     "user_id",
+     "payload",
+     "normalized_items",
+     "tenant_id"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID",
+     "SaleCreate",
+     "dict[UUID, int]",
+     "UUID | None"
+    ],
+    "firma": "_create_sale_from_items(branch_id: UUID, user_id: UUID, payload: SaleCreate, normalized_items: dict[UUID, int], tenant_id: UUID | None)",
+    "archivo": "backend/app/services/sales_service.py"
+   }
+  ],
+  "stripe_events": [
+   {
+    "nombre": "process_stripe_event",
+    "params": [
+     "event"
+    ],
+    "tipos": [
+     ""
+    ],
+    "firma": "process_stripe_event(event)",
+    "archivo": "backend/app/services/order_service.py"
+   }
+  ],
+  "user_wallets": [
+   {
+    "nombre": "checkout_with_wallet",
+    "params": [
+     "user_id",
+     "pickup_branch_id",
+     "delivery",
+     "points_to_redeem"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID",
+     "dict | None",
+     "int"
+    ],
+    "firma": "checkout_with_wallet(user_id: UUID, pickup_branch_id: UUID, delivery: dict | None, points_to_redeem: int)",
+    "archivo": "backend/app/services/wallet_service.py"
+   },
+   {
+    "nombre": "convert_loyalty_points",
+    "params": [
+     "user_id",
+     "tenant_id",
+     "points"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID",
+     "int"
+    ],
+    "firma": "convert_loyalty_points(user_id: UUID, tenant_id: UUID, points: int)",
+    "archivo": "backend/app/services/wallet_service.py"
+   },
+   {
+    "nombre": "credit_wallet",
+    "params": [
+     "user_id",
+     "amount",
+     "concept",
+     "source_type",
+     "source_id",
+     "description"
+    ],
+    "tipos": [
+     "UUID",
+     "Decimal",
+     "str",
+     "str | None",
+     "UUID | None",
+     "str | None"
+    ],
+    "firma": "credit_wallet(user_id: UUID, amount: Decimal, concept: str, source_type: str | None, source_id: UUID | None, description: str | None)",
+    "archivo": "backend/app/services/wallet_service.py"
+   },
+   {
+    "nombre": "get_or_create_wallet",
+    "params": [
+     "user_id"
+    ],
+    "tipos": [
+     "UUID"
+    ],
+    "firma": "get_or_create_wallet(user_id: UUID)",
+    "archivo": "backend/app/services/wallet_service.py"
+   },
+   {
+    "nombre": "redeem_gift_card",
+    "params": [
+     "user_id",
+     "card_code"
+    ],
+    "tipos": [
+     "UUID",
+     "str"
+    ],
+    "firma": "redeem_gift_card(user_id: UUID, card_code: str)",
+    "archivo": "backend/app/services/wallet_service.py"
+   },
+   {
+    "nombre": "settle_monthly_wallets",
+    "params": [],
+    "tipos": [],
+    "firma": "settle_monthly_wallets()",
+    "archivo": "backend/app/services/rma_service.py"
+   }
+  ],
+  "wallet_transactions": [
+   {
+    "nombre": "checkout_with_wallet",
+    "params": [
+     "user_id",
+     "pickup_branch_id",
+     "delivery",
+     "points_to_redeem"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID",
+     "dict | None",
+     "int"
+    ],
+    "firma": "checkout_with_wallet(user_id: UUID, pickup_branch_id: UUID, delivery: dict | None, points_to_redeem: int)",
+    "archivo": "backend/app/services/wallet_service.py"
+   },
+   {
+    "nombre": "convert_loyalty_points",
+    "params": [
+     "user_id",
+     "tenant_id",
+     "points"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID",
+     "int"
+    ],
+    "firma": "convert_loyalty_points(user_id: UUID, tenant_id: UUID, points: int)",
+    "archivo": "backend/app/services/wallet_service.py"
+   },
+   {
+    "nombre": "credit_wallet",
+    "params": [
+     "user_id",
+     "amount",
+     "concept",
+     "source_type",
+     "source_id",
+     "description"
+    ],
+    "tipos": [
+     "UUID",
+     "Decimal",
+     "str",
+     "str | None",
+     "UUID | None",
+     "str | None"
+    ],
+    "firma": "credit_wallet(user_id: UUID, amount: Decimal, concept: str, source_type: str | None, source_id: UUID | None, description: str | None)",
+    "archivo": "backend/app/services/wallet_service.py"
+   },
+   {
+    "nombre": "list_transactions",
+    "params": [
+     "user_id"
+    ],
+    "tipos": [
+     "UUID"
+    ],
+    "firma": "list_transactions(user_id: UUID)",
+    "archivo": "backend/app/services/wallet_service.py"
+   },
+   {
+    "nombre": "pay_order_with_wallet",
+    "params": [
+     "user_id",
+     "order_id",
+     "amount_to_debit"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID",
+     "Decimal"
+    ],
+    "firma": "pay_order_with_wallet(user_id: UUID, order_id: UUID, amount_to_debit: Decimal)",
+    "archivo": "backend/app/services/wallet_service.py"
+   },
+   {
+    "nombre": "redeem_gift_card",
+    "params": [
+     "user_id",
+     "card_code"
+    ],
+    "tipos": [
+     "UUID",
+     "str"
+    ],
+    "firma": "redeem_gift_card(user_id: UUID, card_code: str)",
+    "archivo": "backend/app/services/wallet_service.py"
+   },
+   {
+    "nombre": "settle_monthly_wallets",
+    "params": [],
+    "tipos": [],
+    "firma": "settle_monthly_wallets()",
+    "archivo": "backend/app/services/rma_service.py"
+   }
+  ],
+  "wishlist_items": [
+   {
+    "nombre": "add_item",
+    "params": [
+     "user_id",
+     "product_id"
+    ],
+    "tipos": [
+     "UUID",
+     "UUID"
+    ],
+    "firma": "add_item(user_id: UUID, product_id: UUID)",
+    "archivo": "backend/app/services/wishlist_service.py"
+   },
+   {
+    "nombre": "list_items",
+    "params": [
+     "user_id"
+    ],
+    "tipos": [
+     "UUID"
+    ],
+    "firma": "list_items(user_id: UUID)",
+    "archivo": "backend/app/services/wishlist_service.py"
+   }
+  ]
+ }
+}

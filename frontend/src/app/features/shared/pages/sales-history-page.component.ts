@@ -231,6 +231,7 @@ export class SalesHistoryPageComponent {
     this.reportColumns.update((columns) => selected ? [...columns, key] : columns.filter((column) => column !== key));
   }
 
+  // [CU14 - Secuencia: Paso 1] El Administrador del tenant ejecuta generateReport() en SalesHistoryPageComponent
   protected async generateReport(): Promise<void> {
     const fromDate = this.reportFromDate();
     const toDate = this.reportToDate();

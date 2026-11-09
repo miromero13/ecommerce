@@ -15,6 +15,7 @@ from app.utils.response import response
 router = APIRouter(prefix="/chatbot", tags=["Chatbot"])
 
 
+# [CU07 - Secuencia: Paso 2.1] ChatbotComponent llama a chatbot_message_route() de chatbot_routes (POST /api/chatbot/message)
 @router.post("/message")
 async def chatbot_message_route(
     request: ChatRequest,
@@ -25,6 +26,7 @@ async def chatbot_message_route(
     return response(status_code=status.HTTP_200_OK, message="Mensaje enviado exitosamente")
 
 
+# [CU07 - Secuencia: Pasos 1.1, 2.29] ChatbotComponent llama a chatbot_messages_route() de chatbot_routes (GET /api/chatbot/messages)
 @router.get("/messages")
 async def chatbot_messages_route(
     db: Session = Depends(get_db),
@@ -35,6 +37,7 @@ async def chatbot_messages_route(
     return response(status_code=status.HTTP_200_OK, message="Mensajes obtenidos exitosamente", data=data)
 
 
+# [CU07 - Secuencia: Paso 3.1] ChatbotComponent llama a chatbot_reset_route() de chatbot_routes (DELETE /api/chatbot/conversation)
 @router.delete("/conversation")
 async def chatbot_reset_route(
     db: Session = Depends(get_db),

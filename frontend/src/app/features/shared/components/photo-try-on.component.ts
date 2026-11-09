@@ -70,6 +70,7 @@ export class PhotoTryOnComponent implements OnDestroy {
     this.closeModal();
   }
 
+  // [CU05 - Secuencia: Paso 1] El Cliente ejecuta onFile(event) en PhotoTryOnComponent
   protected async onFile(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
@@ -124,6 +125,7 @@ export class PhotoTryOnComponent implements OnDestroy {
     this.resultUrl.set(null);
   }
 
+  // [CU05 - Secuencia: Paso 2] El Cliente ejecuta generate() en PhotoTryOnComponent
   protected async generate(): Promise<void> {
     const variantId = this.variantId();
     if (!this.photo || !variantId || this.generating()) return;

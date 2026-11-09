@@ -14,6 +14,7 @@ from app.utils.response import response
 router = APIRouter(prefix="/promotions", tags=["Promotions"])
 
 
+# [CU15 - Secuencia: Pasos 1.1, 2.5] PromotionsPageComponent llama a get_promotion_codes() de promotion_routes (GET /api/promotions)
 @router.get("")
 async def get_promotion_codes(
     db: Session = Depends(get_db),
@@ -24,6 +25,7 @@ async def get_promotion_codes(
     return response(status_code=200, message="Códigos promocionales obtenidos", data=[PromotionCodeRead.model_validate(item).model_dump() for item in list_codes(db, current_tenant_id, branch_id)])
 
 
+# [CU15 - Secuencia: Paso 2.1] PromotionsPageComponent llama a create_promotion_code(payload) de promotion_routes (POST /api/promotions)
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_promotion_code(
     payload: PromotionCodeCreate,

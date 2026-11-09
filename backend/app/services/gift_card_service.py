@@ -1,7 +1,8 @@
 """CU18: Gift cards issuance, purchase, verification, QR generation and email delivery."""
 from datetime import datetime, timedelta, timezone
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 import secrets
+import uuid
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -12,14 +13,18 @@ try:
 except ImportError:
     segno = None
 
+from app.core.config import settings
 from app.models.gift_card import GiftCard
+from app.models.tenant import Tenant
 from app.schemas.gift_card_schema import GiftCardPurchaseRequest
 from app.services.email_service import email_service
 
 MIN_AMOUNT = Decimal("10.00")
 EXPIRATION_DAYS = 365
+PENDING_PAYMENT = "pending_payment"
 
 
+# [CU18 - Secuencia: Paso 2.4] gift_card_routes invoca generate_unique_code() sobre la entidad TarjetaRegalo
 def generate_unique_code(db: Session) -> str:
     year = datetime.now(timezone.utc).year
     for _ in range(20):
@@ -37,12 +42,39 @@ def make_qr_data_uri(code: str) -> str:
     return segno.make(f"FASHIONSTORE|GIFTCARD|{code}", error="m").png_data_uri(scale=6)
 
 
-def purchase_gift_card(db: Session, buyer_id: UUID, payload: GiftCardPurchaseRequest) -> GiftCard:
+def _amount_cents(amount: Decimal) -> int:
+    return int((amount * 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+
+
+# [CU18 - Secuencia: Paso 2.6] gift_card_routes invoca _currency(tenant_id) sobre la entidad Empresa
+def _currency(db: Session, tenant_id: UUID | None) -> str:
+    """Las tarjetas de regalo se emiten en bolivianos (o en la moneda de la empresa emisora, si se indica)."""
+    if tenant_id:
+        currency = db.query(Tenant.currency).filter(Tenant.id == tenant_id).scalar()
+        if currency:
+            return currency.lower()
+    return "bob"
+
+
+# [CU18 - Secuencia: Paso 2.2] gift_card_routes invoca purchase_gift_card(buyer_id, payload) sobre la entidad TarjetaRegalo
+def purchase_gift_card(db: Session, buyer_id: UUID, payload: GiftCardPurchaseRequest) -> tuple[GiftCard, str]:
+    """Registra la tarjeta pendiente de pago y crea su PaymentIntent de Stripe.
+    La tarjeta se activa recién cuando Stripe confirma el cobro (confirm_gift_card_payment o el webhook)."""
     amount = Decimal(str(payload.amount)).quantize(Decimal("0.01"))
     if amount < MIN_AMOUNT:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="El importe de la tarjeta de regalo debe ser mayor o igual a $10.00",
+        )
+    if payload.payment_method != "stripe":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Las tarjetas de regalo se pagan con tarjeta a través de Stripe",
+        )
+    if not settings.stripe_secret_key:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No se pudo iniciar el pago con Stripe: Stripe no está configurado",
         )
 
     code = generate_unique_code(db)
@@ -51,6 +83,7 @@ def purchase_gift_card(db: Session, buyer_id: UUID, payload: GiftCardPurchaseReq
     expires = now + timedelta(days=EXPIRATION_DAYS)
 
     card = GiftCard(
+        id=uuid.uuid4(),
         tenant_id=payload.tenant_id,
         buyer_id=buyer_id,
         code=code,
@@ -59,16 +92,78 @@ def purchase_gift_card(db: Session, buyer_id: UUID, payload: GiftCardPurchaseReq
         recipient_name=payload.recipient_name,
         recipient_email=payload.recipient_email,
         custom_message=payload.custom_message,
-        status="active",
+        status=PENDING_PAYMENT,
         payment_method=payload.payment_method,
         qr_code_url=qr_uri,
         expires_at=expires,
         created_at=now,
     )
+    import stripe
+
+    stripe.api_key = settings.stripe_secret_key
+    try:
+        intent = stripe.PaymentIntent.create(
+            amount=_amount_cents(amount),
+            currency=_currency(db, payload.tenant_id),
+            metadata={"gift_card_id": str(card.id)},
+            automatic_payment_methods={"enabled": True, "allow_redirects": "never"},
+            idempotency_key=f"giftcard-{card.id}",
+        )
+    except Exception as exc:  # noqa: BLE001 - el error de Stripe se informa al cliente
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"No se pudo iniciar el pago con Stripe: {exc}",
+        ) from exc
+    card.stripe_payment_intent_id = intent.id
     db.add(card)
     db.commit()
     db.refresh(card)
-    return card
+    return card, intent.client_secret
+
+
+# [CU18 - Secuencia: Paso 3.4] gift_card_routes invoca activate_paid_gift_card(payment_intent) sobre la entidad TarjetaRegalo
+def activate_paid_gift_card(db: Session, payment_intent) -> tuple[GiftCard, bool]:
+    """Activa la tarjeta del PaymentIntent cobrado. Devuelve (tarjeta, True si se activó en esta llamada)."""
+    card = (
+        db.query(GiftCard)
+        .filter(GiftCard.stripe_payment_intent_id == payment_intent["id"])
+        .with_for_update()
+        .first()
+    )
+    metadata = payment_intent.get("metadata") or {}
+    if not card or metadata.get("gift_card_id") != str(card.id):
+        raise ValueError("El PaymentIntent no coincide con la tarjeta de regalo")
+    if card.status != PENDING_PAYMENT:
+        return card, False
+    if payment_intent.get("amount") != _amount_cents(card.amount):
+        raise ValueError("El PaymentIntent no coincide con el importe de la tarjeta de regalo")
+    card.status = "active"
+    db.commit()
+    db.refresh(card)
+    return card, True
+
+
+# [CU18 - Secuencia: Paso 3.2] gift_card_routes invoca confirm_gift_card_payment(buyer_id, card_id) sobre la entidad TarjetaRegalo
+def confirm_gift_card_payment(db: Session, buyer_id: UUID, card_id: UUID) -> tuple[GiftCard, bool]:
+    """Consulta a Stripe el PaymentIntent de la tarjeta y la activa si el cobro se completó."""
+    card = db.query(GiftCard).filter(GiftCard.id == card_id, GiftCard.buyer_id == buyer_id).first()
+    if not card or not card.stripe_payment_intent_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tarjeta de regalo no encontrada")
+    if card.status != PENDING_PAYMENT:
+        return card, False
+    import stripe
+
+    stripe.api_key = settings.stripe_secret_key
+    intent = stripe.PaymentIntent.retrieve(card.stripe_payment_intent_id)
+    if intent["status"] != "succeeded":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El pago con tarjeta todavía no se confirmó. La tarjeta se emitirá al confirmarse el cobro.",
+        )
+    try:
+        return activate_paid_gift_card(db, intent)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
 
 async def send_gift_card_email(card: GiftCard) -> None:
@@ -104,10 +199,11 @@ async def send_gift_card_email(card: GiftCard) -> None:
     )
 
 
+# [CU18 - Secuencia: Pasos 1.2, 3.8] gift_card_routes invoca list_my_purchases(buyer_id) sobre la entidad TarjetaRegalo
 def list_my_purchases(db: Session, buyer_id: UUID) -> list[GiftCard]:
     return (
         db.query(GiftCard)
-        .filter(GiftCard.buyer_id == buyer_id)
+        .filter(GiftCard.buyer_id == buyer_id, GiftCard.status != PENDING_PAYMENT)
         .order_by(GiftCard.created_at.desc())
         .all()
     )

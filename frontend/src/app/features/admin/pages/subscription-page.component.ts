@@ -101,6 +101,7 @@ export class SubscriptionPageComponent implements OnInit {
     this.loadSubscription();
   }
 
+  // [CU28 - Secuencia: Paso 1] El Administrador del tenant ejecuta loadSubscription() en SubscriptionPageComponent
   async loadSubscription(): Promise<void> {
     this.loading.set(true);
     this.error.set(null);
@@ -143,6 +144,7 @@ export class SubscriptionPageComponent implements OnInit {
     return choice.billingCycle === 'yearly' ? choice.plan.price_yearly : choice.plan.price_monthly;
   }
 
+  // [CU28 - Secuencia: Paso 2] El Administrador del tenant ejecuta confirmChange() en SubscriptionPageComponent
   async confirmChange(): Promise<void> {
     const choice = this.selected();
     if (!choice || this.changing()) return;

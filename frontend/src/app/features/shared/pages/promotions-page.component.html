@@ -9,7 +9,7 @@
   @if (error()) { <p class="text-sm text-red-600">{{ error() }}</p> }
   <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
     <table class="w-full text-left text-sm"><thead class="bg-primary text-white"><tr><th class="px-4 py-3">Código</th><th class="px-4 py-3">Descuento</th><th class="px-4 py-3">Vigencia</th><th class="px-4 py-3">Estado</th></tr></thead>
-       <tbody class="divide-y divide-slate-200">@for (item of codes(); track item.id) { <tr><td class="px-4 py-3 font-medium">{{ item.code }}</td><td class="px-4 py-3">{{ item.discount_value }} {{ item.discount_type === 'percentage' ? '%' : 'BOB' }}</td><td class="px-4 py-3">{{ item.valid_until ? (item.valid_until | date:'short') : 'Sin vencimiento' }}</td><td class="px-4 py-3">{{ item.is_active ? 'Activo' : 'Inactivo' }}</td></tr> } @empty { <tr><td colspan="4" class="px-4 py-6 text-center text-slate-500">No hay códigos.</td></tr> }</tbody>
+       <tbody class="divide-y divide-slate-200">@for (item of codes(); track item.id) { <tr><td class="px-4 py-3 font-medium">{{ item.code }}</td><td class="px-4 py-3">{{ item.discount_value }} {{ item.discount_type === 'percentage' ? '%' : 'BOB' }}</td><td class="px-4 py-3">{{ item.valid_until ? (item.valid_until | date:'dd/MM/yyyy HH:mm') : 'Sin vencimiento' }}</td><td class="px-4 py-3" [class.text-rose-600]="estado(item) === 'Vencido'" [class.text-slate-500]="estado(item) === 'Inactivo'">{{ estado(item) }}</td></tr> } @empty { <tr><td colspan="4" class="px-4 py-6 text-center text-slate-500">No hay códigos.</td></tr> }</tbody>
       </table>
     </div>
 

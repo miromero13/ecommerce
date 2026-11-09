@@ -64,6 +64,8 @@ DEFAULT_ROLE_PERMISSIONS: dict[RolEnum, list[str]] = {
 }
 
 
+# [CU03 - Secuencia: Pasos 1.4, 1.12, 2.12, 2.20, 3.10] rbac_routes invoca seed_rbac_if_empty() sobre la entidad Permiso
+# [CU03 - Secuencia: Pasos 1.6, 1.14, 2.14, 2.22, 3.12] rbac_routes invoca seed_rbac_if_empty() sobre la entidad Rol
 def seed_rbac_if_empty(db: Session) -> None:
     """Ensure catalog permissions and system roles are populated."""
     existing_perms = {p.name: p for p in db.query(Permission).all()}
@@ -93,6 +95,7 @@ def seed_rbac_if_empty(db: Session) -> None:
     db.commit()
 
 
+# [CU03 - Secuencia: Pasos 1.2, 2.10] rbac_routes invoca list_permissions() sobre la entidad Permiso
 def list_permissions(db: Session) -> list[Permission]:
     seed_rbac_if_empty(db)
     return db.query(Permission).order_by(Permission.module.asc(), Permission.name.asc()).all()
@@ -101,6 +104,7 @@ def list_permissions(db: Session) -> list[Permission]:
 TENANT_EXCLUDED_SYSTEM_ROLES = {"superadministrador", "cliente", "delivery"}
 
 
+# [CU03 - Secuencia: Pasos 1.10, 2.18, 3.8] rbac_routes invoca list_roles(tenant_id) sobre la entidad Rol
 def list_roles(db: Session, tenant_id: UUID | None) -> list[Role]:
     seed_rbac_if_empty(db)
     query = db.query(Role).options(joinedload(Role.permissions))
@@ -114,6 +118,7 @@ def list_roles(db: Session, tenant_id: UUID | None) -> list[Role]:
     return query.order_by(Role.is_system.desc(), Role.name.asc()).all()
 
 
+# [CU03 - Secuencia: Paso 2.2] rbac_routes invoca create_role(tenant_id, data) sobre la entidad Rol
 def create_role(db: Session, tenant_id: UUID, data: RoleCreate) -> Role:
     clean_name = data.name.strip()
     clean_code = data.code.strip().lower()
@@ -157,6 +162,7 @@ def create_role(db: Session, tenant_id: UUID, data: RoleCreate) -> Role:
     return role
 
 
+# [CU03 - Secuencia: Paso 2.6] rbac_routes invoca update_role(tenant_id, role_id, data) sobre la entidad Rol
 def update_role(db: Session, tenant_id: UUID, role_id: UUID, data: RoleUpdate) -> Role:
     role = (
         db.query(Role)
@@ -250,6 +256,7 @@ def assign_user_roles(
     return roles
 
 
+# [CU01 - Secuencia: Paso 5.6] tenant_routes invoca effective_permissions(user) sobre la entidad Rol
 def effective_permissions(db: Session, user: User) -> list[str]:
     """Effective permissions (CU3):
 

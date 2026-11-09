@@ -41,6 +41,7 @@ import {
 } from '../../shared/models/catalog.model';
 import { CatalogApiService } from '../../shared/services/catalog-api.service';
 import { CartApiService } from '../../shared/services/cart-api.service';
+import { OfflineCartService } from '../../../core/services/offline-cart.service';
 import { SessionService } from '../../shared/services/session.service';
 import { TenantApiService } from '../../shared/services/tenant-api.service';
 import { ReservationDraftService } from '../../shared/services/reservation-draft.service';
@@ -93,6 +94,7 @@ export class CatalogPageComponent {
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(CatalogApiService);
   private readonly cartApi = inject(CartApiService);
+  private readonly offlineCart = inject(OfflineCartService);
   private readonly session = inject(SessionService);
   private readonly tenantApi = inject(TenantApiService);
   protected readonly reservationDraft = inject(ReservationDraftService);
@@ -271,6 +273,7 @@ export class CatalogPageComponent {
     void this.search(true);
   }
 
+  // [CU06 - Secuencia: Paso 1] El Cliente ejecuta selectBranch(branchId) en CatalogPageComponent
   protected selectBranch(branchId: string): void {
     this.selectedBranchId.set(branchId);
     void this.search(true);
@@ -461,24 +464,16 @@ export class CatalogPageComponent {
     this.addingToCartByProduct.update((current) => ({ ...current, [product.id]: true }));
     try {
       void this.recordProductView(product.id);
-      await requestWithToast(
-        this.cartApi.addItem({
-          variant_id: variant.id,
-          branch_id: branchId || undefined,
-          quantity: 1,
-        }),
-        {
-          loading: 'Agregando al carrito...',
-          success: 'Producto agregado al carrito.',
-          error: 'No se pudo agregar al carrito.',
-        },
+      // CU25: sin conexión la prenda se guarda en IndexedDB y se envía al carrito al volver la red (CU30).
+      const added = await this.offlineCart.addItem(
+        { variant_id: variant.id, branch_id: branchId || undefined, quantity: 1 },
+        product.name,
+        this.variantLabel(variant),
       );
       // Remember the first branch only, to preselect pickup in the cart.
-      if (branchId && !this.getCartBranchId()) {
+      if (added && branchId && !this.getCartBranchId()) {
         this.setCartBranch(branchId, branchName);
       }
-    } catch {
-      // El toast de error ya se mostró con requestWithToast
     } finally {
       this.addingToCartByProduct.update((current) => ({ ...current, [product.id]: false }));
     }
@@ -739,6 +734,7 @@ export class CatalogPageComponent {
     }
   }
 
+  // [CU06 - Secuencia: Paso 2] El Cliente ejecuta recordProductView(productId) en CatalogPageComponent
   protected async recordProductView(productId: string): Promise<void> {
     try {
       const product = this.products().find((item) => item.id === productId);

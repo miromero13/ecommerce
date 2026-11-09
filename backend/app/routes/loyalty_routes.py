@@ -16,18 +16,21 @@ router = APIRouter(prefix="/loyalty", tags=["Loyalty"])
 CUSTOMER = require_roles(RolEnum.cliente)
 
 
+# [CU17 - Secuencia: Paso 1.1] LoyaltyPageComponent llama a balance_route() de loyalty_routes (GET /api/loyalty/balance)
 @router.get("/balance")
 def balance_route(db: Session = Depends(get_db), user: dict = Depends(CUSTOMER)):
     return response(status_code=200, message="Puntos obtenidos exitosamente",
                     data=service.list_balances(db, UUID(user["sub"])))
 
 
+# [CU17 - Secuencia: Paso 1.7] LoyaltyPageComponent llama a transactions_route() de loyalty_routes (GET /api/loyalty/transactions)
 @router.get("/transactions")
 def transactions_route(db: Session = Depends(get_db), user: dict = Depends(CUSTOMER)):
     return response(status_code=200, message="Movimientos de puntos obtenidos exitosamente",
                     data=service.list_transactions(db, UUID(user["sub"])))
 
 
+# [CU17 - Secuencia: Paso 2.1] CajaPageComponent llama a customer_balance_route(email) de loyalty_routes (GET /api/loyalty/customer)
 @router.get("/customer")
 def customer_balance_route(
     email: EmailStr = Query(...),

@@ -117,6 +117,7 @@ export class TenantBrandingEditorComponent implements OnInit {
     this.show(await this.brandingService.forTenant(id));
   }
 
+  // [CU26 - Secuencia: Paso 1] El Administrador del tenant ejecuta saveColor() en TenantBrandingEditorComponent
   protected async saveColor(): Promise<void> {
     const request = this.tenantId
       ? this.api.updateTenant(this.tenantId, { primary_color: this.color() })
@@ -124,6 +125,7 @@ export class TenantBrandingEditorComponent implements OnInit {
     await this.run(request as Observable<ApiResponse<unknown>>, 'No se pudo guardar el color.');
   }
 
+  // [CU26 - Secuencia: Paso 4] El Administrador del tenant ejecuta resetColor() en TenantBrandingEditorComponent
   protected async resetColor(): Promise<void> {
     const request = this.tenantId
       ? this.api.updateTenant(this.tenantId, { primary_color: null })
@@ -131,6 +133,7 @@ export class TenantBrandingEditorComponent implements OnInit {
     await this.run(request as Observable<ApiResponse<unknown>>, 'No se pudo reestablecer el color.');
   }
 
+  // [CU26 - Secuencia: Paso 2] El Administrador del tenant ejecuta uploadLogo(event) en TenantBrandingEditorComponent
   protected async uploadLogo(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
@@ -147,6 +150,7 @@ export class TenantBrandingEditorComponent implements OnInit {
     await this.run(this.api.uploadLogo(file, this.tenantId), 'No se pudo subir el logo.');
   }
 
+  // [CU26 - Secuencia: Paso 3] El Administrador del tenant ejecuta removeLogo() en TenantBrandingEditorComponent
   protected async removeLogo(): Promise<void> {
     await this.run(this.api.deleteLogo(this.tenantId), 'No se pudo quitar el logo.');
   }

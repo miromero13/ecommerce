@@ -15,12 +15,16 @@ router = APIRouter(prefix="/wishlist", tags=["Wishlist"])
 CUSTOMER = require_roles(RolEnum.cliente)
 
 
+# [CU16 - Secuencia: Pasos 1.1, 3.9, 4.13, 5.13] WishlistPageComponent llama a list_route() de wishlist_routes (GET /api/wishlist)
+# [CU16 - Secuencia: Paso 2.13] WishlistToggleButtonComponent llama a list_route() de wishlist_routes (GET /api/wishlist)
 @router.get("")
 def list_route(db: Session = Depends(get_db), user: dict = Depends(CUSTOMER)):
     return response(status_code=200, message="Lista de deseos obtenida exitosamente",
                     data=service.list_items(db, UUID(user["sub"])))
 
 
+# [CU16 - Secuencia: Paso 2.5] WishlistToggleButtonComponent llama a add_route(payload) de wishlist_routes (POST /api/wishlist/items)
+# [CU16 - Secuencia: Paso 5.5] WishlistPageComponent llama a add_route(payload) de wishlist_routes (POST /api/wishlist/items)
 @router.post("/items", status_code=status.HTTP_201_CREATED)
 def add_route(payload: WishlistItemCreate, db: Session = Depends(get_db), user: dict = Depends(CUSTOMER)):
     try:
@@ -32,6 +36,8 @@ def add_route(payload: WishlistItemCreate, db: Session = Depends(get_db), user: 
     return response(status_code=201, message="Prenda añadida a tu lista de deseos", data={"wishlist_item_id": item.id})
 
 
+# [CU16 - Secuencia: Paso 2.1] WishlistToggleButtonComponent llama a remove_route(product_id) de wishlist_routes (DELETE /api/wishlist/items/{product_id})
+# [CU16 - Secuencia: Paso 5.1] WishlistPageComponent llama a remove_route(product_id) de wishlist_routes (DELETE /api/wishlist/items/{product_id})
 @router.delete("/items/{product_id}")
 def remove_route(product_id: UUID, db: Session = Depends(get_db), user: dict = Depends(CUSTOMER)):
     try:
@@ -41,6 +47,7 @@ def remove_route(product_id: UUID, db: Session = Depends(get_db), user: dict = D
     return response(status_code=200, message="Prenda eliminada de tu lista de deseos", data={"product_id": product_id})
 
 
+# [CU16 - Secuencia: Paso 3.1] WishlistPageComponent llama a move_route(product_id, payload) de wishlist_routes (POST /api/wishlist/items/{product_id}/move-to-cart)
 @router.post("/items/{product_id}/move-to-cart")
 def move_route(product_id: UUID, payload: MoveToCartRequest, db: Session = Depends(get_db),
                user: dict = Depends(CUSTOMER)):
@@ -53,6 +60,7 @@ def move_route(product_id: UUID, payload: MoveToCartRequest, db: Session = Depen
     return response(status_code=200, message="Prenda movida al carrito de compras con éxito", data=cart)
 
 
+# [CU16 - Secuencia: Paso 4.1] WishlistPageComponent llama a move_all_route(payload) de wishlist_routes (POST /api/wishlist/move-all-to-cart)
 @router.post("/move-all-to-cart")
 def move_all_route(payload: MoveAllToCartRequest, db: Session = Depends(get_db), user: dict = Depends(CUSTOMER)):
     try:

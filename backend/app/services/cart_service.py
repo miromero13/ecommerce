@@ -22,6 +22,8 @@ from app.services.promotion_service import calculate_discount, cart_has_product_
 from app.services.recommendation_service import ADD_TO_CART, record_interaction
 
 
+# [CU25 - Secuencia: Paso 2.13] cart_routes invoca _available_quantity(variant_id, tenant_id, branch_id) sobre la entidad Inventario
+# [CU30 - Secuencia: Paso 3.10] cart_routes invoca _available_quantity(variant_id, tenant_id, branch_id) sobre la entidad Inventario
 def _available_quantity(db: Session, variant_id: UUID, tenant_id: UUID, branch_id: UUID | None = None) -> int:
     query = db.query(Inventory.quantity, Inventory.reserved_quantity).join(Branch).filter(
         Inventory.variant_id == variant_id, Inventory.tenant_id == tenant_id,
@@ -50,6 +52,10 @@ def _get_active_cart(db: Session, user_id: UUID) -> Cart:
     return cart
 
 
+# [CU15 - Secuencia: Pasos 3.2, 4.2] cart_routes invoca _get_mutable_cart(user_id) sobre la entidad Carrito
+# [CU16 - Secuencia: Paso 4.4] wishlist_routes invoca _get_mutable_cart(user_id) sobre la entidad Carrito
+# [CU25 - Secuencia: Paso 2.7] cart_routes invoca _get_mutable_cart(user_id) sobre la entidad Carrito
+# [CU30 - Secuencia: Paso 3.4] cart_routes invoca _get_mutable_cart(user_id) sobre la entidad Carrito
 def _get_mutable_cart(db: Session, user_id: UUID) -> Cart:
     cart = _get_active_cart(db, user_id)
     if cart.status == CartStatusEnum.checkout_pending:
@@ -57,6 +63,9 @@ def _get_mutable_cart(db: Session, user_id: UUID) -> Cart:
     return cart
 
 
+# [CU15 - Secuencia: Paso 3.6] cart_routes invoca validate_cart_company(cart, tenant_id) sobre la entidad Carrito
+# [CU25 - Secuencia: Paso 2.9] cart_routes invoca validate_cart_company(cart, tenant_id) sobre la entidad Carrito
+# [CU30 - Secuencia: Paso 3.6] cart_routes invoca validate_cart_company(cart, tenant_id) sobre la entidad Carrito
 def validate_cart_company(db: Session, cart: Cart, tenant_id: UUID) -> None:
     """Validate before binding an empty cart or mutating an existing one."""
     rows = db.query(ProductVariant, Product).select_from(ProductVariant).join(
@@ -113,6 +122,9 @@ def _load_cart_items(db: Session, cart_id: UUID):
     ]
 
 
+# [CU15 - Secuencia: Pasos 3.16, 4.6] cart_routes invoca _serialize_cart(cart) sobre la entidad Carrito
+# [CU25 - Secuencia: Paso 2.19] cart_routes invoca _serialize_cart(cart) sobre la entidad Carrito
+# [CU30 - Secuencia: Paso 3.16] cart_routes invoca _serialize_cart(cart) sobre la entidad Carrito
 def _serialize_cart(db: Session, cart: Cart) -> CartRead:
     cart_items = _load_cart_items(db, cart.id)
     subtotal = sum(Decimal(str(item["original_unit_price"])) * int(item["quantity"]) for item in cart_items)
@@ -156,6 +168,9 @@ def get_current_cart(db: Session, user_id: UUID) -> CartRead:
     return _serialize_cart(db, cart)
 
 
+# [CU16 - Secuencia: Pasos 3.6, 4.10] wishlist_routes invoca add_cart_item(user_id, payload) sobre la entidad DetalleCarrito
+# [CU25 - Secuencia: Paso 2.5] cart_routes invoca add_cart_item(user_id, payload) sobre la entidad DetalleCarrito
+# [CU30 - Secuencia: Paso 3.2] cart_routes invoca add_cart_item(user_id, payload) sobre la entidad DetalleCarrito
 def add_cart_item(db: Session, user_id: UUID, payload: CartItemCreate) -> CartRead:
     cart = _get_mutable_cart(db, user_id)
     variant = db.query(ProductVariant).join(Product).filter(ProductVariant.id == payload.variant_id).first()
@@ -255,6 +270,7 @@ def remove_cart_item(db: Session, user_id: UUID, item_id: UUID) -> CartRead:
     return _serialize_cart(db, cart)
 
 
+# [CU16 - Secuencia: Paso 4.6] wishlist_routes invoca clear_cart(user_id) sobre la entidad DetalleCarrito
 def clear_cart(db: Session, user_id: UUID) -> CartRead:
     cart = _get_mutable_cart(db, user_id)
     db.query(CartItem).filter(CartItem.cart_id == cart.id).delete(synchronize_session=False)
@@ -267,6 +283,9 @@ def clear_cart(db: Session, user_id: UUID) -> CartRead:
     return _serialize_cart(db, cart)
 
 
+# [CU15 - Secuencia: Pasos 3.14, 4.4] cart_routes invoca refresh_cart_totals(cart) sobre la entidad Carrito
+# [CU25 - Secuencia: Paso 2.17] cart_routes invoca refresh_cart_totals(cart) sobre la entidad Carrito
+# [CU30 - Secuencia: Paso 3.14] cart_routes invoca refresh_cart_totals(cart) sobre la entidad Carrito
 def refresh_cart_totals(db: Session, cart: Cart) -> None:
     # SessionLocal has autoflush=False: without this, a just-added line is invisible
     # here and the cart would be emptied of its company (tenant_id = None).
@@ -330,6 +349,7 @@ def apply_coupon(db: Session, user_id: UUID, payload: PromotionCodeApply) -> Car
     return _serialize_cart(db, cart)
 
 
+# [CU16 - Secuencia: Paso 4.8] wishlist_routes invoca set_cart_branch(user_id, branch_id) sobre la entidad Sucursal
 def set_cart_branch(db: Session, user_id: UUID, branch_id: UUID | None) -> tuple[CartRead, str | None]:
     cart = _get_mutable_cart(db, user_id)
     warning_message = None

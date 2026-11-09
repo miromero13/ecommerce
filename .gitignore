@@ -15,4 +15,13 @@ backend/database_schema.sql
 docs/diagramas_robustez/
 docs/tests/
 output/
-tmp/
+tmp/
+
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Enterprise Architect temporary lock files
+*.ldb
+

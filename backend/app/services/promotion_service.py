@@ -18,15 +18,19 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+# [CU15 - Secuencia: Paso 5.6] sales_routes invoca _is_valid(code, now) sobre la entidad CodigoPromocional
 def _is_valid(code: PromotionCode, now: datetime | None = None) -> bool:
     now = now or _now()
     return code.is_active and (code.valid_from is None or code.valid_from <= now) and (code.valid_until is None or now < code.valid_until)
 
 
+# [CU15 - Secuencia: Paso 3.8] cart_routes invoca get_code(code) sobre la entidad CodigoPromocional
+# [CU15 - Secuencia: Paso 5.4] sales_routes invoca get_code(code) sobre la entidad CodigoPromocional
 def get_code(db: Session, code: str) -> PromotionCode | None:
     return db.query(PromotionCode).filter(PromotionCode.code == code.strip().upper()).first()
 
 
+# [CU15 - Secuencia: Paso 2.2] promotion_routes invoca create_code(payload, creator_id, tenant_id) sobre la entidad CodigoPromocional
 def create_code(db: Session, payload: PromotionCodeCreate, creator_id: UUID, tenant_id: UUID) -> PromotionCode:
     code = PromotionCode(**payload.model_dump(exclude={"discount_type"}), tenant_id=tenant_id, created_by=creator_id, discount_type=payload.discount_type.value)
     db.add(code)
@@ -39,6 +43,7 @@ def create_code(db: Session, payload: PromotionCodeCreate, creator_id: UUID, ten
         raise ValueError("El código promocional ya existe") from exc
 
 
+# [CU15 - Secuencia: Pasos 1.2, 2.6] promotion_routes invoca list_codes(tenant_id, branch_id) sobre la entidad CodigoPromocional
 def list_codes(db: Session, tenant_id: UUID, branch_id: UUID | None = None):
     query = db.query(PromotionCode).filter(PromotionCode.tenant_id == tenant_id).order_by(PromotionCode.created_at.desc())
     if branch_id is not None:
@@ -46,6 +51,8 @@ def list_codes(db: Session, tenant_id: UUID, branch_id: UUID | None = None):
     return query.all()
 
 
+# [CU15 - Secuencia: Paso 3.10] cart_routes invoca validate_for_user(code_value, user_id, branch_id, tenant_id) sobre la entidad CodigoPromocional
+# [CU15 - Secuencia: Paso 5.2] sales_routes invoca validate_for_user(code_value, user_id, branch_id, tenant_id) sobre la entidad CodigoPromocional
 def validate_for_user(db: Session, code_value: str, user_id: UUID, branch_id: UUID | None = None, tenant_id: UUID | None = None) -> PromotionCode:
     code = get_code(db, code_value)
     if not code or code.tenant_id != tenant_id or not _is_valid(code):
@@ -57,6 +64,7 @@ def validate_for_user(db: Session, code_value: str, user_id: UUID, branch_id: UU
     return code
 
 
+# [CU15 - Secuencia: Paso 3.4] cart_routes invoca cart_has_product_discount(cart_id) sobre la entidad DetalleCarrito
 def cart_has_product_discount(db: Session, cart_id: UUID) -> bool:
     return db.query(CartItem.id).join(ProductVariant, ProductVariant.id == CartItem.variant_id).join(Product, Product.id == ProductVariant.product_id).filter(
         CartItem.cart_id == cart_id,
@@ -65,6 +73,8 @@ def cart_has_product_discount(db: Session, cart_id: UUID) -> bool:
     ).first() is not None
 
 
+# [CU15 - Secuencia: Paso 3.12] cart_routes invoca calculate_discount(code, subtotal) sobre la entidad CodigoPromocional
+# [CU15 - Secuencia: Paso 5.8] sales_routes invoca calculate_discount(code, subtotal) sobre la entidad CodigoPromocional
 def calculate_discount(code: PromotionCode, subtotal: Decimal) -> Decimal:
     value = Decimal(str(code.discount_value))
     subtotal = max(Decimal(str(subtotal)), Decimal("0.00"))
@@ -77,5 +87,6 @@ def calculate_discount(code: PromotionCode, subtotal: Decimal) -> Decimal:
     return min(amount, subtotal).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
+# [CU15 - Secuencia: Paso 5.10] sales_routes invoca add_usage(code_id, user_id) sobre la entidad UsoCodigoPromocional
 def add_usage(db: Session, code_id: UUID, user_id: UUID) -> None:
     db.add(PromotionCodeUsage(promotion_code_id=code_id, user_id=user_id))

@@ -24,6 +24,7 @@ def _filters(
     return DashboardQuery(branch_id=branch_id, from_date=from_date, to_date=to_date, period=period)
 
 
+# [CU13 - Secuencia: Pasos 1.1, 2.1] AdminHomePageComponent llama a dashboard_route() de dashboard_routes (GET /api/dashboard)
 @router.get("")
 def dashboard_route(
     db: Session = Depends(get_db),

@@ -45,6 +45,7 @@ export class ChatbotComponent {
       });
   }
 
+  // [CU07 - Secuencia: Paso 1] El Cliente ejecuta openChat() en ChatbotComponent
   protected openChat(): void {
     this.open.set(true);
     this.error.set(null);
@@ -67,6 +68,7 @@ export class ChatbotComponent {
     }
   }
 
+  // [CU07 - Secuencia: Paso 2] El Cliente ejecuta sendMessage(content) en ChatbotComponent
   protected async sendMessage(content = this.draft().trim()): Promise<void> {
     if (!content || this.sending() || this.resetting()) return;
 
@@ -116,6 +118,7 @@ export class ChatbotComponent {
     if (!this.resetting()) this.deleteConfirmOpen.set(false);
   }
 
+  // [CU07 - Secuencia: Paso 3] El Cliente ejecuta confirmDelete() en ChatbotComponent
   protected async confirmDelete(): Promise<void> {
     if (this.resetting() || this.sending()) return;
 

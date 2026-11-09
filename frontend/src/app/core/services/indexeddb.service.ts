@@ -1,11 +1,12 @@
 import { Injectable } from '@angular/core';
 
 export const OFFLINE_DB_NAME = 'FashionStoreOfflineDB';
-export const OFFLINE_DB_VERSION = 1;
+export const OFFLINE_DB_VERSION = 2;
 
 export const STORES = {
   CACHED_CATALOG: 'cached_catalog',
   PENDING_OPERATIONS_QUEUE: 'pending_operations_queue',
+  PENDING_CART_ITEMS: 'pending_cart_items',
 } as const;
 
 export type StoreName = (typeof STORES)[keyof typeof STORES];
@@ -45,6 +46,11 @@ export class IndexedDbService {
           queueStore.createIndex('created_at', 'created_at', { unique: false });
           queueStore.createIndex('status', 'status', { unique: false });
           queueStore.createIndex('type', 'type', { unique: false });
+        }
+
+        // 3. Prendas que el cliente agregó al carrito sin conexión (CU25, se sincronizan en CU30)
+        if (!db.objectStoreNames.contains(STORES.PENDING_CART_ITEMS)) {
+          db.createObjectStore(STORES.PENDING_CART_ITEMS, { keyPath: 'id' });
         }
       };
 

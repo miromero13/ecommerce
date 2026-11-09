@@ -30,6 +30,7 @@ export class NotificationPageComponent {
     void this.push.refresh();
   }
 
+  // [CU12 - Secuencia: Paso 1] El Cliente ejecuta enablePush() en NotificationPageComponent
   protected async enablePush(): Promise<void> {
     try {
       await this.push.enable();
@@ -38,6 +39,7 @@ export class NotificationPageComponent {
     }
   }
 
+  // [CU12 - Secuencia: Paso 3] El Cliente ejecuta markAllRead() en NotificationPageComponent
   protected async markAllRead(): Promise<void> {
     try {
       await this.push.markAllRead();
@@ -46,6 +48,7 @@ export class NotificationPageComponent {
     }
   }
 
+  // [CU12 - Secuencia: Paso 2] El Cliente ejecuta open(item) en NotificationPageComponent
   protected async open(item: NotificationItem): Promise<void> {
     if (this.isReplenishment(item)) {
       // Handled directly inside the interactive card actions
@@ -63,6 +66,7 @@ export class NotificationPageComponent {
     return item.data?.['destination'] === 'expert_replenishment' && !!item.data?.['suggestion_id'];
   }
 
+  // [CU09 - Secuencia: Paso 6] El Administrador del tenant ejecuta applyReplenishment(item, event) en NotificationPageComponent
   protected async applyReplenishment(item: NotificationItem, event?: Event): Promise<void> {
     if (event) {
       event.stopPropagation();
@@ -87,6 +91,7 @@ export class NotificationPageComponent {
     }
   }
 
+  // [CU09 - Secuencia: Paso 7] El Administrador del tenant ejecuta discardReplenishment(item, event) en NotificationPageComponent
   protected async discardReplenishment(item: NotificationItem, event?: Event): Promise<void> {
     if (event) {
       event.stopPropagation();

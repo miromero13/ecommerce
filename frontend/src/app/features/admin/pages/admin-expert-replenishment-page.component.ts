@@ -77,6 +77,7 @@ export class AdminExpertReplenishmentPageComponent implements OnInit {
     await Promise.all([this.loadRules(), this.loadSuggestions()]);
   }
 
+  // [CU09 - Secuencia: Paso 1] El Administrador del tenant ejecuta loadRules() en AdminExpertReplenishmentPageComponent
   async loadRules(): Promise<void> {
     this.isLoadingRules.set(true);
     try {
@@ -98,6 +99,7 @@ export class AdminExpertReplenishmentPageComponent implements OnInit {
     }
   }
 
+  // [CU09 - Secuencia: Paso 5] El Administrador del tenant ejecuta saveRules() en AdminExpertReplenishmentPageComponent
   async saveRules(): Promise<void> {
     if (this.rulesForm.invalid) {
       this.rulesForm.markAllAsTouched();
@@ -126,6 +128,7 @@ export class AdminExpertReplenishmentPageComponent implements OnInit {
     }
   }
 
+  // [CU09 - Secuencia: Paso 2] El Administrador del tenant ejecuta loadSuggestions() en AdminExpertReplenishmentPageComponent
   async loadSuggestions(): Promise<void> {
     try {
       const res = await firstValueFrom(this.replenishmentApi.getSuggestions());
@@ -138,6 +141,7 @@ export class AdminExpertReplenishmentPageComponent implements OnInit {
     }
   }
 
+  // [CU09 - Secuencia: Paso 3] El Administrador del tenant ejecuta evaluateReplenishment() en AdminExpertReplenishmentPageComponent
   async evaluateReplenishment(): Promise<void> {
     this.isEvaluating.set(true);
     try {
@@ -182,6 +186,7 @@ export class AdminExpertReplenishmentPageComponent implements OnInit {
     this.selectedSuggestionIds.set(selected);
   }
 
+  // [CU09 - Secuencia: Paso 4] El Administrador del tenant ejecuta applySelectedTransfers() en AdminExpertReplenishmentPageComponent
   async applySelectedTransfers(): Promise<void> {
     const ids = Array.from(this.selectedSuggestionIds());
     if (ids.length === 0) return;

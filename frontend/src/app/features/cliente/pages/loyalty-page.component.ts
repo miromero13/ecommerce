@@ -75,6 +75,7 @@ export class LoyaltyPageComponent {
     return MOVEMENT_LABELS[row.type];
   }
 
+  // [CU17 - Secuencia: Paso 1] El Cliente ejecuta load() en LoyaltyPageComponent
   private async load(): Promise<void> {
     try {
       const [balances, movements] = await Promise.all([

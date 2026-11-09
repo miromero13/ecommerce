@@ -463,6 +463,8 @@ def decide_reservation(db: Session, user_id: UUID, reservation_id: UUID, purchas
         raise
 
 
+# [CU25 - Secuencia: Paso 2.11] cart_routes invoca transfer_reservation_to_cart(user_id, reservation_id) sobre la entidad DetalleCarrito
+# [CU30 - Secuencia: Paso 3.8] cart_routes invoca transfer_reservation_to_cart(user_id, reservation_id) sobre la entidad DetalleCarrito
 def transfer_reservation_to_cart(db: Session, user_id: UUID, reservation_id: UUID):
     expire_due_reservations(db)
     reservation = (

@@ -44,6 +44,7 @@ export class OfflineSyncService {
   /**
    * CU30: Sincronización diferida automática al recuperar la conectividad
    */
+  // [CU30 - Secuencia: Paso 1] El sistema dispara triggerAutoSync() en OfflineSyncService (evento del navegador)
   async triggerAutoSync(): Promise<void> {
     const pendingCount = this.queueService.pendingCount();
     if (pendingCount === 0) return;
@@ -72,6 +73,7 @@ export class OfflineSyncService {
   /**
    * Resolver colisión de inventario compensando en Billetera (+10%) o devolución física
    */
+  // [CU30 - Secuencia: Pasos 4.1, 5.1] OfflineConflictsPageComponent invoca resolveConflict(operationId, action, amount, customerEmail) en OfflineSyncService
   async resolveConflict(
     operationId: string,
     action: 'wallet_compensation' | 'cash_refund',

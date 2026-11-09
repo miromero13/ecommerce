@@ -4,10 +4,11 @@ import pytest
 
 from test_catalog_tenant_isolation import catalog  # noqa: F401 (shared fixture)
 from test_marketplace_transactions import add, call, market, market_api, rejected  # noqa: F401
+from test_gift_cards import buy_gift_card, gift_stripe  # noqa: F401
 
 
 @pytest.fixture
-def wallet_api(market_api):
+def wallet_api(market_api, gift_stripe):
     from app.routes import gift_card_routes, wallet_routes
 
     market_api.app.include_router(gift_card_routes.router, prefix="/api")
@@ -38,13 +39,7 @@ def test_wallet_initial_balance_is_zero(wallet_api, api_db, market):
 
 
 def test_redeem_gift_card_credits_wallet_and_records_transaction(wallet_api, api_db, market):
-    card = call(
-        wallet_api,
-        market.customer,
-        "POST",
-        "/gift-cards/purchase",
-        201,
-        json={
+    card = buy_gift_card(wallet_api, market.customer, json={
             "amount": 50.00,
             "recipient_name": "Yo Mismo",
             "recipient_email": market.customer.email,
@@ -76,13 +71,7 @@ def test_redeem_gift_card_credits_wallet_and_records_transaction(wallet_api, api
 
 
 def test_redeem_same_card_twice_is_rejected(wallet_api, api_db, market):
-    card = call(
-        wallet_api,
-        market.customer,
-        "POST",
-        "/gift-cards/purchase",
-        201,
-        json={"amount": 30.00, "recipient_name": "Test", "recipient_email": "t@test.com"},
+    card = buy_gift_card(wallet_api, market.customer, json={"amount": 30.00, "recipient_name": "Test", "recipient_email": "t@test.com"},
     )
     code = card["card_code"]
     call(wallet_api, market.customer, "POST", "/wallet/redeem-gift-card", 200, json={"card_code": code})
@@ -132,13 +121,7 @@ def test_wallet_checkout_success_and_insufficient_funds(wallet_api, api_db, mark
     )
 
     # Buy and redeem a $200 gift card
-    card = call(
-        wallet_api,
-        market.customer,
-        "POST",
-        "/gift-cards/purchase",
-        201,
-        json={"amount": 200.00, "recipient_name": "Payer", "recipient_email": market.customer.email},
+    card = buy_gift_card(wallet_api, market.customer, json={"amount": 200.00, "recipient_name": "Payer", "recipient_email": market.customer.email},
     )
     call(wallet_api, market.customer, "POST", "/wallet/redeem-gift-card", 200, json={"card_code": card["card_code"]})
 

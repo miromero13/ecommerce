@@ -107,6 +107,7 @@ export class OnboardingPageComponent implements OnInit {
     this.loadPlans();
   }
 
+  // [CU27 - Secuencia: Paso 1] El Administrador del tenant ejecuta loadPlans() en OnboardingPageComponent
   async loadPlans(): Promise<void> {
     this.loadingPlans.set(true);
     try {
@@ -157,6 +158,7 @@ export class OnboardingPageComponent implements OnInit {
     toast.info('Datos de tarjeta simulada de prueba completados.');
   }
 
+  // [CU27 - Secuencia: Paso 2] El Administrador del tenant ejecuta submitOrder() en OnboardingPageComponent
   async submitOrder(): Promise<void> {
     if (!this.companyName.trim()) {
       toast.warning('Ingresá el nombre de tu empresa.');

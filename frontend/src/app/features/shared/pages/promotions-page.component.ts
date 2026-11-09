@@ -91,6 +91,16 @@ export class PromotionsPageComponent {
     return offsetDate.toISOString().slice(0, 16);
   }
 
+  /** Misma regla que el backend (promotion_service: is_active y valid_from <= ahora < valid_until). */
+  protected estado(item: PromotionCode): 'Activo' | 'Inactivo' | 'Vencido' | 'Programado' {
+    if (!item.is_active) return 'Inactivo';
+    const ahora = Date.now();
+    if (item.valid_until && new Date(item.valid_until).getTime() <= ahora) return 'Vencido';
+    if (item.valid_from && new Date(item.valid_from).getTime() > ahora) return 'Programado';
+    return 'Activo';
+  }
+
+  // [CU15 - Secuencia: Paso 1] El Administrador del tenant ejecuta load() en PromotionsPageComponent
   protected async load(): Promise<void> {
     try {
       const response = await firstValueFrom(this.api.list());
@@ -100,6 +110,7 @@ export class PromotionsPageComponent {
     }
   }
 
+  // [CU15 - Secuencia: Paso 2] El Administrador del tenant ejecuta create() en PromotionsPageComponent
   protected async create(): Promise<void> {
     const requiresValidUntil = !this.noExpiration() && !this.form.controls.valid_until.value;
     this.validUntilError.set(requiresValidUntil);

@@ -472,6 +472,7 @@ export class RmaHistoryPageComponent {
     }
   }
 
+  // [CU21 - Secuencia: Paso 1] El Cliente ejecuta openWizard() en RmaHistoryPageComponent
   protected async openWizard(): Promise<void> {
     this.showWizard.set(true);
     this.wizardStep.set(1);
@@ -519,6 +520,7 @@ export class RmaHistoryPageComponent {
     return this.itemDrafts().filter((d) => d.selected).length;
   }
 
+  // [CU21 - Secuencia: Paso 2] El Cliente ejecuta submitRequest() en RmaHistoryPageComponent
   protected async submitRequest(): Promise<void> {
     const order = this.selectedOrder();
     if (!order) return;

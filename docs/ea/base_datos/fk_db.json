@@ -1,0 +1,880 @@
+{
+ "alembic": "0051",
+ "tablas": [
+  "alembic_version",
+  "branches",
+  "cart_items",
+  "carts",
+  "cash_movements",
+  "cash_sessions",
+  "categories",
+  "collaborative_embeddings",
+  "collections",
+  "colors",
+  "conversation_messages",
+  "conversations",
+  "device_tokens",
+  "expert_replenishment_rules",
+  "expert_transfer_suggestions",
+  "inventory",
+  "inventory_movements",
+  "loyalty_accounts",
+  "loyalty_ledger",
+  "notifications",
+  "order_items",
+  "orders",
+  "payment_attempts",
+  "payment_receipts",
+  "payment_transactions",
+  "permissions",
+  "product_variants",
+  "products",
+  "promotion_code_usages",
+  "promotion_codes",
+  "provider_variant_availability",
+  "providers",
+  "qr_payments",
+  "replenishment_request_items",
+  "replenishment_requests",
+  "reservation_items",
+  "reservations",
+  "role_permissions",
+  "roles",
+  "rpa_ingest_jobs",
+  "saas_plans",
+  "sale_items",
+  "sales",
+  "seasons",
+  "settlements",
+  "sizes",
+  "stripe_events",
+  "tenant_subscriptions",
+  "tenants",
+  "user_body_profiles",
+  "user_product_interactions",
+  "user_roles",
+  "users",
+  "wishlist_items"
+ ],
+ "fks": [
+  {
+   "table_name": "branches",
+   "column_name": "tenant_id",
+   "ref_table": "tenants",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "cart_items",
+   "column_name": "cart_id",
+   "ref_table": "carts",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "cart_items",
+   "column_name": "reservation_id",
+   "ref_table": "reservations",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "cart_items",
+   "column_name": "variant_id",
+   "ref_table": "product_variants",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "carts",
+   "column_name": "promotion_code_id",
+   "ref_table": "promotion_codes",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "carts",
+   "column_name": "tenant_id",
+   "ref_table": "tenants",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "carts",
+   "column_name": "user_id",
+   "ref_table": "users",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "cash_movements",
+   "column_name": "session_id",
+   "ref_table": "cash_sessions",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "cash_sessions",
+   "column_name": "branch_id",
+   "ref_table": "branches",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "cash_sessions",
+   "column_name": "cashier_id",
+   "ref_table": "users",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "cash_sessions",
+   "column_name": "tenant_id",
+   "ref_table": "tenants",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "categories",
+   "column_name": "tenant_id",
+   "ref_table": "tenants",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "collections",
+   "column_name": "season_id",
+   "ref_table": "seasons",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "collections",
+   "column_name": "tenant_id",
+   "ref_table": "tenants",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "conversation_messages",
+   "column_name": "conversation_id",
+   "ref_table": "conversations",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "conversations",
+   "column_name": "user_id",
+   "ref_table": "users",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "device_tokens",
+   "column_name": "user_id",
+   "ref_table": "users",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "expert_replenishment_rules",
+   "column_name": "tenant_id",
+   "ref_table": "tenants",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "expert_transfer_suggestions",
+   "column_name": "source_branch_id",
+   "ref_table": "branches",
+   "ref_col": "id",
+   "delete_rule": "SET NULL"
+  },
+  {
+   "table_name": "expert_transfer_suggestions",
+   "column_name": "target_branch_id",
+   "ref_table": "branches",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "expert_transfer_suggestions",
+   "column_name": "tenant_id",
+   "ref_table": "tenants",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "expert_transfer_suggestions",
+   "column_name": "variant_id",
+   "ref_table": "product_variants",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "inventory",
+   "column_name": "branch_id",
+   "ref_table": "branches",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "inventory",
+   "column_name": "tenant_id",
+   "ref_table": "tenants",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "inventory_movements",
+   "column_name": "branch_id",
+   "ref_table": "branches",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "inventory_movements",
+   "column_name": "created_by",
+   "ref_table": "users",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "inventory_movements",
+   "column_name": "reference_branch_id",
+   "ref_table": "branches",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "inventory_movements",
+   "column_name": "tenant_id",
+   "ref_table": "tenants",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "inventory_movements",
+   "column_name": "variant_id",
+   "ref_table": "product_variants",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "loyalty_accounts",
+   "column_name": "tenant_id",
+   "ref_table": "tenants",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "loyalty_accounts",
+   "column_name": "user_id",
+   "ref_table": "users",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "loyalty_ledger",
+   "column_name": "account_id",
+   "ref_table": "loyalty_accounts",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "notifications",
+   "column_name": "user_id",
+   "ref_table": "users",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "order_items",
+   "column_name": "order_id",
+   "ref_table": "orders",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "order_items",
+   "column_name": "reservation_id",
+   "ref_table": "reservations",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "order_items",
+   "column_name": "variant_id",
+   "ref_table": "product_variants",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "orders",
+   "column_name": "delivery_driver_id",
+   "ref_table": "users",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "orders",
+   "column_name": "pickup_branch_id",
+   "ref_table": "branches",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "orders",
+   "column_name": "promotion_code_id",
+   "ref_table": "promotion_codes",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "orders",
+   "column_name": "tenant_id",
+   "ref_table": "tenants",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "orders",
+   "column_name": "user_id",
+   "ref_table": "users",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "payment_attempts",
+   "column_name": "cart_id",
+   "ref_table": "carts",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "payment_attempts",
+   "column_name": "order_id",
+   "ref_table": "orders",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "payment_receipts",
+   "column_name": "branch_id",
+   "ref_table": "branches",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "payment_receipts",
+   "column_name": "customer_id",
+   "ref_table": "users",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "payment_receipts",
+   "column_name": "tenant_id",
+   "ref_table": "tenants",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "payment_transactions",
+   "column_name": "settlement_id",
+   "ref_table": "settlements",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "payment_transactions",
+   "column_name": "tenant_id",
+   "ref_table": "tenants",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "product_variants",
+   "column_name": "color_id",
+   "ref_table": "colors",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "product_variants",
+   "column_name": "product_id",
+   "ref_table": "products",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "product_variants",
+   "column_name": "size_id",
+   "ref_table": "sizes",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "product_variants",
+   "column_name": "tenant_id",
+   "ref_table": "tenants",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "products",
+   "column_name": "category_id",
+   "ref_table": "categories",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "products",
+   "column_name": "collection_id",
+   "ref_table": "collections",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "products",
+   "column_name": "provider_id",
+   "ref_table": "providers",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "products",
+   "column_name": "tenant_id",
+   "ref_table": "tenants",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "promotion_code_usages",
+   "column_name": "promotion_code_id",
+   "ref_table": "promotion_codes",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "promotion_code_usages",
+   "column_name": "user_id",
+   "ref_table": "users",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "promotion_codes",
+   "column_name": "branch_id",
+   "ref_table": "branches",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "promotion_codes",
+   "column_name": "created_by",
+   "ref_table": "users",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "promotion_codes",
+   "column_name": "tenant_id",
+   "ref_table": "tenants",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "provider_variant_availability",
+   "column_name": "provider_id",
+   "ref_table": "providers",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "provider_variant_availability",
+   "column_name": "variant_id",
+   "ref_table": "product_variants",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "providers",
+   "column_name": "tenant_id",
+   "ref_table": "tenants",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "providers",
+   "column_name": "user_id",
+   "ref_table": "users",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "qr_payments",
+   "column_name": "branch_id",
+   "ref_table": "branches",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "qr_payments",
+   "column_name": "created_by",
+   "ref_table": "users",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "qr_payments",
+   "column_name": "tenant_id",
+   "ref_table": "tenants",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "replenishment_request_items",
+   "column_name": "request_id",
+   "ref_table": "replenishment_requests",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "replenishment_request_items",
+   "column_name": "variant_id",
+   "ref_table": "product_variants",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "replenishment_requests",
+   "column_name": "accepted_by",
+   "ref_table": "users",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "replenishment_requests",
+   "column_name": "awaiting_receipt_by",
+   "ref_table": "users",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "replenishment_requests",
+   "column_name": "branch_id",
+   "ref_table": "branches",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "replenishment_requests",
+   "column_name": "delivered_by",
+   "ref_table": "users",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "replenishment_requests",
+   "column_name": "preparing_by",
+   "ref_table": "users",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "replenishment_requests",
+   "column_name": "provider_id",
+   "ref_table": "providers",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "replenishment_requests",
+   "column_name": "requested_by",
+   "ref_table": "users",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "replenishment_requests",
+   "column_name": "tenant_id",
+   "ref_table": "tenants",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "reservation_items",
+   "column_name": "reservation_id",
+   "ref_table": "reservations",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "reservation_items",
+   "column_name": "variant_id",
+   "ref_table": "product_variants",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "reservations",
+   "column_name": "branch_id",
+   "ref_table": "branches",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "reservations",
+   "column_name": "cart_id",
+   "ref_table": "carts",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "reservations",
+   "column_name": "tenant_id",
+   "ref_table": "tenants",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "reservations",
+   "column_name": "user_id",
+   "ref_table": "users",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "role_permissions",
+   "column_name": "permission_id",
+   "ref_table": "permissions",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "role_permissions",
+   "column_name": "role_id",
+   "ref_table": "roles",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "roles",
+   "column_name": "tenant_id",
+   "ref_table": "tenants",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "rpa_ingest_jobs",
+   "column_name": "committed_by",
+   "ref_table": "users",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "rpa_ingest_jobs",
+   "column_name": "target_branch_id",
+   "ref_table": "branches",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "rpa_ingest_jobs",
+   "column_name": "tenant_id",
+   "ref_table": "tenants",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "rpa_ingest_jobs",
+   "column_name": "uploaded_by",
+   "ref_table": "users",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "sale_items",
+   "column_name": "sale_id",
+   "ref_table": "sales",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "sale_items",
+   "column_name": "variant_id",
+   "ref_table": "product_variants",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "sales",
+   "column_name": "branch_id",
+   "ref_table": "branches",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "sales",
+   "column_name": "customer_id",
+   "ref_table": "users",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "sales",
+   "column_name": "promotion_code_id",
+   "ref_table": "promotion_codes",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "sales",
+   "column_name": "reservation_id",
+   "ref_table": "reservations",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "sales",
+   "column_name": "tenant_id",
+   "ref_table": "tenants",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "sales",
+   "column_name": "user_id",
+   "ref_table": "users",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "seasons",
+   "column_name": "tenant_id",
+   "ref_table": "tenants",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "settlements",
+   "column_name": "paid_by",
+   "ref_table": "users",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "settlements",
+   "column_name": "tenant_id",
+   "ref_table": "tenants",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "tenant_subscriptions",
+   "column_name": "plan_id",
+   "ref_table": "saas_plans",
+   "ref_col": "id",
+   "delete_rule": "RESTRICT"
+  },
+  {
+   "table_name": "tenant_subscriptions",
+   "column_name": "tenant_id",
+   "ref_table": "tenants",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "user_body_profiles",
+   "column_name": "user_id",
+   "ref_table": "users",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "user_product_interactions",
+   "column_name": "branch_id",
+   "ref_table": "branches",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "user_product_interactions",
+   "column_name": "order_id",
+   "ref_table": "orders",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "user_product_interactions",
+   "column_name": "product_id",
+   "ref_table": "products",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "user_product_interactions",
+   "column_name": "user_id",
+   "ref_table": "users",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "user_product_interactions",
+   "column_name": "variant_id",
+   "ref_table": "product_variants",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "user_roles",
+   "column_name": "role_id",
+   "ref_table": "roles",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "user_roles",
+   "column_name": "user_id",
+   "ref_table": "users",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "users",
+   "column_name": "branch_id",
+   "ref_table": "branches",
+   "ref_col": "id",
+   "delete_rule": "NO ACTION"
+  },
+  {
+   "table_name": "users",
+   "column_name": "tenant_id",
+   "ref_table": "tenants",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "wishlist_items",
+   "column_name": "product_id",
+   "ref_table": "products",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "wishlist_items",
+   "column_name": "tenant_id",
+   "ref_table": "tenants",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  },
+  {
+   "table_name": "wishlist_items",
+   "column_name": "user_id",
+   "ref_table": "users",
+   "ref_col": "id",
+   "delete_rule": "CASCADE"
+  }
+ ]
+}

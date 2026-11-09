@@ -120,6 +120,7 @@ export class AdminReportsPageComponent implements OnDestroy {
     this.speechRecognition.stop();
   }
 
+  // [CU08 - Secuencia: Paso 1] El Administrador del tenant ejecuta generateReport(natural) en AdminReportsPageComponent
   protected async generateReport(natural = false): Promise<void> {
     if (this.loading()) return;
     if (natural && !this.naturalQuery.trim()) {
@@ -163,6 +164,7 @@ export class AdminReportsPageComponent implements OnDestroy {
   // there are too few); demo mode trains on synthetic data only.
   protected readonly demoMode = signal(false);
 
+  // [CU08 - Secuencia: Paso 3] El Administrador del tenant ejecuta predictDemand() en AdminReportsPageComponent
   protected async predictDemand(): Promise<void> {
     if (this.loading()) return;
     if (!Number.isInteger(this.weeks) || this.weeks < 1 || this.weeks > 12) {
@@ -181,6 +183,7 @@ export class AdminReportsPageComponent implements OnDestroy {
     finally { this.loading.set(false); }
   }
 
+  // [CU08 - Secuencia: Paso 4] El Administrador del tenant ejecuta segmentCustomers() en AdminReportsPageComponent
   protected async segmentCustomers(): Promise<void> {
     if (this.loading()) return;
     this.loading.set(true);
@@ -195,6 +198,7 @@ export class AdminReportsPageComponent implements OnDestroy {
     finally { this.loading.set(false); }
   }
 
+  // [CU08 - Secuencia: Paso 2] El Administrador del tenant ejecuta exportReport(format) en AdminReportsPageComponent
   protected async exportReport(format: 'excel' | 'pdf'): Promise<void> {
     const query = this.currentQuery();
     if (!query || this.exporting() || typeof document === 'undefined') return;

@@ -110,6 +110,7 @@ export class AdminHomePageComponent {
     void this.loadData();
   }
 
+  // [CU13 - Secuencia: Paso 1] El Administrador del tenant ejecuta refresh() en AdminHomePageComponent
   protected async refresh(): Promise<void> {
     this.loading.set(true);
     try {
@@ -119,6 +120,7 @@ export class AdminHomePageComponent {
     }
   }
 
+  // [CU13 - Secuencia: Paso 2] El Administrador del tenant ejecuta applyFilters() en AdminHomePageComponent
   protected async applyFilters(): Promise<void> {
     this.loading.set(true);
     try {

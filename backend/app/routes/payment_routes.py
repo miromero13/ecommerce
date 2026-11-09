@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_branch_id, get_current_payload, get_current_tenant_id, get_current_user, require_roles
@@ -64,6 +64,7 @@ async def stripe_order_payment_route(
 @router.post("/stripe/webhook")
 async def stripe_webhook_route(
     request: Request,
+    background_tasks: BackgroundTasks,
     stripe_signature: str | None = Header(default=None, alias="Stripe-Signature"),
     db: Session = Depends(get_db),
 ):
@@ -79,9 +80,12 @@ async def stripe_webhook_route(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Webhook inválido: {exc}") from exc
 
     try:
-        process_stripe_event(db, event)
+        activated_card = process_stripe_event(db, event)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    if activated_card is not None:
+        from app.services.gift_card_service import send_gift_card_email
+        background_tasks.add_task(send_gift_card_email, activated_card)
     return response(status_code=200, message="Evento recibido", data={"event_type": event["type"]})
 
 

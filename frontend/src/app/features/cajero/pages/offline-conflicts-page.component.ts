@@ -183,6 +183,7 @@ export class OfflineConflictsPageComponent {
     this.queueService.operations().filter((op) => op.status === 'conflict_rejected')
   );
 
+  // [CU30 - Secuencia: Paso 4] El Cajero ejecuta resolveWithWallet(operationId, amount, customerEmail) en OfflineConflictsPageComponent
   async resolveWithWallet(
     operationId: string,
     amount: number,
@@ -193,6 +194,7 @@ export class OfflineConflictsPageComponent {
     this.resolvingId.set(null);
   }
 
+  // [CU30 - Secuencia: Paso 5] El Cajero ejecuta resolveWithRefund(operationId, amount) en OfflineConflictsPageComponent
   async resolveWithRefund(operationId: string, amount: number): Promise<void> {
     this.resolvingId.set(operationId);
     await this.syncService.resolveConflict(operationId, 'cash_refund', amount);

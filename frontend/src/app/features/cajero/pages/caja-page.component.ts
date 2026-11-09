@@ -66,6 +66,7 @@ export class CajaPageComponent {
   protected readonly lastOfflineOperation = signal<OfflineOperation | null>(null);
   protected readonly showQueueModal = signal<boolean>(false);
 
+  // [CU30 - Secuencia: Paso 2] El Cajero ejecuta syncOfflineQueue() en CajaPageComponent
   protected async syncOfflineQueue(): Promise<void> {
     toast.info('Iniciando sincronización del lote offline...');
     const result = await this.offlineQueue.syncBatchNow();
@@ -117,6 +118,7 @@ export class CajaPageComponent {
     void this.syncOfflineCatalog();
   }
 
+  // [CU23 - Secuencia: Paso 1] El Cajero ejecuta syncOfflineCatalog(manual) en CajaPageComponent
   protected async syncOfflineCatalog(manual: boolean = false): Promise<void> {
     const branchId = this.branchId();
     const count = await this.offlineCatalog.syncCatalog(branchId ?? undefined);
@@ -153,6 +155,7 @@ export class CajaPageComponent {
     };
   }
 
+  // [CU23 - Secuencia: Paso 2] El Cajero ejecuta searchProducts() en CajaPageComponent
   protected async searchProducts(): Promise<void> {
     const branchId = this.branchId();
     this.loadingProducts.set(true);
@@ -246,6 +249,8 @@ export class CajaPageComponent {
     this.cashReference.set('');
   }
 
+  // [CU15 - Secuencia: Paso 5] El Cajero ejecuta submitSale() en CajaPageComponent
+  // [CU25 - Secuencia: Paso 1] El Cajero ejecuta submitSale() en CajaPageComponent
   protected async submitSale(): Promise<void> {
     const branchId = this.branchId();
     if (!branchId) {
@@ -374,6 +379,7 @@ export class CajaPageComponent {
     this.pointsToRedeem.set(Math.max(0, Math.floor(Number(value) || 0)));
   }
 
+  // [CU17 - Secuencia: Paso 2] El Cajero ejecuta lookupPoints() en CajaPageComponent
   protected async lookupPoints(): Promise<void> {
     const email = this.customerEmail().trim();
     if (!email) {

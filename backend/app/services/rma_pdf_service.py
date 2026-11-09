@@ -56,6 +56,7 @@ ITEM_STATUS_LABELS = {
 }
 
 
+# [CU21 - Secuencia: Paso 2.18] rma_routes invoca _company_name(rma) sobre la entidad Empresa
 def _company_name(db: Session, rma: RmaRequest) -> str:
     if rma.tenant:
         return rma.tenant.name
@@ -63,6 +64,7 @@ def _company_name(db: Session, rma: RmaRequest) -> str:
     return tenant.name if tenant else "FashionStore"
 
 
+# [CU21 - Secuencia: Paso 2.16] rma_routes invoca generate_rma_pdf(rma) sobre la entidad SolicitudDevolucion
 def generate_rma_pdf(db: Session, rma: RmaRequest) -> bytes:
     buffer = BytesIO()
     doc = SimpleDocTemplate(

@@ -11,6 +11,23 @@
       </div>
     </header>
 
+    @if (!online()) {
+      <p class="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        Estás sin conexión. Puedes seguir agregando prendas: se guardan en este dispositivo y pasan a tu carrito al volver la conexión. El pago con tarjeta (Stripe) requiere internet.
+      </p>
+    }
+
+    @if (offlineCart.pending().length > 0) {
+      <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+        <h2 class="text-sm font-semibold text-slate-900">Pendientes de sincronizar ({{ offlineCart.pending().length }})</h2>
+        <ul class="mt-2 space-y-1 text-sm text-slate-600">
+          @for (item of offlineCart.pending(); track item.id) {
+            <li>{{ item.product_name }} · {{ item.variant_label }} · x{{ item.quantity }}</li>
+          }
+        </ul>
+      </section>
+    }
+
     @if (cartBranchName() && (cart()?.items?.length ?? 0) > 0) {
       <div class="flex items-center justify-between rounded-2xl bg-white p-4 border border-slate-200/80 shadow-xs">
         <div class="flex items-center gap-3">

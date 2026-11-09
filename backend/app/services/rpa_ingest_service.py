@@ -56,6 +56,7 @@ def validate_upload(content: bytes, content_type: str | None) -> None:
         raise ValueError("El documento no puede superar los 10 MB")
 
 
+# [CU10 - Secuencia: Paso 1.2] rpa_ingest_routes invoca create_job(tenant_id, user_id, filename, content_type) sobre la entidad TrabajoImportacionRPA
 def create_job(db: Session, *, tenant_id: UUID, user_id: UUID, filename: str, content_type: str) -> RpaIngestJob:
     job = RpaIngestJob(tenant_id=tenant_id, uploaded_by=user_id, filename=filename[:255] or "documento",
                        mime_type=content_type, status="processing", extracted_items=[])
@@ -139,11 +140,13 @@ def get_job(db: Session, job_id: UUID, *, tenant_id: UUID, user_id: UUID, rol: s
     return job
 
 
+# [CU10 - Secuencia: Pasos 1.6, 2.6, 4.8] rpa_ingest_routes invoca list_jobs(tenant_id, user_id, rol, branch_id) sobre la entidad TrabajoImportacionRPA
 def list_jobs(db: Session, *, tenant_id: UUID, user_id: UUID, rol: str, branch_id: UUID | None = None) -> list[RpaIngestJob]:
     query = _visible(db.query(RpaIngestJob).filter(RpaIngestJob.tenant_id == tenant_id), user_id=user_id, rol=rol, branch_id=branch_id)
     return query.order_by(RpaIngestJob.created_at.desc()).limit(50).all()
 
 
+# [CU10 - Secuencia: Paso 3.2] rpa_ingest_routes invoca correct_items(job, items) sobre la entidad TrabajoImportacionRPA
 def correct_items(db: Session, job: RpaIngestJob, items: list[ExtractedItem]) -> RpaIngestJob:
     if job.status == "committed":
         raise JobConflict("El documento ya fue ingresado al inventario")
@@ -155,6 +158,7 @@ def correct_items(db: Session, job: RpaIngestJob, items: list[ExtractedItem]) ->
     return job
 
 
+# [CU10 - Secuencia: Paso 4.2] rpa_ingest_routes invoca commit_job(job, branch_id, user_id) sobre la entidad TrabajoImportacionRPA
 def commit_job(db: Session, job: RpaIngestJob, *, branch_id: UUID, user_id: UUID) -> dict:
     """All recognized lines enter the branch stock in ONE transaction."""
     if job.status == "committed":
@@ -182,6 +186,7 @@ def commit_job(db: Session, job: RpaIngestJob, *, branch_id: UUID, user_id: UUID
             "unrecognized_items": unrecognized}
 
 
+# [CU10 - Secuencia: Pasos 1.8, 1.12, 2.2, 2.8, 3.4, 4.10] rpa_ingest_routes invoca serialize(job) sobre la entidad TrabajoImportacionRPA
 def serialize(job: RpaIngestJob) -> dict:
     return {"job_id": job.id, "filename": job.filename, "status": job.status,
             "extracted_items": job.extracted_items or [], "error_message": job.error_message,

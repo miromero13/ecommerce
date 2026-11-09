@@ -13,6 +13,7 @@ from app.utils.response import response
 router = APIRouter(prefix="/recommendations", tags=["Recommendations"])
 
 
+# [CU06 - Secuencia: Paso 1.1] CatalogPageComponent llama a collaborative_recommendations_route(user_id, branch_id) de recommendation_routes (GET /api/recommendations/collaborative/user/{user_id})
 @router.get("/collaborative/user/{user_id}")
 async def collaborative_recommendations_route(
     user_id: UUID,

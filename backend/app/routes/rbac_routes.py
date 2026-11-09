@@ -29,6 +29,7 @@ from app.utils.response import response
 router = APIRouter(prefix="/rbac", tags=["RBAC"])
 
 
+# [CU03 - Secuencia: Pasos 1.1, 2.9] RbacRolesPageComponent llama a get_permissions() de rbac_routes (GET /api/rbac/permissions)
 @router.get("/permissions", summary="Obtener catálogo de permisos")
 def get_permissions(
     db: Session = Depends(get_db),
@@ -43,6 +44,8 @@ def get_permissions(
     )
 
 
+# [CU03 - Secuencia: Pasos 1.9, 2.17] RbacRolesPageComponent llama a get_roles() de rbac_routes (GET /api/rbac/roles)
+# [CU03 - Secuencia: Paso 3.7] AdminUserPageComponent llama a get_roles() de rbac_routes (GET /api/rbac/roles)
 @router.get("/roles", summary="Listar roles de la organización")
 def get_roles(
     db: Session = Depends(get_db),
@@ -59,6 +62,7 @@ def get_roles(
     )
 
 
+# [CU03 - Secuencia: Paso 2.1] RbacRolesPageComponent llama a post_role(payload) de rbac_routes (POST /api/rbac/roles)
 @router.post("/roles", summary="Crear un rol personalizado", status_code=status.HTTP_201_CREATED)
 def post_role(
     payload: RoleCreate,
@@ -80,6 +84,7 @@ def post_role(
     )
 
 
+# [CU03 - Secuencia: Paso 2.5] RbacRolesPageComponent llama a put_role(role_id, payload) de rbac_routes (PUT /api/rbac/roles/{role_id})
 @router.put("/roles/{role_id}", summary="Actualizar un rol personalizado")
 def put_role(
     role_id: UUID,

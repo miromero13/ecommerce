@@ -51,6 +51,7 @@ export class LandingPageComponent {
   protected readonly session = inject(SessionService);
   protected readonly isAuthenticated = this.session.isAuthenticated;
 
+  // [CU04 - Secuencia: Paso 2] El Administrador del tenant ejecuta onPlanSelected(event) en LandingPageComponent
   onPlanSelected(event: { plan: SubscriptionPlan; billingCycle: 'monthly' | 'yearly' }): void {
     // Navigate to onboarding / checkout modal flow with selected plan
     this.router.navigate(['/onboarding'], {

@@ -32,6 +32,7 @@ def distance_km(lat1, lon1, lat2, lon2) -> float:
     return 2 * EARTH_RADIUS_KM * asin(sqrt(a))
 
 
+# [CU20 - Secuencia: Paso 1.2] delivery_routes invoca shipping_quote(branch_id, latitude, longitude) sobre la entidad Sucursal
 def shipping_quote(db: Session, branch_id: UUID, latitude, longitude) -> dict:
     branch = db.query(Branch).filter(Branch.id == branch_id, Branch.is_active.is_(True)).first()
     if not branch:
@@ -46,6 +47,7 @@ def shipping_quote(db: Session, branch_id: UUID, latitude, longitude) -> dict:
             "estimated_minutes": PREPARATION_MINUTES + int(km * MINUTES_PER_KM)}
 
 
+# [CU20 - Secuencia: Pasos 2.4, 3.4, 3.10, 4.4] delivery_routes invoca _summary(order, include_pin) sobre la entidad Pedido
 def _summary(db: Session, order: Order, include_pin: bool = False) -> dict:
     branch = db.query(Branch).filter(Branch.id == order.pickup_branch_id).first()
     data = {
@@ -73,6 +75,7 @@ def _summary(db: Session, order: Order, include_pin: bool = False) -> dict:
     return data
 
 
+# [CU20 - Secuencia: Pasos 2.2, 3.2, 3.8, 4.2, 5.2] delivery_routes invoca _delivery_orders() sobre la entidad Pedido
 def _delivery_orders(db: Session):
     return db.query(Order).filter(Order.fulfillment_type == "delivery")
 
@@ -124,10 +127,12 @@ def customer_deliveries(db: Session, user_id: UUID) -> list[dict]:
     return [_summary(db, order, include_pin=True) for order in orders]
 
 
+# [CU20 - Secuencia: Paso 6.6] delivery_routes invoca list_drivers() sobre la entidad Usuario
 def list_drivers(db: Session) -> list[User]:
     return db.query(User).filter(User.rol == RolEnum.delivery).order_by(User.name.asc()).all()
 
 
+# [CU20 - Secuencia: Paso 6.2] delivery_routes invoca create_driver(payload) sobre la entidad Usuario
 def create_driver(db: Session, payload) -> User:
     from app.services.user_service import ensure_email_available, normalize_email, pwd_context
 

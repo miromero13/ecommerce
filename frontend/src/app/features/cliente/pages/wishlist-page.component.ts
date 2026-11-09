@@ -216,11 +216,13 @@ export class WishlistPageComponent {
     this.chosen.update((chosen) => ({ ...chosen, [item.product_id]: (event.target as HTMLSelectElement).value }));
   }
 
+  // [CU16 - Secuencia: Paso 3] El Cliente ejecuta move(item, branchId) en WishlistPageComponent
   protected async move(item: WishlistItem, branchId?: string): Promise<void> {
     const vId = this.variantFor(item, branchId);
     await this.run(item, () => this.wishlist.moveToCart(item.product_id, vId, branchId), 'No se pudo mover la prenda al carrito.');
   }
 
+  // [CU16 - Secuencia: Paso 4] El Cliente ejecuta moveAll(group) en WishlistPageComponent
   protected async moveAll(group: WishlistGroup): Promise<void> {
     this.busyGroupId.set(group.branchId);
     try {
@@ -234,6 +236,7 @@ export class WishlistPageComponent {
     }
   }
 
+  // [CU16 - Secuencia: Paso 5] El Cliente ejecuta remove(item) en WishlistPageComponent
   protected async remove(item: WishlistItem): Promise<void> {
     await this.run(item, () => this.wishlist.toggle(item.product_id), 'No se pudo quitar la prenda.');
   }
@@ -250,6 +253,7 @@ export class WishlistPageComponent {
     }
   }
 
+  // [CU16 - Secuencia: Paso 1] El Cliente ejecuta load() en WishlistPageComponent
   private async load(): Promise<void> {
     try {
       this.items.set(await this.wishlist.reload());

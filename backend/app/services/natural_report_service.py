@@ -34,6 +34,7 @@ class NaturalReportError(Exception):
         self.detail = detail
 
 
+# [CU08 - Secuencia: Paso 1.4] report_routes invoca _catalog(tenant_id) sobre la entidad Sucursal
 def _catalog(db: Session, tenant_id: UUID) -> tuple[dict[str, str], dict[str, str]]:
     branches = {
         str(branch_id): name
@@ -103,6 +104,7 @@ def _interpret_sync(prompt: str) -> NaturalReportInterpretation:
     return NaturalReportInterpretation.model_validate_json(result.text)
 
 
+# [CU08 - Secuencia: Paso 1.6] report_routes invoca _validate_filters(interpretation, branches, products, today, tenant_id) sobre la entidad VarianteProducto
 def _validate_filters(
     db: Session,
     interpretation: NaturalReportInterpretation,

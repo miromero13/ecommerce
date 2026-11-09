@@ -44,6 +44,7 @@ def _collect_rows(rows, key_field: str) -> dict:
     return {str(getattr(row, key_field)): row._mapping for row in rows}
 
 
+# [CU13 - Secuencia: Pasos 1.2, 2.2] dashboard_routes invoca get_dashboard(filters, tenant_id) sobre la entidad Sucursal
 def get_dashboard(db: Session, filters: DashboardQuery, tenant_id: UUID) -> DashboardResponse:
     start, end = _date_range(filters)
 

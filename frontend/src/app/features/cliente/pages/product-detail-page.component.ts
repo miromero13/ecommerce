@@ -22,6 +22,7 @@ import {
 } from '../../shared/models/catalog.model';
 import { CatalogApiService } from '../../shared/services/catalog-api.service';
 import { CartApiService } from '../../shared/services/cart-api.service';
+import { OfflineCartService } from '../../../core/services/offline-cart.service';
 import { ChatbotUiService } from '../../shared/services/chatbot-ui.service';
 import { ReservationDraftService } from '../../shared/services/reservation-draft.service';
 import { PhotoTryOnComponent, TryOnVariantOption } from '../../shared/components/photo-try-on.component';
@@ -63,6 +64,7 @@ export class ProductDetailPageComponent {
   private readonly router = inject(Router);
   private readonly api = inject(CatalogApiService);
   private readonly cartApi = inject(CartApiService);
+  private readonly offlineCart = inject(OfflineCartService);
   protected readonly reservationDraft = inject(ReservationDraftService);
   private readonly chatbotUi = inject(ChatbotUiService);
 
@@ -248,6 +250,7 @@ export class ProductDetailPageComponent {
     return prod ? this.reservationDraft.getQuantityForProduct(prod) : 0;
   }
 
+  // [CU25 - Secuencia: Paso 2] El Cliente ejecuta addToCart() en ProductDetailPageComponent
   protected async addToCart(): Promise<void> {
     const prod = this.product();
     const variant = this.selectedVariant();
@@ -269,24 +272,16 @@ export class ProductDetailPageComponent {
   ): Promise<void> {
     this.addingToCart.set(true);
     try {
-      await requestWithToast(
-        this.cartApi.addItem({
-          variant_id: variant.id,
-          branch_id: branchId || undefined,
-          quantity: 1,
-        }),
-        {
-          loading: 'Agregando al carrito...',
-          success: 'Producto agregado al carrito.',
-          error: 'No se pudo agregar al carrito.',
-        },
+      // CU25: sin conexión la prenda se guarda en IndexedDB y se envía al carrito al volver la red (CU30).
+      const added = await this.offlineCart.addItem(
+        { variant_id: variant.id, branch_id: branchId || undefined, quantity: 1 },
+        product.name,
+        this.variantLabel(variant),
       );
       // Remember the first branch only, to preselect pickup in the cart.
-      if (branchId && !this.getCartBranchId()) {
+      if (added && branchId && !this.getCartBranchId()) {
         this.setCartBranch(branchId, branchName);
       }
-    } catch {
-      // El error ya se mostró con requestWithToast
     } finally {
       this.addingToCart.set(false);
     }

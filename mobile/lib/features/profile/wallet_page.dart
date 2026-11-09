@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
 
+import '../../core/config/app_config.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_exception.dart';
 import '../../shared/widgets/app_badge.dart';
@@ -13,6 +15,7 @@ import '../../shared/widgets/app_section_title.dart';
 import '../../shared/widgets/app_snack_bar.dart';
 import '../../shared/widgets/app_text_field.dart';
 import '../auth/auth_controller.dart';
+import 'gift_cards_page.dart' show payGiftCardWithStripe;
 
 /// CU17, CU18 & CU19: Hub Unificado de Billetera Digital y Fidelización reutilizando widgets compartidos.
 class WalletPage extends StatefulWidget {
@@ -184,9 +187,14 @@ class _WalletPageState extends State<WalletPage> with SingleTickerProviderStateM
       return;
     }
 
+    if (AppConfig.stripePublishableKey.isEmpty) {
+      AppSnackBar.show(context, 'Configura STRIPE_PUBLISHABLE_KEY para pagar con tarjeta.', tone: AppSnackBarTone.error);
+      return;
+    }
+
     setModalState(() => _isPurchasingGift = true);
     try {
-      final res = await _client.post<Map<String, dynamic>>(
+      final intent = await _client.post<Map<String, dynamic>>(
         'gift-cards/purchase',
         data: {
           'amount': amount,
@@ -197,14 +205,18 @@ class _WalletPageState extends State<WalletPage> with SingleTickerProviderStateM
         },
         parser: (data) => Map<String, dynamic>.from(data as Map),
       );
+      final message = await payGiftCardWithStripe(_client, intent.data!);
       if (!mounted) return;
       Navigator.of(modalContext).pop();
-      AppSnackBar.show(context, res.message ?? 'Tarjeta de regalo adquirida y enviada por correo', tone: AppSnackBarTone.success);
+      AppSnackBar.show(context, message ?? 'Tarjeta de regalo adquirida y enviada por correo', tone: AppSnackBarTone.success);
       _recipientNameController.clear();
       _recipientEmailController.clear();
       _customGiftMessageController.clear();
       _customGiftAmountController.clear();
       _load();
+    } on StripeException catch (error) {
+      if (!mounted) return;
+      AppSnackBar.show(context, error.error.localizedMessage ?? 'No se pudo completar el pago.', tone: AppSnackBarTone.error);
     } catch (error) {
       if (!mounted) return;
       AppSnackBar.show(
