@@ -33,7 +33,7 @@ const defaultFirebaseConfig: FirebaseConfig = {
 };
 
 export const environment = {
-  apiBaseUrl: runtimeConfig.apiBaseUrl || 'http://localhost:8000/api',
+  apiBaseUrl: runtimeConfig.apiBaseUrl || 'https://api-ecommerce.devhooh.com/api',
   // Only the mobile WebView uses Decart; its key comes from runtime config, never from source.
   decartApiKey: runtimeConfig.decartApiKey || '',
   stripePublishableKey: runtimeConfig.stripePublishableKey || 'pk_test_51PwuiM08hp2qIPTJ9P4c108993LSovebHw9lQQeABXF3zkN71Upef4jMuPMgLPjJDWOpL5N2I94cMtze0nOxg9IP00Jo5RqrJ7',
