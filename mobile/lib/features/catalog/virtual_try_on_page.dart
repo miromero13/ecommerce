@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -8,15 +7,18 @@ import 'package:webview_flutter_android/webview_flutter_android.dart';
 
 import '../../core/config/app_config.dart';
 
+/// CU5 live try-on: opens the web's live camera fitting room (MediaPipe) inside a WebView.
 class VirtualTryOnPage extends StatefulWidget {
   const VirtualTryOnPage({
     super.key,
-    required this.productName,
-    required this.garmentImageUrl,
+    required this.productId,
+    required this.variantId,
+    required this.accessToken,
   });
 
-  final String productName;
-  final String garmentImageUrl;
+  final String productId;
+  final String? variantId;
+  final String accessToken;
 
   @override
   State<VirtualTryOnPage> createState() => _VirtualTryOnPageState();
@@ -25,7 +27,6 @@ class VirtualTryOnPage extends StatefulWidget {
 class _VirtualTryOnPageState extends State<VirtualTryOnPage> {
   WebViewController? _controller;
   bool _isLoading = true;
-  bool _configurationSent = false;
   String? _errorMessage;
 
   @override
@@ -35,48 +36,29 @@ class _VirtualTryOnPageState extends State<VirtualTryOnPage> {
   }
 
   Future<void> _initializeWebView() async {
-    final frontendUrl = AppConfig.frontendUrl.trim();
-    final apiKey = AppConfig.decartApiKey.trim();
-    final garmentImageUrl = widget.garmentImageUrl.trim();
-
-    if (frontendUrl.isEmpty) {
-      _errorMessage = 'The frontend URL is not configured.';
-      return;
-    }
-    if (apiKey.isEmpty) {
-      _errorMessage = 'The Decart API key is not configured.';
-      return;
-    }
-    if (garmentImageUrl.isEmpty) {
-      _errorMessage = 'This product has no image available for try-on.';
-      return;
-    }
-
-    final uri = Uri.tryParse(AppConfig.decartTryOnUrl);
+    final base = AppConfig.frontendUrl.trim().replaceFirst(RegExp(r'/$'), '');
+    final uri = Uri.tryParse(base)?.replace(
+      path: '/mobile-try-on',
+      queryParameters: {
+        'product': widget.productId,
+        if (widget.variantId != null) 'variant': widget.variantId!,
+      },
+      // The fragment never leaves the device: the page reads the token from it.
+      fragment: 'token=${widget.accessToken}',
+    );
     if (uri == null || (uri.scheme != 'http' && uri.scheme != 'https')) {
-      _errorMessage = 'The frontend URL is invalid.';
+      setState(() => _errorMessage = 'La dirección del probador web no es válida.');
       return;
     }
 
-    PermissionStatus cameraStatus;
-    try {
-      cameraStatus = await Permission.camera.request();
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Could not request camera access for virtual try-on.';
-      });
-      return;
-    }
-
+    final cameraStatus = await Permission.camera.request();
     if (!mounted) return;
     if (!cameraStatus.isGranted) {
       setState(() {
         _isLoading = false;
         _errorMessage = cameraStatus.isPermanentlyDenied
-            ? 'Camera access is disabled. Enable it in Settings to use virtual try-on.'
-            : 'Camera access is required to use virtual try-on.';
+            ? 'El acceso a la cámara está desactivado. Actívalo en Ajustes para usar el vestidor.'
+            : 'Se necesita la cámara para usar el vestidor en vivo.';
       });
       return;
     }
@@ -85,69 +67,37 @@ class _VirtualTryOnPageState extends State<VirtualTryOnPage> {
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(
         NavigationDelegate(
-          onPageStarted: (_) {
-            if (!mounted) return;
-            setState(() {
-              _configurationSent = false;
-              _isLoading = true;
-              _errorMessage = null;
-            });
+          onPageFinished: (_) {
+            if (mounted) setState(() => _isLoading = false);
           },
-          onPageFinished: (_) => _sendConfiguration(),
-          onWebResourceError: (_) {
-            if (!mounted) return;
+          onWebResourceError: (error) {
+            if (!mounted || error.isForMainFrame == false) return;
             setState(() {
               _isLoading = false;
-              _errorMessage = 'Could not load the virtual try-on page.';
+              _errorMessage = 'No se pudo cargar el vestidor en vivo.';
             });
           },
         ),
       );
 
     if (controller.platform is AndroidWebViewController) {
-      final androidController = controller.platform as AndroidWebViewController;
+      final android = controller.platform as AndroidWebViewController;
+      // getUserMedia inside the page asks for the camera: grant only that.
       unawaited(
-        androidController.setOnPlatformPermissionRequest((request) {
-          if (request.types.length == 1 &&
-              request.types.contains(WebViewPermissionResourceType.camera)) {
+        android.setOnPlatformPermissionRequest((request) {
+          if (request.types.every((t) => t == WebViewPermissionResourceType.camera)) {
             unawaited(request.grant());
           } else {
             unawaited(request.deny());
           }
         }),
       );
+      unawaited(android.setMediaPlaybackRequiresUserGesture(false));
     }
 
     if (!mounted) return;
     setState(() => _controller = controller);
     unawaited(controller.loadRequest(uri));
-  }
-
-  Future<void> _sendConfiguration() async {
-    final controller = _controller;
-    if (controller == null || _configurationSent) return;
-
-    _configurationSent = true;
-    final message = jsonEncode({
-      'type': 'decart-try-on-config',
-      'apiKey': AppConfig.decartApiKey.trim(),
-      'garmentImageUrl': widget.garmentImageUrl.trim(),
-      'productName': widget.productName,
-      'keepSessionActive': true,
-    });
-
-    try {
-      await controller.runJavaScript(
-        'window.postMessage($message, window.location.origin);',
-      );
-      if (mounted) setState(() => _isLoading = false);
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Could not configure the virtual try-on page.';
-      });
-    }
   }
 
   @override

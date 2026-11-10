@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 
-import '../../core/config/app_config.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/storage/session_storage.dart';
@@ -20,6 +18,7 @@ import '../../shared/widgets/quantity_selector.dart';
 import '../../shared/widgets/variant_selector.dart';
 import '../wishlist/wishlist_api.dart';
 import 'catalog_models.dart';
+import 'photo_try_on_page.dart';
 import 'virtual_try_on_page.dart';
 
 class ProductDetailArguments {
@@ -243,12 +242,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             AppButton(
               label: 'Vestidor 2D (Foto con IA)',
               icon: const Icon(Icons.auto_awesome),
-              onPressed: () => _show2dTryOnDialog(
-                context,
-                product,
-                variant,
-                variant?.tryOnImageUrl ?? imageUrl,
-              ),
+              onPressed: variant == null
+                  ? null
+                  : () => _open2dTryOn(product, variant, variant.tryOnImageUrl ?? imageUrl),
               variant: AppButtonVariant.outlined,
               expand: true,
             ),
@@ -258,16 +254,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               AppButton(
                 label: 'Vestidor 3D (Cámara en vivo)',
                 icon: const Icon(Icons.videocam_outlined),
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => VirtualTryOnPage(
-                        productName: product.name,
-                        garmentImageUrl: variant?.tryOnImageUrl ?? imageUrl,
-                      ),
-                    ),
-                  );
-                },
+                onPressed: () => _open3dTryOn(product, variant),
                 variant: AppButtonVariant.outlined,
                 expand: true,
               ),
@@ -605,147 +592,42 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     );
   }
 
-  void _show2dTryOnDialog(
-    BuildContext context,
-    Product product,
-    ProductVariant? variant,
-    String imageUrl,
-  ) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+  // CU5 live try-on: the web's camera fitting room inside a WebView, with the customer's session.
+  Future<void> _open3dTryOn(Product product, ProductVariant? variant) async {
+    final auth = widget.authController;
+    if (auth == null) return;
+    if (!auth.isAuthenticated) {
+      final loggedIn = await LoginDialog.show(context: context, controller: auth);
+      if (!mounted || loggedIn != true || !auth.isAuthenticated) return;
+    }
+    final token = auth.accessToken;
+    if (token == null) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => VirtualTryOnPage(
+          productId: product.id,
+          variantId: variant?.id,
+          accessToken: token,
+        ),
       ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.amber.shade50,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(
-                      Icons.auto_awesome,
-                      color: Colors.amber.shade800,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Vestidor 2D (Foto con IA)',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          product.name,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey.shade600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Probate esta prenda usando una fotografía estática. El motor de IA generativa proyectará el recorte de la prenda sobre tu silueta respetando las proporciones corporales.',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey.shade700,
-                  height: 1.4,
-                ),
-              ),
-              const SizedBox(height: 20),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade300),
-                ),
-                child: Row(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        variant?.tryOnImageUrl ?? imageUrl,
-                        width: 50,
-                        height: 50,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) =>
-                            const Icon(Icons.checkroom, size: 40),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Prenda lista para prueba 2D',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
-                            ),
-                          ),
-                          Text(
-                            'Disponible para prueba con foto mediante el probador web.',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-              AppButton(
-                label: 'Abrir probador web',
-                icon: const Icon(Icons.open_in_browser),
-                onPressed: () {
-                  Navigator.of(ctx).pop();
-                  final catalogUrl =
-                      '${AppConfig.frontendUrl}/app/cliente/catalogo/${product.id}';
-                  Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => Scaffold(
-                        appBar: AppBar(
-                          title: const Text('Vestidor 2D (Web)'),
-                        ),
-                        body: WebViewWidget(
-                          controller: WebViewController()
-                            ..setJavaScriptMode(JavaScriptMode.unrestricted)
-                            ..loadRequest(Uri.parse(catalogUrl)),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-                expand: true,
-              ),
-            ],
-          ),
+    );
+  }
+
+  // CU5: native 2D try-on (same backend AI as the web), logging in first if needed.
+  Future<void> _open2dTryOn(Product product, ProductVariant variant, String garmentUrl) async {
+    final auth = widget.authController;
+    if (auth == null) return;
+    if (!auth.isAuthenticated) {
+      final loggedIn = await LoginDialog.show(context: context, controller: auth);
+      if (!mounted || loggedIn != true || !auth.isAuthenticated) return;
+    }
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => PhotoTryOnPage(
+          authController: auth,
+          variantId: variant.id,
+          productName: product.name,
+          garmentImageUrl: garmentUrl,
         ),
       ),
     );
