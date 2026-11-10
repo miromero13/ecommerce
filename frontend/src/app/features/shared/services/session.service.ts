@@ -109,6 +109,12 @@ export class SessionService {
     return this.tokenSignal();
   }
 
+  /** Mobile app WebView (CU5 live try-on): reuse the customer's token from the Flutter app. */
+  useToken(token: string): void {
+    localStorage.setItem(TOKEN_KEY, token);
+    this.tokenSignal.set(token);
+  }
+
   setSession(token: string, user: UsuarioAuth): void {
     localStorage.setItem(TOKEN_KEY, token);
     localStorage.setItem(USER_KEY, JSON.stringify(user));

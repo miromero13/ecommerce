@@ -20,8 +20,6 @@ class AppConfig {
     defaultValue: 'https://ecommerce-five-xi-60.vercel.app',
   );
 
-  static const decartApiKey = String.fromEnvironment('DECART_API_KEY');
-
   static const apiPrefix = '/api';
 
   static const stripePublishableKey = String.fromEnvironment(
@@ -31,9 +29,6 @@ class AppConfig {
   );
 
   static String get apiBaseUrl => '$backendUrl$apiPrefix';
-
-  static String get decartTryOnUrl =>
-      '${frontendUrl.trim().replaceFirst(RegExp(r'/$'), '')}/decart-try-on.html';
 
   static const connectTimeout = Duration(seconds: 15);
   static const receiveTimeout = Duration(seconds: 15);

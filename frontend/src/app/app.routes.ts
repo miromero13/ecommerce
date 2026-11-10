@@ -43,6 +43,14 @@ export const routes: Routes = [
     pathMatch: 'full',
   },
   {
+    // CU5 live try-on opened from the Flutter app's WebView (no shell, token in the URL fragment).
+    path: 'mobile-try-on',
+    loadComponent: () =>
+      import('./features/cliente/pages/mobile-try-on-page.component').then(
+        (m) => m.MobileTryOnPageComponent,
+      ),
+  },
+  {
     path: 'onboarding',
     loadComponent: () =>
       import('./features/shared/pages/onboarding-page.component').then(
