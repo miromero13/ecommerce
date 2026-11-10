@@ -87,7 +87,12 @@ async def lifespan(_: FastAPI):
         receipt_task.cancel()
         await asyncio.gather(task, daily_task, replenishment_task, receipt_task, return_exceptions=True)
 
-app = FastAPI(title="ACI", lifespan=lifespan)
+app = FastAPI(title="ACI", lifespan=lifespan, docs_url="/docs", redoc_url="/redoc")
+
+@app.get("/", tags=["Health"])
+@app.get("/health", tags=["Health"])
+async def health_check():
+    return {"status": "ok", "service": "ACI API"}
 
 # Registered before CORS so CORS stays the outermost layer.
 register_tenant_middleware(app)

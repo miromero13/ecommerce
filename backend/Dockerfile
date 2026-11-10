@@ -15,7 +15,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     VIRTUAL_ENV=/opt/venv \
     PATH="/opt/venv/bin:${PATH}" \
-    PORT=8000
+    PORT=4003
 
 WORKDIR /app
 
@@ -29,6 +29,7 @@ COPY --chown=app:app app ./app
 
 USER app
 
+EXPOSE 4003
 EXPOSE 8000
 
-CMD ["sh", "-c", "exec uvicorn main:app --host 0.0.0.0 --port ${PORT}"]
+CMD ["sh", "-c", "exec uvicorn main:app --host 0.0.0.0 --port ${PORT} --proxy-headers --forwarded-allow-ips='*'"]
