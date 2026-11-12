@@ -234,6 +234,7 @@ export class OfflineQueueModalComponent {
   now = new Date();
   private expandedOperations = signal<Set<string>>(new Set());
 
+  // [CU29 - Secuencia: Paso 2] El Cajero ejecuta toggleExpand(operationId) en OfflineQueueModalComponent
   toggleExpand(operationId: string): void {
     const current = new Set(this.expandedOperations());
     if (current.has(operationId)) {

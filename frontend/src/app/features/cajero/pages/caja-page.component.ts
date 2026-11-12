@@ -71,6 +71,7 @@ export class CajaPageComponent {
   protected readonly customerName = signal('');
   protected readonly customerPhone = signal('');
 
+  // [CU29 - Secuencia: Paso 3] El Cajero ejecuta syncOfflineQueue() en CajaPageComponent
   // [CU30 - Secuencia: Paso 2] El Cajero ejecuta syncOfflineQueue() en CajaPageComponent
   protected async syncOfflineQueue(): Promise<void> {
     await this.offlineSync.triggerAutoSync();
@@ -290,9 +291,10 @@ export class CajaPageComponent {
       const customerName = this.customerName().trim();
       const customerPhone = this.customerPhone().trim();
       const customerEmail = this.customerEmail().trim();
+      // El cobro nunca se bloquea por falta de datos: el servidor los acepta vacíos. Se avisa porque, si luego hay un conflicto
+      // de stock, con el contacto del cliente se le puede devolver el dinero o acreditar su billetera.
       if (!customerName || (!customerPhone && !customerEmail)) {
-        toast.warning('Sin conexión registra el nombre del cliente y su teléfono o correo.');
-        return;
+        toast.info('Cobro registrado sin datos de contacto: si hubiera un conflicto de stock no podrás avisar al cliente.');
       }
       const total = Number(this.total());
       const cashReceived = this.cashReceived() !== '' ? Number(this.cashReceived()) : total;

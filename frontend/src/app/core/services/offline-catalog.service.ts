@@ -86,9 +86,9 @@ export class OfflineCatalogService {
   /**
    * CU23: Descarga y sincroniza el catálogo de la sucursal en IndexedDB
    */
-  // [CU23 - Secuencia: Paso 1.1] CajaPageComponent invoca syncCatalog(branchId) en OfflineCatalogService
   private lastBranchId?: string;
 
+  // [CU23 - Secuencia: Paso 1.1] CajaPageComponent invoca syncCatalog(branchId) en OfflineCatalogService
   async syncCatalog(branchId?: string): Promise<number> {
     if (branchId) this.lastBranchId = branchId;
     if (this.isOffline()) {

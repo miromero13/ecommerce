@@ -73,12 +73,12 @@ export class OfflineQueueService {
     void this.loadQueue();
   }
 
-  // [CU29 - Secuencia: Paso 1] El sistema dispara loadQueue() en OfflineQueueService (evento del navegador)
+  // [CU29 - Secuencia: Paso 3.2] OfflineSyncService invoca loadQueue() en OfflineQueueService
   // [CU30 - Secuencia: Pasos 1.1, 2.2] OfflineSyncService invoca loadQueue() en OfflineQueueService
   async loadQueue(): Promise<OfflineOperation[]> {
     try {
       // [CU25 - Secuencia: Paso 1.3] OfflineQueueService ejecuta getAll(STORES.PENDING_OPERATIONS_QUEUE) sobre la entidad local OfflineOperation (IndexedDB)
-      // [CU29 - Secuencia: Paso 1.1] OfflineQueueService ejecuta getAll<OfflineOperation>(STORES.PENDING_OPERATIONS_QUEUE) sobre la entidad local OfflineOperation (IndexedDB)
+      // [CU29 - Secuencia: Paso 3.3] OfflineQueueService ejecuta getAll<OfflineOperation>(STORES.PENDING_OPERATIONS_QUEUE) sobre la entidad local OfflineOperation (IndexedDB)
       // [CU30 - Secuencia: Pasos 1.2, 2.3] OfflineQueueService ejecuta getAll(STORES.PENDING_OPERATIONS_QUEUE) sobre la entidad local OfflineOperation (IndexedDB)
       const items = await this.idb.getAll<OfflineOperation>(STORES.PENDING_OPERATIONS_QUEUE);
       // Ordenar por fecha descendente
