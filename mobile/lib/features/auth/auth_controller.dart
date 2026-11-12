@@ -81,8 +81,20 @@ class AuthController extends ChangeNotifier {
         _setState(AuthStatus.guest);
         return;
       }
+      final cachedUser = await _storage.readUser();
+      if (cachedUser != null) {
+        _user = UserProfile.fromJson(cachedUser);
+        _setState(AuthStatus.authenticated);
+        return;
+      }
       _setState(AuthStatus.error, errorMessage: exception.message);
     } catch (exception) {
+      final cachedUser = await _storage.readUser();
+      if (cachedUser != null) {
+        _user = UserProfile.fromJson(cachedUser);
+        _setState(AuthStatus.authenticated);
+        return;
+      }
       _setState(AuthStatus.error, errorMessage: exception.toString());
     }
   }

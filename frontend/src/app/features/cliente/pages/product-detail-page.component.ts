@@ -23,6 +23,7 @@ import {
 import { CatalogApiService } from '../../shared/services/catalog-api.service';
 import { CartApiService } from '../../shared/services/cart-api.service';
 import { OfflineCartService } from '../../../core/services/offline-cart.service';
+import { OfflineCatalogService, OfflineVariant } from '../../../core/services/offline-catalog.service';
 import { ChatbotUiService } from '../../shared/services/chatbot-ui.service';
 import { ReservationDraftService } from '../../shared/services/reservation-draft.service';
 import { PhotoTryOnComponent, TryOnVariantOption } from '../../shared/components/photo-try-on.component';
@@ -65,6 +66,7 @@ export class ProductDetailPageComponent {
   private readonly api = inject(CatalogApiService);
   private readonly cartApi = inject(CartApiService);
   private readonly offlineCart = inject(OfflineCartService);
+  private readonly offlineCatalog = inject(OfflineCatalogService);
   protected readonly reservationDraft = inject(ReservationDraftService);
   private readonly chatbotUi = inject(ChatbotUiService);
 
@@ -353,6 +355,36 @@ export class ProductDetailPageComponent {
       this.collections.set(collections.data ?? []);
       this.branches.set(branches.data ?? []);
     } catch (error) {
+      const productId = this.route.snapshot.paramMap.get('productId');
+      if (productId) {
+        const cached = await this.offlineCatalog.getProduct(productId);
+        if (cached) {
+          const product: CatalogProduct = {
+            id: cached.id,
+            tenant_id: cached.tenant_id,
+            tenant_name: 'Tienda',
+            name: cached.name,
+            description: cached.description,
+            category_id: cached.category_id ?? '',
+            variants: (cached.variants ?? []).map((v: OfflineVariant) => ({
+              id: v.id,
+              product_id: cached.id,
+              sku: v.sku,
+              price: v.price,
+              original_price: v.price,
+              size_id: v.size_id ?? '',
+              color_id: v.color_id ?? '',
+              image_url: v.image_url,
+              total_stock: v.available_stock,
+              branch_quantity: v.available_stock,
+              branch_stocks: [],
+            })),
+          } as unknown as CatalogProduct;
+          this.product.set(product);
+          this.selectedVariantId.set(product.variants?.[0]?.id ?? null);
+          return;
+        }
+      }
       toast.error(getErrorMessage(error, 'No se pudo cargar el producto.'));
     } finally {
       this.loading.set(false);

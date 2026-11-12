@@ -57,8 +57,19 @@ export class SessionService {
         localStorage.setItem(USER_KEY, JSON.stringify(user));
         void this.refreshPlanFeatures();
       }
-    } catch {
-      this.clearSession();
+    } catch (err: any) {
+      const isAuthError = err?.status === 401 || err?.status === 403;
+      if (isAuthError) {
+        this.clearSession();
+      } else {
+        // En caso de estar sin conexión (status 0, 504 o offline), preservar la sesión del usuario existente
+        const storedUser = this.getStoredUser();
+        if (storedUser) {
+          this.userSignal.set(storedUser);
+        } else {
+          this.clearSession();
+        }
+      }
     } finally {
       this.loadingSignal.set(false);
     }
@@ -90,11 +101,15 @@ export class SessionService {
   }
 
   async refreshMe(): Promise<void> {
-    const response = await firstValueFrom(this.userApi.getMe());
-    const user = response.data ? this.normalizeUser(response.data) : null;
-    this.userSignal.set(user);
-    if (user) {
-      localStorage.setItem(USER_KEY, JSON.stringify(user));
+    try {
+      const response = await firstValueFrom(this.userApi.getMe());
+      const user = response.data ? this.normalizeUser(response.data) : null;
+      this.userSignal.set(user);
+      if (user) {
+        localStorage.setItem(USER_KEY, JSON.stringify(user));
+      }
+    } catch {
+      // offline: mantener sesión existente
     }
   }
 

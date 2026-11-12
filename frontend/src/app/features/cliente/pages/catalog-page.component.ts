@@ -43,6 +43,7 @@ import {
 import { CatalogApiService } from '../../shared/services/catalog-api.service';
 import { CartApiService } from '../../shared/services/cart-api.service';
 import { OfflineCartService } from '../../../core/services/offline-cart.service';
+import { OfflineCatalogService, OfflineCatalogProduct } from '../../../core/services/offline-catalog.service';
 import { SessionService } from '../../shared/services/session.service';
 import { TenantApiService } from '../../shared/services/tenant-api.service';
 import { ReservationDraftService } from '../../shared/services/reservation-draft.service';
@@ -96,6 +97,7 @@ export class CatalogPageComponent {
   private readonly api = inject(CatalogApiService);
   private readonly cartApi = inject(CartApiService);
   private readonly offlineCart = inject(OfflineCartService);
+  private readonly offlineCatalog = inject(OfflineCatalogService);
   private readonly session = inject(SessionService);
   private readonly tenantApi = inject(TenantApiService);
   protected readonly reservationDraft = inject(ReservationDraftService);
@@ -116,7 +118,7 @@ export class CatalogPageComponent {
   protected readonly selectedVariantByProduct = signal<Record<string, string>>({});
   protected readonly selectedImageByProduct = signal<Record<string, number>>({});
   protected readonly addingToCartByProduct = signal<Record<string, boolean>>({});
-  protected readonly loading = signal(false);
+  protected readonly loading = signal(true);
   private recommendationsRequestVersion = 0;
 
   protected readonly filteredBranches = computed(() => {
@@ -137,12 +139,13 @@ export class CatalogPageComponent {
   protected readonly currentBranchProducts = computed(() => {
     const bId = this.selectedBranchId();
     if (!bId) return this.products();
-    return this.products().filter((p) => {
+    const filtered = this.products().filter((p) => {
       return (p.variants ?? []).some((v) => {
         const stock = (v.branch_stocks ?? []).find((s) => s.branch_id === bId);
         return stock ? stock.quantity > 0 : true;
       });
     });
+    return filtered.length > 0 ? filtered : this.products();
   });
 
   protected readonly branchSections = computed<Array<{
@@ -184,6 +187,27 @@ export class CatalogPageComponent {
         });
       }
     }
+
+    // Fallback offline: si no hay sucursales activas en targetBranches pero hay productos cacheados
+    if (sections.length === 0 && allProducts.length > 0) {
+      const byTenant = new Map<string, CatalogProduct[]>();
+      for (const p of allProducts) {
+        const tid = p.tenant_id || 'general';
+        if (!byTenant.has(tid)) byTenant.set(tid, []);
+        byTenant.get(tid)!.push(p);
+      }
+      for (const [tid, prods] of byTenant.entries()) {
+        const tenant = this.tenants().find((t) => t.id === tid);
+        sections.push({
+          branchId: `offline-${tid}`,
+          branchName: 'Catálogo disponible offline',
+          cityName: 'Local',
+          tenantName: tenant?.name || prods[0]?.tenant_name || 'Tienda',
+          products: prods,
+        });
+      }
+    }
+
     return sections;
   });
 
@@ -249,7 +273,7 @@ export class CatalogPageComponent {
 
   constructor() {
     void this.wishlistApi.ensureLoaded();
-    void this.loadData();
+    void this.initCatalog();
 
     this.form.valueChanges
       .pipe(takeUntilDestroyed())
@@ -518,32 +542,103 @@ export class CatalogPageComponent {
     }
   }
 
+  private async initCatalog(): Promise<void> {
+    await this.restoreFromLocalCache();
+    await this.loadData();
+  }
+
+  private mapOfflineToCatalogProduct(offline: OfflineCatalogProduct): CatalogProduct {
+    return {
+      id: offline.id,
+      tenant_id: offline.tenant_id,
+      tenant_name: 'Tienda',
+      name: offline.name,
+      description: offline.description,
+      category_id: offline.category_id ?? '',
+      category_name: offline.category || '',
+      variants: (offline.variants ?? []).map((v) => ({
+        id: v.id,
+        product_id: offline.id,
+        sku: v.sku,
+        price: v.price,
+        original_price: v.price,
+        size_id: v.size_id ?? '',
+        color_id: v.color_id ?? '',
+        image_url: v.image_url,
+        total_stock: v.available_stock,
+        branch_quantity: v.available_stock,
+        branch_stocks: [],
+      })),
+    } as unknown as CatalogProduct;
+  }
+
+  private async restoreFromLocalCache(): Promise<boolean> {
+    try {
+      const cachedBranches = JSON.parse(localStorage.getItem('cached_catalog_branches') || '[]');
+      if (cachedBranches.length && !this.branches().length) this.branches.set(cachedBranches);
+      const cachedTenants = JSON.parse(localStorage.getItem('cached_catalog_tenants') || '[]');
+      if (cachedTenants.length && !this.tenants().length) this.tenants.set(cachedTenants);
+      const cachedCategories = JSON.parse(localStorage.getItem('cached_catalog_categories') || '[]');
+      if (cachedCategories.length && !this.categories().length) this.categories.set(cachedCategories);
+
+      const offlineResults = await this.offlineCatalog.searchProducts();
+      if (offlineResults.length > 0) {
+        this.products.set(offlineResults.map((p) => this.mapOfflineToCatalogProduct(p)));
+        this.ensureSelectedVariants();
+        this.loading.set(false);
+        return true;
+      }
+    } catch {
+      // Ignorar fallo de lectura local
+    }
+    return false;
+  }
+
   private async loadData(): Promise<void> {
-    // Una consulta que falla (p. ej. sin conexión y sin copia local) no debe vaciar el catálogo: cada lista se carga por separado
-    // y solo se reemplaza la que respondió; las demás conservan su valor previo.
+    if (!this.products().length) {
+      this.loading.set(true);
+    }
+    // Cada lista se consulta; si responde se actualiza la señal y la copia local.
     let failed = false;
     const load = async <T>(request: Observable<ListResponse<T>>, target: WritableSignal<T[]>): Promise<void> => {
       try {
-        target.set((await firstValueFrom(request)).data ?? []);
+        const res = await firstValueFrom(request);
+        target.set(res.data ?? []);
       } catch (error) {
         failed = true;
         lastError = error;
       }
     };
     let lastError: unknown;
-    await Promise.all([
-      load(this.api.listPublicBranches(), this.branches),
-      load(this.api.listCategories(), this.categories),
-      load(this.api.listSizes(), this.sizes),
-      load(this.api.listColors(), this.colors),
-      load(this.api.listSeasons(), this.seasons),
-      load(this.api.listCollections(), this.collections),
-      load(this.api.listProducts(), this.products),
-      load(this.tenantApi.listPublicTenants(), this.tenants),
-    ]);
-    if (failed) toast.error(getErrorMessage(lastError, 'No se pudo cargar todo el catálogo.'));
-    this.ensureSelectedVariants();
-    void this.loadRecommendations();
+    try {
+      await Promise.all([
+        load(this.api.listPublicBranches(), this.branches),
+        load(this.api.listCategories(), this.categories),
+        load(this.api.listSizes(), this.sizes),
+        load(this.api.listColors(), this.colors),
+        load(this.api.listSeasons(), this.seasons),
+        load(this.api.listCollections(), this.collections),
+        load(this.api.listProducts(), this.products),
+        load(this.tenantApi.listPublicTenants(), this.tenants),
+      ]);
+      if (failed && !this.products().length) {
+        await this.restoreFromLocalCache();
+        if (!this.products().length && navigator.onLine) {
+          toast.error(getErrorMessage(lastError, 'No se pudo cargar todo el catálogo.'));
+        }
+      } else {
+        try {
+          if (this.branches().length) localStorage.setItem('cached_catalog_branches', JSON.stringify(this.branches()));
+          if (this.tenants().length) localStorage.setItem('cached_catalog_tenants', JSON.stringify(this.tenants()));
+          if (this.categories().length) localStorage.setItem('cached_catalog_categories', JSON.stringify(this.categories()));
+        } catch (_) {}
+        void this.offlineCatalog.syncCatalog();
+      }
+      this.ensureSelectedVariants();
+      void this.loadRecommendations();
+    } finally {
+      this.loading.set(false);
+    }
   }
 
   protected branchName(branchId: string | null): string {
