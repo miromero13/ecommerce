@@ -21,9 +21,19 @@ class ApiException implements Exception {
     return ApiException(
       statusCode: exception.response?.statusCode,
       // Sin respuesta del servidor: casi siempre es falta de conexión (el pago con Stripe también la requiere).
-      message: 'Sin conexión con el servidor. Revisa tu internet e intenta nuevamente.',
+      message:
+          'Sin conexión con el servidor (${_reason(exception)}). Revisa tu internet e intenta nuevamente.',
     );
   }
+
+  static String _reason(DioException e) => switch (e.type) {
+    DioExceptionType.connectionTimeout ||
+    DioExceptionType.sendTimeout ||
+    DioExceptionType.receiveTimeout => 'tiempo de espera agotado',
+    DioExceptionType.badCertificate => 'certificado no válido, revisa la fecha del teléfono',
+    DioExceptionType.cancel => 'solicitud cancelada',
+    _ => e.error?.toString().split('\n').first ?? 'error de red',
+  };
 
   @override
   String toString() => 'ApiException($statusCode): $message';

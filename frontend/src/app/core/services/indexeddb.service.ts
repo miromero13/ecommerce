@@ -1,12 +1,13 @@
 import { Injectable } from '@angular/core';
 
 export const OFFLINE_DB_NAME = 'FashionStoreOfflineDB';
-export const OFFLINE_DB_VERSION = 2;
+export const OFFLINE_DB_VERSION = 3;
 
 export const STORES = {
   CACHED_CATALOG: 'cached_catalog',
   PENDING_OPERATIONS_QUEUE: 'pending_operations_queue',
   PENDING_CART_ITEMS: 'pending_cart_items',
+  HTTP_CACHE: 'http_cache',
 } as const;
 
 export type StoreName = (typeof STORES)[keyof typeof STORES];
@@ -52,10 +53,31 @@ export class IndexedDbService {
         if (!db.objectStoreNames.contains(STORES.PENDING_CART_ITEMS)) {
           db.createObjectStore(STORES.PENDING_CART_ITEMS, { keyPath: 'id' });
         }
+
+        // 4. Última respuesta con conexión del catálogo público: se muestra cuando no hay internet
+        if (!db.objectStoreNames.contains(STORES.HTTP_CACHE)) {
+          db.createObjectStore(STORES.HTTP_CACHE, { keyPath: 'key' });
+        }
       };
 
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const db = request.result;
+        // Otra pestaña con una versión nueva de la base pide actualizarla: se cierra esta conexión para no bloquearla.
+        db.onversionchange = () => {
+          db.close();
+          this.dbPromise = null;
+        };
+        resolve(db);
+      };
+      request.onerror = () => {
+        this.dbPromise = null;
+        reject(request.error);
+      };
+      // Otra pestaña o ventana instalada (PWA) aún tiene abierta la versión anterior: sin esto la petición queda colgada para siempre.
+      request.onblocked = () => {
+        this.dbPromise = null;
+        reject(new Error('IndexedDB bloqueada por otra pestaña abierta: ciérrala y recarga.'));
+      };
     });
 
     return this.dbPromise;

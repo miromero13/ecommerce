@@ -5,7 +5,7 @@ import { toast } from '@spartan-ng/brain/sonner';
 
 import { IndexedDbService, STORES } from './indexeddb.service';
 import { requestWithToast } from '../utils/request-toast.util';
-import { getErrorMessage } from '../utils/http-error.util';
+import { getErrorMessage, isNoResponse } from '../utils/http-error.util';
 import { AddCartItemRequest } from '../../features/shared/models/cart.model';
 import { CartApiService } from '../../features/shared/services/cart-api.service';
 
@@ -73,8 +73,10 @@ export class OfflineCartService {
       });
       return true;
     } catch (error) {
-      // La conexión se cortó durante la petición: la prenda no se pierde.
-      return isOffline() ? this.saveLocally(payload, productName, variantLabel) : false;
+      // La conexión se cortó durante la petición, o hay Wi-Fi sin internet (navigator.onLine sigue en true pero el servidor
+      // no responde: status 0): la prenda no se pierde, se guarda y se envía al volver la conexión.
+      const noResponse = isNoResponse(error);
+      return isOffline() || noResponse ? this.saveLocally(payload, productName, variantLabel) : false;
     }
   }
 

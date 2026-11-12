@@ -88,7 +88,9 @@ class OfflineCartService {
           _lockedAt = now();
           return first ? [lockedSyncMessage] : []; // the notice is shown only once
         }
-        rejected.add(error is ApiException ? error.message : 'Una prenda no se pudo agregar al carrito.');
+        // Fallo transitorio (sesión vencida, 5xx, límite de peticiones): la prenda se conserva y se reintenta luego.
+        if (error is! ApiException || !const [400, 404, 409, 422].contains(error.statusCode)) break;
+        rejected.add(error.message);
       }
       items.removeAt(0);
       await _save(items);
