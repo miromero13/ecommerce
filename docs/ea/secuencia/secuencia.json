@@ -13640,14 +13640,6 @@
   {
    "cu": "CU29",
    "objs": {
-    "ctl:OfflineQueueService": {
-     "name": "OfflineQueueService",
-     "kind": "control"
-    },
-    "ent:OfflineOperation": {
-     "name": "OfflineOperation",
-     "kind": "entity"
-    },
     "act:CA": {
      "name": "Cajero",
      "kind": "actor"
@@ -13659,6 +13651,18 @@
     "bnd:OfflineQueueModalComponent": {
      "name": "OfflineQueueModalComponent",
      "kind": "boundary"
+    },
+    "ctl:OfflineQueueService": {
+     "name": "OfflineQueueService",
+     "kind": "control"
+    },
+    "ctl:OfflineSyncService": {
+     "name": "OfflineSyncService",
+     "kind": "control"
+    },
+    "ent:OfflineOperation": {
+     "name": "OfflineOperation",
+     "kind": "entity"
     }
    },
    "lifelines": [
@@ -13666,6 +13670,7 @@
     "bnd:CajaPageComponent",
     "bnd:OfflineQueueModalComponent",
     "ctl:OfflineQueueService",
+    "ctl:OfflineSyncService",
     "ent:OfflineOperation"
    ],
    "xs": {
@@ -13675,52 +13680,54 @@
      60
     ],
     "bnd:CajaPageComponent": [
-     233,
+     240,
      196,
-     257
+     264
     ],
     "bnd:OfflineQueueModalComponent": [
-     433,
+     439,
      273,
-     457
+     463
     ],
     "ctl:OfflineQueueService": [
-     639,
+     646,
      213,
-     663
+     670
+    ],
+    "ctl:OfflineSyncService": [
+     822,
+     204,
+     846
     ],
     "ent:OfflineOperation": [
-     1054,
+     1060,
      187,
-     1078
+     1084
     ]
    },
    "ys": [
     134,
     169,
     204,
-    239
+    239,
+    274,
+    309,
+    344,
+    379
    ],
-   "fin": 309,
+   "fin": 449,
    "msgs": [
-    {
-     "from": "ctl:OfflineQueueService",
-     "to": "ctl:OfflineQueueService",
-     "label": "loadQueue()",
-     "num": "1",
-     "ret": false
-    },
-    {
-     "from": "ctl:OfflineQueueService",
-     "to": "ent:OfflineOperation",
-     "label": "getAll<OfflineOperation>(STORES.PENDING_OPERATIONS_QUEUE)",
-     "num": "1.1",
-     "ret": false
-    },
     {
      "from": "act:CA",
      "to": "bnd:CajaPageComponent",
      "label": "showQueueModal.set(true)",
+     "num": "1",
+     "ret": false
+    },
+    {
+     "from": "act:CA",
+     "to": "bnd:OfflineQueueModalComponent",
+     "label": "toggleExpand(operationId)",
      "num": "2",
      "ret": false
     },
@@ -13729,6 +13736,41 @@
      "to": "ctl:OfflineQueueService",
      "label": "operations()",
      "num": "2.1",
+     "ret": false
+    },
+    {
+     "from": "act:CA",
+     "to": "bnd:CajaPageComponent",
+     "label": "syncOfflineQueue()",
+     "num": "3",
+     "ret": false
+    },
+    {
+     "from": "bnd:CajaPageComponent",
+     "to": "ctl:OfflineSyncService",
+     "label": "triggerAutoSync()",
+     "num": "3.1",
+     "ret": false
+    },
+    {
+     "from": "ctl:OfflineSyncService",
+     "to": "ctl:OfflineQueueService",
+     "label": "loadQueue()",
+     "num": "3.2",
+     "ret": false
+    },
+    {
+     "from": "ctl:OfflineQueueService",
+     "to": "ent:OfflineOperation",
+     "label": "getAll<OfflineOperation>(STORES.PENDING_OPERATIONS_QUEUE)",
+     "num": "3.3",
+     "ret": false
+    },
+    {
+     "from": "act:CA",
+     "to": "bnd:CajaPageComponent",
+     "label": "showQueueModal.set(false)",
+     "num": "4",
      "ret": false
     }
    ],

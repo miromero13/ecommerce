@@ -86,6 +86,7 @@ export class OfflineSyncService {
   /**
    * CU30: Sincronización diferida automática al recuperar la conectividad
    */
+  // [CU29 - Secuencia: Paso 3.1] CajaPageComponent invoca triggerAutoSync() en OfflineSyncService
   // [CU30 - Secuencia: Paso 1] El sistema dispara triggerAutoSync() en OfflineSyncService (evento del navegador)
   // [CU30 - Secuencia: Paso 2.1] CajaPageComponent invoca triggerAutoSync() en OfflineSyncService
   async triggerAutoSync(): Promise<void> {

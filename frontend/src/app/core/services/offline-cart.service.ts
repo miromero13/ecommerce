@@ -123,6 +123,10 @@ export class OfflineCartService {
             this.lockToastShown = true;
             break;
           }
+          // Fallo transitorio (red inestable al volver el internet, sesión vencida, 5xx, límite de peticiones): la prenda se
+          // conserva y se reintenta en la próxima sincronización; nunca se descarta por un error que no es del negocio.
+          const status = error instanceof HttpErrorResponse ? error.status : 0;
+          if (![400, 404, 409, 422].includes(status)) break;
           // El servidor la rechazó (sin stock, otra empresa...): se informa y se descarta.
           toast.error(`${product_name} (${variant_label}): ${getErrorMessage(error, 'no se pudo agregar al carrito.')}`);
         }

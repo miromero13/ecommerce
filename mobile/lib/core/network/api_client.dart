@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../config/app_config.dart';
 import 'api_exception.dart';
@@ -8,10 +11,12 @@ typedef TokenProvider = String? Function();
 typedef UnauthorizedHandler = void Function();
 
 class ApiClient {
-  ApiClient({Dio? dio, this.tokenProvider, this.onUnauthorized})
-    : _dio = dio ?? _createDio();
+  ApiClient({Dio? dio, this.tokenProvider, this.onUnauthorized, FlutterSecureStorage? storage})
+    : _dio = dio ?? _createDio(),
+      _storage = storage ?? const FlutterSecureStorage();
 
   final Dio _dio;
+  final FlutterSecureStorage _storage;
   final TokenProvider? tokenProvider;
   final UnauthorizedHandler? onUnauthorized;
 
@@ -94,6 +99,9 @@ class ApiClient {
         ),
       );
       final responseData = response.data;
+      if (_cacheable(method, path) && responseData is Map) {
+        await _cacheWrite(path, queryParameters, responseData);
+      }
 
       if (responseData is! Map) {
         throw const ApiException(message: 'Respuesta inválida del servidor');
@@ -104,10 +112,44 @@ class ApiClient {
         parser: parser,
       );
     } on DioException catch (exception) {
+      // Sin internet: el catálogo se muestra con la última respuesta guardada en el dispositivo.
+      if (exception.response == null && _cacheable(method, path)) {
+        final cached = await _cacheRead(path, queryParameters);
+        if (cached != null) {
+          return ApiResponse.fromJson(cached, parser: parser);
+        }
+      }
       if (exception.response?.statusCode == 401) {
         onUnauthorized?.call();
       }
       throw ApiException.fromDio(exception);
+    }
+  }
+
+  /// Catálogo público (productos, categorías, tallas, colores, temporadas, colecciones, sucursales): se guarda la última
+  /// respuesta con conexión para poder mostrarla sin internet.
+  static bool _cacheable(String method, String path) =>
+      method == 'GET' && (path.startsWith('catalog/') || path == 'branches/public');
+
+  static String _cacheKey(String path, Map<String, dynamic>? query) {
+    final keys = (query?.keys.toList() ?? <String>[])..sort();
+    return 'http_cache:$path?${keys.map((k) => '$k=${query![k]}').join('&')}';
+  }
+
+  Future<void> _cacheWrite(String path, Map<String, dynamic>? query, Map data) async {
+    try {
+      await _storage.write(key: _cacheKey(path, query), value: jsonEncode(data));
+    } catch (_) {}
+  }
+
+  Future<Map<String, dynamic>?> _cacheRead(String path, Map<String, dynamic>? query) async {
+    try {
+      final raw = await _storage.read(key: _cacheKey(path, query));
+      if (raw == null || raw.isEmpty) return null;
+      final data = jsonDecode(raw);
+      return data is Map ? Map<String, dynamic>.from(data) : null;
+    } catch (_) {
+      return null;
     }
   }
 
