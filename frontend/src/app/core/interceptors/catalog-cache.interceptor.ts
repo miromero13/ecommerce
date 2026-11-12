@@ -26,7 +26,8 @@ export const catalogCacheInterceptor: HttpInterceptorFn = (req, next) => {
   const idb = inject(IndexedDbService);
   const key = req.urlWithParams;
   const fromCache = (error: unknown): Observable<HttpEvent<unknown>> =>
-    from(idb.getItem<CachedResponse>(STORES.HTTP_CACHE, key).catch(() => null)).pipe(
+    // Si la base local no responde en 3 s se devuelve el error original en vez de dejar el catálogo cargando para siempre.
+    from(Promise.race([idb.getItem<CachedResponse>(STORES.HTTP_CACHE, key), new Promise<null>((r) => setTimeout(() => r(null), 3000))]).catch(() => null)).pipe(
       switchMap((cached) => (cached ? of(new HttpResponse({ status: 200, body: cached.body })) : throwError(() => error))),
     );
 

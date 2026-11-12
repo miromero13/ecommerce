@@ -60,8 +60,24 @@ export class IndexedDbService {
         }
       };
 
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const db = request.result;
+        // Otra pestaña con una versión nueva de la base pide actualizarla: se cierra esta conexión para no bloquearla.
+        db.onversionchange = () => {
+          db.close();
+          this.dbPromise = null;
+        };
+        resolve(db);
+      };
+      request.onerror = () => {
+        this.dbPromise = null;
+        reject(request.error);
+      };
+      // Otra pestaña o ventana instalada (PWA) aún tiene abierta la versión anterior: sin esto la petición queda colgada para siempre.
+      request.onblocked = () => {
+        this.dbPromise = null;
+        reject(new Error('IndexedDB bloqueada por otra pestaña abierta: ciérrala y recarga.'));
+      };
     });
 
     return this.dbPromise;
