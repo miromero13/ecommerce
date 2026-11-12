@@ -30,7 +30,6 @@ class AppConfig {
 
   static String get apiBaseUrl => '$backendUrl$apiPrefix';
 
-<<<<<<< HEAD
   static const connectTimeout = Duration(seconds: 15);
   static const receiveTimeout = Duration(seconds: 15);
   static const sendTimeout = Duration(seconds: 15);
@@ -50,9 +49,4 @@ class AppConfig {
     final path = trimmed.startsWith('/') ? trimmed : '/$trimmed';
     return '$base$path';
   }
-=======
-  static const connectTimeout = Duration(seconds: 60);
-  static const receiveTimeout = Duration(seconds: 60);
-  static const sendTimeout = Duration(seconds: 60);
->>>>>>> marilyn
 }
