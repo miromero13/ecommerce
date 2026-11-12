@@ -89,16 +89,22 @@ SPEC = {
                     ("TenantBrandingEditorComponent", "removeLogo"), ("TenantBrandingEditorComponent", "resetColor")]],
     "CU27": ["AD", [("OnboardingPageComponent", "loadPlans", None, {"rutas": ["routes.subscription_routes.get_plans_route"]}), ("OnboardingPageComponent", "submitOrder")]],
     "CU28": ["AD", [("SubscriptionPageComponent", "loadSubscription"), ("SubscriptionPageComponent", "confirmChange")]],
-    # el monitor no tiene metodo propio: se abre desde la plantilla de la caja y lee la senal del servicio
-    # 1) el servicio carga la cola en su constructor (offline-queue.service.ts: constructor -> loadQueue);
-    # 2) el cajero abre el monitor desde la caja (caja-page.component.html: showQueueModal.set(true));
-    # 3) la plantilla del monitor lee la senal del servicio (offline-queue-modal.component.ts: offlineQueue.operations()).
-    "CU29": ["CA", [("MANUAL", [("ctl:OfflineQueueService", "ctl:OfflineQueueService", "loadQueue()", "1"),
+    # el monitor (modal) no tiene metodo propio de apertura: el Cajero lo abre y lo cierra desde la plantilla de la caja
+    # (caja-page.component.html: showQueueModal.set(true) / set(false)); "Sincronizar lote ahora" emite syncNow, que la caja
+    # atiende con syncOfflineQueue() (los @Output del modal no se pueden dibujar como mensaje interfaz -> interfaz, por eso
+    # la accion se muestra como el Cajero llamando a la caja); expandir el detalle (toggleExpand) es del modal y la plantilla
+    # vuelve a leer la senal operations() del servicio.
+    # 1) abrir el monitor; 2) expandir el detalle de una operacion; 3) sincronizar el lote ahora (offline-sync.service.ts:
+    #    triggerAutoSync -> loadQueue -> getAll; el envio al servidor se detalla en CU30); 4) cerrar el monitor.
+    "CU29": ["CA", [("MANUAL", [("act:CA", "bnd:CajaPageComponent", "showQueueModal.set(true)", "1"),
+                                ("act:CA", "bnd:OfflineQueueModalComponent", "toggleExpand(operationId)", "2"),
+                                ("bnd:OfflineQueueModalComponent", "ctl:OfflineQueueService", "operations()", "2.1"),
+                                ("act:CA", "bnd:CajaPageComponent", "syncOfflineQueue()", "3"),
+                                ("bnd:CajaPageComponent", "ctl:OfflineSyncService", "triggerAutoSync()", "3.1"),
+                                ("ctl:OfflineSyncService", "ctl:OfflineQueueService", "loadQueue()", "3.2"),
                                 ("ctl:OfflineQueueService", "ent:OfflineOperation",
-                                 "getAll<OfflineOperation>(STORES.PENDING_OPERATIONS_QUEUE)", "1.1"),
-                                ("act:CA", "bnd:CajaPageComponent", "showQueueModal.set(true)", "2"),
-                                ("act:CA", "bnd:OfflineQueueModalComponent", None, None),
-                                ("bnd:OfflineQueueModalComponent", "ctl:OfflineQueueService", "operations()", "2.1")])]],
+                                 "getAll<OfflineOperation>(STORES.PENDING_OPERATIONS_QUEUE)", "3.3"),
+                                ("act:CA", "bnd:CajaPageComponent", "showQueueModal.set(false)", "4")])]],
     "CU30": ["CA", [("OfflineSyncService", "triggerAutoSync", "-"), ("CajaPageComponent", "syncOfflineQueue"),
                     ("OfflineCartService", "syncPending", "-"),
                     # la pagina de conflictos lee los conflictos del servidor y resuelve uno (entregado / reembolso /

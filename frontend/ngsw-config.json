@@ -33,5 +33,21 @@
     "!/**/*.*",
     "!/api/**",
     "!/demo-assets/**"
+  ],
+  "dataGroups": [
+    {
+      "name": "catalogo-publico",
+      "urls": [
+        "*://*/api/catalog/**",
+        "*://*/api/branches/public**",
+        "/runtime-config.js"
+      ],
+      "cacheConfig": {
+        "strategy": "freshness",
+        "maxSize": 200,
+        "maxAge": "7d",
+        "timeout": "4s"
+      }
+    }
   ]
 }

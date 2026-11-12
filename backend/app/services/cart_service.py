@@ -71,8 +71,6 @@ def _get_active_cart(db: Session, user_id: UUID) -> Cart:
     return cart
 
 
-# [CU16 - Secuencia: Paso 4.4] wishlist_routes invoca _get_mutable_cart(user_id) sobre la entidad Carrito
-# [CU16 - Secuencia: Paso 4.5] Carrito retorna _get_mutable_cart(user_id): Cart a wishlist_routes
 def _expire_due_orders(db: Session) -> None:
     # Before locking the cart row: an order past its 40 minutes must not keep the cart locked.
     from app.services.order_service import expire_due_orders
@@ -82,6 +80,8 @@ def _expire_due_orders(db: Session) -> None:
 
 # [CU15 - Secuencia: Pasos 3.2, 4.2] cart_routes invoca _get_mutable_cart(user_id) sobre la entidad Carrito
 # [CU15 - Secuencia: Pasos 3.3, 4.3] Carrito retorna _get_mutable_cart(user_id): Cart a cart_routes
+# [CU16 - Secuencia: Paso 4.4] wishlist_routes invoca _get_mutable_cart(user_id) sobre la entidad Carrito
+# [CU16 - Secuencia: Paso 4.5] Carrito retorna _get_mutable_cart(user_id): Cart a wishlist_routes
 # [CU25 - Secuencia: Paso 2.7] cart_routes invoca _get_mutable_cart(user_id) sobre la entidad Carrito
 # [CU25 - Secuencia: Paso 2.8] Carrito retorna _get_mutable_cart(user_id): Cart a cart_routes
 # [CU30 - Secuencia: Paso 3.4] cart_routes invoca _get_mutable_cart(user_id) sobre la entidad Carrito
