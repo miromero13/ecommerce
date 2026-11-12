@@ -1,9 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, WritableSignal, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { debounceTime, distinctUntilChanged, firstValueFrom } from 'rxjs';
+import { Observable, debounceTime, distinctUntilChanged, firstValueFrom } from 'rxjs';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
   lucideAlertTriangle,
@@ -38,6 +38,7 @@ import {
   CatalogNameItem,
   CatalogProduct,
   CatalogProductVariant,
+  ListResponse,
 } from '../../shared/models/catalog.model';
 import { CatalogApiService } from '../../shared/services/catalog-api.service';
 import { CartApiService } from '../../shared/services/cart-api.service';
@@ -518,31 +519,31 @@ export class CatalogPageComponent {
   }
 
   private async loadData(): Promise<void> {
-    try {
-      const [branches, categories, sizes, colors, seasons, collections, products, tenants] =
-        await Promise.all([
-          firstValueFrom(this.api.listPublicBranches()),
-          firstValueFrom(this.api.listCategories()),
-          firstValueFrom(this.api.listSizes()),
-          firstValueFrom(this.api.listColors()),
-          firstValueFrom(this.api.listSeasons()),
-          firstValueFrom(this.api.listCollections()),
-          firstValueFrom(this.api.listProducts()),
-          firstValueFrom(this.tenantApi.listPublicTenants()),
-        ]);
-      this.branches.set(branches.data ?? []);
-      this.categories.set(categories.data ?? []);
-      this.sizes.set(sizes.data ?? []);
-      this.colors.set(colors.data ?? []);
-      this.seasons.set(seasons.data ?? []);
-      this.collections.set(collections.data ?? []);
-      this.products.set(products.data ?? []);
-      this.tenants.set(tenants.data ?? []);
-      this.ensureSelectedVariants();
-      void this.loadRecommendations();
-    } catch (error) {
-      toast.error(getErrorMessage(error, 'No se pudo cargar el catálogo.'));
-    }
+    // Una consulta que falla (p. ej. sin conexión y sin copia local) no debe vaciar el catálogo: cada lista se carga por separado
+    // y solo se reemplaza la que respondió; las demás conservan su valor previo.
+    let failed = false;
+    const load = async <T>(request: Observable<ListResponse<T>>, target: WritableSignal<T[]>): Promise<void> => {
+      try {
+        target.set((await firstValueFrom(request)).data ?? []);
+      } catch (error) {
+        failed = true;
+        lastError = error;
+      }
+    };
+    let lastError: unknown;
+    await Promise.all([
+      load(this.api.listPublicBranches(), this.branches),
+      load(this.api.listCategories(), this.categories),
+      load(this.api.listSizes(), this.sizes),
+      load(this.api.listColors(), this.colors),
+      load(this.api.listSeasons(), this.seasons),
+      load(this.api.listCollections(), this.collections),
+      load(this.api.listProducts(), this.products),
+      load(this.tenantApi.listPublicTenants(), this.tenants),
+    ]);
+    if (failed) toast.error(getErrorMessage(lastError, 'No se pudo cargar todo el catálogo.'));
+    this.ensureSelectedVariants();
+    void this.loadRecommendations();
   }
 
   protected branchName(branchId: string | null): string {

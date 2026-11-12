@@ -1,7 +1,8 @@
-import { HttpErrorResponse, HttpEvent, HttpInterceptorFn, HttpResponse } from '@angular/common/http';
+import { HttpEvent, HttpInterceptorFn, HttpResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Observable, catchError, from, of, switchMap, tap, throwError } from 'rxjs';
 
+import { isNoResponse } from '../utils/http-error.util';
 import { IndexedDbService, STORES } from '../services/indexeddb.service';
 
 interface CachedResponse {
@@ -18,7 +19,7 @@ function isCatalogRead(url: string): boolean {
 
 /**
  * CU23 (cliente): guarda en IndexedDB la última respuesta con conexión del catálogo y la devuelve cuando el servidor
- * no responde (status 0: sin internet, Wi-Fi sin salida o servidor caído), para que el catálogo se vuelva a mostrar
+ * no responde (status 0 o 504 del service worker: sin internet, Wi-Fi sin salida o servidor caído), para que el catálogo se vuelva a mostrar
  * al navegar al carrito y regresar sin conexión. Con una respuesta real del servidor (aunque sea un error) no interviene.
  */
 export const catalogCacheInterceptor: HttpInterceptorFn = (req, next) => {
@@ -37,6 +38,6 @@ export const catalogCacheInterceptor: HttpInterceptorFn = (req, next) => {
         void idb.putItem<CachedResponse>(STORES.HTTP_CACHE, { key, body: event.body, saved_at: new Date().toISOString() }).catch(() => {});
       }
     }),
-    catchError((error: unknown) => (error instanceof HttpErrorResponse && error.status === 0 ? fromCache(error) : throwError(() => error))),
+    catchError((error: unknown) => (isNoResponse(error) ? fromCache(error) : throwError(() => error))),
   );
 };
